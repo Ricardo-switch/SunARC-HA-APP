@@ -11,14 +11,14 @@
 (function (global) {
   'use strict';
   const ICOON = {
-    thuis: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>',
-    vandaag: '<path d="M3 17c3-6 6-9 9-9s6 3 9 9"/><path d="M12 3v2M5.6 5.6l1.4 1.4M18.4 5.6 17 7"/><path d="M3 21h18"/>',
-    tedoen: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',
-    apparaten: '<path d="M13 2 5 13h6l-1 9 8-11h-6z"/>',
-    opbrengst: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
-    assistent: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
-    meldingen: '<path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/>',
-    instellingen: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    thuis: iconen.binnen('thuis'),
+    vandaag: iconen.binnen('vandaag'),
+    tedoen: iconen.binnen('tedoen'),
+    apparaten: iconen.binnen('apparaten'),
+    opbrengst: iconen.binnen('opbrengst'),
+    assistent: iconen.binnen('assistent'),
+    meldingen: iconen.binnen('meldingen'),
+    instellingen: iconen.binnen('instellingen'),
   };
   /** De zes plekken; hun namen staan in teksten.*.js (besluit 185). */
   const NAMEN = ['thuis', 'vandaag', 'tedoen', 'apparaten', 'opbrengst', 'assistent'];

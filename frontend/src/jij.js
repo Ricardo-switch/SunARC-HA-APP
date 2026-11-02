@@ -13,22 +13,22 @@ const { $$, esc, haal, deur } = app;
 const KLEUREN = ['lucht', 'framboos', 'zeegroen', 'violet', 'koper', 'grafiet'].map((k) => [k, t(`jij.kleur.${k}`)]);
 const THEMAS = ['donker', 'licht', 'systeem'].map((x) => [x, t(`jij.thema.${x}`)]);
 const IK = {
-  kleur: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/>',
-  weergave: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5"/>',
-  letters: '<path d="M4 19 9 5l5 14M5.8 14h6.4M15 19l3-8 3 8M15.8 17h4.4"/>',
-  beweging: '<path d="M3 12h4l3-7 4 14 3-7h4"/>',
-  kaarten: '<rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/>',
-  favorieten: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
-  wand: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 21h6"/>',
-  comfort: '<path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/>',
-  thuis: '<path d="M4 11 12 4l8 7v9H4z"/><circle cx="12" cy="14" r="2"/>',
-  naam: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
-  downloaden: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
-  bel: '<path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/>',
-  taal: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
-  terug: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 4.5v4h4"/>',
-  agenda: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
-  tel: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  kleur: iconen.binnen('kleur'),
+  weergave: iconen.binnen('weergave'),
+  letters: iconen.binnen('letters'),
+  beweging: iconen.binnen('beweging'),
+  kaarten: iconen.binnen('kaarten'),
+  favorieten: iconen.binnen('favorieten'),
+  wand: iconen.binnen('wand'),
+  comfort: iconen.binnen('comfort'),
+  thuis: iconen.binnen('thuis'),
+  naam: iconen.binnen('naam'),
+  downloaden: iconen.binnen('downloaden'),
+  bel: iconen.binnen('meldingen'),
+  taal: iconen.binnen('taal'),
+  terug: iconen.binnen('terug'),
+  agenda: iconen.binnen('agenda'),
+  tel: iconen.binnen('telefoon'),
 };
 /** De taal (besluit 185): vanzelf die van je account in Home Assistant, of zelf gekozen. De teksten in kit/teksten.*.js. */
 const TALEN = ['auto', 'nl', 'en'];

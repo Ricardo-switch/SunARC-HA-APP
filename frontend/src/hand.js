@@ -313,8 +313,8 @@
     return h.status === 'fulfilled';
   }
   const IK = {
-    klimaat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="6" width="18" height="8" rx="2"/><path d="M7 18c0-1.5 1-2 1-3M12 19c0-1.5 1-2 1-3M17 18c0-1.5 1-2 1-3"/></svg>',
-    witgoed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/></svg>',
+    klimaat: iconen.svg('klimaat'),
+    witgoed: iconen.svg('witgoed'),
   };
   function nuHtml() {
     const klimaat = (data?.apparaten ?? []).filter((a) => a.actief).map((a) => `<div class="nu-regel"><span class="ik">${IK.klimaat}</span><div><b>${esc(a.naam)}</b><span>${esc(nuZin(a))}</span></div><button type="button" data-nu-terug="${esc(a.id)}">${esc(t('hand.terugKort'))}</button></div>`);

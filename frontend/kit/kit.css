@@ -708,3 +708,10 @@ a.knop:not(.knop-licht) {
 .chips.seg > .chip { flex: 1 1 auto; min-height: 30px; border-radius: 9px; background: transparent; color: var(--zacht); white-space: nowrap; justify-content: center; }
 .chips.seg > .chip.aan, .chips.seg > .chip[aria-pressed='true'] { background: rgb(var(--wit) / 0.14); color: var(--tekst); }
 .chips.seg > .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/*
+ * De iconen (2 november 2026, kit/iconen.js): duotoon. In het menu alleen de
+ * lijn; het gekozen item krijgt het vlak voluit in de kleur van zijn onderwerp.
+ */
+.balk .ik-vlak, .tabs .ik-vlak { fill-opacity: 0; transition: fill-opacity 0.2s; }
+.balk a[aria-current='page'] .ik-vlak, .tabs a[aria-current='page'] .ik-vlak { fill-opacity: 0.85; }

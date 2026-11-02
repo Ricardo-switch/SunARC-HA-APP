@@ -30,31 +30,31 @@
   const KORT = new Set(['kamers', 'favorieten', 'straks', 'apparaat', 'gevoel', 'vandaag', 'morgen', 'auto', 'batterij', 'maand', 'deurbel', 'boiler', 'sluip', 'tedoen']);
   const S = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const ICOON = {
-    kamers: S('<path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/>'),
-    favorieten: S('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>'),
-    straks: S('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),
-    apparaat: S('<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 6.5h2"/>'),
-    gevoel: S('<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/>'),
-    vandaag: S('<path d="M3 17c3-6 6-9 9-9s6 3 9 9"/><path d="M12 3v2M5.6 5.6l1.4 1.4M18.4 5.6 17 7"/><path d="M3 21h18"/>'),
-    morgen: S('<path d="M7 18h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 7.3 11.2 3.5 3.5 0 0 0 7 18z"/>'),
-    auto: S('<path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="16" r="1.5"/><circle cx="16.5" cy="16" r="1.5"/>'),
-    batterij: S('<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M10 2h4M9 14h6M9 10h6"/>'),
-    maand: S('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'),
+    kamers: S(iconen.binnen('thuis')),
+    favorieten: S(iconen.binnen('favorieten')),
+    straks: S(iconen.binnen('straks')),
+    apparaat: S(iconen.binnen('apparaat')),
+    gevoel: S(iconen.binnen('gevoel')),
+    vandaag: S(iconen.binnen('vandaag')),
+    morgen: S(iconen.binnen('morgen')),
+    auto: S(iconen.binnen('auto')),
+    batterij: S(iconen.binnen('batterij')),
+    maand: S(iconen.binnen('maand')),
     // De kaart Camera's (besluit 201) heeft het camera-icoon; de bel staat bij de deurbel zelf.
-    deurbel: S('<rect x="3" y="7" width="13" height="10" rx="2"/><path d="m16 11 5-3v8l-5-3"/>'),
-    camera: S('<rect x="3" y="7" width="13" height="10" rx="2"/><path d="m16 11 5-3v8l-5-3"/>'),
-    bel: S('<path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
-    boiler: S('<rect x="7" y="2.5" width="10" height="19" rx="5"/><path d="M10 15h4"/>'),
+    deurbel: S(iconen.binnen('deurbel')),
+    camera: S(iconen.binnen('camera')),
+    bel: S(iconen.binnen('meldingen')),
+    boiler: S(iconen.binnen('boiler')),
     // Het sluipverbruik (besluit 192): de maan, want het gaat om de nacht.
-    sluip: S('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'),
+    sluip: S(iconen.binnen('sluip')),
     // Te doen (besluit 217): het icoon van de tab.
-    tedoen: S('<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>'),
-    lamp: S('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'),
-    scene: S('<path d="M5 19l4-11 4 6 3-4 3 9z"/><circle cx="17" cy="6" r="1.6"/>'),
-    screen: S('<path d="M4 4h16"/><path d="M5.5 4v9h13V4"/><path d="M5.5 7h13M5.5 10h13"/><path d="M12 13v3"/>'),
-    zonnescherm: S('<path d="M3 6h18"/><path d="M4 6l2 7h12l2-7"/><path d="M6 13l-1 3M18 13l1 3"/>'),
-    greep: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>',
-    oog: S('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+    tedoen: S(iconen.binnen('tedoen')),
+    lamp: S(iconen.binnen('lamp')),
+    scene: S(iconen.binnen('scene')),
+    screen: S(iconen.binnen('screen')),
+    zonnescherm: S(iconen.binnen('zonnescherm')),
+    greep: iconen.svg('greep'),
+    oog: S(iconen.binnen('oog')),
   };
 
   let v = STANDAARD;

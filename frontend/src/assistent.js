@@ -106,17 +106,17 @@ const zoneNaam = (id) => huismodel.zoneNaam(id, huisData);
 /* ------------------------------------------------------------ de vragen */
 
 const IK = {
-  zon: ['zon', '<svg viewBox="0 0 24 24" fill="none" stroke="#F7B548" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>'],
-  grafiek: ['zon', '<svg viewBox="0 0 24 24" fill="none" stroke="#F7B548" stroke-width="1.9" stroke-linecap="round"><path d="M4 18h16M7 14l3-4 3 3 4-6"/></svg>'],
-  klok: ['violet', '<svg viewBox="0 0 24 24" fill="none" stroke="#B7B0FF" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>'],
-  temp: ['', '<svg viewBox="0 0 24 24" fill="none" stroke="#a9e6ff" stroke-width="1.9" stroke-linecap="round"><path d="M10 14.5V5a2 2 0 1 1 4 0v9.5a4 4 0 1 1-4 0z"/></svg>'],
-  koel: ['', '<svg viewBox="0 0 24 24" fill="none" stroke="#a9e6ff" stroke-width="1.9" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></svg>'],
-  warm: ['warm', '<svg viewBox="0 0 24 24" fill="none" stroke="#ffb090" stroke-width="1.9" stroke-linecap="round"><path d="M12 21c-3.3 0-6-2.5-6-6 0-4 4-6 4-10 2.5 1.5 4 4 4 6 1-.8 1.5-2 1.5-3 1.6 1.4 2.5 3.8 2.5 7 0 3.5-2.7 6-6 6z"/></svg>'],
-  nu: ['violet', '<svg viewBox="0 0 24 24" fill="none" stroke="#B7B0FF" stroke-width="1.9" stroke-linecap="round"><path d="M4 12h3l2-6 4 12 2-6h5"/></svg>'],
-  weer: ['', '<svg viewBox="0 0 24 24" fill="none" stroke="#a9e6ff" stroke-width="1.9" stroke-linecap="round"><path d="M7 17h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 17z"/></svg>'],
-  licht: ['lamp', '<svg viewBox="0 0 24 24" fill="none" stroke="#FFB765" stroke-width="1.9" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/></svg>'],
-  scene: ['violet', '<svg viewBox="0 0 24 24" fill="none" stroke="#B7B0FF" stroke-width="1.9" stroke-linecap="round"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><circle cx="12" cy="16" r="3"/></svg>'],
-  scherm: ['', '<svg viewBox="0 0 24 24" fill="none" stroke="#6FD3FF" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="4" width="16" height="4" rx="1"/><path d="M6 8v9h12V8M6 13h12"/></svg>'],
+  zon: ['zon', iconen.svg('zon')],
+  grafiek: ['zon', iconen.svg('grafiek')],
+  klok: ['violet', iconen.svg('klok')],
+  temp: ['', iconen.svg('klimaat')],
+  koel: ['', iconen.svg('koel')],
+  warm: ['warm', iconen.svg('warm')],
+  nu: ['violet', iconen.svg('nu')],
+  weer: ['', iconen.svg('weer')],
+  licht: ['lamp', iconen.svg('licht')],
+  scene: ['violet', iconen.svg('scene')],
+  scherm: ['', iconen.svg('screen')],
 };
 
 /** Wachten op zon: per kamer wat er nodig is en wat er over is. */

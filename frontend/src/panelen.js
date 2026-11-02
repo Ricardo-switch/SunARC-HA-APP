@@ -331,11 +331,11 @@ const ligging = (() => {
     const vlakken = vlakkenMetAantal(w, a);
     const chip = `<span class="pan-chip ${bron}">${esc(t(`panelen3.chip.${bron}`))}</span>`;
     const stapper = (sleutel, n, plek) => `<div class="pan-stap"><button type="button" data-pan-stap="${sleutel}" data-d="-1" aria-label="${esc(t('panelen3.minder', { plek }))}">−</button><b>${n ?? '?'}</b><button type="button" data-pan-stap="${sleutel}" data-d="1" aria-label="${esc(t('panelen3.meer', { plek }))}">+</button></div>`;
-    const HUIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>';
+    const HUIS = iconen.svg('thuis');
     const PLEK_IK = {
-      garage: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5 9 5v11H3z"/><path d="M6 20v-8h12v8"/></svg>',
-      carport: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18M5 8v12M19 8v12"/></svg>',
-      tuinhuis: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6 8 6v9H4z"/><path d="M10 20v-5h4v5"/></svg>',
+      garage: iconen.svg('garage'),
+      carport: iconen.svg('carport'),
+      tuinhuis: iconen.svg('tuinhuis'),
     };
     const huisRijen = vlakken.length
       ? vlakken.map((vl) => {

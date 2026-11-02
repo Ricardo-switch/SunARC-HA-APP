@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Iconen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Een nieuwe iconenset (schets, 2 november 2026). Ricardo: "de iconenset
+   * compleet redesignen; premium, en goed bij de app passen", vóór de nieuwe
+   * beelden voor GitHub.
+   *
+   * Nu: 22 losse lijstjes, 235 iconen, 184 verschillende tekeningen, plus 69
+   * losse plaatjes in de code. Straks één set in één bestand (kit/iconen.js).
+   *
+   * Dezelfde 24 nieuwe tekeningen, in drie afwerkingen:
+   *   A Lijn     fijne lijn, 1,6 dik, ronde hoeken; rustig en precies.
+   *   B Duotoon  dezelfde lijn met een zacht vlak in de kleur van het
+   *              onderwerp (zon, ijs, mint, violet); past bij het glas.
+   *   C Tegel    het icoon op een eigen glazen tegeltje met een verloop in
+   *              die kleur; het meest "app", zoals de 3D-wereld van het huis.
+   * Tekenregels: raster van 24, 2 rand vrij, lijn 1,6, ronde uiteinden en
+   * hoeken, hoekstraal 2,5 tot 3, cirkels op hele maten.
+   */
+  .wand { position: relative; }
+  main { padding: 22px 26px 22px 26px; display: flex; flex-direction: column; gap: 14px; }
+  .kopregel h1 { margin: 0; }
+  .kopregel p { margin: 4px 0 0; color: var(--zacht); font-size: 15px; max-width: 80ch; }
+  .drie { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-height: 0; }
+  .richting { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .richting h2 { margin: 0; font-family: var(--kop); font-size: 22px; font-weight: 600; display: flex; align-items: baseline; gap: 10px; }
+  .richting h2 span { font-family: var(--romp); font-size: 13px; font-weight: 600; color: var(--gedempt); }
+  .raster { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px 4px; }
+  .cel { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10.5px; color: var(--gedempt); }
+  .cel svg { width: 30px; height: 30px; }
+  .tegel-ik { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; }
+  .tegel-ik svg { width: 24px; height: 24px; }
+  .cel .tegel-ik { width: 38px; height: 38px; }
+  .cel .tegel-ik svg { width: 22px; height: 22px; }
+  /* Het menu in het klein. */
+  .menu { display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 18px; background: rgb(var(--nacht) / 0.55); border: 1px solid var(--glas-rand); }
+  .menu a { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 52px; padding: 6px 0; border-radius: 12px; font-size: 10.5px; color: var(--gedempt); text-decoration: none; }
+  .menu a svg { width: 22px; height: 22px; }
+  .menu a.aan { background: rgb(var(--wit) / 0.1); color: var(--tekst); }
+  /* Een rij en een tegel, zoals bij Instellingen. */
+  .regels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .regel { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 14px; background: rgb(var(--wit) / 0.05); font-size: 13.5px; font-weight: 600; }
+  .regel .ik { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: rgb(var(--wit) / 0.06); flex: none; }
+  .regel .ik svg { width: 20px; height: 20px; }
+  .regel small { display: block; font-size: 11.5px; font-weight: 500; color: var(--gedempt); }
+</style>
+</head>
+<body>
+<div class="wand lucht lucht-avond">
+  <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
+  <main>
+    <div class="kopregel">
+      <h1 class="kop-1">Iconen</h1>
+      <p>Dezelfde 24 nieuwe tekeningen in drie afwerkingen. Kies een richting; daarna teken ik de hele set (ruim 150 onderwerpen) en gaat elke pagina hem gebruiken.</p>
+    </div>
+    <div class="drie" id="drie"></div>
+  </main>
+</div>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script>
+  nav.balk(document.getElementById('balk'), 'instellingen');
+  /*
+   * De tekeningen: `l` is de lijn, `v` het vlak voor duotoon en tegel (een deel
+   * van de vorm), `k` de kleur van het onderwerp.
+   */
+  const K = { zon: '#f7b548', ijs: '#6fd3ff', mint: '#6ee7b7', violet: '#8f86ff', gloed: '#ff7a4d', net: '#c9d3dc' };
+  const I = {
+    thuis: { k: 'mint', l: '<path d="M3.5 10.6 12 4l8.5 6.6"/><path d="M5.5 9.1V19a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.1"/><path d="M10 20v-4.5a2 2 0 0 1 4 0V20"/>', v: '<path d="M5.5 9.1 12 4l6.5 5.1V20h-13z"/>' },
+    vandaag: { k: 'zon', l: '<path d="M3 18.5h18"/><path d="M6.8 18.5a5.2 5.2 0 0 1 10.4 0"/><path d="M12 6.2v2.4M5.4 9.6l1.7 1.7M18.6 9.6l-1.7 1.7M2.8 14.6h2.3M18.9 14.6h2.3"/>', v: '<path d="M6.8 18.5a5.2 5.2 0 0 1 10.4 0z"/>' },
+    tedoen: { k: 'mint', l: '<rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="m8 9.2 1.4 1.4 2.6-2.6M8 15.2l1.4 1.4 2.6-2.6M14.6 9.6H16.5M14.6 15.6H16.5"/>', v: '<rect x="4" y="3.5" width="16" height="17" rx="3"/>' },
+    apparaten: { k: 'zon', l: '<path d="M13.2 3 6 13.2h5.3L10.7 21 18 10.8h-5.3z"/>', v: '<path d="M13.2 3 6 13.2h5.3L10.7 21 18 10.8h-5.3z"/>' },
+    opbrengst: { k: 'zon', l: '<rect x="4" y="12" width="4" height="8" rx="1.6"/><rect x="10" y="7.5" width="4" height="12.5" rx="1.6"/><rect x="16" y="4" width="4" height="16" rx="1.6"/>', v: '<rect x="16" y="4" width="4" height="16" rx="1.6"/>' },
+    assistent: { k: 'violet', l: '<path d="M20 11.5c0 4.1-3.6 7.5-8 7.5-1.2 0-2.3-.2-3.3-.6L4.2 20l1.2-3.6A7.2 7.2 0 0 1 4 11.5C4 7.4 7.6 4 12 4s8 3.4 8 7.5z"/><path d="m12 8.3.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>', v: '<path d="M20 11.5c0 4.1-3.6 7.5-8 7.5-1.2 0-2.3-.2-3.3-.6L4.2 20l1.2-3.6A7.2 7.2 0 0 1 4 11.5C4 7.4 7.6 4 12 4s8 3.4 8 7.5z"/>' },
+    meldingen: { k: 'gloed', l: '<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.4 1.5H5.1z"/><path d="M10.2 20.6h3.6"/>', v: '<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.4 1.5H5.1z"/>' },
+    instellingen: { k: 'net', l: '<circle cx="12" cy="12" r="2.8"/><path d="M10.4 3.5h3.2l.5 2.3 1.6.9 2.2-.8 1.6 2.8-1.7 1.6v1.4l1.7 1.6-1.6 2.8-2.2-.8-1.6.9-.5 2.3h-3.2l-.5-2.3-1.6-.9-2.2.8-1.6-2.8 1.7-1.6v-1.4L4.6 8.7l1.6-2.8 2.2.8 1.6-.9z"/>', v: '<path d="M10.4 3.5h3.2l.5 2.3 1.6.9 2.2-.8 1.6 2.8-1.7 1.6v1.4l1.7 1.6-1.6 2.8-2.2-.8-1.6.9-.5 2.3h-3.2l-.5-2.3-1.6-.9-2.2.8-1.6-2.8 1.7-1.6v-1.4L4.6 8.7l1.6-2.8 2.2.8 1.6-.9z"/>' },
+    licht: { k: 'zon', l: '<path d="M9.4 17.6h5.2M10.3 20.8h3.4"/><path d="M12 3.2a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2v.2h5.2V16c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.2z"/>', v: '<path d="M12 3.2a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2v.2h5.2V16c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.2z"/>' },
+    klimaat: { k: 'gloed', l: '<path d="M10 14.2V5.6a2 2 0 0 1 4 0v8.6a4 4 0 1 1-4 0z"/><path d="M12 9.5v6.3"/>', v: '<circle cx="12" cy="17.4" r="3.2"/>' },
+    airco: { k: 'ijs', l: '<rect x="3" y="4.5" width="18" height="7.5" rx="2.6"/><path d="M7 9h10"/><path d="M8 15.2c0 1.5-1 2.1-1 3.6M12 15.2v3.9M16 15.2c0 1.5 1 2.1 1 3.6"/>', v: '<rect x="3" y="4.5" width="18" height="7.5" rx="2.6"/>' },
+    panelen: { k: 'zon', l: '<path d="M5.3 5h13.4l2.1 9.8H3.2z"/><path d="M4.2 9.9h15.6M9.7 5l-.6 9.8M14.3 5l.6 9.8"/><path d="M12 14.8v3.7M8.5 19.5h7"/>', v: '<path d="M5.3 5h13.4l2.1 9.8H3.2z"/>' },
+    batterij: { k: 'mint', l: '<rect x="3" y="7" width="16" height="10" rx="2.6"/><path d="M21 10.4v3.2"/><path d="m11.6 9.2-2.1 3.1h3l-2.1 2.9"/>', v: '<rect x="3" y="7" width="16" height="10" rx="2.6"/>' },
+    boiler: { k: 'gloed', l: '<rect x="7" y="2.8" width="10" height="18.4" rx="5"/><path d="M10 16.2h4"/><path d="M12 7.6c-1 1.2-1.6 2-1.6 2.9a1.6 1.6 0 0 0 3.2 0c0-.9-.6-1.7-1.6-2.9z"/>', v: '<rect x="7" y="2.8" width="10" height="18.4" rx="5"/>' },
+    witgoed: { k: 'ijs', l: '<rect x="4" y="3" width="16" height="18" rx="3"/><circle cx="12" cy="13.2" r="4.6"/><path d="M7.4 6.6h2M14.4 6.6h2.2"/><path d="M9.6 13.7c1.5-1 3.3 1 4.8 0"/>', v: '<circle cx="12" cy="13.2" r="4.6"/>' },
+    camera: { k: 'violet', l: '<rect x="3" y="6.5" width="12.6" height="11" rx="3"/><path d="m15.6 10.4 5-2.9v9l-5-2.9"/>', v: '<rect x="3" y="6.5" width="12.6" height="11" rx="3"/>' },
+    deurbel: { k: 'violet', l: '<rect x="7" y="2.8" width="10" height="18.4" rx="5"/><circle cx="12" cy="14.6" r="2.3"/><path d="M10.5 7.6h3"/>', v: '<circle cx="12" cy="14.6" r="2.3"/>' },
+    screen: { k: 'ijs', l: '<path d="M3.8 4h16.4"/><path d="M5.6 4v9.6h12.8V4"/><path d="M5.6 7.2h12.8M5.6 10.4h12.8"/><path d="M12 13.6v4"/><circle cx="12" cy="19.2" r="1.3"/>', v: '<path d="M5.6 4h12.8v9.6H5.6z"/>' },
+    weer: { k: 'ijs', l: '<path d="M9.2 4.8a3.8 3.8 0 0 1 5.6 2.6"/><path d="M12 2.3v.9M6 4.6l.6.6M4.3 9.8h.9"/><path d="M7.2 19.5h10a3.9 3.9 0 0 0 .4-7.8 5.4 5.4 0 0 0-10.5 1.6 3.1 3.1 0 0 0 .1 6.2z"/>', v: '<path d="M7.2 19.5h10a3.9 3.9 0 0 0 .4-7.8 5.4 5.4 0 0 0-10.5 1.6 3.1 3.1 0 0 0 .1 6.2z"/>' },
+    wand: { k: 'mint', l: '<rect x="3" y="4.5" width="18" height="12.6" rx="2.6"/><path d="M9 20.6h6M12 17.1v3.5"/>', v: '<rect x="3" y="4.5" width="18" height="12.6" rx="2.6"/>' },
+    slaapkamer: { k: 'violet', l: '<path d="M3 18.6v-7.4a2.1 2.1 0 0 1 2.1-2.1h13.8a2.1 2.1 0 0 1 2.1 2.1v7.4"/><path d="M3 15.2h18"/><path d="M6 9.1V6.6A1.6 1.6 0 0 1 7.6 5h8.8A1.6 1.6 0 0 1 18 6.6v2.5"/>', v: '<path d="M3 15.2v-4a2.1 2.1 0 0 1 2.1-2.1h13.8a2.1 2.1 0 0 1 2.1 2.1v4z"/>' },
+    keuken: { k: 'gloed', l: '<path d="M3.2 11.2h13.6v2.3a5 5 0 0 1-5 5H8.2a5 5 0 0 1-5-5z"/><path d="M16.8 12.4h4"/><path d="M8 4.6c0 1.5 1 1.5 1 3M12 4.6c0 1.5 1 1.5 1 3"/>', v: '<path d="M3.2 11.2h13.6v2.3a5 5 0 0 1-5 5H8.2a5 5 0 0 1-5-5z"/>' },
+    badkamer: { k: 'ijs', l: '<path d="M3 12h18v2.1a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/><path d="M6 12V6.6a2.6 2.6 0 0 1 4.6-1.6"/><path d="m7 19.1-1 1.8M17 19.1l1 1.8"/>', v: '<path d="M3 12h18v2.1a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/>' },
+    auto: { k: 'net', l: '<path d="M5 16.4V12l1.8-4.1a2 2 0 0 1 1.8-1.3h6.8a2 2 0 0 1 1.8 1.3L19 12v4.4"/><path d="M4 12.4h16v4.2a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1z"/><path d="M6.4 17.6v1.6M17.6 17.6v1.6"/><circle cx="7.8" cy="15" r=".5"/><circle cx="16.2" cy="15" r=".5"/>', v: '<path d="M4 12.4h16v4.2a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1z"/>' },
+  };
+  const NAAM = { thuis: 'Thuis', vandaag: 'Vandaag', tedoen: 'Te doen', apparaten: 'Apparaten', opbrengst: 'Opbrengst', assistent: 'Assistent', meldingen: 'Meldingen', instellingen: 'Instellen', licht: 'Licht', klimaat: 'Klimaat', airco: 'Airco', panelen: 'Panelen', batterij: 'Batterij', boiler: 'Boiler', witgoed: 'Witgoed', camera: 'Camera', deurbel: 'Deurbel', screen: 'Screen', weer: 'Weer', wand: 'Wand', slaapkamer: 'Slaapkamer', keuken: 'Keuken', badkamer: 'Badkamer', auto: 'Auto' };
+
+  const lijn = (id, kleur = 'currentColor', dikte = 1.6) => `<svg viewBox="0 0 24 24" fill="none" stroke="${kleur}" stroke-width="${dikte}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[id].l}</svg>`;
+  const duo = (id) => {
+    const k = K[I[id].k];
+    return `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g fill="${k}" fill-opacity="0.26" stroke="none">${I[id].v}</g><g stroke="currentColor" stroke-width="1.6">${I[id].l}</g></svg>`;
+  };
+  const tegel = (id) => {
+    const k = K[I[id].k];
+    return `<span class="tegel-ik" style="background: linear-gradient(150deg, ${k}55, ${k}14 70%); box-shadow: inset 0 0 0 1px ${k}40, inset 0 1px 0 rgba(255,255,255,0.18)"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g fill="${k}" fill-opacity="0.35" stroke="none">${I[id].v}</g><g stroke="#fff" stroke-width="1.7">${I[id].l}</g></svg></span>`;
+  };
+  const RICHTING = [
+    ['A', 'Lijn', 'rustig en precies', (id) => lijn(id)],
+    ['B', 'Duotoon', 'lijn met een vlak in de kleur van het onderwerp', duo],
+    ['C', 'Tegel', 'op een glazen tegeltje met verloop', tegel],
+  ];
+  const MENU = ['thuis', 'vandaag', 'tedoen', 'apparaten', 'opbrengst', 'assistent'];
+  const REGELS = [['klimaat', 'Woonkamer', '20,5° · verwarmt tot 21°'], ['panelen', 'Zon', '1,8 kW nu'], ['witgoed', 'Droger', 'wacht op zon'], ['camera', 'Voordeur', '2 bewegingen']];
+  document.getElementById('drie').innerHTML = RICHTING.map(([letter, naam, zin, teken]) => `<section class="glas richting">
+      <h2>${letter} · ${naam} <span>${zin}</span></h2>
+      <div class="raster">${Object.keys(I).map((id) => `<div class="cel">${teken(id)}<span>${NAAM[id]}</span></div>`).join('')}</div>
+      <nav class="menu">${MENU.map((id, i) => `<a class="${i === 0 ? 'aan' : ''}">${letter === 'C' ? duo(id) : teken(id)}${NAAM[id]}</a>`).join('')}</nav>
+      <div class="regels">${REGELS.map(([id, t, z]) => `<div class="regel">${letter === 'C' ? tegel(id) : `<span class="ik">${teken(id)}</span>`}<div>${t}<small>${z}</small></div></div>`).join('')}</div>
+    </section>`).join('');
+</script>
+</body>
+</html>

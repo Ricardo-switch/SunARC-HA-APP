@@ -28,8 +28,8 @@ let keuze = null;
 let bron = null;
 
 const merk = '<span class="merk"><i aria-hidden="true"></i>SunArc</span>';
-const ICOON_IK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
-const ICOON_SCHERM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>';
+const ICOON_IK = iconen.svg('persoon');
+const ICOON_SCHERM = iconen.svg('wand');
 
 async function stuur(body) {
   const res = await fetch('api/bewoners', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });

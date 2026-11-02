@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.115.0
+
+*2 november 2026*
+
+**Nieuw**
+
+- Nieuwe iconen overal: één set, met een fijne lijn en een zacht vlak in de kleur van het onderwerp; in het menu krijgt waar je bent zijn kleur
+
+*English*
+
+**New**
+
+- New icons everywhere: one set, with a fine line and a soft fill in the colour of the subject; in the menu, where you are gets its colour
+
 ## 0.114.4
 
 *2 november 2026*

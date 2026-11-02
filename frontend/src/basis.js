@@ -1367,25 +1367,25 @@
   let meld = { actief: [], eerder: [] };
   let meldZicht = 'lijst';
   const MELDICOON = {
-    nieuw: ['blauw', '<path d="M12 5v14M5 12h14"/>'],
+    nieuw: ['blauw', iconen.binnen('nieuw')],
     // Weg uit Home Assistant (25 oktober 2026): een min in een rondje.
-    weg: ['geel', '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>'],
-    stil: ['rood', '<path d="M2 8.8a15 15 0 0 1 20 0M5 12.6a10 10 0 0 1 14 0M8.5 16.4a5 5 0 0 1 7 0"/><path d="M3 3l18 18"/>'],
-    batterij: ['geel', '<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M5 10v4"/>'],
-    filter: ['geel', '<path d="M3 5h18l-7 8v6l-4 2v-8z"/>'],
-    meter: ['rood', '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'],
-    versie: ['paars', '<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/>'],
-    mijlpaal: ['blauw', '<path d="M4 18c3-8 6-10 8-10s4 3 8 0"/>'],
+    weg: ['geel', iconen.binnen('weg')],
+    stil: ['rood', iconen.binnen('stil')],
+    batterij: ['geel', iconen.binnen('batterij')],
+    filter: ['geel', iconen.binnen('filter')],
+    meter: ['rood', iconen.binnen('meter')],
+    versie: ['paars', iconen.binnen('versie')],
+    mijlpaal: ['blauw', iconen.binnen('mijlpaal')],
     // Wiens comfort geldt (besluit 147): een persoon.
-    comfort: ['geel', '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'],
+    comfort: ['geel', iconen.binnen('comfort')],
     // De panelen zijn gemeten (besluit 157): een zon.
     // Een nieuwe versie die klaarstaat (21 oktober 2026): een pijl omlaag.
-    update: ['blauw', '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>'],
-    panelen: ['geel', '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'],
+    update: ['blauw', iconen.binnen('update')],
+    panelen: ['geel', iconen.binnen('panelen')],
     // Een rookmelder (21 oktober 2026): rook, koolmonoxide of hitte, of vervangen.
-    rook: ['rood', '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2"/>'],
-    goed: ['groen', '<path d="M5 12l5 5 9-10"/>'],
-    onderhoud: ['grijs', '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'],
+    rook: ['rood', iconen.binnen('rook')],
+    goed: ['groen', iconen.binnen('goed')],
+    onderhoud: ['grijs', iconen.binnen('onderhoud')],
   };
   const meldIcoon = (soort) => {
     const [kleur, pad] = MELDICOON[soort] ?? MELDICOON.nieuw;

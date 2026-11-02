@@ -541,10 +541,10 @@ function klimaatToestellen() {
 }
 const toestelNaam = (sleutel) => klimaatToestellen().find((x) => x.sleutel === sleutel)?.a.naam ?? (huisData?.etages ?? []).flatMap((e) => e.ruimtes ?? []).flatMap((r) => r.apparaten ?? []).find((a) => a.id === sleutel)?.naam ?? sleutel;
 
-const ICOON_WARM = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffb090" stroke-width="1.8" stroke-linecap="round"><path d="M3 19h18M6 15c1.5-1.5 1.5-3 0-4.5S4.5 7.5 6 6M12 15c1.5-1.5 1.5-3 0-4.5S10.5 7.5 12 6M18 15c1.5-1.5 1.5-3 0-4.5S16.5 7.5 18 6"/></svg>';
-const ICOON_RADIATOR = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffb090" stroke-width="1.8" stroke-linecap="round"><path d="M6 4v16M10 4v16M14 4v16M18 4v16M4 8h16M4 16h16"/></svg>';
-const ICOON_KOEL = '<svg viewBox="0 0 24 24" fill="none" stroke="#a9e6ff" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="6" width="18" height="8" rx="2"/><path d="M7 18c0-1.5 1-2 1-3M12 19c0-1.5 1-2 1-3M17 18c0-1.5 1-2 1-3"/></svg>';
-const ICOON_THERMO = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffb090" stroke-width="1.8" stroke-linecap="round"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/></svg>';
+const ICOON_WARM = iconen.svg('warm');
+const ICOON_RADIATOR = iconen.svg('verwarming');
+const ICOON_KOEL = iconen.svg('airco');
+const ICOON_THERMO = iconen.svg('klimaat');
 
 /*
  * De regeling per kamer (besluit 138, schets Wand-Indeling-Regeling): per

@@ -46,7 +46,8 @@ verwijzing bestaat.
   hoofdzekering ([178]). Wat je huis kan zegt wat er in Home Assistant klaar
   moet staan, met een tik naar dat scherm ([179]); sinds [246] per functie en
   per niveau bij Klaarzetten, met stappen die zichzelf afvinken en een wand die
-  zelf meldt hoe Fully staat. Een profiel per bewoner,
+  zelf meldt hoe Fully staat. Eén iconenset, duotoon, voor de hele app ([247]).
+  Een profiel per bewoner,
   met een licht thema op de telefoon en een eigen kleur ([181]).
 - **Wat het huis verandert:** eind 2026 drie fasen van 25 A in plaats van één
   van 35 A ([78]); deze winter de ventilatie, een breukpunt voor het thermisch
@@ -814,4 +815,5 @@ verwijzing bestaat.
 [244]: DECISIONS.md#244-een-taak-als-één-zin-en--nieuw-op-te-doen
 [245]: DECISIONS.md#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken
 [246]: DECISIONS.md#246-klaarzetten-per-niveau
+[247]: DECISIONS.md#247-eén-iconenset-duotoon
 <!-- links:einde -->

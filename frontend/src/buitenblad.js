@@ -29,11 +29,11 @@
   const isBuiten = (huis, id) => ruimtes(huis).some((r) => r.id === id);
 
   const ICOON = {
-    lamp: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>',
-    camera: '<rect x="3" y="7" width="13" height="10" rx="2"/><path d="m16 11 5-3v8l-5-3"/>',
-    garage: '<path d="M3 10 12 4l9 6v10H3z"/><path d="M7 20v-7h10v7M7 16h10"/>',
-    auto: '<path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="13" r="1"/><circle cx="16.5" cy="13" r="1"/>',
-    pijl: '<path d="m9 6 6 6-6 6"/>',
+    lamp: iconen.binnen('lamp'),
+    camera: iconen.binnen('camera'),
+    garage: iconen.binnen('garage'),
+    auto: iconen.binnen('auto'),
+    pijl: iconen.binnen('pijl'),
   };
   const ik = (pad) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pad}</svg>`;
   const schakel = (aan, attr, label) => `<button type="button" class="schakelaar" role="switch" aria-checked="${aan}" aria-label="${esc(label)}" ${attr}></button>`;

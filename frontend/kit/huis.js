@@ -65,24 +65,24 @@
    * wat er van de inrichting te zien is.
    */
   const KAMER_ICOON = {
-    slaapkamer: '<path d="M3 19v-8h18v8"/><path d="M3 15h18"/><path d="M6 11V8.5A1.5 1.5 0 0 1 7.5 7h3A1.5 1.5 0 0 1 12 8.5V11"/>',
-    logeerkamer: '<path d="M3 19v-8h18v8"/><path d="M3 15h18"/><path d="M6 11V8.5A1.5 1.5 0 0 1 7.5 7h3A1.5 1.5 0 0 1 12 8.5V11"/>',
-    kinderkamer: '<path d="M3 19v-7h13v7"/><path d="M3 16h13"/><path d="M5.5 12v-2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2"/><path d="M19 3l.7 1.6 1.6.7-1.6.7L19 7.6l-.7-1.6-1.6-.7 1.6-.7z"/>',
-    woonkamer: '<path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M3 12a2 2 0 0 1 2 2v1h14v-1a2 2 0 1 1 2 2v2H3v-2a2 2 0 0 1 0-4z"/><path d="M5 18v2M19 18v2"/>',
-    woonkeuken: '<path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M3 12a2 2 0 0 1 2 2v1h14v-1a2 2 0 1 1 2 2v2H3v-2a2 2 0 0 1 0-4z"/><path d="M5 18v2M19 18v2"/>',
-    keuken: '<path d="M3 11h14v3a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/><path d="M17 12h4"/><path d="M8 7.5c0-1.2 1-1.3 1-2.5M12 7.5c0-1.2 1-1.3 1-2.5"/>',
-    eetkamer: '<path d="M6 3v5a2 2 0 0 0 4 0V3M8 10v11"/><path d="M17 3c-2 1.2-3 3.4-3 6.5V13h3v8"/>',
-    badkamer: '<path d="M3 12h18v2a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/><path d="M6 12V6.5a2.5 2.5 0 0 1 5 0"/><path d="M7 19l-1 2M17 19l1 2"/>',
-    toilet: '<path d="M7 3h6v6H7z"/><path d="M5 9h14a6 6 0 0 1-6 6h-2l1 6H8l1-6"/>',
-    hal: '<path d="M3 20h5v-4h4v-4h4V8h5"/>',
-    werkkamer: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
-    wasruimte: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M7 6.5h2"/>',
-    berging: '<path d="M3 8l9-4 9 4v9l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v9"/>',
-    kamer: '<path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><path d="M3 21h18"/><path d="M14.5 12h.01"/>',
+    slaapkamer: iconen.binnen('slaapkamer'),
+    logeerkamer: iconen.binnen('bed'),
+    kinderkamer: iconen.binnen('kinderkamer'),
+    woonkamer: iconen.binnen('woonkamer'),
+    woonkeuken: iconen.binnen('keuken'),
+    keuken: iconen.binnen('keuken'),
+    eetkamer: iconen.binnen('eetkamer'),
+    badkamer: iconen.binnen('badkamer'),
+    toilet: iconen.binnen('toilet'),
+    hal: iconen.binnen('hal'),
+    werkkamer: iconen.binnen('werkkamer'),
+    wasruimte: iconen.binnen('witgoed'),
+    berging: iconen.binnen('berging'),
+    kamer: iconen.binnen('kamer'),
     // Besluit 166: bijkeuken, kelder en garage.
-    bijkeuken: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M7 6.5h2"/>',
-    kelder: '<path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10"/><path d="M9 20v-4h6v4M9 13h6"/>',
-    garage: '<path d="M3 9l9-5 9 5v11H3z"/><path d="M6 20v-8h12v8M6 15h12M6 18h12"/>',
+    bijkeuken: iconen.binnen('keuken'),
+    kelder: iconen.binnen('kelder'),
+    garage: iconen.binnen('garage'),
   };
   /** Een soort zonder eigen meubels krijgt die van een soort die erop lijkt (besluit 166). */
   const MEUBELS_ALS = { bijkeuken: 'wasruimte', kelder: 'berging', garage: 'berging' };
