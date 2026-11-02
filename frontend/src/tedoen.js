@@ -42,6 +42,10 @@
   let zon = null;
   /** De keuze onder + Nieuw staat open (besluit 244). */
   let keuzeOpen = false;
+  /** De agenda's met hun kleur staan open (besluit 245). */
+  let agendasOpen = false;
+  /** Welke lijst onder de herinneringen open staat: boodschappen of todo (besluit 245). */
+  let lijstOpen = null;
 
   const dagStart = (ms) => {
     const d = new Date(ms);
@@ -206,19 +210,28 @@
     return `td-eigen${Math.max(0, eigen.indexOf(a.agenda)) % 4}`;
   }
 
-  /** Twee weken: vandaag, en elke dag waarop iets staat. */
+  /** De agenda's waar de afspraken vandaan komen, elk met zijn kleur; op de wand een per bewoner die thuis is. */
+  function bronnenVan() {
+    const bronnen = new Map();
+    for (const a of data.afspraken) {
+      const sleutel = a.bron === 'afval' ? 'afval' : a.bron === 'gezin' ? 'gezin' : a.wie ? `wie:${a.wie}` : a.agenda;
+      if (!bronnen.has(sleutel)) bronnen.set(sleutel, { naam: a.bron === 'afval' ? t('tedoen.afval') : a.bron === 'gezin' ? t('tedoen.gezin') : (a.wie ?? data.agendas?.[a.agenda] ?? a.agenda), kleur: a.bron === 'afval' ? 'td-gft' : kleurVan(a) });
+    }
+    return bronnen;
+  }
+
+  /**
+   * Twee weken: vandaag, en elke dag waarop iets staat. De agenda's met hun kleur
+   * zijn ingeklapt tot één regel bovenaan de kolom (besluit 245); open staan ze
+   * met Agenda's kiezen erbij.
+   */
   function agendaHtml() {
     const vandaag = dagStart(Date.now());
     const dagen = [...new Set([vandaag, ...data.afspraken.map((a) => dagStart(a.startMs)).filter((d) => d >= vandaag)])].sort((a, b) => a - b);
     const kort = new Intl.DateTimeFormat(nl() ? 'nl-NL' : 'en-GB', { weekday: 'short' });
-    // De bronnen boven de lijst, met hun kleur.
-    const bronnen = new Map();
-    for (const a of data.afspraken) {
-      // Op de wand een bron per bewoner die thuis is, met zijn naam.
-      const sleutel = a.bron === 'afval' ? 'afval' : a.bron === 'gezin' ? 'gezin' : a.wie ? `wie:${a.wie}` : a.agenda;
-      if (!bronnen.has(sleutel)) bronnen.set(sleutel, { naam: a.bron === 'afval' ? t('tedoen.afval') : a.bron === 'gezin' ? t('tedoen.gezin') : (a.wie ?? data.agendas?.[a.agenda] ?? a.agenda), kleur: a.bron === 'afval' ? 'td-gft' : kleurVan(a) });
-    }
-    const legenda = bronnen.size ? `<div class="tdp-bronnen">${[...bronnen.values()].map((b) => `<span class="tdp-bron"><i class="${b.kleur}"></i>${esc(b.naam)}</span>`).join('')}</div>` : '';
+    const bronnen = bronnenVan();
+    const kiezen = data.bewoner ? `<a class="tdp-kiezen" href="jij.html#agenda">${esc(t('tedoen.agendasKiezen'))} ›</a>` : '';
+    const legenda = agendasOpen && (bronnen.size || kiezen) ? `<div class="tdp-bronnen">${[...bronnen.values()].map((b) => `<span class="tdp-bron"><i class="${b.kleur}"></i>${esc(b.naam)}</span>`).join('')}${kiezen}</div>` : '';
     const dag = (ms) => {
       const daar = data.afspraken.filter((a) => dagStart(a.startMs) === ms);
       const items = daar.length
@@ -232,7 +245,8 @@
   /** Welke lijst net "weghalen?" vroeg: een tweede tik binnen vijf seconden haalt ze weg. */
   let opruimVraag = null;
 
-  function lijstHtml(l) {
+  /** Een lijst om af te vinken en aan te vullen; met tabbladen erboven zonder eigen kop (`metTabs`). */
+  function lijstHtml(l, metTabs = false) {
     // Alles wat open is, en hooguit vijf afgevinkte (30 oktober 2026: een lijst van jaren stond vol afgevinkte).
     const open = l.items.filter((i) => !i.klaar);
     const af = l.items.filter((i) => i.klaar);
@@ -243,7 +257,7 @@
       : '';
     const naam = t(l.soort === 'boodschappen' ? 'tedoen.boodschappen' : 'tedoen.todo');
     return `<div class="tdp-lijst">
-      <h3>${esc(naam)}<span>${open.length}</span></h3>
+      ${metTabs ? '' : `<h3>${esc(naam)}<span>${open.length}</span></h3>`}
       <div class="td-items">${
         items.length
           ? items.map((i) => `<button type="button" class="td-item${i.klaar ? ' af' : ''}" data-td-item="${esc(i.tekst)}" data-td-uid="${esc(i.uid ?? '')}" data-td-lijst="${l.soort}" data-td-klaar="${i.klaar}"><span class="td-box">${i.klaar ? svg(IK.vink, 2.4) : ''}</span>${esc(i.tekst)}</button>`).join('')
@@ -254,28 +268,38 @@
     </div>`;
   }
 
+  /** De lijsten onder de herinneringen (besluit 245): boodschappen en to-do als twee tabbladen, één tegelijk open. */
+  function lijstenHtml() {
+    if (!data.lijsten.length) return `<p class="mini">${esc(t('tedoen.geenLijsten'))}</p>`;
+    const open = data.lijsten.find((l) => l.soort === lijstOpen) ?? data.lijsten[0];
+    const tabs = data.lijsten.length > 1
+      ? `<div class="tdp-tabs" role="tablist">${data.lijsten.map((l) => `<button type="button" role="tab" data-td-lijsttab="${l.soort}" aria-selected="${l === open}">${esc(t(l.soort === 'boodschappen' ? 'tedoen.boodschappen' : 'tedoen.todo'))}<b>${l.items.filter((i) => !i.klaar).length}</b></button>`).join('')}</div>`
+      : '';
+    return `<div class="tdp-lijsten">${tabs}${lijstHtml(open, !!tabs)}</div>`;
+  }
+
   function paginaHtml() {
     const datum = new Intl.DateTimeFormat(nl() ? 'nl-NL' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(Date.now());
-    const kop = `<div class="tdp-kop"><div><h1 class="kop-1">${esc(t('tedoen.kop'))}</h1><p>${esc(datum.charAt(0).toUpperCase() + datum.slice(1))} · ${t('tedoen.tip')}</p></div>
-      <div class="tdp-knoppen">${telStand() || !data?.bewoner ? '' : `<a class="pil" href="jij.html#agenda">${esc(t('tedoen.agendasKiezen'))}</a>`}<button type="button" class="pil licht" data-td-keuzeknop aria-expanded="${keuzeOpen}">${esc(t('tedoen.plusNieuw'))}</button></div></div>${data?.aan ? keuzeHtml() : ''}`;
+    // Rustig bovenaan (besluit 245): de datum en + Nieuw; Agenda's kiezen staat bij de agenda, zeg het onder + Nieuw.
+    const kop = `<div class="tdp-kop"><div><h1 class="kop-1">${esc(t('tedoen.kop'))}</h1><p>${esc(datum.charAt(0).toUpperCase() + datum.slice(1))}</p></div>
+      <div class="tdp-knoppen"><button type="button" class="pil licht" data-td-keuzeknop aria-expanded="${keuzeOpen}">${esc(t('tedoen.plusNieuw'))}</button></div></div>${data?.aan ? keuzeHtml() : ''}`;
     if (!data) return `${kop}<p class="mini">${esc(t('algemeen.laden'))}</p>`;
     if (!data.aan) return `${kop}<section class="glas tdp-vak"><p class="uitleg">${esc(t('tedoen.uit'))}</p><a class="pil" href="functies.html?groep=assistent#tedoen">${esc(t('tedoen.naarFuncties'))}</a></section>`;
     // Wat nu met de hand of op zon loopt (besluit 238), boven de rest.
     const nu = global.hand?.nuHtml() ?? '';
-    return `${kop}${nu ? `<div class="nu-regels">${nu}</div>` : ''}<div class="tdp-drie vier">
+    // Drie kolommen (besluit 245): herinneringen met de lijsten eronder, Vast en gepland, en de agenda.
+    const n = bronnenVan().size;
+    return `${kop}${nu ? `<div class="nu-regels">${nu}</div>` : ''}<div class="tdp-drie">
       <section class="glas tdp-vak">
         <h2>${esc(t('tedoen.herinneringen'))}<em>${data.herinneringen.length || ''}</em></h2>
         ${data.herinneringen.map(herinneringHtml).join('') || `<p class="mini">${esc(t('tedoen.geenHerinneringen'))}</p>`}
         <form class="td-erbij" data-td-nieuw><input type="text" maxlength="160" placeholder="${esc(t('tedoen.nieuw'))}" aria-label="${esc(t('tedoen.nieuwLabel'))}"></form>
-        <p class="td-bron">${t('tedoen.zoWerkt')}</p>
+        ${lijstenHtml()}
       </section>
       ${vastGeplandHtml(data.gepland ?? [])}
       <section class="glas tdp-vak">
-        <h2>${esc(t('tedoen.agenda'))}${telStand() && data.bewoner ? `<a href="jij.html#agenda">${esc(t('tedoen.agendasKiezen'))} ›</a>` : `<em>${esc(t('tedoen.tweeWeken'))}</em>`}</h2>
+        <h2>${esc(t('tedoen.agenda'))}${n || data.bewoner ? `<button type="button" class="tdp-agendas" data-td-agendas aria-expanded="${agendasOpen}">${esc(t('tedoen.agendasN', { n }))} ${agendasOpen ? '‹' : '›'}</button>` : `<em>${esc(t('tedoen.tweeWeken'))}</em>`}</h2>
         ${agendaHtml()}
-      </section>
-      <section class="glas tdp-vak">
-        ${data.lijsten.length ? data.lijsten.map(lijstHtml).join('') : `<p class="mini">${esc(t('tedoen.geenLijsten'))}</p>`}
       </section>
     </div>`;
   }
@@ -342,8 +366,17 @@
   }
 
   document.addEventListener('click', (e) => {
-    const el = e.target.closest?.('[data-tedoen], [data-td-keuzeknop], [data-td-keuzedicht], [data-td-keuze], [data-td-gp-aan], [data-td-gedaan], [data-td-item], [data-td-later], [data-td-opruim]');
+    const el = e.target.closest?.('[data-tedoen], [data-td-keuzeknop], [data-td-keuzedicht], [data-td-keuze], [data-td-agendas], [data-td-lijsttab], [data-td-gp-aan], [data-td-gedaan], [data-td-item], [data-td-later], [data-td-opruim]');
     if (!el) return;
+    // De agenda's openklappen, en een andere lijst kiezen (besluit 245).
+    if (el.matches('[data-td-agendas]')) {
+      agendasOpen = !agendasOpen;
+      return tekenPagina();
+    }
+    if (el.matches('[data-td-lijsttab]')) {
+      lijstOpen = el.dataset.tdLijsttab;
+      return tekenPagina();
+    }
     // De kaart op Thuis opent de tab (besluit 217).
     if (el.matches('[data-tedoen]')) {
       location.href = 'tedoen.html';

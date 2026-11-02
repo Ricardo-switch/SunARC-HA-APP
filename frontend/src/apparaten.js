@@ -120,16 +120,17 @@ function kaart(d) {
     <div class="labels">${label}</div>
     <div class="vandaag"><span>${esc(t('thuis.kaart.vandaag'))}</span><b>${esc(draaide > 0 ? t('apparaten.gedraaid', { duur: uren(draaide) }) : t('apparaten.nietGedraaid'))}</b></div>`;
 
-  // Wacht hij op zon, dan opent een tik het blad: uiterlijk klaar, en Nu starten (besluit 238).
-  if (d.kanKiezen) {
-    el.dataset.blad = 'witgoed';
-    el.dataset.wg = d.id;
-    el.tabIndex = 0;
-    el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', t('witgoed.openBlad', { naam: d.naam }));
-    if (d.klaarVoor) el.querySelector('.zin').insertAdjacentHTML('afterend', `<p class="mini" style="color: var(--zon-t); font-weight: 600; margin: 0">${esc(t('witgoed.klaarVoorKort', { klok: d.klaarVoor }))}</p>`);
-    witgoedNu.set(d.id, d);
-  }
+  // Een tik opent altijd het blad (besluit 245): wacht hij op zon, dan uiterlijk klaar en Nu starten
+  // (besluit 238); anders hoe je hem klaarzet, zodat je ziet dat er iets mee kan.
+  el.dataset.blad = 'witgoed';
+  el.dataset.wg = d.id;
+  el.tabIndex = 0;
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-label', t(d.kanKiezen ? 'witgoed.openBlad' : 'witgoed.openUitleg', { naam: d.naam }));
+  const regel = (tekst) => el.querySelector('.zin').insertAdjacentHTML('afterend', `<p class="mini wg-regel">${esc(tekst)}</p>`);
+  if (d.kanKiezen && d.klaarVoor) regel(t('witgoed.klaarVoorKort', { klok: d.klaarVoor }));
+  else if (!d.kanKiezen && d.stand !== 'running') regel(t('witgoed.hoeKlaarzetten'));
+  witgoedNu.set(d.id, d);
   return el;
 }
 

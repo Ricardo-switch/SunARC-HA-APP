@@ -2245,9 +2245,15 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       expect(await tab.locator('.td-her').count()).toBe(1);
       // Vandaag, morgen (GFT), de zwemles en de PMD over acht dagen.
       expect(await tab.locator('.tdp-dag').count()).toBe(4);
+      // De agenda's ingeklapt tot één regel (besluit 245), en open met hun kleur.
+      expect(await tab.locator('.tdp-bronnen').count()).toBe(0);
+      await tab.locator('[data-td-agendas]').click();
       expect(await tab.locator('.tdp-bronnen').textContent()).toContain('Gezin');
       expect(await tab.locator('.tdp-dag', { hasText: 'PMD' }).count()).toBe(1);
-      expect(await tab.locator('.tdp-lijst').count()).toBe(2);
+      // Drie kolommen (besluit 245): de lijsten als tabbladen onder de herinneringen.
+      expect(await tab.locator('.tdp-drie > section').count()).toBe(3);
+      expect(await tab.locator('.tdp-lijst').count()).toBe(1);
+      expect(await tab.locator('.tdp-tabs [data-td-lijsttab]').count()).toBe(2);
       // Een scherm aan de wand heeft geen eigen agenda's (besluit 218): geen knop ernaartoe.
       expect(await tab.locator('a[href="jij.html#agenda"]').count()).toBe(0);
       // Vast en gepland als eigen kolom (besluit 244): de boog, de taak met zijn tijd, en alles naar de eigen pagina.
@@ -2269,12 +2275,14 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       await tab.locator('.td-item', { hasText: 'Melk' }).click();
       await expect.poll(() => gestuurd.length).toBe(1);
       expect(gestuurd[0]).toEqual({ actie: 'klaar', lijst: 'boodschappen', item: 'Melk', uid: '1' });
+      await tab.locator('[data-td-lijsttab="todo"]').click();
       await tab.locator('[data-td-erbij][data-td-lijst="todo"] input').fill('Kaas');
       await tab.locator('[data-td-erbij][data-td-lijst="todo"] input').press('Enter');
       await expect.poll(() => gestuurd.length).toBe(2);
       expect(gestuurd[1]).toEqual({ actie: 'toevoegen', lijst: 'todo', item: 'Kaas' });
       // Een geplande opdracht weghalen gaat via Aanpassen op Vast en gepland (besluit 234).
       // De afgevinkte weghalen: eerst vraagt de knop het, de tweede tik doet het.
+      await tab.locator('[data-td-lijsttab="boodschappen"]').click();
       await tab.locator('[data-td-opruim="boodschappen"]').click();
       await expect.poll(() => tab.locator('[data-td-opruim="boodschappen"]').textContent()).toBe('Zeker? 1 weg');
       expect(gestuurd).toHaveLength(2);
@@ -4574,11 +4582,14 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     expect(await laag.locator('[data-hand-zet]').isDisabled()).toBe(true);
     await p.keyboard.press('Escape');
     expect(await laag.count()).toBe(0);
-    // Op de telefoon: het blad van onderen.
-    await p.setViewportSize({ width: 390, height: 844 });
+    // Op de telefoon: het blad van onderen, over de hele breedte; ook op een telefoon breder dan
+    // 390, waar de klasse tel uit kit.css het blad eerst 390 breed hield (2 november 2026).
+    await p.setViewportSize({ width: 430, height: 932 });
     await p.locator('#tel .app[data-klimaat="climate.beneden"]').click();
-    await p.locator('.hand-laag.tel .hand-blad').waitFor();
-    expect(await p.locator('.hand-laag.tel .hand-terug').textContent()).toBe('Terug naar je regeling');
+    await p.locator('.hand-laag.op-tel .hand-blad').waitFor();
+    expect(await p.locator('.hand-laag.op-tel .hand-terug').textContent()).toBe('Terug naar je regeling');
+    expect(await p.locator('.hand-laag.op-tel').evaluate((e) => Math.round(e.getBoundingClientRect().width))).toBe(430);
+    expect(await p.locator('.hand-laag.op-tel .hand-vel').evaluate((e) => Math.round(e.getBoundingClientRect().width))).toBe(430);
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-blad-tel.png') });
     expect(fouten).toEqual([]);
     await context.close();
