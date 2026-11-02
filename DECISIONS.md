@@ -11382,8 +11382,9 @@ zonder de toets.
   ingelogd is): of de pagina in Fully draait, of de JavaScript-interface aan
   staat, en of de camera meekijkt. Alleen in het geheugen, hooguit eens per tien
   minuten, en niets naar Home Assistant.
-- **Bij Functies** staan bij Praten en Stem en luisteren de open stappen voor
-  "Hé huis", en bij Scherm uit die voor de wand, met "Alles bij Klaarzetten".
+- **Bij Functies** staat bij Praten, Stem en luisteren en Scherm uit hoeveel
+  stappen er nog open zijn: op de wand rechts in de lijst (die is vol en scrolt
+  nooit), op de telefoon de stappen zelf, met "Alles bij Klaarzetten".
   De tegel Inrichten noemt tot drie open stappen voor iedereen en "Nog n
   stappen"; wie Inrichten al doorliep, komt dan op Klaarzetten.
 - In het Engels is het wekwoord "Hey house".

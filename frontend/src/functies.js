@@ -64,13 +64,26 @@ async function laadKlaar() {
   klaar = await klaarstappen.laad().catch(() => klaar);
   teken();
 }
-/** Wat bij Klaarzetten nog open is voor dit deel (besluit 246): de assistent bij Praten en Stem, de wand bij Scherm uit. */
-function nogKlaar(deel) {
+/** De functie van Klaarzetten bij dit deel (besluit 246): de assistent bij Praten en Stem, de wand bij Scherm uit. */
+function klaarVan(deel) {
   const id = { praten: 'assistent', stem: 'assistent', uit: 'wand' }[deel];
-  const f = id ? (klaar?.functies ?? []).find((x) => x.id === id) : null;
-  if (!f) return '';
+  return id ? ((klaar?.functies ?? []).find((x) => x.id === id) ?? null) : null;
+}
+/** Hoeveel stappen er nog open zijn, voor rechts in de lijst; leeg als niets. */
+function nogTekst(deel) {
+  const f = klaarVan(deel);
+  const n = f ? klaarstappen.open(f).length : 0;
+  return n ? t('kz.nogKort', { n }) : null;
+}
+/*
+ * De open stappen boven het deel, alleen op de telefoon: op de wand is Praten
+ * en Scherm uit al vol, en de wand scrolt nooit. Daar staat het rechts in de lijst.
+ */
+function nogKlaar(deel) {
+  const f = klaarVan(deel);
+  if (!f || !app.telStand()) return '';
   const n = klaarstappen.open(f).length;
-  return klaarstappen.nog(f, t(id === 'wand' ? 'kz.nogScherm' : 'kz.nogHeHuis', { n }));
+  return klaarstappen.nog(f, t(f.id === 'wand' ? 'kz.nogScherm' : 'kz.nogHeHuis', { n }));
 }
 async function laad() {
   const [f, z, v, h, i, st] = await Promise.allSettled([haal('api/functies'), haal('api/zon'), haal('api/voorkeuren'), haal('api/huis'), haal('api/indeling'), haal('api/startscherm'), haal('api/luister-stand').then((x) => (luisterStand = x)), haal('api/stemmen').then((x) => (stemmen = x)), laadKlaar()]);
@@ -701,7 +714,7 @@ function tekenNu() {
   app.schaal();
   app.luchtVan(zon, 0);
   if (!info || !concept) return;
-  const nu = groep.tekenDelen(delen());
+  const nu = groep.tekenDelen(delen().map((x) => (x.id && nogTekst(x.id) ? { ...x, nog: nogTekst(x.id) } : x)));
   const vorm = { cameras, deurbel, licht, weer, praten, stem: stemVorm, tedoen: teDoenVorm, meldingen, scherm, startscherm: startschermVorm, aod, uit: schermUit }[nu]?.() ?? '';
   // Terug naar standaard (besluit 204): rechtsboven, alleen als dit deel afwijkt van wat de app voorstelt.
   const terug = afwijkend(nu) ? `<button type="button" class="knop stdknop" data-standaard-deel="${esc(nu)}">${esc(t('functies.std'))}</button>` : '';

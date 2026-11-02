@@ -4208,9 +4208,10 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     await stappen.locator('h2', { hasText: 'Losse app op je telefoon' }).waitFor();
     expect(await p.evaluate('document.scrollingElement.scrollHeight <= innerHeight')).toBe(true);
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-klaarzetten-niveau.png') });
-    // Bij Functies dezelfde stappen, ingeklapt onder Stem en luisteren.
+    // Bij Functies op de wand rechts in de lijst hoeveel er nog open is; de wand scrolt niet.
     await p.goto(`${baseUrl}/functies.html?groep=assistent#stem`);
-    await p.locator('#wand .kz-nog header', { hasText: 'Nog 3 stappen voor "Hé huis"' }).waitFor();
+    await p.locator('#wand [data-delen] .deel .nog', { hasText: 'nog 3 stappen' }).first().waitFor();
+    expect(await p.locator('#wand .kz-nog').count()).toBe(0);
     // Op de telefoon de lijst, en de stappen in een blad van onderen.
     await p.setViewportSize({ width: 390, height: 844 });
     await p.goto(`${baseUrl}/klaarzetten.html`);
@@ -4218,6 +4219,9 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     await p.locator('#tel [data-stappen] h2', { hasText: 'De wand' }).waitFor();
     await p.locator('#tel [data-stappen] [data-sluit]').click();
     await expect.poll(() => p.locator('#tel [data-stappen]').isHidden()).toBe(true);
+    // Op de telefoon staan de stappen zelf bij het deel.
+    await p.goto(`${baseUrl}/functies.html?groep=assistent#stem`);
+    await p.locator('#tel .kz-nog header', { hasText: 'Nog 3 stappen voor "Hé huis"' }).waitFor();
     expect(fouten).toEqual([]);
     await context.close();
   }, 20_000);

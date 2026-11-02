@@ -4020,6 +4020,7 @@
   'kz.lezen': 'Even kijken wat er staat…',
   'kz.nogHeHuis': { one: 'Nog 1 stap voor "Hé huis"', other: 'Nog {n} stappen voor "Hé huis"' },
   'kz.nogScherm': { one: 'Nog 1 stap voor het scherm', other: 'Nog {n} stappen voor het scherm' },
+  'kz.nogKort': { one: 'nog 1 stap', other: 'nog {n} stappen' },
   'kz.let.assistent': 'SunArc installeert zelf niets:',
   'kz.let.assistentZin': 'een knop opent de juiste pagina in Home Assistant. Alleen de spraakassistent maakt SunArc na je tik.',
   'kz.let.wand': 'Zonder Fully',

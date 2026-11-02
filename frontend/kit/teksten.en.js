@@ -4015,6 +4015,7 @@
   'kz.lezen': 'Checking what is there…',
   'kz.nogHeHuis': { one: '1 step to go for "Hey house"', other: '{n} steps to go for "Hey house"' },
   'kz.nogScherm': { one: '1 step to go for the screen', other: '{n} steps to go for the screen' },
+  'kz.nogKort': { one: '1 step to go', other: '{n} steps to go' },
   'kz.let.assistent': 'SunArc installs nothing itself:',
   'kz.let.assistentZin': 'a button opens the right page in Home Assistant. Only the voice assistant is made by SunArc after your tap.',
   'kz.let.wand': 'Without Fully',
