@@ -22,7 +22,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { type Klok, type Seizoen, dagBegin } from './dag.js';
+import { type Klok, type Seizoen, WEER_KEUZES, type WeerKeuze, dagBegin } from './dag.js';
 
 /* ---- de klok ---- */
 
@@ -30,6 +30,7 @@ const EchteDate = Date;
 const echtNu = EchteDate.now.bind(EchteDate);
 let verschuiving = 0;
 let seizoen: Seizoen = 'zomer';
+let weer: WeerKeuze = 'vanzelf';
 
 /** Date, maar dan op de klok van het voorbeeld. Een datum met argumenten blijft gewoon. */
 class VoorbeeldDate extends EchteDate {
@@ -45,6 +46,7 @@ globalThis.Date = VoorbeeldDate as DateConstructor;
 
 function zetKlok(k: Klok): void {
   seizoen = k.seizoen;
+  weer = k.weer != null && WEER_KEUZES.includes(k.weer) ? k.weer : 'vanzelf';
   verschuiving = dagBegin(k.seizoen, echtNu()) + Math.max(0, Math.min(1439, Math.round(k.minuut))) * 60_000 - echtNu();
 }
 
@@ -52,7 +54,7 @@ function zetKlok(k: Klok): void {
 function klok(): Klok {
   const nu = Date.now();
   const minuut = Math.floor((nu - dagBegin(seizoen, nu)) / 60_000);
-  return { minuut: ((minuut % 1440) + 1440) % 1440, seizoen };
+  return { minuut: ((minuut % 1440) + 1440) % 1440, seizoen, weer };
 }
 
 const vrijePoort = () =>
@@ -68,9 +70,9 @@ const vrijePoort = () =>
 
 /* ---- opstarten ---- */
 
-// Waar de dienst het voorbeeld laat beginnen (de dagschuif), anders een zomermiddag.
-const [beginMinuut, beginSeizoen] = (process.env['HEMS_VOORBEELD_KLOK'] ?? '').split(':');
-zetKlok({ minuut: beginMinuut && Number(beginMinuut) >= 0 && Number(beginMinuut) < 1440 ? Number(beginMinuut) : 12 * 60 + 40, seizoen: beginSeizoen === 'winter' ? 'winter' : 'zomer' });
+// Waar de dienst het voorbeeld laat beginnen (de dagschuif en het weer), anders een zomermiddag.
+const [beginMinuut, beginSeizoen, beginWeer] = (process.env['HEMS_VOORBEELD_KLOK'] ?? '').split(':');
+zetKlok({ minuut: beginMinuut && Number(beginMinuut) >= 0 && Number(beginMinuut) < 1440 ? Number(beginMinuut) : 12 * 60 + 40, seizoen: beginSeizoen === 'winter' ? 'winter' : 'zomer', weer: beginWeer as WeerKeuze });
 
 const { NepHa } = await import('./nep-ha.js');
 const { VOORBEELD_SITE } = await import('./huis.js');
@@ -104,14 +106,42 @@ Object.assign(process.env, {
 });
 process.chdir(map);
 
+/*
+ * Vandaag van vóór het openen (besluit 242): de regeling rekent de uren sinds
+ * middernacht na, en na een sprong vooruit met de dagschuif de uren daartussen.
+ */
+const { parseSiteConfig } = await import('../config/schema.js');
+const { defaultStrategies } = await import('../index.js');
+const { laatsteMoment, vulAan } = await import('./voorloop.js');
+const strategies = defaultStrategies();
+const gelezen = parseSiteConfig(VOORBEELD_SITE, { knownStrategies: strategies.ids });
+async function bijwerken(): Promise<void> {
+  if (!gelezen.ok) return;
+  const nu = Date.now();
+  const begin = dagBegin(seizoen, nu);
+  // Een minuut na het laatste moment dat er al staat, of vanaf middernacht.
+  const laatste = await laatsteMoment(join(map, 'shadow'), begin, nu);
+  const vanaf = laatste == null ? begin : laatste + 60_000;
+  await vulAan({ config: gelezen.config, strategies, logDir: join(map, 'shadow'), standen: (t) => ha.standenOp(t), vanMs: vanaf, totMs: nu }).catch((e: unknown) => {
+    console.warn(`Voorbeeld: de uren ervoor niet nagerekend (${String(e)})`);
+    return 0;
+  });
+}
+await bijwerken();
+
+// Eén bericht tegelijk: de dagschuif rekent eerst na, dan pas de standen van het nieuwe moment.
+let rij = Promise.resolve();
 process.on('message', (b: { klok?: Klok; terug?: boolean; vraag?: string }) => {
-  if (b.klok && (b.klok.seizoen === 'zomer' || b.klok.seizoen === 'winter') && Number.isFinite(b.klok.minuut)) {
-    zetKlok(b.klok);
-    ha.ververs();
-    process.send?.({ klok: klok() });
-  }
-  if (b.terug) ha.terug();
-  if (b.vraag === 'bediend') process.send?.({ bediend: [...ha.bediend], klok: klok() });
+  rij = rij.then(async () => {
+    if (b.klok && (b.klok.seizoen === 'zomer' || b.klok.seizoen === 'winter') && Number.isFinite(b.klok.minuut)) {
+      zetKlok(b.klok);
+      await bijwerken();
+      ha.ververs();
+      process.send?.({ klok: klok() });
+    }
+    if (b.terug) ha.terug();
+    if (b.vraag === 'bediend') process.send?.({ bediend: [...ha.bediend], klok: klok() });
+  });
 });
 // Zonder de dienst die ons startte, is er niemand meer om voor te spelen.
 process.on('disconnect', () => process.exit(0));

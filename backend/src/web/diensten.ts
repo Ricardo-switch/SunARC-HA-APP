@@ -184,9 +184,12 @@ export class Diensten {
       return { wachten: 'het weer komt zodra de ligging van het huis en de panelen bekend zijn' };
     }
     const now = Date.now();
-    // Een andere ligging (besluit 157) rekent meteen opnieuw.
-    if (this.weather != null && now - this.weather.atMs < 10 * 60_000 && this.weather.geometry === config.geometry) return this.weather.report;
     const forecast = weather.forecast();
+    // Een andere ligging (besluit 157) rekent meteen opnieuw, net als ander weer van nu (een bui) of een
+    // klok die terugsprong, zoals de dagschuif van het voorbeeldhuis (besluit 243).
+    const nuSoort = forecast.find((f) => f.offset === 0)?.soort ?? null;
+    const w = this.weather;
+    if (w != null && now >= w.atMs && now - w.atMs < 10 * 60_000 && w.geometry === config.geometry && w.report.vandaag.soort === nuSoort) return w.report;
     if (forecast.length === 0) return { wachten: 'er is nog geen weerverwachting; kies een weerbron bij Functies' };
     this.solar ??= new SolarHistory({ logDir });
     this.today ??= new TodayCache(logDir, config);

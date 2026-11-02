@@ -77,6 +77,12 @@ describe('de add-on en de NAS', () => {
     expect(manifest).not.toMatch(/^(apparmor: false|full_access|docker_api|host_network|privileged)/m);
   });
 
+  it('houdt echt tegen, en haalt één image voor beide soorten op (besluit 242)', async () => {
+    // Uit de leerstand: een profiel met `complain` houdt niets tegen.
+    expect(await lees('../../addon/apparmor.txt')).not.toMatch(/flags=\([^)]*complain/);
+    expect(await lees('../../addon/config.yaml')).toMatch(/^image: ghcr\.io\/ricardo-switch\/hems-climate$/m);
+  });
+
   it('zet het paneel voor iedereen met een account in de zijbalk (besluit 161)', async () => {
     const manifest = await lees('../../addon/config.yaml');
     expect(manifest).toMatch(/^panel_admin: false$/m);

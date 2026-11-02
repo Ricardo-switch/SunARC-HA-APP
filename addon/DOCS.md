@@ -118,8 +118,7 @@ er zo weinig mogelijk (beveiligingscijfer 8, het hoogste):
 - **`share` (schrijven):** het beslislogboek in `/share/hems`, en het
   wekwoord in `/share/openwakeword`.
 - **Een eigen AppArmor-profiel:** de dienst mag alleen in deze mappen
-  schrijven. Het staat nog in de leerstand: het meldt wat erbuiten valt en
-  houdt nog niets tegen.
+  schrijven, en wat erbuiten valt, houdt het tegen.
 
 De add-on staat als **experimenteel**: SunArc kijkt mee en regelt je
 verwarming en airco's nog niet zelf.

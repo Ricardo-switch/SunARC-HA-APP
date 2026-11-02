@@ -19,7 +19,7 @@ name: SunArc
 # Gelijk aan VERSIE in backend/src/version.ts; een test houdt ze gelijk. De
 # Supervisor ziet een update zodra dit nummer op `main` omhooggaat, en haalt dan
 # het image met dat nummer op (besluit 153).
-version: 0.110.1
+version: 0.111.0
 slug: hems_climate
 description: >-
   Klimaat en zon in één app: kijkt mee met je verwarming, airco's en
@@ -31,8 +31,9 @@ url: https://github.com/Ricardo-switch/SunARC-HA-APP
 stage: experimental
 
 # Kant-en-klaar gebouwd door GitHub (`.github/workflows/addon.yml`), zodat de
-# Pi bij een update niets zelf hoeft te bouwen. `{arch}` vult de Supervisor in.
-image: ghcr.io/ricardo-switch/{arch}-hems-climate
+# Pi bij een update niets zelf hoeft te bouwen. Eén naam voor beide soorten
+# (besluit 242); Docker kiest zelf het image dat bij de machine past.
+image: ghcr.io/ricardo-switch/hems-climate
 
 # De Pi is aarch64; amd64 voor een gewone pc of NUC. Alleen voor deze twee
 # bouwt GitHub een image, op een eigen machine per soort.
