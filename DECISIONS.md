@@ -11485,6 +11485,13 @@ duotoon en tegel. Zijn keuzes waren de aanbevolen.
   Klaarzetten, en kleine knoppen als pijl, zoeken, afspelen en potlood.
 - **Versie 0.115.0.**
 
+*Daarna, de beelden op GitHub:* uit de echte app in het voorbeeldhuis, niet
+meer uit de schetsen: Engels in README.md, Nederlands in README.nl.md
+(`design/app2/screens/github/`). Het voorbeeldhuis kent daarvoor een Engelse
+stand (`HEMS_VOORBEELD_TAAL=en`, alleen de namen), en
+`design/app2/github-beelden.cjs` maakt de beelden opnieuw, met de klok van de
+browser op die van het voorbeeld (15 juli, 12:45). De korte film volgt nog.
+
 ---
 
 ## Wat nog een besluit wacht

@@ -228,6 +228,41 @@ const TOESTELLEN: readonly Toestel[] = [
   { id: 'd-deurbel', naam: 'Deurbel', ruimte: 'oprit', merk: 'Reolink', platform: 'reolink', entiteiten: [['camera.deurbel', { platform: 'reolink', translation_key: 'sub' }], ['binary_sensor.deurbel_bezoeker', meter('occupancy', 'Bezoeker')]] },
 ];
 
+
+/*
+ * Het voorbeeldhuis in het Engels (2 november 2026): voor de Engelse beelden op
+ * GitHub. Alleen de namen; met HEMS_VOORBEELD_TAAL=en. De ids blijven, dus de
+ * regeling en de standen zijn dezelfde.
+ */
+const ENGELS: Readonly<Record<string, string>> = {
+  'Begane grond': 'Ground floor', 'Eerste verdieping': 'First floor', Zolder: 'Attic',
+  Woonkamer: 'Living room', Keuken: 'Kitchen', Hal: 'Hallway', Badkamer: 'Bathroom', Slaapkamer: 'Bedroom', Kinderkamer: 'Kids room', Tuin: 'Garden', Oprit: 'Driveway',
+  'Airco woonkamer': 'Living room AC', 'Airco zolder': 'Attic AC', Deurbel: 'Doorbell', Droger: 'Dryer', 'Elektrische auto': 'Electric car', Keukenlamp: 'Kitchen light',
+  Laadpaal: 'Charger', 'Lamp hal': 'Hallway light', 'Lamp kinderkamer': 'Kids room light', 'Lamp oprit': 'Driveway light', 'Lamp slaapkamer': 'Bedroom light', 'Lamp zolder': 'Attic light',
+  'Meter badkamer': 'Bathroom sensor', 'Meter keuken': 'Kitchen sensor', 'Meter kinderkamer': 'Kids room sensor', 'Meter slaapkamer': 'Bedroom sensor', 'Meter woonkamer': 'Living room sensor', 'Meter zolder': 'Attic sensor',
+  Omvormer: 'Inverter', 'P1-meter': 'Smart meter', 'Plafondlamp woonkamer': 'Living room ceiling light', 'Screen slaapkamer': 'Bedroom screen', 'Screen woonkamer': 'Living room screen',
+  Sfeerlamp: 'Mood light', 'Thermostaat badkamer': 'Bathroom thermostat', Thuisbatterij: 'Home battery', Tuinverlichting: 'Garden lights', Warmtepomp: 'Heat pump',
+  'Op afstand starten': 'Remote start', 'Start of pauze': 'Start or pause', Status: 'Status', Lading: 'Charge', Laadt: 'Charging', 'Stroom fase 1': 'Current phase 1', 'Stroom fase 2': 'Current phase 2', 'Stroom fase 3': 'Current phase 3',
+  Bereik: 'Range', Programmaduur: 'Programme duration', 'Afname totaal': 'Import total', 'Opbrengst totaal': 'Production total', 'Teruglevering totaal': 'Export total', Luchtvochtigheid: 'Humidity',
+  Beweging: 'Motion', Bezoeker: 'Visitor', Stekker: 'Plug', 'Batterij vermogen': 'Battery power', Vermogen: 'Power', Temperatuur: 'Temperature', 'Spanning fase 1': 'Voltage phase 1', 'Spanning fase 2': 'Voltage phase 2', 'Spanning fase 3': 'Voltage phase 3',
+  'Temperatuur buiten': 'Outdoor temperature', Thuis: 'Home', Boodschappen: 'Shopping', Melk: 'Milk', Brood: 'Bread', Appels: 'Apples', 'To-do': 'To-do', 'Woonkamer Avond': 'Living room Evening', 'Woonkamer Helder': 'Living room Bright',
+};
+const IN_ENGELS = process.env['HEMS_VOORBEELD_TAAL'] === 'en';
+/** Een naam in de taal van het voorbeeld; wat niet in de lijst staat, blijft. */
+export const naamIn = (s: string): string => (IN_ENGELS ? (ENGELS[s] ?? s) : s);
+if (IN_ENGELS) {
+  // Een keer bij het laden, vóór iets anders de namen leest.
+  for (const z of VOORBEELD_SITE.zones as unknown as { name: string }[]) z.name = naamIn(z.name);
+  for (const a of VOORBEELD_SITE.actuators as unknown as { name?: string }[]) if (a.name) a.name = naamIn(a.name);
+  for (const d of VOORBEELD_SITE.deferrables as unknown as { name: string }[]) d.name = naamIn(d.name);
+  for (const e of ETAGES as unknown as { name: string }[]) e.name = naamIn(e.name);
+  for (const r of RUIMTES as unknown as { name: string }[]) r.name = naamIn(r.name);
+  for (const d of TOESTELLEN as unknown as { naam: string; entiteiten: readonly (readonly [string, Partial<HaRegistryEntity>?])[] }[]) {
+    d.naam = naamIn(d.naam);
+    for (const [, extra] of d.entiteiten) if (extra?.original_name) (extra as { original_name: string }).original_name = naamIn(extra.original_name);
+  }
+}
+
 export const APPARATEN: readonly HaDevice[] = TOESTELLEN.map((t) => ({ id: t.id, name: t.naam, area_id: t.ruimte, ...(t.merk ? { manufacturer: t.merk } : {}), ...(t.model ? { model: t.model } : {}) }));
 
 export const ENTITEITEN: readonly HaRegistryEntity[] = [
@@ -246,10 +281,10 @@ export type Ingrepen = Map<string, { readonly state: string; readonly attributes
 const LAMPEN = ['light.woonkamer_plafond', 'light.woonkamer_sfeer', 'light.keuken', 'light.hal', 'light.slaapkamer', 'light.kinderkamer', 'light.zolder', 'light.tuin', 'light.oprit'];
 const NAMEN: Readonly<Record<string, string>> = Object.fromEntries([
   ...TOESTELLEN.flatMap((t) => t.entiteiten.map(([id, extra]) => [id, id.startsWith('light.') || id.startsWith('cover.') || id.startsWith('climate.') ? t.naam : `${t.naam} ${(extra?.original_name ?? '').toLowerCase()}`.trim()])),
-  ['sensor.buiten_temperatuur', 'Temperatuur buiten'],
-  ['weather.thuis', 'Thuis'],
-  ['scene.woonkamer_avond', 'Woonkamer Avond'],
-  ['scene.woonkamer_helder', 'Woonkamer Helder'],
+  ['sensor.buiten_temperatuur', naamIn('Temperatuur buiten')],
+  ['weather.thuis', naamIn('Thuis')],
+  ['scene.woonkamer_avond', naamIn('Woonkamer Avond')],
+  ['scene.woonkamer_helder', naamIn('Woonkamer Helder')],
 ]);
 
 /** Een knop van de oude regeling, met zijn standaard ernaast (hand.ts kijkt daarnaar). */
