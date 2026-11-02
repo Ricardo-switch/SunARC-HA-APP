@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.114.1';
+export const VERSIE = '0.114.2';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,12 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.114.2',
+    datum: '2026-11-02',
+    beter: ['Klaarzetten ziet op welk model Whisper staat en of Tailscale draait: de add-on mag dat nu lezen bij de Supervisor, en verder niets'],
+    en: { beter: ['Getting ready sees which model Whisper uses and whether Tailscale is running: the add-on may now read that from the Supervisor, and nothing more'] },
+  },
   {
     versie: '0.114.1',
     datum: '2026-11-02',

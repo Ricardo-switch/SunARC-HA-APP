@@ -233,33 +233,27 @@ export interface AddOnInfo {
 }
 
 /**
- * Lezen hoe een add-on ervoor staat (Klaarzetten, besluit 246): één vraag
- * `supervisor/api` GET `/addons/<slug>/info` over een eigen korte websocket,
- * dan dicht. Alleen lezen, alleen die ene pagina; geeft null als Home
- * Assistant of de Supervisor het niet toestaat; `waarom` hoort dan wat er misging.
+ * Lezen hoe een add-on ervoor staat (Klaarzetten, besluit 246): GET
+ * `/addons/<slug>/info` bij de Supervisor, met de standaardrol van
+ * `hassio_api`. Die rol mag alleen informatie lezen. Via Home Assistant
+ * (`supervisor/api`) mocht het niet: de add-on is daar geen beheerder
+ * ("unauthorized", 0.114.1). Geeft null als het niet lukt; `waarom` hoort dan
+ * wat er misging.
  */
-export function addOnInfo(adres: string, token: string, slug: string, waarom: (reden: string) => void = () => undefined): Promise<AddOnInfo | null> {
-  if (!/^[a-z0-9_]+$/.test(slug)) return Promise.resolve(null);
-  return new Promise((klaar) => {
-    const ws = new WebSocket(adres);
-    const grens = setTimeout(() => einde(null, 'geen antwoord binnen tien tellen'), 10_000);
-    function einde(uit: AddOnInfo | null, reden?: string) {
-      clearTimeout(grens);
-      ws.close();
-      if (reden) waarom(reden);
-      klaar(uit);
+export async function addOnInfo(basis: string, token: string, slug: string, waarom: (reden: string) => void = () => undefined, f: typeof fetch = fetch): Promise<AddOnInfo | null> {
+  if (!/^[a-z0-9_]+$/.test(slug)) return null;
+  try {
+    const r = await f(`${basis}/addons/${slug}/info`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) });
+    const uit = (await r.json().catch(() => null)) as { result?: string; message?: string; data?: { state?: string; options?: Record<string, unknown> } } | null;
+    if (!r.ok || uit?.result !== 'ok') {
+      waarom(`${r.status}: ${uit?.message ?? 'onbekend'}`);
+      return null;
     }
-    ws.addEventListener('message', (e) => {
-      const m = JSON.parse(String(e.data)) as { type: string; id?: number; success?: boolean; result?: { state?: string; options?: Record<string, unknown> }; error?: { code?: string; message?: string } };
-      if (m.type === 'auth_required') ws.send(JSON.stringify({ type: 'auth', access_token: token }));
-      else if (m.type === 'auth_ok') ws.send(JSON.stringify({ id: 1, type: 'supervisor/api', endpoint: `/addons/${slug}/info`, method: 'get' }));
-      else if (m.type === 'auth_invalid') einde(null, 'Home Assistant herkende de add-on niet');
-      else if (m.type === 'result' && m.id === 1) {
-        // Een add-on uit de winkel die er niet staat, heeft de stand "unknown".
-        const state = m.success ? (m.result?.state ?? 'unknown') : null;
-        einde(state == null ? null : { er: state !== 'unknown', draait: state === 'started', opties: m.result?.options ?? {} }, state == null ? `${m.error?.code ?? 'fout'}: ${m.error?.message ?? 'onbekend'}` : undefined);
-      }
-    });
-    ws.addEventListener('error', () => einde(null, 'geen verbinding met Home Assistant'));
-  });
+    // Een add-on uit de winkel die er niet staat, heeft de stand "unknown".
+    const state = uit.data?.state ?? 'unknown';
+    return { er: state !== 'unknown', draait: state === 'started', opties: uit.data?.options ?? {} };
+  } catch (e) {
+    waarom(e instanceof Error ? e.message : String(e));
+    return null;
+  }
 }

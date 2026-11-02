@@ -11411,6 +11411,19 @@ zonder de toets.
   drie vijfde) en valt daarna het logootje naast de klok weg.
 - **Versie 0.114.1.**
 
+*Na 0.114.1:* het logboek zei "core_whisper niet te lezen bij de Supervisor
+(unauthorized)". Via de Supervisor-proxy is de add-on voor Home Assistant geen
+beheerder, dus `supervisor/api` mag niet: niet lezen, en dus ook niet
+installeren. De bewoner koos **alleen lezen**:
+
+- De add-on vraagt `hassio_api: true` met de **standaardrol**. Die rol mag de
+  informatie van add-ons lezen (`/addons/<slug>/info`), en verder niets. Het
+  beveiligingscijfer telt alleen de rollen manager en admin, dus het blijft 8.
+  Een test faalt als er ooit een `hassio_role` bij komt.
+- De dienst leest Whisper en Tailscale nu rechtstreeks bij de Supervisor.
+- Installeren na een tik blijft af: dat vraagt de rol manager.
+- **Versie 0.114.2.**
+
 ---
 
 ## Wat nog een besluit wacht

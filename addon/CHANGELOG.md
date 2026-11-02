@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.114.2
+
+*2 november 2026*
+
+**Beter**
+
+- Klaarzetten ziet op welk model Whisper staat en of Tailscale draait: de add-on mag dat nu lezen bij de Supervisor, en verder niets
+
+*English*
+
+**Improved**
+
+- Getting ready sees which model Whisper uses and whether Tailscale is running: the add-on may now read that from the Supervisor, and nothing more
+
 ## 0.114.1
 
 *2 november 2026*
