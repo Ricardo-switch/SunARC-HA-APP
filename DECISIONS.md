@@ -11447,6 +11447,10 @@ is.
   op Thuis had op wand en telefoon dezelfde naam, net als de boog op Te doen
   (0.114.1). Een paginatest kijkt nu op tien pagina's dat geen kleurverloop,
   masker of patroon twee keer dezelfde naam heeft.
+- **"Hé huis" als het scherm 's nachts uit is: niet.** Fully zet het scherm
+  echt uit, en Android legt de pagina en de microfoon dan stil. Een zwart
+  scherm op de laagste helderheid zou blijven luisteren, maar geeft een zwakke
+  gloed en kost stroom. De bewoner koos: echt uit, en 's nachts niet luisteren.
 - **Versie 0.114.4.**
 
 ---
