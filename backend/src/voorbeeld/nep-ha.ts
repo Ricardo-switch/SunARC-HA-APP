@@ -17,7 +17,7 @@ import type { Duplex } from 'node:stream';
 import type { HaEntityState } from '../adapters/homeassistant/client.js';
 import { accepteer, isUpgrade, type Verbinding } from '../web/websocket.js';
 import { type Klok, type Weer, dagBegin, moment, uurOpWelkeDag, weerOp } from './dag.js';
-import { APPARATEN, ENTITEITEN, ETAGES, RUIMTES, type Ingrepen, staten } from './huis.js';
+import { APPARATEN, ENTITEITEN, ETAGES, RUIMTES, type Ingrepen, naamIn, staten } from './huis.js';
 
 /** Een klein grijs beeld voor de deurbel: geen camera, wel een plaatje. */
 const BEELD = Buffer.from(
@@ -49,7 +49,7 @@ export class NepHa {
   #standen = new Map<string, HaEntityState>();
   #weerSleutel: string | null = null;
   readonly #lijsten = new Map<string, Lijstje>([
-    ['todo.boodschappen', { naam: 'Boodschappen', items: [{ uid: '1', summary: 'Melk', status: 'needs_action' }, { uid: '2', summary: 'Brood', status: 'needs_action' }, { uid: '3', summary: 'Appels', status: 'completed' }] }],
+    ['todo.boodschappen', { naam: naamIn('Boodschappen'), items: [{ uid: '1', summary: naamIn('Melk'), status: 'needs_action' }, { uid: '2', summary: naamIn('Brood'), status: 'needs_action' }, { uid: '3', summary: naamIn('Appels'), status: 'completed' }] }],
   ]);
   /** Wat er via de dienst bediend is, voor Probeer dit. */
   readonly bediend: string[] = [];

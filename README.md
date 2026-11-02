@@ -22,9 +22,9 @@ and explains every decision it makes.</p>
 
 <p align="center"><b>English</b> · <a href="README.nl.md">Nederlands</a></p>
 
-<p align="center"><img src="design/app2/screens/Wand-Thuis.png" alt="Home on a wall tablet: the house in 3D, with the sun, the solar panels and the temperature in every room" width="900"></p>
+<p align="center"><img src="design/app2/screens/github/en-wand-thuis.png" alt="Home on a wall tablet: the house in 3D, with the sun, the solar panels and the temperature in every room" width="900"></p>
 
-<p align="center"><sub>Images from the design, in Dutch. What the app already does and what is still to come is described below.</sub></p>
+<p align="center"><sub>Screenshots from the app, in the example house. What the app already does and what is still to come is described below.</sub></p>
 
 ---
 
@@ -71,19 +71,19 @@ Behind the app is a controller that decides, round after round, what the house s
 
 <table>
 <tr>
-<td width="50%"><img src="design/app2/screens/Wand-Vandaag.png" alt="Today: the sun, the temperature and per device when it ran, with why"></td>
-<td width="50%"><img src="design/app2/screens/Wand-Assistent-Gesprek.png" alt="The assistant: asking your home a question"></td>
+<td width="50%"><img src="design/app2/screens/github/en-wand-vandaag.png" alt="Today: the sun, the temperature and per device when it ran, with why"></td>
+<td width="50%"><img src="design/app2/screens/github/en-wand-assistent.png" alt="The assistant: asking your home a question"></td>
 </tr>
 <tr>
 <td><sub><b>Today</b>: what the house did, and why.</sub></td>
 <td><sub><b>The assistant</b>: ask your home.</sub></td>
 </tr>
 <tr>
-<td><img src="design/app2/screens/Wand-Welkom.png" alt="The welcome in a new home, with the house growing from Home Assistant"></td>
-<td align="center"><img src="design/app2/screens/Thuis.png" alt="Home on the phone" width="220"></td>
+<td><img src="design/app2/screens/github/en-wand-huis-kan.png" alt="What your home can do: everything SunArc does for you, and how far it is"></td>
+<td align="center"><img src="design/app2/screens/github/en-tel-thuis.png" alt="Home on the phone" width="220"></td>
 </tr>
 <tr>
-<td><sub><b>Welcome</b>: your home grows from what Home Assistant knows.</sub></td>
+<td><sub><b>What your home can do</b>: everything SunArc does for you, and how far it is.</sub></td>
 <td align="center"><sub><b>On your phone</b>: the same app.</sub></td>
 </tr>
 </table>

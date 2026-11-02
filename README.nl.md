@@ -22,9 +22,9 @@ en zegt bij elk besluit waarom.</p>
 
 <p align="center"><a href="README.md">English</a> · <b>Nederlands</b></p>
 
-<p align="center"><img src="design/app2/screens/Wand-Thuis.png" alt="Thuis op een tablet aan de muur: het huis in 3D, met de zon, de panelen en per kamer de temperatuur" width="900"></p>
+<p align="center"><img src="design/app2/screens/github/nl-wand-thuis.png" alt="Thuis op een tablet aan de muur: het huis in 3D, met de zon, de panelen en per kamer de temperatuur" width="900"></p>
 
-<p align="center"><sub>Beelden uit het ontwerp. Wat de app vandaag al doet en wat nog komt, staat hieronder.</sub></p>
+<p align="center"><sub>Beelden uit de app, in het voorbeeldhuis. Wat de app vandaag al doet en wat nog komt, staat hieronder.</sub></p>
 
 ---
 
@@ -71,19 +71,19 @@ Achter de app zit een regeling die elke ronde beslist wat het huis zou moeten do
 
 <table>
 <tr>
-<td width="50%"><img src="design/app2/screens/Wand-Vandaag.png" alt="Vandaag: de zon, de temperatuur en per apparaat wanneer het draaide, met waarom"></td>
-<td width="50%"><img src="design/app2/screens/Wand-Assistent-Gesprek.png" alt="De assistent: een vraag stellen aan je huis"></td>
+<td width="50%"><img src="design/app2/screens/github/nl-wand-vandaag.png" alt="Vandaag: de zon, de temperatuur en per apparaat wanneer het draaide, met waarom"></td>
+<td width="50%"><img src="design/app2/screens/github/nl-wand-assistent.png" alt="De assistent: een vraag stellen aan je huis"></td>
 </tr>
 <tr>
 <td><sub><b>Vandaag</b>: wat het huis deed, en waarom.</sub></td>
 <td><sub><b>De assistent</b>: vraag het je huis.</sub></td>
 </tr>
 <tr>
-<td><img src="design/app2/screens/Wand-Welkom.png" alt="Het welkom in een nieuw huis, met het huis dat groeit uit Home Assistant"></td>
-<td align="center"><img src="design/app2/screens/Thuis.png" alt="Thuis op de telefoon" width="220"></td>
+<td><img src="design/app2/screens/github/nl-wand-huis-kan.png" alt="Wat je huis kan: alles wat SunArc voor je doet, en hoe ver het is"></td>
+<td align="center"><img src="design/app2/screens/github/nl-tel-thuis.png" alt="Thuis op de telefoon" width="220"></td>
 </tr>
 <tr>
-<td><sub><b>Welkom</b>: je huis groeit uit wat Home Assistant kent.</sub></td>
+<td><sub><b>Wat je huis kan</b>: alles wat SunArc voor je doet, en hoe ver het is.</sub></td>
 <td align="center"><sub><b>Op je telefoon</b>: dezelfde app.</sub></td>
 </tr>
 </table>
