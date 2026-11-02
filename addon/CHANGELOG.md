@@ -1,5 +1,27 @@
 # Wat is er nieuw · What is new
 
+## 0.114.4
+
+*2 november 2026*
+
+**Beter**
+
+- Een bewoner zonder account, zoals een kind, is bij Klaarzetten geen open stap meer
+
+**Opgelost**
+
+- Op de telefoon kon het tankje van de boiler op Thuis zijn kleur missen
+
+*English*
+
+**Improved**
+
+- A resident without an account, such as a child, is no longer an open step in Getting ready
+
+**Fixed**
+
+- On the phone, the boiler tank on Home could lose its colour
+
 ## 0.114.3
 
 *2 november 2026*

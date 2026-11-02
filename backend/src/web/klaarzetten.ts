@@ -92,7 +92,9 @@ const WOORDEN = {
       titel: 'Een persoon per bewoner',
       klaar: (n: number) => `${telling(n, 'persoon', 'personen')}, elk met een eigen account.`,
       geen: 'Maak een persoon per bewoner, gekoppeld aan een account. Zonder persoon is iemand een gast.',
-      zonder: (n: number) => `${telling(n, 'persoon heeft', 'personen hebben')} nog geen account; koppel er een.`,
+      geenAccount: 'Nog niemand heeft een account. Koppel er een aan een persoon, dan kan die inloggen en een eigen comfort kiezen.',
+      // Geen tekort (2 november 2026): een kind of iemand die niet inlogt, heeft geen account nodig.
+      klaarZonder: (n: number, zonder: number) => `${telling(n, 'persoon', 'personen')}; ${telling(zonder, 'heeft', 'hebben')} geen account en ${zonder === 1 ? 'logt' : 'loggen'} dus niet in.`,
     },
     telefoon: {
       titel: 'Thuis of weg',
@@ -149,7 +151,8 @@ const WOORDEN = {
       titel: 'A person for each resident',
       klaar: (n: number) => `${telling(n, 'person', 'people')}, each with their own account.`,
       geen: 'Create a person for each resident, linked to an account. Without a person, someone is a guest.',
-      zonder: (n: number) => `${telling(n, 'person has', 'people have')} no account yet; link one.`,
+      geenAccount: 'Nobody has an account yet. Link one to a person, so they can log in and choose their own comfort.',
+      klaarZonder: (n: number, zonder: number) => `${telling(n, 'person', 'people')}; ${telling(zonder, 'has', 'have')} no account and so ${zonder === 1 ? 'does' : 'do'} not log in.`,
     },
     telefoon: {
       titel: 'Home or away',
@@ -237,9 +240,9 @@ export function klaarzetten(i: KlaarInput, lang: Lang = 'nl'): KlaarPunt[] {
       'ruimtes',
     ),
     punt(
-      'personen', 'bewoners', w.personen.titel, personen.length > 0 && metAccount === personen.length, true,
-      w.personen.klaar(personen.length),
-      personen.length === 0 ? w.personen.geen : w.personen.zonder(personen.length - metAccount),
+      'personen', 'bewoners', w.personen.titel, metAccount > 0, true,
+      metAccount === personen.length ? w.personen.klaar(personen.length) : w.personen.klaarZonder(personen.length, personen.length - metAccount),
+      personen.length === 0 ? w.personen.geen : w.personen.geenAccount,
       'personen',
     ),
     punt('telefoon', 'bewoners', w.telefoon.titel, metTelefoon > 0, true, w.telefoon.klaar(metTelefoon, personen.length), w.telefoon.mist, 'personen'),

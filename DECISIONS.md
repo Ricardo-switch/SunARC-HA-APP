@@ -11438,6 +11438,17 @@ is.
   na een herstart of update.
 - **Versie 0.114.3.**
 
+*Daarna, nog dezelfde dag:*
+
+- **Een persoon zonder account is geen tekort** (ook bij Wat je huis kan,
+  besluit 179): een kind of iemand die niet inlogt, heeft er geen nodig. "Een
+  persoon per bewoner" is klaar zodra iemand een account heeft.
+- **Elk beeld een eigen naam voor zijn kleurverloop.** Het tankje van de boiler
+  op Thuis had op wand en telefoon dezelfde naam, net als de boog op Te doen
+  (0.114.1). Een paginatest kijkt nu op tien pagina's dat geen kleurverloop,
+  masker of patroon twee keer dezelfde naam heeft.
+- **Versie 0.114.4.**
+
 ---
 
 ## Wat nog een besluit wacht
