@@ -26,7 +26,7 @@ import { MeldingenStore } from './web/meldingen.js';
 import { meldingenBron } from './web/meldingen-bron.js';
 import { VERSIE } from './version.js';
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
@@ -1711,8 +1711,21 @@ async function addOnStand(): Promise<typeof addOnsGelezen> {
   addOnsGelezen = { ms: Date.now(), whisper: whisper == null ? undefined : whisper.er ? whisper : null, tailscale: tailscale ?? null };
   return addOnsGelezen;
 }
-/** Wat de wand het laatst over Fully Kiosk meldde (besluit 246). */
-let wandMelding: WandMelding | null = null;
+/*
+ * Wat de wand het laatst over Fully Kiosk meldde (besluit 246). Bewaard naast
+ * het logboek: na een herstart of update zei Klaarzetten anders dat de wand
+ * nog niet was ingesteld, tot hij zich weer meldde (2 november 2026).
+ */
+const WAND_BESTAND = logDir !== '' ? join(logDir, 'wand-melding.json') : null;
+let wandMelding: WandMelding | null = WAND_BESTAND
+  ? await readFile(WAND_BESTAND, 'utf-8').then(
+      (x) => {
+        const w = JSON.parse(x) as Partial<WandMelding>;
+        return typeof w.fully === 'boolean' && typeof w.js === 'boolean' && typeof w.ms === 'number' ? { fully: w.fully, js: w.js, camera: typeof w.camera === 'boolean' ? w.camera : null, ms: w.ms } : null;
+      },
+      () => null,
+    )
+  : null;
 
 /*
  * Helemaal in huis (besluit 203): Whisper, Piper en openWakeWord bevestigen en
@@ -2025,9 +2038,10 @@ if (webPort != null) {
         tijd: (ms) => new Intl.DateTimeFormat(taal === 'en' ? 'en-GB' : 'nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: weerZone }).format(new Date(ms)),
       }, lang);
     },
-    // De wand meldt zelf of hij in Fully Kiosk draait (besluit 246); alleen in het geheugen.
+    // De wand meldt zelf of hij in Fully Kiosk draait (besluit 246); bewaard naast het logboek.
     wandMeldt: (m: Omit<WandMelding, 'ms'>) => {
       wandMelding = { ...m, ms: Date.now() };
+      if (WAND_BESTAND) void writeFile(WAND_BESTAND, `${JSON.stringify(wandMelding)}\n`, 'utf-8').catch(() => undefined);
     },
     // In de add-on stelt Home Assistant de vraag rechtstreeks aan de add-on, op zijn naam in het netwerk (besluit 177).
     ...(sleutel && version.installatie === 'add-on' && webPort != null ? { sleutelAdres: `http://${hostname()}:${webPort}/api/vraag` } : {}),

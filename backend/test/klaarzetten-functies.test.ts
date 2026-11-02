@@ -88,17 +88,25 @@ describe('klaarzetten per niveau (besluit 246)', () => {
     expect(a.wat).toContain('Hey house');
   });
 
-  it('neemt wat de wand zelf meldt over Fully Kiosk', () => {
+  it('neemt wat de wand zelf meldt over Fully Kiosk, en noemt alleen open wat echt mist', () => {
+    // Nog niet gemeld (zoals na een herstart): niets open; scherm uit staat aan, dus klaar.
     const niets = functie()('wand');
-    expect(stap(niets, 'fully').stand).toBe('open');
-    const gemeld = functie({ wand: { fully: true, js: true, camera: false, ms: 0 } })('wand');
+    expect(stap(niets, 'fully').stand).toBe('kan');
+    expect(niets).toMatchObject({ klaar: 1, van: 1, zin: 'Fully Kiosk en scherm uit' });
+    // Fully gemeld, de camera gekozen als wekker maar hij kijkt niet mee: één stap open.
+    const gemeld = functie({ wand: { fully: true, js: true, camera: false, ms: 0 }, wekker: 'fully' })('wand');
     expect(stap(gemeld, 'fully')).toMatchObject({ stand: 'klaar', zin: expect.stringContaining('10:14') });
     expect(stap(gemeld, 'js').stand).toBe('klaar');
     expect(stap(gemeld, 'beweging')).toMatchObject({ stand: 'open', app: 'functies.html#uit' });
     expect(gemeld.zin).toBe('Nog 1 stap');
+    // Geen wekker gekozen: de camera hoeft niet. Scherm uit niet gekozen: ook geen tekort.
+    const keuze = functie({ wand: { fully: true, js: true, camera: false, ms: 0 }, schermUit: false })('wand');
+    expect(keuze.stappen.filter((s) => s.stand === 'open')).toEqual([]);
+    // De koppeling met de pagina uit: dat mist wel.
+    expect(stap(functie({ wand: { fully: true, js: false, camera: null, ms: 0 } })('wand'), 'js').stand).toBe('open');
     // De camera kijkt mee, of een melder in huis wekt hem.
-    expect(stap(functie({ wand: { fully: true, js: true, camera: true, ms: 0 } })('wand'), 'beweging').stand).toBe('klaar');
-    expect(stap(functie({ wekker: 'binary_sensor.gang' })('wand'), 'beweging').stand).toBe('klaar');
+    expect(stap(functie({ wand: { fully: true, js: true, camera: true, ms: 0 }, wekker: 'fully' })('wand'), 'beweging').stand).toBe('klaar');
+    expect(stap(functie({ wand: { fully: true, js: true, camera: false, ms: 0 }, wekker: 'binary_sensor.gang' })('wand'), 'beweging').stand).toBe('klaar');
     // Zonder tablet aan de muur hoeft er niets.
     expect(functie({ heeftWand: false })('wand')).toMatchObject({ van: 0 });
   });

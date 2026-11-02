@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.114.3
+
+*2 november 2026*
+
+**Opgelost**
+
+- Klaarzetten zei na een update dat de wand nog niet was ingesteld; nu noemt het bij de wand alleen wat de wand zelf zegt dat mist, en onthoudt het zijn melding
+
+*English*
+
+**Fixed**
+
+- After an update, Getting ready said the wall screen was not set up; now it only lists what the wall screen itself reports as missing, and remembers its report
+
 ## 0.114.2
 
 *2 november 2026*

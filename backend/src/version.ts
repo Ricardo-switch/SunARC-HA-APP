@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.114.2';
+export const VERSIE = '0.114.3';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,12 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.114.3',
+    datum: '2026-11-02',
+    opgelost: ['Klaarzetten zei na een update dat de wand nog niet was ingesteld; nu noemt het bij de wand alleen wat de wand zelf zegt dat mist, en onthoudt het zijn melding'],
+    en: { opgelost: ['After an update, Getting ready said the wall screen was not set up; now it only lists what the wall screen itself reports as missing, and remembers its report'] },
+  },
   {
     versie: '0.114.2',
     datum: '2026-11-02',

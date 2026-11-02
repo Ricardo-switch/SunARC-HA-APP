@@ -461,7 +461,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
               wand: { fully: true, js: true, camera: false, ms: 0 },
               heeftWand: true,
               schermUit: true,
-              wekker: null,
+              wekker: 'fully',
               wolken: [],
               spraak: [],
               tijd: () => '10:14',

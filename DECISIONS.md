@@ -11424,6 +11424,20 @@ installeren. De bewoner koos **alleen lezen**:
 - Installeren na een tik blijft af: dat vraagt de rol manager.
 - **Versie 0.114.2.**
 
+*Na 0.114.2:* op de telefoon zei Klaarzetten dat de wand nog niet was
+ingesteld, terwijl hij dat wel was. De melding van de wand stond alleen in het
+geheugen, en na de update telde "nog niet gemeld" als "niet ingesteld". De
+bewoner: alleen melden als er een wand wordt gebruikt en er iets in te stellen
+is.
+
+- **Open is bij de wand alleen wat de wand zelf zegt dat mist:** de koppeling
+  met de pagina (JavaScript Interface), of de camera als die de wand moet
+  wekken en niet meekijkt. Nog niet gemeld, geen wekker, of het scherm aan
+  laten is een keuze en telt niet als open.
+- **De melding blijft bewaard** naast het logboek (`wand-melding.json`), ook
+  na een herstart of update.
+- **Versie 0.114.3.**
+
 ---
 
 ## Wat nog een besluit wacht

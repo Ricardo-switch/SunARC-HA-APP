@@ -126,7 +126,7 @@ const WOORDEN = {
       },
       gevonden: 'Home Assistant vond hem; de spraakassistent bevestigt hem.',
       maak: ['De spraakassistent van SunArc', 'Verstaan, stem en wekwoord samen.', 'Verstaan, stem en wekwoord samen, met één tik.', 'Eerst Whisper en Piper.'],
-      fully: { titel: 'Fully Kiosk Browser', klaar: (tijd: string) => `De wand draait in Fully (gezien om ${tijd}).`, open: 'Installeer Fully Kiosk Browser op de tablet en open SunArc daarin. De wand meldt zich dan zelf.', anders: (tijd: string) => `De wand draait in een gewone browser (gezien om ${tijd}). Met Fully kan het scherm uit en aan.` },
+      fully: { titel: 'Fully Kiosk Browser', nogNiet: 'Nog niet gemeld. Draait de wand in Fully, dan meldt hij zich zodra SunArc daar een pagina opent.', klaar: (tijd: string) => `De wand draait in Fully (gezien om ${tijd}).`, open: 'Installeer Fully Kiosk Browser op de tablet en open SunArc daarin. De wand meldt zich dan zelf.', anders: (tijd: string) => `De wand draait in een gewone browser (gezien om ${tijd}). Met Fully kan het scherm uit en aan.` },
       js: ['De koppeling met de pagina', 'JavaScript Interface staat aan: SunArc kan het scherm uit en aan zetten.', 'In Fully: Instellingen › Advanced Web Settings › Enable JavaScript Interface.'],
       camera: { titel: 'Wakker op beweging', fully: 'De camera van de tablet kijkt mee.', melder: 'Een bewegingsmelder in huis wekt de wand.', open: 'In Fully: Instellingen › Motion Detection › Enable Visual Motion Detection (vraagt Fully Plus). Of kies een bewegingsmelder bij Functies › Scherm.' },
       uit: ['Scherm uit als niemand kijkt', 'Staat aan bij Functies › Scherm.', 'Zet het aan bij Functies › Scherm: \'s nachts, of als niemand thuis is.'],
@@ -170,7 +170,7 @@ const WOORDEN = {
       },
       gevonden: 'Home Assistant found it; the voice assistant confirms it.',
       maak: ['The SunArc voice assistant', 'Understanding, voice and wake word together.', 'Understanding, voice and wake word together, with one tap.', 'Whisper and Piper first.'],
-      fully: { titel: 'Fully Kiosk Browser', klaar: (tijd: string) => `The wall screen runs in Fully (seen at ${tijd}).`, open: 'Install Fully Kiosk Browser on the tablet and open SunArc in it. The wall screen then reports itself.', anders: (tijd: string) => `The wall screen runs in an ordinary browser (seen at ${tijd}). With Fully the screen can go off and on.` },
+      fully: { titel: 'Fully Kiosk Browser', nogNiet: 'Not reported yet. If the wall screen runs in Fully, it reports itself as soon as SunArc opens a page there.', klaar: (tijd: string) => `The wall screen runs in Fully (seen at ${tijd}).`, open: 'Install Fully Kiosk Browser on the tablet and open SunArc in it. The wall screen then reports itself.', anders: (tijd: string) => `The wall screen runs in an ordinary browser (seen at ${tijd}). With Fully the screen can go off and on.` },
       js: ['The link with the page', 'JavaScript Interface is on: SunArc can switch the screen off and on.', 'In Fully: Settings › Advanced Web Settings › Enable JavaScript Interface.'],
       camera: { titel: 'Wake on motion', fully: 'The tablet\'s camera watches for motion.', melder: 'A motion sensor in the house wakes the wall screen.', open: 'In Fully: Settings › Motion Detection › Enable Visual Motion Detection (needs Fully Plus). Or choose a motion sensor in Features › Screen.' },
       uit: ['Screen off when nobody is looking', 'On in Features › Screen.', 'Switch it on in Features › Screen: at night, or when nobody is home.'],
@@ -227,19 +227,29 @@ export function klaarFuncties(punten: readonly KlaarPunt[], x: KlaarExtra, lang:
       ]
     : [...uitPunt(p('spraak')), ...uitPunt(p('wekwoord'))];
 
-  // De wand: wat hij zelf meldt (besluit 246), en Functies › Scherm.
+  /*
+   * De wand: wat hij zelf meldt (besluit 246), en Functies › Scherm. Open is
+   * alleen wat de wand zelf zegt dat mist (2 november 2026): de koppeling met
+   * de pagina, of de camera als die de wand moet wekken. Nog niet gemeld, geen
+   * wekker of het scherm aan laten is een keuze, geen tekort.
+   */
   const m = x.wand;
   const tijd = m ? x.tijd(m.ms) : '';
   const fully = m?.fully === true;
-  const wakker = x.wekker != null && x.wekker !== 'fully' ? 'melder' : fully && m?.camera === true ? 'fully' : null;
-  const wand = x.heeftWand
-    ? [
-        stap('fully', s.fully.titel, fully ? s.fully.klaar(tijd) : m ? s.fully.anders(tijd) : s.fully.open, fully ? 'klaar' : 'open'),
-        stap('js', s.js[0], m?.js ? s.js[1] : s.js[2], m?.js ? 'klaar' : 'open'),
-        stap('beweging', s.camera.titel, wakker ? s.camera[wakker] : s.camera.open, wakker ? 'klaar' : 'open', null, wakker ? null : 'functies.html#uit'),
-        stap('uit', s.uit[0], x.schermUit ? s.uit[1] : s.uit[2], x.schermUit ? 'klaar' : 'open', null, x.schermUit ? null : 'functies.html#uit'),
-      ]
-    : [stap('fully', s.fully.titel, w.geenWand, 'kan')];
+  const beweging: StapStand = x.wekker != null && x.wekker !== 'fully' ? 'klaar' : x.wekker === 'fully' ? (!fully || m?.camera == null ? 'onbekend' : m.camera ? 'klaar' : 'open') : 'kan';
+  const wand = !x.heeftWand
+    ? [stap('fully', s.fully.titel, w.geenWand, 'kan')]
+    : fully
+      ? [
+          stap('fully', s.fully.titel, s.fully.klaar(tijd), 'klaar'),
+          stap('js', s.js[0], m?.js ? s.js[1] : s.js[2], m?.js ? 'klaar' : 'open'),
+          stap('beweging', s.camera.titel, beweging === 'klaar' ? s.camera[x.wekker === 'fully' ? 'fully' : 'melder'] : s.camera.open, beweging, null, beweging === 'klaar' ? null : 'functies.html#uit'),
+          stap('uit', s.uit[0], x.schermUit ? s.uit[1] : s.uit[2], x.schermUit ? 'klaar' : 'kan', null, x.schermUit ? null : 'functies.html#uit'),
+        ]
+      : [
+          stap('fully', s.fully.titel, m ? s.fully.anders(tijd) : s.fully.nogNiet, 'kan'),
+          stap('uit', s.uit[0], x.schermUit ? s.uit[1] : s.uit[2], x.schermUit ? 'klaar' : 'kan', null, x.schermUit ? null : 'functies.html#uit'),
+        ];
 
   // De cloud: welke dienst er al staat, en of een spraakassistent hem gebruikt.
   const wolkNamen = x.wolken.map((q) => w.wolk[q]).join(', ');
