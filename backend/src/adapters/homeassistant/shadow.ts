@@ -452,6 +452,16 @@ export class ShadowRunner {
   }
 
   /**
+   * Eén besluit op deze stand, zonder verbinding, en wachten tot het in het
+   * logboek staat. Voor het voorbeeldhuis (besluit 242): dat rekent de uren van
+   * vóór het openen na, met zijn eigen klok in `now`.
+   */
+  async naRekenen(states: readonly HaEntityState[]): Promise<void> {
+    this.#store.replaceAll(states);
+    await this.#evaluate('hartslag');
+  }
+
+  /**
    * Vraagt een evaluatie aan, met inachtneming van de ondergrens. Te vroeg?
    * Dan wordt hij verschoven, niet weggegooid — een wijziging mag nooit
    * verdwijnen, hij mag alleen even wachten.

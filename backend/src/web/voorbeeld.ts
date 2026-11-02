@@ -18,7 +18,7 @@
 
 import { fork, type ChildProcess } from 'node:child_process';
 import { request, type IncomingMessage, type ServerResponse } from 'node:http';
-import { type Klok, dagBegin } from '../voorbeeld/dag.js';
+import { type Klok, WEER_KEUZES, dagBegin } from '../voorbeeld/dag.js';
 import { readJson, sendJson } from './http.js';
 
 /** Hoe lang het voorbeeld blijft draaien zonder bezoek. */
@@ -68,7 +68,7 @@ export class Voorbeeld {
     this.#gedaan.clear();
     this.#poort = new Promise<number>((ok, fout) => {
       // Alleen wat het proces nodig heeft; het adres en de sleutel van je eigen Home Assistant gaan niet mee.
-      const env: NodeJS.ProcessEnv = { PATH: process.env['PATH'], TZ: process.env['TZ'] ?? 'Europe/Amsterdam', NODE_ENV: process.env['NODE_ENV'], HEMS_WEB_DIR: this.#o.webDir, HEMS_COMMIT: process.env['HEMS_COMMIT'], HEMS_GEBOUWD: process.env['HEMS_GEBOUWD'], HEMS_VOORBEELD_KLOK: `${this.#klok.minuut}:${this.#klok.seizoen}` };
+      const env: NodeJS.ProcessEnv = { PATH: process.env['PATH'], TZ: process.env['TZ'] ?? 'Europe/Amsterdam', NODE_ENV: process.env['NODE_ENV'], HEMS_WEB_DIR: this.#o.webDir, HEMS_COMMIT: process.env['HEMS_COMMIT'], HEMS_GEBOUWD: process.env['HEMS_GEBOUWD'], HEMS_VOORBEELD_KLOK: `${this.#klok.minuut}:${this.#klok.seizoen}:${this.#klok.weer ?? 'vanzelf'}` };
       const p = fork(this.#o.script, [], { env, stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
       this.#proces = p;
       const grens = setTimeout(() => fout(new Error('het voorbeeld startte niet op tijd')), START_MS);
@@ -177,7 +177,7 @@ export class Voorbeeld {
       sendJson(res, 405, { fout: 'GET of POST' });
       return;
     }
-    let body: { klok?: { minuut?: unknown; seizoen?: unknown }; terug?: unknown };
+    let body: { klok?: { minuut?: unknown; seizoen?: unknown; weer?: unknown }; terug?: unknown };
     try {
       body = ((await readJson(req)) ?? {}) as typeof body;
     } catch {
@@ -191,11 +191,12 @@ export class Voorbeeld {
     }
     const k = body.klok;
     const minuut = Number(k?.minuut);
-    if (!k || (k.seizoen !== 'zomer' && k.seizoen !== 'winter') || !Number.isFinite(minuut) || minuut < 0 || minuut >= 1440) {
-      sendJson(res, 400, { fout: 'klok: { minuut 0-1439, seizoen zomer of winter }' });
+    const weer = WEER_KEUZES.find((w) => w === (k?.weer ?? 'vanzelf'));
+    if (!k || (k.seizoen !== 'zomer' && k.seizoen !== 'winter') || !Number.isFinite(minuut) || minuut < 0 || minuut >= 1440 || weer == null) {
+      sendJson(res, 400, { fout: `klok: { minuut 0-1439, seizoen zomer of winter, weer ${WEER_KEUZES.join(', ')} }` });
       return;
     }
-    const gewenst: Klok = { minuut: Math.round(minuut), seizoen: k.seizoen };
+    const gewenst: Klok = { minuut: Math.round(minuut), seizoen: k.seizoen, weer };
     // Start het proces nog, dan begint het meteen op deze tijd.
     if (!this.#proces) this.#klok = gewenst;
     try {

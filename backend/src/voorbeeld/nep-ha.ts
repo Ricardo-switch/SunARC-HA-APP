@@ -16,7 +16,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { Duplex } from 'node:stream';
 import type { HaEntityState } from '../adapters/homeassistant/client.js';
 import { accepteer, isUpgrade, type Verbinding } from '../web/websocket.js';
-import { type Klok, dagBegin, moment, uurOpWelkeDag } from './dag.js';
+import { type Klok, type Weer, dagBegin, moment, uurOpWelkeDag, weerOp } from './dag.js';
 import { APPARATEN, ENTITEITEN, ETAGES, RUIMTES, type Ingrepen, staten } from './huis.js';
 
 /** Een klein grijs beeld voor de deurbel: geen camera, wel een plaatje. */
@@ -47,6 +47,7 @@ export class NepHa {
   readonly #volgers = new Set<{ verbinding: Verbinding; id: number }>();
   readonly #weer = new Set<{ verbinding: Verbinding; id: number }>();
   #standen = new Map<string, HaEntityState>();
+  #weerSleutel: string | null = null;
   readonly #lijsten = new Map<string, Lijstje>([
     ['todo.boodschappen', { naam: 'Boodschappen', items: [{ uid: '1', summary: 'Melk', status: 'needs_action' }, { uid: '2', summary: 'Brood', status: 'needs_action' }, { uid: '3', summary: 'Appels', status: 'completed' }] }],
   ]);
@@ -80,10 +81,22 @@ export class NepHa {
     return [...this.#standen.values()];
   }
 
+  /** De standen op een ander moment van dezelfde dag, met wat de bezoeker zette: voor de uren van vóór het openen. */
+  standenOp(nuMs: number): HaEntityState[] {
+    const klok = this.#opties.klok();
+    const minuut = Math.floor((nuMs - dagBegin(klok.seizoen, nuMs)) / 60_000);
+    return staten({ ...klok, minuut: Math.max(0, Math.min(1439, minuut)) }, this.#ingrepen, nuMs);
+  }
+
   /** Rekent de standen opnieuw uit (na een andere klok of een ingreep) en meldt wat veranderde. */
   ververs(): void {
+    // Een ander seizoen of ander weer: ook een andere verwachting.
+    const klok = this.#opties.klok();
+    const weerSleutel = `${klok.seizoen}:${klok.weer ?? 'vanzelf'}`;
+    if (this.#weerSleutel != null && weerSleutel !== this.#weerSleutel) for (const v of this.#weer) this.#stuurWeer(v.verbinding, v.id);
+    this.#weerSleutel = weerSleutel;
     const nieuw = new Map<string, HaEntityState>();
-    for (const s of staten(this.#opties.klok(), this.#ingrepen, this.#nu())) nieuw.set(s.entity_id, s);
+    for (const s of staten(klok, this.#ingrepen, this.#nu())) nieuw.set(s.entity_id, s);
     for (const [id, l] of this.#lijsten) {
       const open = l.items.filter((i) => i.status === 'needs_action').length;
       const tijd = new Date(this.#nu()).toISOString();
@@ -340,16 +353,20 @@ export class NepHa {
   #stuurWeer(verbinding: Verbinding, id: number): void {
     const klok = this.#opties.klok();
     const dag0 = dagBegin(klok.seizoen, this.#nu());
-    const forecast = Array.from({ length: 6 }, (_, d) => {
-      const m = moment({ minuut: 900, seizoen: klok.seizoen });
-      const zon = d % 3 !== 2;
+    // De komende dagen wisselen (besluit 243): in de zomer een regendag, in de winter sneeuw en een dooidag.
+    const dagen: readonly Weer[] = klok.seizoen === 'winter' ? ['sneeuw', 'bewolkt', 'zon', 'sneeuw', 'regen', 'bewolkt'] : ['zon', 'bewolkt', 'regen', 'zon', 'zon', 'bewolkt'];
+    const toestand: Readonly<Record<Weer, string>> = { zon: 'sunny', bewolkt: 'partlycloudy', regen: 'rainy', sneeuw: 'snowy' };
+    const forecast = dagen.map((w, d) => {
+      const weer = d === 0 ? weerOp({ ...klok, minuut: 900 }) : w;
+      const m = moment({ minuut: 900, seizoen: klok.seizoen, weer });
+      const nat = weer === 'regen' || weer === 'sneeuw';
       return {
         datetime: new Date(dag0 + d * 86_400_000 + 12 * 3_600_000).toISOString(),
-        condition: zon ? (klok.seizoen === 'winter' ? 'partlycloudy' : 'sunny') : 'cloudy',
+        condition: toestand[weer],
         temperature: Math.round(m.buitenC + (d % 2)),
         templow: Math.round(m.buitenC - (klok.seizoen === 'winter' ? 5 : 9)),
-        precipitation: zon ? 0 : 2.4,
-        precipitation_probability: zon ? 10 : 70,
+        precipitation: nat ? 2.4 : 0,
+        precipitation_probability: nat ? 80 : weer === 'bewolkt' ? 30 : 10,
       };
     });
     verbinding.tekst(JSON.stringify({ id, type: 'event', event: { type: 'daily', forecast } }));

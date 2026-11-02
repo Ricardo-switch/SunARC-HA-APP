@@ -306,11 +306,14 @@ verwijzing bestaat.
   versie is die van de app, en Home Assistant werkt bij als die op `main`
   omhooggaat ([153]). Hij wordt gebouwd met de stappen van Home Assistant,
   ondertekend met Cosign, op een vaste basis, met een eigen AppArmor-profiel
-  (cijfer 8, eerst in de leerstand), en staat als experimenteel tot stap B
-  ([236]).
+  (cijfer 8; sinds [242] houdt het echt tegen), en staat als experimenteel tot
+  stap B ([236]). De Supervisor haalt één image op voor beide soorten ([242]).
 - **Het voorbeeldhuis:** vanaf het welkom en Inrichten een verzonnen huis met
   alles erin, op een nagemaakt Home Assistant in een eigen proces, met een dag
-  om door te spelen; elke knop werkt, alleen in het voorbeeld ([237]).
+  om door te spelen; elke knop werkt, alleen in het voorbeeld ([237]). Vandaag
+  heeft er de uren van vóór het openen: de regeling rekent ze na ([242]). Het
+  weer wisselt vanzelf (een zomerbui, sneeuw in de winter) of je kiest het, en
+  de panelen, de screens en de regeling doen mee ([243]).
 - **Eén blad per apparaat:** een tik op een kaart bij Apparaten opent de
   bediening, ook tot het doel; witgoed dat op zon wacht kiest een uiterste
   eindtijd, en SunArc drukt zelf op de startknop van de droger ([238]).
@@ -799,4 +802,6 @@ verwijzing bestaat.
 [239]: DECISIONS.md#239-wat-de-app-zegt-klopt-met-wat-er-in-huis-gebeurt
 [240]: DECISIONS.md#240-nieuw-in-vast-en-gepland-zeg-het-of-kies-het-zelf-in-vier-stappen
 [241]: DECISIONS.md#241-de-integratie-heet-sunarc-en-gaat-naar-de-standaardlijst-van-hacs
+[242]: DECISIONS.md#242-uit-de-leerstand-één-image-en-vandaag-van-vóór-het-openen
+[243]: DECISIONS.md#243-weer-in-het-voorbeeldhuis
 <!-- links:einde -->

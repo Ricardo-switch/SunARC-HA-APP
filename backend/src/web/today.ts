@@ -424,7 +424,8 @@ export class TodayCache {
 
   get(): Promise<TodayReport> {
     const now = this.#now();
-    if (this.#pending == null || now - this.#at > 60_000) {
+    // Ook als de klok terugsprong: de dagschuif van het voorbeeldhuis gaat van juli naar januari.
+    if (this.#pending == null || now - this.#at > 60_000 || now < this.#at) {
       this.#at = now;
       this.#pending = todayReport(this.#logDir, this.#config, now);
       // Mislukt het, dan de volgende keer opnieuw proberen in plaats van de fout vast te houden.

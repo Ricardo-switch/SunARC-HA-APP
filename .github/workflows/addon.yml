@@ -7,8 +7,8 @@
 # Sinds besluit 236 met de bouwstappen van Home Assistant zelf
 # (home-assistant/builder): per soort een image op een eigen machine van die
 # soort, ondertekend met Cosign, en daarna één naam voor beide soorten
-# (ghcr.io/ricardo-switch/hems-climate). De losse namen per soort
-# ({arch}-hems-climate) blijven bestaan; config.yaml wijst er nog naar.
+# (ghcr.io/ricardo-switch/hems-climate). Daar wijst config.yaml sinds besluit
+# 242 naar; de losse namen per soort (aarch64-hems-climate) blijven bestaan.
 #
 # - Op een pull request naar main: bouwen, niet versturen. Zo blijkt vóór het
 #   samenvoegen dat het image er komt.

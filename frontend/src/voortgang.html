@@ -33,8 +33,9 @@
   .beeld svg { width: 100%; height: 100%; max-height: 470px; }
   .paneel { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
   .paneel[hidden] { display: none; }
-  .samen { padding: 14px 18px 10px; }
-  .samen h3, .zelf h3 { margin: 0 0 6px; font-family: var(--kop); font-size: 16px; font-weight: 600; }
+  /* Niet .samen: dat is de rij bolletjes uit basis.css, die van elk getal een pil met een stip maakte (een 11 viel weg). */
+  .tellers { padding: 14px 18px 10px; }
+  .tellers h3, .zelf h3 { margin: 0 0 6px; font-family: var(--kop); font-size: 16px; font-weight: 600; }
   .telrij { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 0 12px; align-items: center; padding: 8px 0; border-top: 1px solid rgb(var(--wit) / 0.06); }
   .telrij:first-of-type { border-top: 0; }
   .telrij .getal { font-family: var(--kop); font-size: 30px; font-weight: 600; line-height: 1; text-align: right; }
@@ -150,7 +151,7 @@
       <div class="veld">
         <div class="beeld"><svg viewBox="0 0 740 440" data-waaier="groot"></svg></div>
         <div class="paneel" data-samen>
-          <section class="glas samen"><h3 data-t="voortgang.samen"></h3><div data-tellers></div></section>
+          <section class="glas tellers"><h3 data-t="voortgang.samen"></h3><div data-tellers></div></section>
           <section class="glas zelf" data-zelf></section>
         </div>
         <div class="paneel" data-paneel-blad hidden><section class="glas blad" role="dialog" data-t-aria-label="kan.uitleg" data-blad></section></div>

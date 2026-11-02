@@ -114,6 +114,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [220. Wat een nieuwe gebruiker tegenkwam](#220-wat-een-nieuwe-gebruiker-tegenkwam)
 - [223. De licentie: AGPL-3.0](#223-de-licentie-agpl-30)
 - [237. Het voorbeeldhuis: de app op een nagemaakt Home Assistant, met een dag om door te spelen](#237-het-voorbeeldhuis-de-app-op-een-nagemaakt-home-assistant-met-een-dag-om-door-te-spelen)
+- [243. Weer in het voorbeeldhuis](#243-weer-in-het-voorbeeldhuis)
 
 **Meten, data en analyse**
 
@@ -282,6 +283,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [177. Universeel, deel 1: het wekwoord mee, Assist zonder NAS, en meldingen live](#177-universeel-deel-1-het-wekwoord-mee-assist-zonder-nas-en-meldingen-live)
 - [236. Klaar om te delen: AppArmor, één ondertekend image, experimenteel, en een verzorgde repository](#236-klaar-om-te-delen-apparmor-één-ondertekend-image-experimenteel-en-een-verzorgde-repository)
 - [241. De integratie heet sunarc, en gaat naar de standaardlijst van HACS](#241-de-integratie-heet-sunarc-en-gaat-naar-de-standaardlijst-van-hacs)
+- [242. Uit de leerstand, één image, en Vandaag van vóór het openen](#242-uit-de-leerstand-één-image-en-vandaag-van-vóór-het-openen)
 
 **Kwaliteitsbewaking**
 
@@ -11192,6 +11194,76 @@ naam erin. Daarom:
 - **Het adres en de sleutel zijn ingeklapt** onder "Geen add-on?": met de
   add-on heb je ze niet nodig.
 - **Versie 0.110.1.**
+
+---
+
+## 242. Uit de leerstand, één image, en Vandaag van vóór het openen
+
+*Onderwerp: uitrol en beheer · Status: geldig*
+
+2 november 2026. Vier kleine punten die na besluit 236 en 237 openstonden.
+
+- **AppArmor houdt echt tegen.** Het profiel stond sinds 0.105.0 in de
+  leerstand. Het logboek van de Pi (anderhalve dag, zestien starts) liet één
+  stap buiten het profiel zien: node leest zijn taalgegevens uit
+  `/usr/share/icu`. Die staat er nu bij, en `complain` is eraf, voor het
+  opstartscript en voor node. Node start alleen zichzelf (het voorbeeldhuis),
+  en dat mocht al. Een test houdt de leerstand eruit.
+- **Eén image voor beide soorten.** Het pakket
+  `ghcr.io/ricardo-switch/hems-climate` is openbaar en heeft sinds 0.105.0 een
+  manifest voor aarch64 en amd64. `config.yaml` wijst er nu naar in plaats van
+  naar `{arch}-hems-climate`; Docker kiest zelf wat bij de machine past. De
+  losse namen blijven bestaan.
+- **Vandaag in het voorbeeldhuis begint om middernacht.** Het voorbeeld begon
+  zijn logboek als je het opende, dus Vandaag was tot dat uur leeg. Nu rekent
+  de gewone regeling de uren ervoor na (`voorbeeld/voorloop.ts`): een eigen
+  ShadowRunner met de klok van het voorbeeld, om de drie minuten op de standen
+  van dat moment, zonder verbinding en zonder iets te sturen. Alleen het
+  beslislogboek gaat mee; de eigen stand van de dienst begint leeg, zoals
+  altijd. Na een sprong vooruit met de dagschuif rekent hij het stuk ertussen
+  na.
+- **Het vak Samen op Hoe ver je huis is** heette `samen`, net als de rij
+  bolletjes uit `basis.css`. Die maakte van elk getal een pil met een stip,
+  en een getal van twee cijfers viel weg (de 11 bij Werkt helemaal). Het vak
+  heet nu `tellers`.
+- **Versie 0.111.0**, samen met besluit 243.
+
+---
+
+## 243. Weer in het voorbeeldhuis
+
+*Onderwerp: configuratie en onboarding · Status: geldig*
+
+2 november 2026. De bewoner wil dat het weer in het voorbeeldhuis wisselt
+als je de tijd laat lopen, met regen en sneeuw. Zijn keuzes: vanzelf én zelf
+kiezen, en alles doet mee (de panelen en de regeling, de tekening, de
+buitentemperatuur en de verwachting, de screens).
+
+*Besluit:*
+
+- **Vanzelf een verloop per dag** (`weerOp` in `voorbeeld/dag.ts`): in de
+  zomer zon, bewolkt vanaf twee uur en een bui van drie tot half vijf; in de
+  winter sneeuw tot elf uur, dan bewolkt, opklaring tot vier uur, en weer
+  bewolkt. In de balk een knop met het weer van nu, die een keuze opent:
+  Vanzelf, Zon, Bewolkt, Regen of Sneeuw. De keuze reist mee met de klok
+  (`{ minuut, seizoen, weer }`); de dienst neemt alleen die vijf aan. Op de
+  tijdbaan een dunne strook: wolken grijs, regen blauw, sneeuw wit.
+- **Het huis doet mee:** de panelen halen bij wolken een derde, bij regen een
+  achtste en onder sneeuw bijna niets. Koelen en laden op zon alleen bij echte
+  zon; de droger wacht als het om half twaalf regent. Een bui koelt de zomer
+  vijf graden af, sneeuw zakt onder nul. Bij een bui gaan de screens omhoog,
+  zoals met een regensensor, en bij regen of sneeuw gaan overdag de lampen
+  eerder aan.
+- **Home Assistant zegt het:** `weather.thuis` staat op sunny, cloudy, rainy
+  of snowy, met bewolking en neerslag; de tekening van het huis kent regen en
+  sneeuw al. De verwachting voor de komende dagen heeft een regendag in de
+  zomer, sneeuw en een dooidag in de winter, en wordt opnieuw gestuurd als het
+  seizoen of de keuze verandert.
+- **Ook voor een echt huis:** het weerbericht bleef tien minuten bewaard.
+  Verandert het weer van nu (een bui), dan rekent de dienst meteen opnieuw.
+  Een klok die terugspringt (van juli naar januari in het voorbeeld) rekent
+  het weerbericht en Vandaag ook opnieuw; eerst bleef dan de zomerdag staan.
+- **Versie 0.111.0.**
 
 ---
 

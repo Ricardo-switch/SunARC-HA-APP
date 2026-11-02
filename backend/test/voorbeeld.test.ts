@@ -5,15 +5,20 @@
  * de dienst vraagt (en alleen in het geheugen), en dat de dienst het voorbeeld
  * doorgeeft met dezelfde controles als elders.
  */
+import { mkdtemp, rm } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { relevantEntities } from '../src/adapters/homeassistant/mapping.js';
 import { parseSiteConfig } from '../src/config/schema.js';
 import { defaultStrategies } from '../src/index.js';
-import { moment } from '../src/voorbeeld/dag.js';
+import { type Klok, dagBegin, moment, weerOp } from '../src/voorbeeld/dag.js';
 import { VOORBEELD_SITE, staten } from '../src/voorbeeld/huis.js';
 import { NepHa } from '../src/voorbeeld/nep-ha.js';
+import { laatsteMoment, vulAan } from '../src/voorbeeld/voorloop.js';
+import { TodayCache, todayReport } from '../src/web/today.js';
 import { WebServer } from '../src/web/server.js';
 import type { Voorbeeld } from '../src/web/voorbeeld.js';
 
@@ -44,6 +49,89 @@ describe('het voorbeeldhuis (besluit 237)', () => {
     expect(avond.batterijW).toBeLessThan(0);
     const winter = moment({ minuut: 450, seizoen: 'winter' });
     expect(winter).toMatchObject({ verwarmt: true, licht: false, koelt: false });
+  });
+});
+
+describe('het weer in het voorbeeld (besluit 243)', () => {
+  it('wisselt vanzelf met de klok: een bui op een zomermiddag, sneeuw op een winterochtend', () => {
+    expect(weerOp({ minuut: 600, seizoen: 'zomer' })).toBe('zon');
+    expect(weerOp({ minuut: 930, seizoen: 'zomer' })).toBe('regen');
+    expect(weerOp({ minuut: 540, seizoen: 'winter' })).toBe('sneeuw');
+    expect(weerOp({ minuut: 800, seizoen: 'winter' })).toBe('zon');
+    // Een keuze van de bezoeker geldt de hele dag.
+    expect(weerOp({ minuut: 600, seizoen: 'zomer', weer: 'sneeuw' })).toBe('sneeuw');
+  });
+
+  it('de panelen, het koelen, de screens en de temperatuur volgen het weer', () => {
+    const zon = moment({ minuut: 760, seizoen: 'zomer', weer: 'zon' });
+    const regen = moment({ minuut: 760, seizoen: 'zomer', weer: 'regen' });
+    expect(regen.zonW).toBeLessThan(zon.zonW / 5);
+    expect(regen.buitenC).toBeLessThan(zon.buitenC - 3);
+    expect(zon).toMatchObject({ koelt: true, autoLaadt: true, droger: true });
+    expect(regen).toMatchObject({ koelt: false, autoLaadt: false, droger: false, screensDicht: false, lampen: true });
+    expect(moment({ minuut: 800, seizoen: 'winter', weer: 'sneeuw' }).zonW).toBeLessThan(50);
+  });
+
+  it('Home Assistant zegt het weer, en de screens gaan omhoog bij een bui', () => {
+    let klok: Klok = { minuut: 840, seizoen: 'zomer', weer: 'zon' };
+    const ha = new NepHa({ klok: () => klok, nu: () => NU });
+    const stand = (id: string) => ha.standen.find((s) => s.entity_id === id)!;
+    expect(stand('weather.thuis').state).toBe('sunny');
+    expect(stand('cover.screen_woonkamer').state).toBe('closed');
+    klok = { ...klok, weer: 'regen' };
+    ha.ververs();
+    expect(stand('weather.thuis').state).toBe('rainy');
+    expect(stand('cover.screen_woonkamer').state).toBe('open');
+    klok = { minuut: 540, seizoen: 'winter' };
+    ha.ververs();
+    expect(stand('weather.thuis').state).toBe('snowy');
+  });
+
+  it('Vandaag rekent opnieuw als de klok terugspringt, van juli naar januari', async () => {
+    const strategies = defaultStrategies();
+    const uit = parseSiteConfig(JSON.parse(JSON.stringify(VOORBEELD_SITE)), { knownStrategies: strategies.ids });
+    if (!uit.ok) throw new Error('geen geldige configuratie');
+    const logDir = await mkdtemp(join(tmpdir(), 'terug-test-'));
+    let nu = NU;
+    const cache = new TodayCache(logDir, uit.config, () => nu);
+    const juli = await cache.get();
+    nu = Date.UTC(2026, 0, 13, 9, 0);
+    expect((await cache.get()).vanMs).toBeLessThan(juli.vanMs);
+    await rm(logDir, { recursive: true, force: true });
+  });
+});
+
+describe('Vandaag van vóór het openen (besluit 242)', () => {
+  it('rekent de uren sinds middernacht na, en na een sprong vooruit het stuk ertussen', async () => {
+    const strategies = defaultStrategies();
+    const uit = parseSiteConfig(JSON.parse(JSON.stringify(VOORBEELD_SITE)), { knownStrategies: strategies.ids });
+    if (!uit.ok) throw new Error('geen geldige configuratie');
+    const logDir = await mkdtemp(join(tmpdir(), 'voorloop-test-'));
+    try {
+      const ha = new NepHa({ klok: () => ({ minuut: 760, seizoen: 'zomer' }), nu: () => NU });
+      const begin = dagBegin('zomer', NU);
+      const n = await vulAan({ config: uit.config, strategies, logDir, standen: (t) => ha.standenOp(t), vanMs: begin, totMs: NU });
+      expect(n).toBeGreaterThan(200);
+
+      // Om 12:40 staat de ochtend er al: temperaturen vanaf middernacht, de airco die vanaf elf uur koelt, en besluiten.
+      const vandaag = await todayReport(logDir, uit.config, NU);
+      const woonkamer = vandaag.zones.find((z) => z.kwartieren.some((k) => k != null))!;
+      expect(woonkamer.kwartieren.slice(0, 4).every((k) => k != null)).toBe(true);
+      const koelde = vandaag.apparaten.flatMap((a) => a.huidig).filter((s) => s.actie === 'cool');
+      expect(koelde.length).toBeGreaterThan(0);
+      expect(koelde[0]!.vanMs).toBeLessThan(NU - 60 * 60_000);
+      expect(vandaag.besluiten.length).toBeGreaterThan(0);
+
+      // De dagschuif drie uur vooruit: alleen het stuk ertussen komt erbij.
+      const laatste = await laatsteMoment(logDir, begin, NU);
+      expect(laatste).toBeGreaterThan(NU - 4 * 60_000);
+      const later = NU + 3 * 3_600_000;
+      expect(await vulAan({ config: uit.config, strategies, logDir, standen: (t) => ha.standenOp(t), vanMs: laatste! + 60_000, totMs: later })).toBe(Math.ceil((later - laatste! - 60_000) / 180_000));
+      const middag = await todayReport(logDir, uit.config, later);
+      expect(middag.kwartieren.slice(-8).every((q) => q.zonW != null)).toBe(true);
+    } finally {
+      await rm(logDir, { recursive: true, force: true });
+    }
   });
 });
 

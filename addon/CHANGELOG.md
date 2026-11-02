@@ -1,5 +1,39 @@
 # Wat is er nieuw · What is new
 
+## 0.111.0
+
+*2 november 2026*
+
+**Nieuw**
+
+- Weer in het voorbeeldhuis: een bui op een zomermiddag, sneeuw op een winterochtend, of kies zelf. De panelen, de screens en de regeling doen mee
+
+**Beter**
+
+- In het voorbeeldhuis begint Vandaag om middernacht, ook als je het later op de dag opent
+- De add-on is beter afgeschermd: hij kan alleen nog in zijn eigen mappen schrijven
+- Begint het te regenen, dan zie je dat meteen, niet pas na tien minuten
+
+**Opgelost**
+
+- Bij Hoe ver je huis is viel in het vak Samen een getal van twee cijfers weg
+
+*English*
+
+**New**
+
+- Weather in the example home: a shower on a summer afternoon, snow on a winter morning, or pick it yourself. The panels, the screens and the control follow along
+
+**Improved**
+
+- In the example home, Today starts at midnight, even when you open it later in the day
+- The add-on is better shielded: it can only write in its own folders
+- When it starts to rain, you see it right away, not ten minutes later
+
+**Fixed**
+
+- On How far your home is, a two-digit number dropped out of the Together box
+
 ## 0.110.1
 
 *2 november 2026*

@@ -12,13 +12,13 @@
 # image staat, schrijven alleen in de mappen die config.yaml aankoppelt, en het
 # netwerk voor Home Assistant en het weerbericht.
 #
-# Nu in de leerstand (`complain`): niets wordt tegengehouden, elke stap buiten
-# het profiel komt in het logboek van de host. Lees dat na een dag met
-#   journalctl _TRANSPORT=audit -g 'apparmor="ALLOWED"'
-# of `dmesg | grep apparmor`, vul aan wat ontbreekt, en haal dan `complain`
-# weg (de tweede stap van besluit 236).
+# Eerst in de leerstand (`complain`, besluit 236). Anderhalve dag en zestien
+# starts op de Pi lieten één stap buiten het profiel zien: de taalgegevens van
+# node (ICU). Die staat er nu bij, en het profiel houdt sinds besluit 242 echt
+# tegen. Wat het tegenhoudt, staat in het logboek van de host:
+#   journalctl _TRANSPORT=audit -g 'apparmor="DENIED"'
 
-profile hems_climate flags=(attach_disconnected,mediate_deleted,complain) {
+profile hems_climate flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
   # Het opstartscript
@@ -41,7 +41,7 @@ profile hems_climate flags=(attach_disconnected,mediate_deleted,complain) {
   # De dienst in zijn eigen profiel
   /usr/bin/node cx -> node,
 
-  profile node flags=(attach_disconnected,mediate_deleted,complain) {
+  profile node flags=(attach_disconnected,mediate_deleted) {
     #include <abstractions/base>
 
     # Stoppen en opnieuw starten via run.sh
@@ -64,6 +64,7 @@ profile hems_climate flags=(attach_disconnected,mediate_deleted,complain) {
     # Wat node leest om te draaien: certificaten, namen, tijdzones, het systeem
     /etc/** r,
     /usr/share/zoneinfo/** r,
+    /usr/share/icu/** r,
     /usr/share/ca-certificates/** r,
     /proc/** r,
     /sys/fs/cgroup/** r,

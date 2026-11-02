@@ -11,7 +11,7 @@
 
 import type { HaEntityState } from '../adapters/homeassistant/client.js';
 import type { HaArea, HaDevice, HaFloor, HaRegistryEntity } from '../adapters/homeassistant/discovery.js';
-import { type Klok, type Moment, ZON, moment } from './dag.js';
+import { type Klok, type Moment, type Weer, ZON, moment } from './dag.js';
 
 /* ---- de configuratie van SunArc voor dit huis ---- */
 
@@ -267,6 +267,9 @@ const KNOPPEN: readonly (readonly [string, number, number, number])[] = [
 ];
 
 /** Alle entiteiten van het voorbeeldhuis op het moment van `klok`, op tijdstip `nuMs`. */
+/** Het weer als toestand van een weerentiteit; zon hangt van dag of nacht af. */
+const WEER_TOESTAND: Readonly<Partial<Record<Weer, string>>> = { bewolkt: 'cloudy', regen: 'rainy', sneeuw: 'snowy' };
+
 export function staten(klok: Klok, ingrepen: Ingrepen, nuMs: number): HaEntityState[] {
   const m: Moment = moment(klok);
   const tijd = new Date(nuMs).toISOString();
@@ -323,9 +326,9 @@ export function staten(klok: Klok, ingrepen: Ingrepen, nuMs: number): HaEntitySt
   zet('scene.woonkamer_avond', '2026-01-01T19:00:00+00:00', { entity_id: ['light.woonkamer_plafond', 'light.woonkamer_sfeer'] });
   zet('scene.woonkamer_helder', '2026-01-01T07:00:00+00:00', { entity_id: ['light.woonkamer_plafond', 'light.woonkamer_sfeer', 'light.keuken'] });
 
-  // Screens: dicht tegen de middagzon en 's avonds.
+  // Screens: dicht tegen de middagzon en 's avonds, omhoog bij een bui.
   for (const id of ['cover.screen_woonkamer', 'cover.screen_slaapkamer']) {
-    const dicht = id === 'cover.screen_slaapkamer' ? m.screensDicht : !winter && klok.minuut > 780 && klok.minuut < 1020;
+    const dicht = id === 'cover.screen_slaapkamer' ? m.screensDicht : !winter && m.weer === 'zon' && klok.minuut > 780 && klok.minuut < 1020;
     zet(id, dicht ? 'closed' : 'open', { current_position: dicht ? 0 : 100, supported_features: 15, device_class: 'shade' });
   }
 
@@ -360,7 +363,14 @@ export function staten(klok: Klok, ingrepen: Ingrepen, nuMs: number): HaEntitySt
   // De zon, het weer, de deurbel.
   const elevatie = Math.round(m.zonHoogte * (winter ? 18 : 60));
   zet('sun.sun', m.licht ? 'above_horizon' : 'below_horizon', { elevation: elevatie, azimuth: Math.round(90 + 180 * m.zonStand), rising: m.zonStand < 0.5 });
-  zet('weather.thuis', m.licht ? (winter ? 'cloudy' : 'sunny') : 'clear-night', { temperature: m.buitenC, humidity: winter ? 88 : 60, wind_speed: 12, cloud_coverage: winter ? 70 : 15 });
+  const nat = m.weer === 'regen' || m.weer === 'sneeuw';
+  zet('weather.thuis', WEER_TOESTAND[m.weer] ?? (m.licht ? 'sunny' : 'clear-night'), {
+    temperature: m.buitenC,
+    humidity: nat ? 93 : winter ? 85 : 60,
+    wind_speed: nat ? 24 : 12,
+    cloud_coverage: m.weer === 'zon' ? 10 : m.weer === 'bewolkt' ? 85 : 100,
+    precipitation: m.weer === 'regen' ? 2.4 : m.weer === 'sneeuw' ? 1.2 : 0,
+  });
   zet('camera.deurbel', 'idle', { access_token: 'voorbeeld', entity_picture: '/api/camera_proxy/camera.deurbel' });
   zet('binary_sensor.deurbel_bezoeker', 'off', { device_class: 'occupancy' });
 

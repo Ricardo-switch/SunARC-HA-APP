@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.110.1';
+export const VERSIE = '0.111.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,28 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.111.0',
+    datum: '2026-11-02',
+    nieuw: [
+      "Weer in het voorbeeldhuis: een bui op een zomermiddag, sneeuw op een winterochtend, of kies zelf. De panelen, de screens en de regeling doen mee",
+    ],
+    beter: [
+      'In het voorbeeldhuis begint Vandaag om middernacht, ook als je het later op de dag opent',
+      'De add-on is beter afgeschermd: hij kan alleen nog in zijn eigen mappen schrijven',
+      'Begint het te regenen, dan zie je dat meteen, niet pas na tien minuten',
+    ],
+    opgelost: ['Bij Hoe ver je huis is viel in het vak Samen een getal van twee cijfers weg'],
+    en: {
+      nieuw: ['Weather in the example home: a shower on a summer afternoon, snow on a winter morning, or pick it yourself. The panels, the screens and the control follow along'],
+      beter: [
+        'In the example home, Today starts at midnight, even when you open it later in the day',
+        'The add-on is better shielded: it can only write in its own folders',
+        'When it starts to rain, you see it right away, not ten minutes later',
+      ],
+      opgelost: ['On How far your home is, a two-digit number dropped out of the Together box'],
+    },
+  },
   {
     versie: '0.110.1',
     datum: '2026-11-02',
