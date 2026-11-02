@@ -11492,6 +11492,10 @@ stand (`HEMS_VOORBEELD_TAAL=en`, alleen de namen), en
 `design/app2/github-beelden.cjs` maakt de beelden opnieuw, met de klok van de
 browser op die van het voorbeeld (15 juli, 12:45). De korte film volgt nog.
 
+*Opgelost in 0.115.1:* bij Inrichten stonden meerdere iconen op één regel, en
+het omzetten nam per regel alleen het eerste mee. Zeventien iconen vielen weg
+en Inrichten tekende daar een huisje. Ze staan er weer, één per regel.
+
 ---
 
 ## Wat nog een besluit wacht

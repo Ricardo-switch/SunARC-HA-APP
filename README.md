@@ -32,7 +32,7 @@ and explains every decision it makes.</p>
 
 SunArc is a Home Assistant add-on with its own app for a wall tablet and your phone. It takes your home from Home Assistant (floors, rooms, devices, sensors) and draws it as an open dollhouse. At a glance you see what is going on: where it is warm, what is running and how much sun your panels deliver.
 
-Behind the app is a controller that decides, round after round, what the house should do. Comfort comes first, and spare sun goes to your own home before it goes to the grid. Every decision comes with the reason, in plain words.
+Behind the app is a controller that decides, round after round, what the house should do. Comfort comes first, and surplus solar power goes to your own home before it goes to the grid. Every decision comes with the reason, in plain words.
 
 **Honest about where it stands:** SunArc is watching. It decides and records everything, but it does not control your heating and air conditioners on its own yet. Real control comes after a full winter of watching, with a report that proves it does better than your current setup. That is why the add-on is marked *experimental*. Lights, scenes and blinds can already be controlled from the app, and so can climate by hand, always with an end time.
 
@@ -46,7 +46,7 @@ Behind the app is a controller that decides, round after round, what the house s
 **Comfort and sun**
 - Comfort per room and per part of the day, and per resident: the first one home, in your order, sets the comfort.
 - A power budget per phase, so your main fuse holds.
-- When the dryer would start on sun, with a deadline you choose.
+- When the dryer can run on your own solar power, with a deadline you choose.
 - The weather for today and five days ahead, with what your panels will deliver. The house learns how much sun your roof catches on a clear day.
 - **Learning:** how fast your home cools down and warms up, and what the sun adds.
 
@@ -58,8 +58,8 @@ Behind the app is a controller that decides, round after round, what the house s
 
 **Control and ask**
 - Lights, Hue scenes and blinds, with one tap.
-- **Climate by hand:** the thermostat or an air conditioner until a time, then back to your schedule.
-- **Fixed and planned:** "every weekday, a quarter of an hour before sunset, close the blinds", and the house keeps doing it.
+- **Manual climate control:** the thermostat or an air conditioner until a time, then back to your schedule.
+- **Regular and planned:** "every weekday, a quarter of an hour before sunset, close the blinds", and the house keeps doing it.
 - Cameras per room, and the doorbell image when someone rings.
 - **The assistant:** ask in your own words ("why is the attic waiting?") and the house answers, out loud with the voice from Home Assistant. On the wall with a wake word, on the phone with the microphone.
 
@@ -116,6 +116,8 @@ To ask SunArc through Home Assistant's Assist ("why is the attic running?", "wha
 - **Without HACS:** open SunArc → **Settings → Residents and access → Key for the assistant** and tap **Put the integration in Home Assistant**. Then restart Home Assistant.
 - **With HACS:** in HACS choose the three dots → **Custom repositories**, add `https://github.com/Ricardo-switch/SunARC-HA-APP` as an **Integration**, install **SunArc** and restart Home Assistant.
 
+HACS installs only this small Assist integration. The add-on itself always comes from the add-on store, as in the steps above.
+
 Home Assistant then shows **New device discovered: SunArc**; click **Add**. You do this once: later SunArc updates need no restart, because the sentences and answers come from the add-on. The integration has its own version, which only goes up when it changes itself.
 
 Does it work with your devices? SunArc works with what your home has. An air conditioner, a thermostat, a smart meter, panels of any brand: it does what your setup allows, and **What your home can do** tells you what it cannot do (yet) because of that.
@@ -125,12 +127,12 @@ Does it work with your devices? SunArc works with what your home has. An air con
 - The app sits behind the Home Assistant login (Ingress). No port is open, unless you turn on the separate port for Tailscale yourself.
 - Its own AppArmor profile: security rating 8, the highest.
 - The images are built on GitHub and signed with Cosign.
-- SunArc writes to Home Assistant only through narrow doors: lights, scenes, blinds, the start button of a dryer waiting for sun, and climate by hand with an end time. A test proves nothing else gets through. Why the add-on may write to the Home Assistant configuration is explained in the add-on documentation.
+- SunArc writes to Home Assistant only through narrow doors: lights, scenes, blinds, the start button of a dryer waiting for solar power, and manual climate control with an end time. A test proves nothing else gets through. Why the add-on may write to the Home Assistant configuration is explained in the add-on documentation.
 - Found a weakness? See [SECURITY.md](SECURITY.md).
 
 ## How it works
 
-- **A pure core.** Strategies each make a proposal (comfort, heat assist, spare sun), and one arbiter decides within a power budget. The core does no input or output and reads no clock, so every decision can be recomputed.
+- **A pure core.** Strategies each make a proposal (comfort, heat assist, surplus solar), and one arbiter decides within a power budget. The core does no input or output and reads no clock, so every decision can be recomputed.
 - **Everything is recorded.** Every decision, with the state of the house and the version that made it. That is where the evidence for real control comes from.
 - **What differs per home is a setting**, not code. What Home Assistant already knows, the app suggests; you confirm.
 

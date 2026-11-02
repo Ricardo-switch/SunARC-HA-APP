@@ -116,6 +116,8 @@ Wil je SunArc ook vragen via Assist van Home Assistant ("waarom draait de zolder
 - **Zonder HACS:** open SunArc → **Instellingen → Bewoners en toegang → Sleutel voor de assistent** en tik op **Zet de integratie in Home Assistant**. Herstart daarna Home Assistant.
 - **Met HACS:** kies in HACS de drie puntjes → **Eigen repositories**, voeg `https://github.com/Ricardo-switch/SunARC-HA-APP` toe als **Integratie**, installeer **SunArc** en herstart Home Assistant.
 
+HACS installeert alleen deze kleine koppeling voor Assist. De add-on zelf komt altijd uit de add-on-winkel, zoals in de stappen hierboven.
+
 Home Assistant toont dan **Nieuw apparaat gevonden: SunArc**; klik op **Toevoegen**. Dat doe je één keer: een update van SunArc vraagt daarna geen herstart, want de zinnen en de antwoorden komen uit de add-on. De integratie heeft een eigen versie, die alleen omhoog gaat als hij zelf verandert.
 
 Werkt het met jouw apparaten? SunArc werkt met wat je huis heeft. Een airco, een thermostaat, een slimme meter, panelen van elk merk: het doet wat jouw opstelling toelaat, en zegt bij **Wat je huis kan** wat het daardoor (nog) niet kan.
