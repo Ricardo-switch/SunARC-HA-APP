@@ -2242,7 +2242,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       const tab = p.locator('#wand [data-td-pagina]');
       await tab.locator('.td-item').first().waitFor({ timeout: 10_000 });
       expect(await p.locator('#balk [data-tab="tedoen"][aria-current="page"]').count()).toBe(1);
-      expect(await tab.locator('.td-her:not(.td-gepland)').count()).toBe(1);
+      expect(await tab.locator('.td-her').count()).toBe(1);
       // Vandaag, morgen (GFT), de zwemles en de PMD over acht dagen.
       expect(await tab.locator('.tdp-dag').count()).toBe(4);
       expect(await tab.locator('.tdp-bronnen').textContent()).toContain('Gezin');
@@ -2250,9 +2250,19 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       expect(await tab.locator('.tdp-lijst').count()).toBe(2);
       // Een scherm aan de wand heeft geen eigen agenda's (besluit 218): geen knop ernaartoe.
       expect(await tab.locator('a[href="jij.html#agenda"]').count()).toBe(0);
-      // Vast en gepland (besluit 234): één regel naar de eigen pagina, met wanneer de volgende is.
-      expect(await tab.locator('.td-gepland').textContent()).toMatch(/Vast en gepland1 opdracht · de volgende om \d\d:\d\d/);
+      // Vast en gepland als eigen kolom (besluit 244): de boog, de taak met zijn tijd, en alles naar de eigen pagina.
+      expect(await tab.locator('.td-vast .td-taak').count()).toBe(1);
+      expect(await tab.locator('.td-vast .td-taak').textContent()).toMatch(/^\d\d:\d\dDoe de screens dicht/);
+      expect(await tab.locator('.td-vast .td-boog svg').count()).toBe(1);
       expect(await tab.locator('.td-gepland').getAttribute('href')).toBe('gepland.html');
+      // + Nieuw: een herinnering of een taak, of zeg het.
+      await tab.locator('[data-td-keuzeknop]').click();
+      expect(await tab.locator('.td-keuze [data-td-keuze]').count()).toBe(2);
+      expect(await tab.locator('.td-keuze [data-td-zeg] input').count()).toBe(1);
+      await shot('tedoen-nieuw');
+      await tab.locator('[data-td-keuze="herinnering"]').click();
+      expect(await tab.locator('.td-keuze').count()).toBe(0);
+      expect(await p.evaluate<boolean>("document.activeElement?.closest('form')?.hasAttribute('data-td-nieuw') === true")).toBe(true);
       await p.waitForTimeout(500);
       await shot('tedoen-tab');
       // Afvinken op uid: een naam kan vaker op de lijst staan.
@@ -4349,11 +4359,16 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
       }
       return route.fulfill({ json: { aan: true, herinneringen: [], gepland, lijsten: [], afspraken: [], speelt: [], agendas: {} } });
     });
-    // Op Te doen één regel, die naar de eigen pagina gaat.
+    // Op Te doen een eigen kolom (besluit 244), met alles naar de eigen pagina.
     await p.goto(`${baseUrl}/tedoen.html`);
     const regel = p.locator('#wand .td-gepland');
     await regel.waitFor({ timeout: 10_000 });
-    expect(await regel.textContent()).toMatch(/Vast en gepland[\s\S]*2 opdrachten · de volgende om \d\d:\d\d/);
+    expect(await p.locator('#wand .td-vast .td-taak').count()).toBe(2);
+    expect(await p.locator('#wand .td-vast .td-taak.uit').textContent()).toContain('Badkamer licht aan');
+    // Pauzeren kan daar ook.
+    await p.locator('#wand .td-vast .td-taak', { hasText: 'Screens dicht' }).locator('[data-td-gp-aan]').click();
+    await expect.poll(() => gestuurd.length).toBe(1);
+    expect(gestuurd.shift()).toEqual({ actie: 'aanpassen', id: 'g1', aan: false });
     await regel.click();
     await p.waitForURL(/gepland\.html$/);
     const wand = p.locator('#wand [data-gp]');
@@ -4437,32 +4452,40 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     );
     await p.goto(`${baseUrl}/gepland.html`);
     await p.locator('#wand [data-gp-nieuw]').click();
-    const wiz = p.locator('#wand .pl-wiz');
-    await wiz.locator('.pl-gaan').click();
-    // Wat: klimaat, de airco op zolder, een halve graad hoger, tot het doel.
-    await wiz.locator('[data-pl-soort="klimaat"]').click();
-    await wiz.locator('[data-pl-keuze="climate.zolder"]').click();
-    await wiz.locator('[data-pl-doel="1"]').click();
-    expect(await wiz.locator('.pl-voorbeeld .pl-zin').textContent()).toContain('airco zolder verwarmen tot 20,5°');
+    const wiz = p.locator('#wand .tk-blad');
+    const zin = wiz.locator('.tk-zin');
+    // Wat (besluit 244): per kamer, meerdere tegelijk; de airco zonder kamer onder Overig.
+    await wiz.locator('[data-pl-kies="licht:light.bank"]').click();
+    await wiz.locator('[data-pl-kies="klimaat:climate.zolder"]').click();
+    expect(await wiz.locator('.tk-kamer', { hasText: 'Woonkamer' }).locator('[data-pl-kies]').count()).toBe(3);
+    expect(await zin.textContent()).toBe('Op een moment gaat de lamp bank aan en gaat de airco zolder verwarmen naar 20°.');
     await wiz.locator('[data-pl-verder]').click();
-    // Wanneer: om 06:30.
+    // Wanneer: om 06:30, op werkdagen.
     await wiz.locator('[data-pl-tijd]').fill('06:30');
     await wiz.locator('[data-pl-tijd]').dispatchEvent('change');
-    await wiz.locator('[data-pl-verder]').click();
-    // Hoe vaak: werkdagen.
     await wiz.locator('[data-pl-herhaal="werkdagen"]').click();
+    await expect.poll(() => wiz.locator('.tk-rechts .tk-komend > div').count()).toBe(4);
     await wiz.locator('[data-pl-verder]').click();
-    // Klaar: de komende dagen, van de dienst.
-    await expect.poll(() => wiz.locator('.pl-week > div').count()).toBe(7);
-    expect(await wiz.locator('.pl-voorbeeld .pl-zin').textContent()).toBe('Werkdagen, om 06:30, airco zolder verwarmen tot 20,5°.');
+    // Hoe: de airco een halve graad hoger.
+    await wiz.locator('[data-pl-doel="1"]').click();
+    expect(await zin.textContent()).toBe('Elke werkdag om 06:30 gaat de lamp bank aan en gaat de airco zolder verwarmen naar 20,5°.');
+    // Een stuk van de zin opent zijn keuze.
+    await zin.locator('[data-pl-stuk="wanneer"]').click();
+    expect(await wiz.locator('.tk-paneel').getAttribute('data-stuk')).toBe('wanneer');
+    await wiz.locator('[data-pl-verder]').click();
+    await wiz.locator('[data-pl-verder]').click();
+    expect(await wiz.locator('.tk-paneel').getAttribute('data-stuk')).toBe('klaar');
     expect(await p.evaluate<boolean>('document.scrollingElement.scrollHeight <= innerHeight')).toBe(true);
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-gepland-nieuw.png') });
     await wiz.locator('[data-pl-verder]').click();
     await expect.poll(() => gestuurd.some((b) => b['actie'] === 'plan')).toBe(true);
     expect(gestuurd.find((b) => b['actie'] === 'plan')).toEqual({
       actie: 'plan',
-      tekst: 'Airco zolder verwarmen tot 20,5°',
-      stappen: [{ pad: 'api/hand', body: { id: 'climate.zolder', modus: 'verwarmen', doelC: 20.5, tot: 'doel' } }],
+      tekst: 'Lamp bank aan, airco zolder verwarmen tot 20,5°',
+      stappen: [
+        { pad: 'api/licht', body: { doel: 'lamp', id: 'light.bank', aan: true } },
+        { pad: 'api/hand', body: { id: 'climate.zolder', modus: 'verwarmen', doelC: 20.5, tot: 'doel' } },
+      ],
       moment: { soort: 'tijd', uur: 6, minuut: 30 },
       herhaal: { soort: 'werkdagen' },
       overslaanWeg: false,
@@ -4471,18 +4494,18 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     await expect.poll(() => p.locator('[data-pl]').count()).toBe(0);
     // Zeg het: een voorstel van de dienst, en meteen naar Klaar.
     await p.locator('#wand [data-gp-nieuw]').click();
+    await wiz.locator('.tk-onder [data-pl-stuk="zeg"]').click();
     await wiz.locator('[data-pl-zeg] input').fill('doe elke dag tien minuten voor zonsondergang de screens dicht');
-    await wiz.locator('.pl-maak').click();
-    await expect.poll(() => wiz.locator('.pl-week > div').count()).toBe(7);
-    expect(await wiz.locator('.pl-voorbeeld .pl-zin').textContent()).toBe('Elke dag, 10 min voor zonsondergang, doe de screens dicht.');
+    await wiz.locator('.tk-maak').click();
+    await expect.poll(() => wiz.locator('.tk-rechts .tk-komend > div').count()).toBe(4);
+    expect(await zin.textContent()).toBe('Elke dag 10 min voor zonsondergang: doe de screens dicht.');
     await p.keyboard.press('Escape');
-    // Op de telefoon: een stap per scherm, van onderen.
+    // Op de telefoon: van onderen, alles onder elkaar, zonder de kolom rechts.
     await p.setViewportSize({ width: 390, height: 844 });
     await p.locator('#tel [data-gp-nieuw]').click();
-    const tel = p.locator('#tel .pl-wiz');
-    await tel.locator('.pl-gaan').click();
-    expect(await tel.locator('.pl-stip i').count()).toBe(4);
-    expect(await tel.locator('.pl-voorbeeld').count()).toBe(0);
+    const tel = p.locator('#tel .tk-blad');
+    await tel.locator('[data-pl-kies]').first().waitFor();
+    expect(await tel.locator('.tk-rechts').count()).toBe(0);
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-gepland-nieuw-tel.png') });
     expect(fouten).toEqual([]);
     await context.close();

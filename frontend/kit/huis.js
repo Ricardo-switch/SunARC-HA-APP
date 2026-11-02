@@ -124,6 +124,7 @@
   }
   // Afmetingen in eenheden van het huis.
   const FH = 1.55; // hoogte van een etage
+  const KNIE = 0.5; // het muurtje onder een schuin dak met kamers erin
   let D = 1.5; // diepte van het huis; dieper met de nok langs de straat (zie svg)
   /** Een binnenunit op ware grootte: zo'n 90 bij 30 centimeter, bij een etage van 2,6 meter (besluit 131). */
   const AIRCO = { b: 0.56, h: 0.19, d: 0.15 };
@@ -170,9 +171,11 @@
     const breedtes = etages.map((e) => (e.dak ? 0 : e.kamers.reduce((s, k) => s + (k.gewicht ?? 1), 0)));
     const W = Math.max(3.4, ...breedtes.map((b) => b * KAMER));
     const gewoon = etages.filter((e) => !e.dak);
-    const Ht = gewoon.length * FH; // hoogte tot de dakvoet
+    // Wordt de zolder gebruikt, dan staat het dak op een muurtje (knieschot), zodat er stahoogte is (2 november 2026).
+    const knie = !model.zonderDak && etages.some((e) => e.dak && (e.kamers ?? []).length > 0) ? KNIE : 0;
+    const Ht = gewoon.length * FH + knie; // hoogte tot de dakvoet
     const heeftDak = true;
-    return { etages, W, Ht, heeftDak };
+    return { etages, W, Ht, knie, heeftDak };
   }
 
   /** Een appartement (huis 3.0): hoeveel verdiepingen er onder en boven liggen. */
@@ -871,7 +874,13 @@
     }
 
     const dak = !model.zonderDak && !appartement;
-    const zt = z0;
+    // De zoldervloer (zv) en de dakvoet (zt): daartussen het knieschot, als de zolder gebruikt wordt.
+    const zv = z0;
+    const zt = z0 + (dak ? g.knie : 0);
+    /** Het knieschot achter en opzij: een rechte wand van de vloer tot de dakvoet. */
+    const knieschot = (pts, kleur) => {
+      if (zt > zv) huis.push(poly(pts, `fill="${kleur}"`));
+    };
     /*
      * De nok langs de straat (28 oktober 2026, schets Wand-Huis-Ligging): de
      * dakvlakken liggen voor en achter, de gevels links en rechts lopen door tot
@@ -897,37 +906,39 @@
         const x1 = kamer ? x0 + (W * (kamer.gewicht ?? 1)) / totaal : W;
         const lampAan = (kamer?.apparaten ?? []).some((a) => a.soort === 'lamp' && a.aan);
         const donker = nacht && !lampAan;
-        const achter = [[x0, 0, zt], [x1, 0, zt], [x1, nok, zt + R], [x0, nok, zt + R]];
+        // De achterwand: het knieschot recht omhoog, dan het dakvlak schuin naar de nok.
+        const achter = [[x0, 0, zv], [x1, 0, zv], [x1, 0, zt], [x1, nok, zt + R], [x0, nok, zt + R], [x0, 0, zt]];
         huis.push(poly(achter, `fill="${donker ? '#141c29' : kleurAchter(kamer)}"`));
         if (kamer && !donker) huis.push(poly(achter, `fill="url(#${id}-w-${(nacht || schemer) && lampAan ? kleurWas(kamer) ?? 'lamp' : kamer.stand ?? 'rust'})"`));
-        huis.push(poly([[x0, 0, zt], [x1, 0, zt], [x1, D, zt], [x0, D, zt]], `fill="${donker ? '#0f151f' : '#1a2330'}"`));
-        if (x0 > 0) huis.push(poly([[x0, 0, zt], [x0, D, zt], [x0, nok, zt + R]], `fill="${donker ? '#121a26' : '#3a4a60'}"`));
+        huis.push(poly([[x0, 0, zv], [x1, 0, zv], [x1, D, zv], [x0, D, zv]], `fill="${donker ? '#0f151f' : '#1a2330'}"`));
+        if (x0 > 0) huis.push(poly([[x0, 0, zv], [x0, D, zv], [x0, D, zt], [x0, nok, zt + R], [x0, 0, zt]], `fill="${donker ? '#121a26' : '#3a4a60'}"`));
         if (kamer) {
-          sfeer(kamer, x0, x1, zt, zt + R * 0.8);
+          sfeer(kamer, x0, x1, zv, zt + R * 0.8);
           // De inrichting en de apparaten, tegen de achterwand: die is laag, want daar zit de goot.
           const dakPlafond = () => zt + R * 0.55;
           erBoven = false;
-          aircoDak = (kamer.apparaten ?? []).some((a) => a.soort === 'airco') ? aircoOnderDak(x0, x1, zt, dakPlafond) : null;
-          inrichten(kamer, x0, x1, zt, zt + R * 0.85, dakPlafond, donker);
+          aircoDak = (kamer.apparaten ?? []).some((a) => a.soort === 'airco') ? aircoOnderDak(x0, x1, zv, dakPlafond) : null;
+          inrichten(kamer, x0, x1, zv, zt + R * 0.85, dakPlafond, donker);
           blokKamer = kamer.id ?? kamer.naam;
           dezeKamer = kamer;
-          for (const app of kamer.apparaten ?? []) apparaat(app, x0, x1, zt, zt + R * 0.85, true, dakPlafond);
+          for (const app of kamer.apparaten ?? []) apparaat(app, x0, x1, zv, zt + R * 0.85, true, dakPlafond);
           aircoDak = null;
           const xm = (x0 + x1) / 2;
-          kamers.push({ id: kamer.id, naam: kamer.naam, xm, z0: zt, z1: zt + R });
-          tik(kamer, [[x0, D, zt], [x1, D, zt], [x1, nok, zt + R], [x0, nok, zt + R]]);
-          kamerLabel(kamer, xm, zt + R * 0.4, true, (x1 - x0) * 0.8, R * 0.7);
+          kamers.push({ id: kamer.id, naam: kamer.naam, xm, z0: zv, z1: zt + R });
+          tik(kamer, [[x0, D, zv], [x1, D, zv], [x1, nok, zt + R], [x0, nok, zt + R]]);
+          kamerLabel(kamer, xm, zv + (zt + R - zv) * 0.4, true, (x1 - x0) * 0.8, R * 0.7);
         }
         x0 = x1;
       }
-      huis.push(poly([[0, D, zt], [W, D, zt], [W, D, zt - 0.09], [0, D, zt - 0.09]], `fill="#3c4a5b"`));
+      huis.push(poly([[0, D, zv], [W, D, zv], [W, D, zv - 0.09], [0, D, zv - 0.09]], `fill="#3c4a5b"`));
     }
     if (dak && !nokLangs) {
     // Het dak, met de kamers eronder; elk met zijn stuk van de schuine wand.
     const onderDak = dakEtage?.kamers ?? [];
     const dakZ = (x) => zt + R * (1 - Math.abs(x - W / 2) / (W / 2));
+    // Vanaf de zoldervloer: met een knieschot loopt de gevel eerst recht omhoog tot de dakvoet.
     const stukGevel = (x0, x1) => {
-      const pts = [[x0, 0, zt], [x1, 0, zt], [x1, 0, dakZ(x1)]];
+      const pts = [[x0, 0, zv], [x1, 0, zv], [x1, 0, dakZ(x1)]];
       if (x0 < W / 2 && x1 > W / 2) pts.push([W / 2, 0, zt + R]);
       pts.push([x0, 0, dakZ(x0)]);
       return pts;
@@ -941,23 +952,25 @@
         const xm = (x0 + x1) / 2;
         const lampAan = (kamer.apparaten ?? []).some((a) => a.soort === 'lamp' && a.aan);
         const donker = nacht && !lampAan;
-        if (x0 > 0) huis.push(poly([[x0, 0, zt], [x0, D, zt], [x0, D, dakZ(x0)], [x0, 0, dakZ(x0)]], `fill="${donker ? '#121a26' : '#3a4a60'}"`));
+        if (x0 > 0) huis.push(poly([[x0, 0, zv], [x0, D, zv], [x0, D, dakZ(x0)], [x0, 0, dakZ(x0)]], `fill="${donker ? '#121a26' : '#3a4a60'}"`));
+        // Links het knieschot, net als de zijmuur van een kamer eronder.
+        else knieschot([[0, 0, zv], [0, D, zv], [0, D, zt], [0, 0, zt]], donker ? '#121a26' : '#3a4a60');
         huis.push(poly(stukGevel(x0, x1), `fill="${donker ? '#141c29' : kleurAchter(kamer)}"`));
         const tint = (nacht || schemer) && lampAan ? kleurWas(kamer) ?? 'lamp' : kamer.stand ?? 'rust';
         if (!donker) huis.push(poly(stukGevel(x0, x1), `fill="url(#${id}-w-${tint})"`));
-        huis.push(poly([[x0, 0, zt], [x1, 0, zt], [x1, D, zt], [x0, D, zt]], `fill="${donker ? '#0f151f' : '#1a2330'}"`));
-        sfeer(kamer, x0, x1, zt, zt + R * 0.8);
+        huis.push(poly([[x0, 0, zv], [x1, 0, zv], [x1, D, zv], [x0, D, zv]], `fill="${donker ? '#0f151f' : '#1a2330'}"`));
+        sfeer(kamer, x0, x1, zv, zt + R * 0.8);
         erBoven = false;
         // Onder het dak volgt alles de schuine wand: het plafond is het dak zelf.
         const dakPlafond = (x) => dakZ(x) - 0.06;
-        aircoDak = (kamer.apparaten ?? []).some((a) => a.soort === 'airco') ? aircoOnderDak(x0, x1, zt, dakPlafond) : null;
-        inrichten(kamer, x0, x1, zt, zt + R * 0.85, dakPlafond, donker);
+        aircoDak = (kamer.apparaten ?? []).some((a) => a.soort === 'airco') ? aircoOnderDak(x0, x1, zv, dakPlafond) : null;
+        inrichten(kamer, x0, x1, zv, zt + R * 0.85, dakPlafond, donker);
         blokKamer = kamer.id ?? kamer.naam;
         dezeKamer = kamer;
-        for (const app of kamer.apparaten ?? []) apparaat(app, x0, x1, zt, zt + R * 0.85, true, dakPlafond);
+        for (const app of kamer.apparaten ?? []) apparaat(app, x0, x1, zv, zt + R * 0.85, true, dakPlafond);
         aircoDak = null;
-        if (x0 > 0) huis.push(line([[x0, D, zt], [x0, D, dakZ(x0)]], `stroke="#C9D6E2" stroke-opacity="0.35" stroke-width="1.6"`));
-        kamers.push({ id: kamer.id, naam: kamer.naam, xm, z0: zt, z1: zt + R });
+        if (x0 > 0) huis.push(line([[x0, D, zv], [x0, D, dakZ(x0)]], `stroke="#C9D6E2" stroke-opacity="0.35" stroke-width="1.6"`));
+        kamers.push({ id: kamer.id, naam: kamer.naam, xm, z0: zv, z1: zt + R });
         tik(kamer, stukGevel(x0, x1).map(([x, , z]) => [x, D, z]));
         // Staat er een droger, dan de naam ernaast in plaats van eroverheen.
         let xl = xm;
@@ -973,12 +986,12 @@
           const links = rechts - 0.6 * AX;
           laag = xl * AX - half < rechts + 0.08 && xl * AX + half > links - 0.08;
         }
-        const vrij = dakZ(xl) - zt;
-        kamerLabel(kamer, xl, laag ? zt + 0.22 : vrij * k < 96 ? zt + vrij * 0.58 : zt + vrij * 0.5, true, (x1 - x0) * (onderDak.length > 1 ? 0.8 : 0.6), laag ? 0 : vrij);
+        const vrij = dakZ(xl) - zv;
+        kamerLabel(kamer, xl, laag ? zv + 0.22 : vrij * k < 96 ? zv + vrij * 0.58 : zv + vrij * 0.5, true, (x1 - x0) * (onderDak.length > 1 ? 0.8 : 0.6), laag ? 0 : vrij);
         x0 = x1;
       }
     }
-    huis.push(poly([[0, D, zt], [W, D, zt], [W, D, zt - 0.09], [0, D, zt - 0.09]], `fill="#3c4a5b"`));
+    huis.push(poly([[0, D, zv], [W, D, zv], [W, D, zv - 0.09], [0, D, zv - 0.09]], `fill="#3c4a5b"`));
 
     }
 
@@ -1014,12 +1027,19 @@
       }
       z0 = z1;
     }
+    // Het knieschot aan de buitenkant rechts, onder de dakrand (met de nok langs de straat zit het in de puntgevel).
+    if (dak && !nokLangs && zt > zv) {
+      const strook = [[W, 0, zv], [W, D, zv], [W, D, zt], [W, 0, zt]];
+      huis.push(poly(strook, `fill="url(#${id}-muur)"`));
+      if (zonKracht > 0) huis.push(poly(strook, `fill="url(#${id}-rand)"`));
+    }
     // De nok langs de straat (schets Wand-Huis-Ligging): rechts een puntgevel, voor een dakvlak van glas.
     if (dak && nokLangs) {
       const nok = D / 2;
       const voorDeg = voorDegVan(model) ?? 180;
-      huis.push(poly([[W, 0, zt], [W, D, zt], [W, nok, zt + R]], `fill="url(#${id}-muur)"`));
-      if (zonKracht > 0) huis.push(poly([[W, 0, zt], [W, D, zt], [W, nok, zt + R]], `fill="url(#${id}-rand)"`));
+      const puntgevel = [[W, 0, zv], [W, D, zv], [W, D, zt], [W, nok, zt + R], [W, 0, zt]];
+      huis.push(poly(puntgevel, `fill="url(#${id}-muur)"`));
+      if (zonKracht > 0) huis.push(poly(puntgevel, `fill="url(#${id}-rand)"`));
       // De nok, en de goot achter: van het achterste dakvlak zie je van voren alleen de rand.
       huis.push(poly([[-0.08, nok - 0.05, zt + R + 0.04], [W + 0.14, nok - 0.05, zt + R + 0.04], [W + 0.14, nok + 0.05, zt + R + 0.04], [-0.08, nok + 0.05, zt + R + 0.04]], 'fill="#2c3542"'));
       // Panelen in rijen over een dakvlak, van de goot (u 0) naar de nok (u 1), over de breedte (v).
@@ -1117,7 +1137,7 @@
     if (dak && nokLangs) {
       // Met de nok langs de straat: de rechthoek van de etages, de nok, en de rand van de puntgevel.
       huis.push(line([[0, D, 0], [0, D, zt], [W, D, zt], [W, D, 0]], `stroke="#C9D6E2" stroke-opacity="0.55" stroke-width="2.2" stroke-linejoin="round"`));
-      huis.push(line([[W, D, zt], [W, D / 2, zt + R], [W, 0, zt]], `stroke="#C9D6E2" stroke-opacity="0.35" stroke-width="1.4" stroke-linejoin="round"`));
+      huis.push(line([[W, D, zt], [W, D / 2, zt + R], [W, 0, zt], [W, 0, zv]], `stroke="#C9D6E2" stroke-opacity="0.35" stroke-width="1.4" stroke-linejoin="round"`));
       huis.push(line([[0, D / 2, zt + R], [W, D / 2, zt + R]], `stroke="#C9D6E2" stroke-opacity="0.45" stroke-width="1.4"`));
     } else if (dak) {
       huis.push(line([[0, D, 0], [0, D, zt], [W / 2, D, zt + R], [W, D, zt], [W, D, 0]], `stroke="#C9D6E2" stroke-opacity="0.55" stroke-width="2.2" stroke-linejoin="round"`));

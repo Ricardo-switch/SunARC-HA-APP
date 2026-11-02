@@ -11,6 +11,10 @@
 
 const { esc, haal, deur, telStand } = app;
 const { klok } = taal;
+// De boog en de namen van hoe vaak en de zon staan in plannen.js, met de nieuwe taak (besluit 244).
+const { herhaalNaam, zonNaam, stapperTekst } = plannen;
+const boog = (lijst, tel) => plannen.boog(lijst, { tel }, zon);
+const voorproef = (m) => plannen.voorproef(m, zon);
 
 let data = null;
 let zon = null;
@@ -35,7 +39,6 @@ const icoon = (g) => {
 
 const dagStart = (ms) => new Date(ms).setHours(0, 0, 0, 0);
 const dagenVan = (ms) => Math.round((dagStart(ms) - dagStart(Date.now())) / 86_400_000);
-const uurVan = (ms) => { const d = new Date(ms); return d.getHours() + d.getMinutes() / 60; };
 const herhaalVan = (g) => g.opdracht?.herhaal ?? { soort: 'een' };
 const momentVan = (g) => g.opdracht?.moment ?? (g.opdracht?.zon ? { soort: 'zon', zon: g.opdracht.zon, minuten: 0 } : { soort: 'tijd', uur: new Date(g.ms).getHours(), minuut: new Date(g.ms).getMinutes() });
 const isVast = (g) => herhaalVan(g).soort !== 'een';
@@ -47,20 +50,6 @@ function dagWoord(ms) {
   if (n === 0) return t('gp.vandaag');
   if (n === 1) return t('gp.morgen');
   return new Intl.DateTimeFormat(taal.code === 'en' ? 'en-GB' : 'nl-NL', { weekday: 'short' }).format(ms).replace('.', '');
-}
-
-/** "Elke dag", "Werkdagen", "Ma, wo en vr". */
-function herhaalNaam(h) {
-  if (h.soort !== 'dagen') return t(`gp.h.${h.soort}`);
-  const namen = (h.dagen ?? []).map((d) => t(`gp.d${d}`));
-  return namen.length <= 1 ? (namen[0] ?? '') : t('gp.enLijst', { lijst: namen.slice(0, -1).join(', '), laatste: namen.at(-1) });
-}
-
-/** "10 min voor zonsondergang", "bij zonsopkomst"; leeg bij een tijd. */
-function zonNaam(m) {
-  if (m.soort !== 'zon') return '';
-  if (m.minuten === 0) return t(`gp.zon.${m.zon}`);
-  return t(m.minuten < 0 ? `gp.zon.${m.zon}Voor` : `gp.zon.${m.zon}Na`, { n: Math.abs(m.minuten) });
 }
 
 /** De tweede regel: hoe vaak, en bij de zon wanneer, in zonkleur. */
@@ -78,74 +67,7 @@ function regel(g, gedaan = false) {
   return `<div class="${cls}" data-gp-open="${esc(g.id)}" role="button" tabindex="0">${icoon(g)}<div class="uur">${esc(klok(ms))}<small>${esc(klein)}</small></div><div><b>${esc(g.tekst)}</b><span class="hoe">${hoe(g)}</span></div><button type="button" class="schakelaar" role="switch" aria-checked="${aan(g)}" aria-label="${esc(t('gp.aanLabel', { wat: g.tekst }))}" data-gp-aan="${esc(g.id)}"></button></div>`;
 }
 
-/* ------------------------------------------------------------ de boog */
-
-function boog(lijst, tel) {
-  const W = tel ? 358 : 1180;
-  const H = tel ? 190 : 270;
-  const L = tel ? 12 : 40;
-  const R = tel ? 12 : 40;
-  const HOR = tel ? 150 : 216;
-  const TOP = tel ? 50 : 66;
-  const op = zon?.dag?.opMs != null ? uurVan(zon.dag.opMs) : 7.5;
-  const onder = zon?.dag?.onderMs != null ? uurVan(zon.dag.onderMs) : 17;
-  const nu = uurVan(Date.now());
-  const x = (u) => L + (u / 24) * (W - L - R);
-  const y = (u) => (u <= op || u >= onder ? HOR : HOR - (HOR - TOP) * Math.sin((Math.PI * (u - op)) / (onder - op)));
-  const pad = (van, tot) => Array.from({ length: 61 }, (_, i) => { const u = van + (i / 60) * (tot - van); return `${i ? 'L' : 'M'}${x(u).toFixed(1)},${y(u).toFixed(1)}`; }).join(' ');
-  const id = tel ? 'tel' : 'wand';
-  let s = `<defs><linearGradient id="gp-boog-${id}" x1="0" x2="1"><stop offset="0" stop-color="#6ee7b7"/><stop offset="0.5" stop-color="#f7b548"/><stop offset="1" stop-color="#8f86ff"/></linearGradient><radialGradient id="gp-gloed-${id}"><stop offset="0" stop-color="#f7b548" stop-opacity="0.55"/><stop offset="1" stop-color="#f7b548" stop-opacity="0"/></radialGradient></defs>`;
-  s += `<line x1="${x(0)}" x2="${x(24)}" y1="${HOR}" y2="${HOR}" stroke="rgb(255 255 255 / 0.14)"/>`;
-  for (const u of [0, 6, 12, 18, 24]) s += `<text x="${x(u)}" y="${HOR + (tel ? 20 : 26)}" text-anchor="${u === 0 ? 'start' : u === 24 ? 'end' : 'middle'}" font-size="${tel ? 11 : 13}" fill="var(--gedempt)">${tel ? u : `${String(u).padStart(2, '0')}:00`}</text>`;
-  const dik = tel ? 4 : 5;
-  s += `<path d="${pad(0, op)}" stroke="rgb(143 134 255 / 0.45)" stroke-width="${dik - 2}" stroke-dasharray="2 7" stroke-linecap="round" fill="none"/>`;
-  s += `<path d="${pad(onder, 24)}" stroke="rgb(143 134 255 / 0.65)" stroke-width="${dik - 2}" stroke-dasharray="2 7" stroke-linecap="round" fill="none"/>`;
-  s += `<path d="${pad(op, Math.min(Math.max(nu, op), onder))}" stroke="url(#gp-boog-${id})" stroke-opacity="0.35" stroke-width="${dik}" stroke-linecap="round" fill="none"/>`;
-  if (nu < onder) s += `<path d="${pad(Math.max(nu, op), onder)}" stroke="url(#gp-boog-${id})" stroke-width="${dik}" stroke-linecap="round" fill="none"/>`;
-  // De zon, of 's nachts een maantje op de horizon.
-  const r = tel ? 8 : 13;
-  if (nu > op && nu < onder) s += `<circle cx="${x(nu)}" cy="${y(nu)}" r="${r * 3}" fill="url(#gp-gloed-${id})"/><circle cx="${x(nu)}" cy="${y(nu)}" r="${r}" fill="#ffd27a"/>`;
-  else s += `<circle cx="${x(nu)}" cy="${HOR}" r="${r - 3}" fill="#c9c3ff"/>`;
-  // "nu" boven de zon, of eronder als er vlakbij een opdracht staat.
-  const dichtbij = lijst.some((o) => Math.abs(uurVan(o.ms) - nu) < 1.5);
-  const zonY = nu > op && nu < onder ? y(nu) : HOR;
-  if (!tel) s += `<text x="${x(nu)}" y="${dichtbij ? zonY + r + 18 : zonY - r - 10}" text-anchor="middle" font-size="13" font-weight="700" fill="#ffd27a">${esc(t('gp.nu'))}</text>`;
-  // De opdrachten van vandaag; de eerstvolgende met zijn naam op de telefoon.
-  const eerstvolgende = lijst.find((o) => !o.gedaan && o.ms >= Date.now());
-  for (const o of lijst) {
-    const u = uurVan(o.ms);
-    const px = x(u);
-    const py = y(u);
-    const kleur = o.gedaan ? 'rgb(170 185 200 / 0.55)' : o.gekozen ? '#ffffff' : '#e8eef5';
-    s += `<circle cx="${px}" cy="${py}" r="${o.gekozen ? (tel ? 6 : 8) : tel ? 5 : 6}" fill="${o.gedaan || !o.aan ? '#5b6b7c' : '#0b1424'}" stroke="${kleur}" stroke-width="${tel ? 2 : 2.5}"/>`;
-    if (tel && o !== eerstvolgende) continue;
-    const dag = u > op && u < onder;
-    const stijgt = u < (op + onder) / 2;
-    const tx = dag ? px + (stijgt ? -14 : 14) : px;
-    const ty = dag ? py - 4 : py - (tel ? 14 : 40);
-    const anker = dag ? (stijgt ? 'end' : 'start') : 'middle';
-    if (!dag && !tel) s += `<line x1="${px}" x2="${px}" y1="${py}" y2="${py - 32}" stroke="${kleur}" stroke-opacity="0.35"/>`;
-    s += `<text class="t" x="${tx}" y="${tel ? ty : ty - 16}" text-anchor="${anker}" fill="${kleur}"${tel ? ' style="font-size: 12px"' : ''}>${esc(klok(o.ms))}${o.gedaan ? ' ✓' : ''}</text>`;
-    if (!tel) s += `<text class="w" x="${tx}" y="${ty + 2}" text-anchor="${anker}" fill="${o.gedaan ? 'rgb(170 185 200 / 0.55)' : 'rgb(205 215 225 / 0.9)'}">${esc(o.wat)}</text>`;
-  }
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(t('gp.boogUitleg'))}">${s}</svg>`;
-}
-
 /* ------------------------------------------------------------ Aanpassen */
-
-function stapperTekst(m) {
-  if (m.minuten === 0) return t('gp.precies');
-  return t(m.minuten < 0 ? 'gp.minErvoor' : 'gp.minErna', { n: Math.abs(m.minuten) });
-}
-
-/** Wanneer het ongeveer is: de zon van vandaag met de minuten erbij, of de tijd. */
-function voorproef(m) {
-  if (m.soort === 'tijd') return '';
-  const zonMs = m.zon === 'op' ? zon?.dag?.opMs : zon?.dag?.onderMs;
-  if (zonMs == null) return '';
-  const ms = zonMs + m.minuten * 60_000;
-  return ms > Date.now() ? t('gp.vandaagOm', { klok: klok(ms) }) : t('gp.morgenRond', { klok: klok(ms + 86_400_000) });
-}
 
 function blad(g) {
   const m = open.moment;
@@ -251,11 +173,11 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if ((x = el('[data-gp-open]'))) return openen(x.dataset.gpOpen);
-  // Nieuw (besluit 240): het blad met de stappen, of zeg het.
+  // Nieuw: een taak als één zin (besluit 244).
   if (el('[data-gp-nieuw]')) {
     open = null;
     teken();
-    return plannen.open({ boog, herhaalNaam, zonNaam, stapperTekst, voorproef, zon: () => zon, klaar: () => laad() });
+    return plannen.open({ klaar: () => laad() });
   }
   if (!open) return;
   if (el('[data-gp-sluit]')) {

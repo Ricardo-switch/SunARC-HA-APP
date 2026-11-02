@@ -242,6 +242,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [238. Eén blad per apparaat: klimaat tot het doel, en SunArc start de droger](#238-eén-blad-per-apparaat-klimaat-tot-het-doel-en-sunarc-start-de-droger)
 - [239. Wat de app zegt, klopt met wat er in huis gebeurt](#239-wat-de-app-zegt-klopt-met-wat-er-in-huis-gebeurt)
 - [240. Nieuw in Vast en gepland: zeg het, of kies het zelf in vier stappen](#240-nieuw-in-vast-en-gepland-zeg-het-of-kies-het-zelf-in-vier-stappen)
+- [244. Een taak als één zin, en + Nieuw op Te doen](#244-een-taak-als-één-zin-en--nieuw-op-te-doen)
 
 **Veiligheid**
 
@@ -11264,6 +11265,48 @@ buitentemperatuur en de verwachting, de screens).
   Een klok die terugspringt (van juli naar januari in het voorbeeld) rekent
   het weerbericht en Vandaag ook opnieuw; eerst bleef dan de zomerdag staan.
 - **Versie 0.111.0.**
+
+---
+
+## 244. Een taak als één zin, en + Nieuw op Te doen
+
+*Onderwerp: weergave · Status: geldig*
+
+2 november 2026. De bewoner: "Vast en gepland is nog wat lastig te vinden. Een
+taak aanmaken voelt nog erg rommelig: lange lijsten ongesorteerd, geen
+mogelijkheid om meerdere apparaten in één taak, en 'hoe vaak, wanneer, wat'
+ziet er niet mooi uit en klinkt niet." Schets `design/app2/Wand-Nieuw-Taak.html`;
+zijn vier keuzes waren steeds de aanbevolen.
+
+*Besluit:*
+
+- **Op Te doen één knop + Nieuw.** Die vraagt: een herinnering (iets voor
+  jou) of een taak (iets dat het huis doet), en eronder zeg het, waarna SunArc
+  zelf kiest. Vast en gepland is een eigen kolom geworden, met je dag als
+  kleine boog en de taken die komen, elk met een schakelaar; eerst was het één
+  regel onder de herinneringen.
+- **De taak is één zin** (`plannen.js`, `taak.css`): "Elke werkdag om 07:00
+  gaan de keukenlamp en de lamp hal aan, en gaat het screen open." Elk stuk is
+  aan te tikken; eronder opent de keuze voor dat stuk. Wat nog niet gekozen
+  is, staat grijs als vraag ("Op een moment doet het huis iets"), zodat de zin
+  altijd leest. Wanneer en hoe vaak staan samen op één plek. Een voorstel van
+  de assistent komt na een dubbele punt. Rechts je dag met het nieuwe moment
+  en de komende keren; op de telefoon alles onder elkaar.
+- **Apparaten per kamer, meerdere tegelijk:** per verdieping, zoals het huis
+  is ingedeeld; "Hele kamer" kiest de lampen en screens van een kamer.
+  Klimaat met de hand vindt zijn kamer op naam; wat geen kamer heeft, staat
+  onder Overig.
+- **Samen per soort:** de lampen samen aan of uit, de screens samen dicht,
+  half of open, het klimaat samen naar één doel (binnen wat elk apparaat kan).
+  Los aanpassen per lamp of screen kan als uitzondering. Kiest de taak alle
+  lampen van een kamer en doen ze hetzelfde, dan wordt dat één stap voor de
+  kamer.
+- **Tot twaalf stappen per taak** in de dienst (was zes).
+- **De boog en de namen van hoe vaak en de zon** staan nu in `plannen.js`;
+  Vast en gepland en Te doen gebruiken ze daarvandaan.
+- **In de tekening van het huis** staat het dak op een muurtje (knieschot)
+  als de zolder kamers heeft, zodat de zolder hoger is (Ricardo, zelfde dag).
+- **Versie 0.112.0.**
 
 ---
 

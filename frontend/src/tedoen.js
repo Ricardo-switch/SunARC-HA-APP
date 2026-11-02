@@ -32,10 +32,16 @@
     kruis: '<path d="M6 6l12 12M18 6 6 18"/>',
     wand: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M9 21h6"/>',
     tel: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+    taak: '<path d="M5 14a7 7 0 0 1 14 0"/><circle cx="12" cy="14" r="2.5"/><path d="M3 18h18M8 21h8"/>',
+    pijl: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   };
   const svg = (pad, w = 1.8) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pad}</svg>`;
 
   let data = null;
+  /** De zon van vandaag, voor de boog bij Vast en gepland (alleen op de tab). */
+  let zon = null;
+  /** De keuze onder + Nieuw staat open (besluit 244). */
+  let keuzeOpen = false;
 
   const dagStart = (ms) => {
     const d = new Date(ms);
@@ -60,6 +66,8 @@
     } catch {
       data = null;
     }
+    // Op de tab de zon erbij, voor de boog bij Vast en gepland.
+    if (document.querySelector('[data-td-pagina]')) zon = await fetch('api/zon', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : zon)).catch(() => zon);
     tekenKaarten();
     tekenPagina();
     tekenGetal();
@@ -148,13 +156,41 @@
   }
 
   /**
-   * Vast en gepland (besluit 234): één regel naar de eigen pagina, met hoeveel
-   * er is en wanneer de volgende is. Wat gepauzeerd is, telt niet als volgende.
+   * Vast en gepland als eigen kolom (besluit 244; eerst één regel, besluit 234):
+   * je dag als kleine boog, en de taken die komen, elk met een schakelaar om te
+   * pauzeren. Een tik op de boog of op alles opent de eigen pagina.
    */
-  function geplandRegel(lijst) {
-    const volgende = lijst.filter((g) => g.opdracht?.aan !== false).sort((a, b) => a.ms - b.ms)[0];
-    const zin = lijst.length ? t('tedoen.vastGeplandN', { n: lijst.length, klok: volgende ? klok(volgende.ms) : '–' }) : t('tedoen.vastGeplandLeeg');
-    return `<a class="td-her td-gepland" href="gepland.html"><div class="td-wat"><b>${esc(t('tedoen.vastGepland'))}</b><span>${esc(zin)}</span></div><span class="td-pijl" aria-hidden="true">›</span></a>`;
+  function vastGeplandHtml(lijst) {
+    const p = global.plannen;
+    const vandaag = lijst.filter((g) => dagenVan(g.ms) <= 0);
+    const gedaan = lijst.filter((g) => g.opdracht?.laatstMs && dagenVan(g.opdracht.laatstMs) === 0 && dagenVan(g.ms) > 0);
+    const opBoog = [...vandaag.map((g) => ({ ms: g.ms, aan: g.opdracht?.aan !== false })), ...gedaan.map((g) => ({ ms: g.opdracht.laatstMs, aan: true, gedaan: true }))];
+    const boog = p ? `<a class="td-boog" href="gepland.html" aria-label="${esc(t('tedoen.vastGepland'))}">${p.boog(opBoog, { mini: true }, zon)}</a>` : '';
+    const regels = [...lijst]
+      .sort((a, b) => a.ms - b.ms)
+      .slice(0, 6)
+      .map((g) => {
+        const aan = g.opdracht?.aan !== false;
+        const h = g.opdracht?.herhaal ?? { soort: 'een' };
+        const z = g.opdracht?.moment ? (p?.zonNaam(g.opdracht.moment) ?? '') : '';
+        const vaak = h.soort === 'een' ? dagKort(g.ms) : (p?.herhaalNaam(h) ?? '');
+        return `<div class="td-taak${aan ? '' : ' uit'}"><b class="td-taak-uur${z ? ' zon' : ''}">${esc(klok(g.ms))}</b><div class="td-wat"><b>${esc(g.tekst)}</b><span>${esc([z, vaak].filter(Boolean).join(' · '))}</span></div><button type="button" class="schakelaar" role="switch" aria-checked="${aan}" aria-label="${esc(t('gp.aanLabel', { wat: g.tekst }))}" data-td-gp-aan="${esc(g.id)}"></button></div>`;
+      })
+      .join('');
+    return `<section class="glas tdp-vak td-vast">
+        <h2>${esc(t('tedoen.vastGeplandKop'))}<a class="td-gepland" href="gepland.html">${esc(t('tedoen.alles'))} ›</a></h2>
+        ${boog}${regels || `<p class="mini">${esc(t('tedoen.geenTaken'))}</p>`}
+      </section>`;
+  }
+
+  /** Onder + Nieuw (besluit 244): een herinnering voor jou, of een taak voor het huis; of zeg het. */
+  function keuzeHtml() {
+    if (!keuzeOpen) return '';
+    const weg = (soort, ik) => `<button type="button" class="td-weg ${soort}" data-td-keuze="${soort}">${svg(IK[ik], 2)}<b>${esc(t(`tedoen.keuze.${soort}`))}</b><span>${esc(t(`tedoen.keuze.${soort}Zin`))}</span><small>${esc(t(`tedoen.keuze.${soort}Vb`))}</small></button>`;
+    return `<div class="td-keuze-achter" data-td-keuzedicht></div><div class="td-keuze" role="dialog" aria-label="${esc(t('tedoen.plusNieuw'))}">
+        ${weg('herinnering', 'klok')}${global.plannen ? weg('taak', 'taak') : ''}
+        <form class="td-zeg" data-td-zeg><input type="text" maxlength="200" placeholder="${esc(t('tedoen.keuze.zeg'))}" aria-label="${esc(t('tedoen.keuze.zeg'))}"><button type="submit" aria-label="${esc(t('pl.maak'))}">${svg(IK.pijl, 2.2)}</button></form>
+      </div>`;
   }
 
   /**
@@ -221,19 +257,19 @@
   function paginaHtml() {
     const datum = new Intl.DateTimeFormat(nl() ? 'nl-NL' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(Date.now());
     const kop = `<div class="tdp-kop"><div><h1 class="kop-1">${esc(t('tedoen.kop'))}</h1><p>${esc(datum.charAt(0).toUpperCase() + datum.slice(1))} · ${t('tedoen.tip')}</p></div>
-      <div class="tdp-knoppen">${telStand() || !data?.bewoner ? '' : `<a class="pil" href="jij.html#agenda">${esc(t('tedoen.agendasKiezen'))}</a>`}<button type="button" class="pil licht" data-td-nieuwknop>${esc(t('tedoen.plusHerinnering'))}</button></div></div>`;
+      <div class="tdp-knoppen">${telStand() || !data?.bewoner ? '' : `<a class="pil" href="jij.html#agenda">${esc(t('tedoen.agendasKiezen'))}</a>`}<button type="button" class="pil licht" data-td-keuzeknop aria-expanded="${keuzeOpen}">${esc(t('tedoen.plusNieuw'))}</button></div></div>${data?.aan ? keuzeHtml() : ''}`;
     if (!data) return `${kop}<p class="mini">${esc(t('algemeen.laden'))}</p>`;
     if (!data.aan) return `${kop}<section class="glas tdp-vak"><p class="uitleg">${esc(t('tedoen.uit'))}</p><a class="pil" href="functies.html?groep=assistent#tedoen">${esc(t('tedoen.naarFuncties'))}</a></section>`;
     // Wat nu met de hand of op zon loopt (besluit 238), boven de rest.
     const nu = global.hand?.nuHtml() ?? '';
-    return `${kop}${nu ? `<div class="nu-regels">${nu}</div>` : ''}<div class="tdp-drie">
+    return `${kop}${nu ? `<div class="nu-regels">${nu}</div>` : ''}<div class="tdp-drie vier">
       <section class="glas tdp-vak">
         <h2>${esc(t('tedoen.herinneringen'))}<em>${data.herinneringen.length || ''}</em></h2>
         ${data.herinneringen.map(herinneringHtml).join('') || `<p class="mini">${esc(t('tedoen.geenHerinneringen'))}</p>`}
         <form class="td-erbij" data-td-nieuw><input type="text" maxlength="160" placeholder="${esc(t('tedoen.nieuw'))}" aria-label="${esc(t('tedoen.nieuwLabel'))}"></form>
-        ${geplandRegel(data.gepland ?? [])}
         <p class="td-bron">${t('tedoen.zoWerkt')}</p>
       </section>
+      ${vastGeplandHtml(data.gepland ?? [])}
       <section class="glas tdp-vak">
         <h2>${esc(t('tedoen.agenda'))}${telStand() && data.bewoner ? `<a href="jij.html#agenda">${esc(t('tedoen.agendasKiezen'))} ›</a>` : `<em>${esc(t('tedoen.tweeWeken'))}</em>`}</h2>
         ${agendaHtml()}
@@ -247,7 +283,10 @@
   function tekenPagina() {
     for (const vak of document.querySelectorAll('[data-td-pagina]')) {
       // Wat je aan het typen was, blijft staan als de pagina zich opnieuw tekent (na een vinkje of nieuwe gegevens).
-      const bezig = [...vak.querySelectorAll('form input')].map((i) => [i.closest('form').hasAttribute('data-td-nieuw') ? 'form[data-td-nieuw]' : `form[data-td-lijst="${i.closest('form').dataset.tdLijst}"]`, i.value, i === document.activeElement]);
+      const bezig = [...vak.querySelectorAll('form input')].map((i) => {
+        const f = i.closest('form');
+        return [f.hasAttribute('data-td-nieuw') ? 'form[data-td-nieuw]' : f.hasAttribute('data-td-zeg') ? 'form[data-td-zeg]' : `form[data-td-lijst="${f.dataset.tdLijst}"]`, i.value, i === document.activeElement];
+      });
       vak.innerHTML = paginaHtml();
       for (const [sel, waarde, focus] of bezig) {
         const i = vak.querySelector(`${sel} input`);
@@ -284,15 +323,45 @@
     else global.alert?.(b?.antwoord ?? t('tedoen.lukteNiet'));
   }
 
+  /**
+   * Zeg het onder + Nieuw: SunArc kiest zelf. Leest de dienst er een taak uit,
+   * dan opent de nieuwe taak met die zin; een herinnering bewaart hij meteen.
+   */
+  async function zegNieuw(zin) {
+    const q = new URLSearchParams({ v: 'vrij', tekst: zin, taal: global.taal.code, voorstel: '1' });
+    const b = await haal(`api/vraag?${q}`).catch(() => null);
+    if (b?.voorstel && global.plannen) return global.plannen.open({ zeg: zin, klaar: () => laad() });
+    if (b?.opdracht?.pad === 'api/te-doen') return stuur(b.opdracht.body);
+    return nieuweHerinnering(zin);
+  }
+
+  function zetKeuze(open) {
+    keuzeOpen = open;
+    tekenPagina();
+    if (open) document.querySelector(`${telStand() ? '#tel' : '#wand'} .td-keuze [data-td-keuze]`)?.focus();
+  }
+
   document.addEventListener('click', (e) => {
-    const el = e.target.closest?.('[data-tedoen], [data-td-nieuwknop], [data-td-gedaan], [data-td-item], [data-td-later], [data-td-opruim]');
+    const el = e.target.closest?.('[data-tedoen], [data-td-keuzeknop], [data-td-keuzedicht], [data-td-keuze], [data-td-gp-aan], [data-td-gedaan], [data-td-item], [data-td-later], [data-td-opruim]');
     if (!el) return;
     // De kaart op Thuis opent de tab (besluit 217).
     if (el.matches('[data-tedoen]')) {
       location.href = 'tedoen.html';
       return;
     }
-    if (el.matches('[data-td-nieuwknop]')) return el.closest('[data-td-pagina]')?.querySelector('form[data-td-nieuw] input')?.focus();
+    // + Nieuw (besluit 244): een herinnering of een taak.
+    if (el.matches('[data-td-keuzeknop]')) return zetKeuze(!keuzeOpen);
+    if (el.matches('[data-td-keuzedicht]')) return zetKeuze(false);
+    if (el.matches('[data-td-keuze]')) {
+      zetKeuze(false);
+      if (el.dataset.tdKeuze === 'taak') return global.plannen?.open({ klaar: () => laad() });
+      return document.querySelector(`${telStand() ? '#tel' : '#wand'} form[data-td-nieuw] input`)?.focus();
+    }
+    // Een taak pauzeren of weer aanzetten, net als op Vast en gepland.
+    if (el.matches('[data-td-gp-aan]')) {
+      const g = (data?.gepland ?? []).find((x) => x.id === el.dataset.tdGpAan);
+      return g ? void stuur({ actie: 'aanpassen', id: g.id, aan: g.opdracht?.aan === false }) : undefined;
+    }
     if (el.matches('[data-td-gedaan]')) return void stuur({ actie: 'gedaan', id: el.dataset.tdGedaan }).then(sluitMoment);
     if (el.matches('[data-td-later]')) return void stuur({ actie: 'later', id: el.dataset.tdId, minuten: Number(el.dataset.tdLater) }).then(sluitMoment);
     // Afvinken op uid (besluit 218): een naam kan vaker op de lijst staan.
@@ -314,15 +383,22 @@
       return void stuur({ actie: 'opruimen', lijst: soort });
     }
   });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && keuzeOpen) zetKeuze(false);
+  });
   document.addEventListener('submit', (e) => {
-    const f = e.target.closest?.('[data-td-erbij], [data-td-nieuw]');
+    const f = e.target.closest?.('[data-td-erbij], [data-td-nieuw], [data-td-zeg]');
     if (!f) return;
     e.preventDefault();
     const veld = f.querySelector('input');
     const v = veld.value.trim();
     veld.value = '';
     if (!v) return;
-    if (f.matches('[data-td-nieuw]')) void nieuweHerinnering(v);
+    if (f.matches('[data-td-zeg]')) {
+      keuzeOpen = false;
+      tekenPagina();
+      void zegNieuw(v);
+    } else if (f.matches('[data-td-nieuw]')) void nieuweHerinnering(v);
     else void stuur({ actie: 'toevoegen', lijst: f.dataset.tdLijst, item: v });
   });
 
