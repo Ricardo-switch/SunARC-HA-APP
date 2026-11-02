@@ -12,8 +12,11 @@
  *
  * Tot 2 november 2026 heette de integratie `smart_climate` (die naam was in
  * Home Assistant al van een ander project). Staat de oude map er nog van de
- * add-on, dan zet hij `sunarc` neer en haalt de oude weg; een oude map via
- * HACS of met de hand blijft staan, die werk je bij waar hij vandaan kwam.
+ * add-on, dan zet hij bij het starten `sunarc` neer en haalt de oude weg.
+ * Een oude map van SunArc zonder merkje is een rest: HACS kent de integratie
+ * sinds 2.0.0 als `sunarc` en ruimt bij verwijderen die map op, niet de oude
+ * (gezien op 2 november 2026). Die rest haalt de add-on weg na de tik op de
+ * knop. Een map `smart_climate` van het andere project laat hij met rust.
  *
  * Home Assistant laadt een integratie bij het starten; na neerzetten of een
  * nieuwe versie is dus een herstart nodig. Dat doet de bewoner zelf: de app
@@ -35,22 +38,35 @@ export interface IntegratieStand {
   readonly versie: string | null;
   /** De versie in het image van de add-on. */
   readonly nieuw: string | null;
-  /** Staat de integratie er nog onder de oude naam (smart_climate), en van wie. */
-  readonly oud: 'nee' | 'add-on' | 'anders';
+  /**
+   * De oude naam (smart_climate): nee, van de add-on, een rest van SunArc
+   * (via HACS of met de hand), of anders (een ander project met die naam).
+   */
+  readonly oud: 'nee' | 'add-on' | 'rest' | 'anders';
 }
+
+/** Van SunArc: het manifest noemt de eigenaar van deze repository. */
+const EIGENAAR = '@Ricardo-switch';
 
 /** De mappen in custom_components: nu, en de oude naam van voor 2 november 2026. */
 export const MAP = 'sunarc';
 export const OUDE_MAP = 'smart_climate';
 
 const bestaat = async (pad: string) => stat(pad).then(() => true, () => false);
-async function versieVan(map: string): Promise<string | null> {
+async function manifestVan(map: string): Promise<{ version?: unknown; codeowners?: unknown } | null> {
   try {
-    const m = JSON.parse(await readFile(join(map, 'manifest.json'), 'utf-8')) as { version?: unknown };
-    return typeof m.version === 'string' ? m.version : null;
+    return JSON.parse(await readFile(join(map, 'manifest.json'), 'utf-8')) as { version?: unknown; codeowners?: unknown };
   } catch {
     return null;
   }
+}
+async function versieVan(map: string): Promise<string | null> {
+  const m = await manifestVan(map);
+  return typeof m?.version === 'string' ? m.version : null;
+}
+async function vanSunArc(map: string): Promise<boolean> {
+  const m = await manifestVan(map);
+  return Array.isArray(m?.codeowners) && m.codeowners.includes(EIGENAAR);
 }
 
 export class Integratie {
@@ -74,12 +90,8 @@ export class Integratie {
   async stand(): Promise<IntegratieStand> {
     const kan = (await bestaat(join(this.#bron, 'manifest.json'))) && (await bestaat(this.#config));
     const nieuw = await versieVan(this.#bron);
-    const oud = !(await bestaat(this.#oud)) ? 'nee' : (await bestaat(join(this.#oud, MERKJE))) ? 'add-on' : 'anders';
-    if (!(await bestaat(this.#doel))) {
-      // Alleen de oude naam, via HACS of met de hand: die blijft van wie hem neerzette.
-      if (oud === 'anders') return { kan, staat: 'anders', versie: await versieVan(this.#oud), nieuw, oud };
-      return { kan, staat: 'nee', versie: null, nieuw, oud };
-    }
+    const oud = !(await bestaat(this.#oud)) ? 'nee' : (await bestaat(join(this.#oud, MERKJE))) ? 'add-on' : (await vanSunArc(this.#oud)) ? 'rest' : 'anders';
+    if (!(await bestaat(this.#doel))) return { kan, staat: 'nee', versie: null, nieuw, oud };
     const staat = (await bestaat(join(this.#doel, MERKJE))) ? 'add-on' : 'anders';
     return { kan, staat, versie: await versieVan(this.#doel), nieuw, oud };
   }
@@ -94,8 +106,8 @@ export class Integratie {
     await rm(this.#doel, { recursive: true, force: true });
     await cp(this.#bron, this.#doel, { recursive: true, filter: (pad) => !pad.includes('__pycache__') });
     await writeFile(join(this.#doel, MERKJE), `${nu.nieuw ?? ''}\n`, 'utf-8');
-    // De oude naam weg, als die ook van de add-on was: anders laadt Home Assistant hem er nog naast.
-    if (nu.oud === 'add-on') await rm(this.#oud, { recursive: true, force: true });
+    // De oude naam weg, als die van SunArc was: anders laadt Home Assistant hem er nog naast.
+    if (nu.oud === 'add-on' || nu.oud === 'rest') await rm(this.#oud, { recursive: true, force: true });
     return { ok: true, stand: await this.stand() };
   }
 

@@ -11176,6 +11176,23 @@ site en in de Brands-repository:
   openbaar en gaat alleen met het akkoord van de bewoner.
 - **Versie 0.110.0.**
 
+*Aanvulling, 2 november 2026:* HACS kijkt níet naar welke release "Latest"
+is, maar neemt de nieuwste release die geen voorversie is. Op 1 november
+installeerde HACS zo de app-release v0.107.0 als integratie, met de oude
+naam erin. Daarom:
+
+- **De releases van de app zijn voorversies** (prerelease), ook de bestaande.
+  HACS ziet dan alleen de releases van de integratie (2.0.0).
+- **Een oude map van SunArc is een rest.** HACS kent de integratie sinds
+  2.0.0 als `sunarc` en ruimt bij verwijderen die map op, niet de oude
+  `smart_climate`. Een oude map waarvan het manifest SunArc als eigenaar
+  noemt, haalt de add-on weg na de tik op de knop, en zet `sunarc` neer. Een
+  map `smart_climate` van het andere project blijft staan. Met de add-on is
+  HACS voor de integratie niet nodig.
+- **Het adres en de sleutel zijn ingeklapt** onder "Geen add-on?": met de
+  add-on heb je ze niet nodig.
+- **Versie 0.110.1.**
+
 ---
 
 ## Wat nog een besluit wacht

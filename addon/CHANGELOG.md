@@ -1,5 +1,27 @@
 # Wat is er nieuw · What is new
 
+## 0.110.1
+
+*2 november 2026*
+
+**Beter**
+
+- Het adres en de sleutel voor Assist staan ingeklapt: met de add-on heb je ze niet nodig
+
+**Opgelost**
+
+- Na verwijderen in HACS bleef de oude map van de koppeling met Assist staan, en verscheen de knop niet. De knop ruimt die map nu op en zet SunArc neer
+
+*English*
+
+**Improved**
+
+- The address and key for Assist are folded away: with the add-on you do not need them
+
+**Fixed**
+
+- After removing it in HACS, the old folder of the Assist link stayed behind and the button did not appear. The button now clears that folder and puts SunArc in
+
 ## 0.110.0
 
 *1 november 2026*

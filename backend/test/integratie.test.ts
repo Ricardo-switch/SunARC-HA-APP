@@ -66,13 +66,24 @@ describe('de integratie neerzetten vanuit de add-on (besluit 184)', () => {
     expect(await i.bijwerken()).toBe(false);
   });
 
-  it('laat de oude naam via HACS staan, en zet er niets naast', async () => {
+  it('ruimt een oude map van SunArc zonder merkje op na de tik, niet bij het starten (rest na HACS)', async () => {
     await versie(oud(), '1.2.0');
+    await writeFile(join(oud(), 'manifest.json'), JSON.stringify({ domain: 'smart_climate', codeowners: ['@Ricardo-switch'], version: '1.2.0' }), 'utf-8');
     const i = new Integratie(bron, config);
-    expect(await i.stand()).toMatchObject({ staat: 'anders', versie: '1.2.0', oud: 'anders' });
+    expect(await i.stand()).toMatchObject({ staat: 'nee', versie: null, oud: 'rest' });
     expect(await i.bijwerken()).toBe(false);
-    expect((await i.zetNeer()).ok).toBe(false);
-    await expect(stat(doel())).rejects.toThrow();
+    expect((await stat(oud())).isDirectory()).toBe(true);
+    expect((await i.zetNeer()).ok).toBe(true);
+    expect(await i.stand()).toMatchObject({ staat: 'add-on', versie: '0.58.0', oud: 'nee' });
+    await expect(stat(oud())).rejects.toThrow();
+  });
+
+  it('laat een map smart_climate van een ander project met rust', async () => {
+    await versie(oud(), '3.1.0');
+    await writeFile(join(oud(), 'manifest.json'), JSON.stringify({ domain: 'smart_climate', codeowners: ['@iemand-anders'], version: '3.1.0' }), 'utf-8');
+    const i = new Integratie(bron, config);
+    expect(await i.stand()).toMatchObject({ staat: 'nee', oud: 'anders' });
+    expect((await i.zetNeer()).ok).toBe(true);
     expect((await stat(oud())).isDirectory()).toBe(true);
   });
 

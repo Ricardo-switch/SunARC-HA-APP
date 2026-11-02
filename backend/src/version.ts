@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.110.0';
+export const VERSIE = '0.110.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,20 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.110.1',
+    datum: '2026-11-02',
+    opgelost: [
+      'Na verwijderen in HACS bleef de oude map van de koppeling met Assist staan, en verscheen de knop niet. De knop ruimt die map nu op en zet SunArc neer',
+    ],
+    beter: ['Het adres en de sleutel voor Assist staan ingeklapt: met de add-on heb je ze niet nodig'],
+    en: {
+      opgelost: [
+        'After removing it in HACS, the old folder of the Assist link stayed behind and the button did not appear. The button now clears that folder and puts SunArc in',
+      ],
+      beter: ['The address and key for Assist are folded away: with the add-on you do not need them'],
+    },
+  },
   {
     versie: '0.110.0',
     datum: '2026-11-01',
