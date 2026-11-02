@@ -1693,10 +1693,20 @@ async function klaarPunten(lang?: Lang): Promise<KlaarPunt[]> {
  * gelezen bij de Supervisor via Home Assistant. Hooguit eens per vijf minuten;
  * undefined is nog niet gelezen of niet toegestaan.
  */
+const addOnRedenen = new Set<string>();
 let addOnsGelezen: { ms: number; whisper: AddOnInfo | null | undefined; tailscale: AddOnInfo | null } = { ms: 0, whisper: undefined, tailscale: null };
 async function addOnStand(): Promise<typeof addOnsGelezen> {
   if (version.installatie !== 'add-on' || !supervisorToken || Date.now() - addOnsGelezen.ms < 5 * 60_000) return addOnsGelezen;
-  const [whisper, tailscale] = await Promise.all(['core_whisper', 'a0d7b954_tailscale'].map((slug) => addOnInfo('ws://supervisor/core/websocket', supervisorToken, slug)));
+  const [whisper, tailscale] = await Promise.all(
+    ['core_whisper', 'a0d7b954_tailscale'].map((slug) =>
+      addOnInfo('ws://supervisor/core/websocket', supervisorToken, slug, (reden) => {
+        // Eén keer per reden in het logboek: zo is op de Pi te zien waarom lezen niet mag (2 november 2026).
+        if (addOnRedenen.has(reden)) return;
+        addOnRedenen.add(reden);
+        console.warn(`Klaarzetten: ${slug} niet te lezen bij de Supervisor (${reden})`);
+      }),
+    ),
+  );
   // Niet te lezen: undefined, zodat de stap zegt wat je zelf kiest. Er niet: null.
   addOnsGelezen = { ms: Date.now(), whisper: whisper == null ? undefined : whisper.er ? whisper : null, tailscale: tailscale ?? null };
   return addOnsGelezen;

@@ -84,6 +84,12 @@
    * de opdrachten van vandaag op hun moment. Groot op Vast en gepland, klein op
    * Te doen (`mini`), en rechts bij een nieuwe taak.
    */
+  /*
+   * Elke boog een eigen naam voor zijn kleurverloop: Te doen tekent hem op de
+   * wand en op de telefoon, en met dezelfde naam pakte de telefoon het verloop
+   * uit het verborgen wanddeel. Dan bleef de boog weg (2 november 2026).
+   */
+  let boogNr = 0;
   function boog(lijst, o, zon) {
     const { tel = false, mini = false, naast = false } = o ?? {};
     const W = mini ? 400 : naast ? 400 : tel ? 358 : 1180;
@@ -99,7 +105,7 @@
     const x = (u) => L + (u / 24) * (W - L - R);
     const y = (u) => (u <= op || u >= onder ? HOR : HOR - (HOR - TOP) * Math.sin((Math.PI * (u - op)) / (onder - op)));
     const pad = (van, tot) => Array.from({ length: 61 }, (_, i) => { const u = van + (i / 60) * (tot - van); return `${i ? 'L' : 'M'}${x(u).toFixed(1)},${y(u).toFixed(1)}`; }).join(' ');
-    const id = mini ? 'mini' : naast ? 'naast' : tel ? 'tel' : 'wand';
+    const id = `${mini ? 'mini' : naast ? 'naast' : tel ? 'tel' : 'wand'}-${++boogNr}`;
     let s = `<defs><linearGradient id="gp-boog-${id}" x1="0" x2="1"><stop offset="0" stop-color="#6ee7b7"/><stop offset="0.5" stop-color="#f7b548"/><stop offset="1" stop-color="#8f86ff"/></linearGradient><radialGradient id="gp-gloed-${id}"><stop offset="0" stop-color="#f7b548" stop-opacity="0.55"/><stop offset="1" stop-color="#f7b548" stop-opacity="0"/></radialGradient></defs>`;
     s += `<line x1="${x(0)}" x2="${x(24)}" y1="${HOR}" y2="${HOR}" stroke="rgb(255 255 255 / 0.14)"/>`;
     if (!mini) for (const u of [0, 6, 12, 18, 24]) s += `<text x="${x(u)}" y="${HOR + (klein ? 20 : 26)}" text-anchor="${u === 0 ? 'start' : u === 24 ? 'end' : 'middle'}" font-size="${klein ? 11 : 13}" fill="var(--gedempt)">${tel && !naast ? u : `${String(u).padStart(2, '0')}:00`}</text>`;

@@ -1017,6 +1017,41 @@ function openBuiten(keuze) {
 /** Gebundeld: hooguit één keer per beeld (basis.js). */
 const teken = app.gebundeld(tekenNu);
 addEventListener('standwissel', teken);
+
+/*
+ * Bovenin op de telefoon altijd één regel (2 november 2026): met grote letters
+ * schoof het tandwiel naar een tweede regel. Past het niet, dan wordt de klok
+ * kleiner (tot drie vijfde), en daarna valt het logootje weg. De knoppen
+ * houden hun maat.
+ */
+function pasKopregel() {
+  const regel = document.querySelector('#tel .kopregel');
+  if (!regel || !app.telStand()) return;
+  const tijd = regel.querySelector('.tijd');
+  const merk = regel.querySelector('.merkje');
+  if (!tijd) return;
+  tijd.style.fontSize = '';
+  if (merk) merk.hidden = false;
+  const past = () => regel.scrollWidth <= regel.clientWidth + 1;
+  const groot = parseFloat(getComputedStyle(tijd).fontSize);
+  for (let px = groot; !past() && px > groot * 0.6; ) {
+    px -= 2;
+    tijd.style.fontSize = `${px}px`;
+  }
+  if (!past() && merk) merk.hidden = true;
+}
+if ('ResizeObserver' in window) {
+  // De breedte van het scherm, de tijd (10:00 is breder dan 9:59) of het weer verandert: opnieuw passen. Passen geeft dezelfde maat, dus geen lus.
+  let bezig = false;
+  const kijk = new ResizeObserver(() => {
+    if (bezig) return;
+    bezig = true;
+    pasKopregel();
+    requestAnimationFrame(() => (bezig = false));
+  });
+  for (const el of document.querySelectorAll('#tel .kopregel, #tel .kopregel .tijd, #tel .kopregel .weerknop')) kijk.observe(el);
+}
+document.fonts?.ready.then(pasKopregel);
 // Een andere weergave (besluit 164): opnieuw tekenen, met of zonder getallen op het huis.
 addEventListener('weergave', teken);
 addEventListener('sc-kleuren', teken);

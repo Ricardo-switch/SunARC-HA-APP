@@ -3997,7 +3997,6 @@
   'functies.naast.tedoen.3': 'Agenda’s leest de app alleen; er verandert niets in',
   // Klaarzetten per niveau (besluit 246)
   'kz.kop': 'Klaarzetten',
-  'kz.terug': '‹ Inrichten',
   'kz.lead': 'Wat elke functie nodig heeft, en wat al klaar is. Een stap vinkt zichzelf af zodra SunArc hem ziet.',
   'kz.leadKort': 'Wat elke functie nodig heeft, en wat al klaar is.',
   'kz.niveau': 'Niveau',
