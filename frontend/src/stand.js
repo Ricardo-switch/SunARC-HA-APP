@@ -96,6 +96,7 @@
     ['naam', 'huis', 'indeling.html'],
     ['kan', 'zoek.waar.instellingen', 'huis-kan.html'],
     ['voortgang', 'zoek.waar.instellingen', 'voortgang.html'],
+    ['klaarzetten', 'inrichten', 'klaarzetten.html'],
     ['versie', 'toegang', 'toegang.html#versie'],
   ];
   const zoekLijst = () => {

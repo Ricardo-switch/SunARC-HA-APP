@@ -1540,6 +1540,11 @@ async function naarRondleiding() {
   }
   location.href = 'thuis.html#rondleiding';
 }
+/** Naar Klaarzetten per functie (besluit 246): hoeveel er voor iedereen nog open is. */
+function klaarRegel() {
+  const open = (d.klaar?.functies ?? []).filter((f) => f.niveau === 'iedereen').reduce((n, f) => n + f.stappen.filter((s) => s.stand === 'open').length, 0);
+  return `<div class="lijst">${regel({ tag: 'a', attrs: 'href="klaarzetten.html"', ik: 'lijst', titel: t('inr.kz.titel'), zin: t('inr.kz.zin'), rechts: open ? String(open) : '›', toon: open ? 'zon' : '' })}</div>`;
+}
 function haStap() {
   const punten = d.klaar?.punten ?? [];
   const inHA = app.inHA();
@@ -1548,7 +1553,7 @@ function haStap() {
     waar: waarVan('ha'),
     kop: t('inr.ha.kop'),
     uitleg: t(inHA ? 'inr.ha.zin' : 'inr.ha.zinBuiten'),
-    inhoud: `${assistentBlok()}<div class="rijen lijst klaarlijst">${rijen || `<p class="zacht">${esc(t('inr.lezen'))}</p>`}</div>${tip(t('inr.ha.tip'))}`,
+    inhoud: `${assistentBlok()}${klaarRegel()}<div class="rijen lijst klaarlijst">${rijen || `<p class="zacht">${esc(t('inr.lezen'))}</p>`}</div>${tip(t('inr.ha.tip'))}`,
   };
 }
 

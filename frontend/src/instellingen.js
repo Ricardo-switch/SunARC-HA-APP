@@ -9,10 +9,10 @@
 const { $$, nl, esc, haal } = app;
 
 /** Alles wat de pagina leest, per deur; null zolang die niets gaf. */
-const d = { energie: null, aansluiting: null, huis: null, functies: null, comfort: null, site: null, sessie: null, export: null, health: null, zon: null, bewoners: null, divergence: null, sluip: null };
+const d = { energie: null, aansluiting: null, huis: null, functies: null, comfort: null, site: null, sessie: null, export: null, health: null, zon: null, bewoners: null, divergence: null, sluip: null, klaar: null };
 
 async function laadAlles() {
-  const deuren = { energie: 'api/energie', aansluiting: 'api/aansluiting', huis: 'api/huis', functies: 'api/functies', comfort: 'api/comfort', site: 'api/site', sessie: 'api/sessie', export: 'api/export/info', health: 'api/health', zon: 'api/zon', bewoners: 'api/bewoners', divergence: 'api/divergence', sluip: 'api/sluipverbruik' };
+  const deuren = { energie: 'api/energie', aansluiting: 'api/aansluiting', huis: 'api/huis', functies: 'api/functies', comfort: 'api/comfort', site: 'api/site', sessie: 'api/sessie', export: 'api/export/info', health: 'api/health', zon: 'api/zon', bewoners: 'api/bewoners', divergence: 'api/divergence', sluip: 'api/sluipverbruik', klaar: 'api/klaarzetten' };
   const r = await Promise.allSettled(Object.values(deuren).map((p) => haal(p)));
   Object.keys(deuren).forEach((k, i) => {
     if (r[i].status === 'fulfilled') d[k] = r[i].value;
@@ -132,6 +132,9 @@ function feitenVan(id) {
     }
     case 'inrichten': {
       const n = nagelopen();
+      // Klaarzetten (besluit 246): wat er nog open is voor iedereen, hooguit drie.
+      const open = klaarOpen();
+      if (open.length) return open.slice(0, 3).map(({ f, s }) => [s.titel, f.titel]);
       return [
         [t('instellingen.inr.wat'), t('instellingen.inr.watWaarde')],
         [t('instellingen.inr.nagelopen'), n ? t('instellingen.inr.nStappen', { n }) : t('instellingen.inr.nogNiet')],
@@ -153,6 +156,11 @@ function feitenVan(id) {
   }
 }
 
+/** De open stappen van Klaarzetten voor iedereen (besluit 246), met hun functie. */
+function klaarOpen() {
+  return (d.klaar?.functies ?? []).filter((f) => f.niveau === 'iedereen').flatMap((f) => f.stappen.filter((s) => s.stand === 'open').map((s) => ({ f, s })));
+}
+
 /** Hoeveel stappen van Inrichten op dit apparaat al nagelopen zijn (inrichten.js bewaart ze zo). */
 function nagelopen() {
   try {
@@ -172,12 +180,17 @@ function groepen() {
     const feiten = feitenVan(id)
       .map(([naam, waarde, leeg]) => `<li>${esc(naam)}<b class="${waarde == null && leeg !== '…' ? 'leeg' : ''}">${esc(waarde ?? leeg ?? '')}</b></li>`)
       .join('');
-    return `<a class="glas tegel${n ? ' aandacht' : ''}" href="${stand.GROEPEN[id]}">
+    // Na Inrichten gaat de tegel naar Klaarzetten, zolang daar iets open is (besluit 246).
+    const klaar = id === 'inrichten' ? klaarOpen().length : 0;
+    const href = klaar && nagelopen() ? 'klaarzetten.html' : stand.GROEPEN[id];
+    return `<a class="glas tegel${n || klaar ? ' aandacht' : ''}" href="${href}">
       <div class="titel"><span class="icoon">${ICOON[id]}</span><h3>${esc(titel)}</h3><span class="pijl" aria-hidden="true">›</span></div>
       <ul>${feiten}</ul>
       <div class="onder"><span>${esc(onder)}</span>${
         // Inrichten is geen groep die klaar is of iets mist: beginnen, of verder waar je was.
-        id === 'inrichten'
+        id === 'inrichten' && klaar
+          ? `<span class="stand nodig">${esc(t('instellingen.inr.open', { n: klaar }))}</span>`
+          : id === 'inrichten'
           ? `<span class="stand kijkt">${esc(t(nagelopen() ? 'instellingen.inr.verder' : 'instellingen.inr.begin'))}</span>`
           : n
             ? `<span class="stand mis">${esc(t('instellingen.mist', { n }))}</span>`

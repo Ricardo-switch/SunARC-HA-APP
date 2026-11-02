@@ -115,6 +115,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [223. De licentie: AGPL-3.0](#223-de-licentie-agpl-30)
 - [237. Het voorbeeldhuis: de app op een nagemaakt Home Assistant, met een dag om door te spelen](#237-het-voorbeeldhuis-de-app-op-een-nagemaakt-home-assistant-met-een-dag-om-door-te-spelen)
 - [243. Weer in het voorbeeldhuis](#243-weer-in-het-voorbeeldhuis)
+- [246. Klaarzetten per niveau](#246-klaarzetten-per-niveau)
 
 **Meten, data en analyse**
 
@@ -11339,6 +11340,54 @@ bij Bewoners en toegang. Zijn keuzes waren de aanbevolen.
   bredere telefoon bleef rechts een strook open. Het heet nu `op-tel`; de
   paginatest meet het op 430 breed.
 - **Versie 0.113.0.**
+
+## 246. Klaarzetten per niveau
+
+*Onderwerp: configuratie en onboarding · Status: geldig*
+
+2 november 2026. De bewoner: bij alle instellingen uitzoeken wat er nodig is,
+en zien of het al gedaan is, zodat elke functie voor iedereen bereikbaar wordt.
+De schets (Wand-Klaarzetten, Tel-Klaarzetten) keurde hij goed, met Klaarzetten
+als laatste deel van Inrichten in plaats van een negende tegel.
+
+Hij keurde ook goed dat SunArc Whisper, Piper en openWakeWord na een tik zelf
+installeert en instelt via de Supervisor, als dat kan zonder dat het
+beveiligingscijfer omlaag gaat. Dat moest eerst getoetst worden op de Pi. De
+toets kon niet: Claude Code liet hem niet draaien, en in de Terminal-add-on
+mag een add-on niet via de Supervisor bij Home Assistant. Hij koos: bouwen
+zonder de toets.
+
+*Besluit:*
+
+- **Een pagina Klaarzetten** (`klaarzetten.html`), te openen vanuit Inrichten
+  › Klaar en vanaf de tegel Inrichten. Drie niveaus: **voor iedereen** (het
+  huis, klimaat, zon en energie, licht en schermen, witgoed op zon, het weer,
+  de assistent in huis, de wand), **gevorderd** (een taalmodel, de assistent
+  via de cloud met drie routes: Home Assistant Cloud, Google Cloud, OpenAI) en
+  **expert** (de losse app via Tailscale, alleen in de add-on). Links de
+  functies met een ring, rechts de stappen; op de telefoon in een blad.
+- **Een stap vinkt zichzelf af** aan wat SunArc ziet (de punten van besluit
+  179, de add-ons van besluit 203, de spraakassistenten, de eigen poort).
+  Standen: klaar, open, kan erbij (niet nodig), en niet te zien. Alleen klaar
+  en open tellen mee; een functie waar niets meetelt, heet "Kan erbij".
+- **SunArc installeert niets zelf.** Een stap opent de juiste pagina in Home
+  Assistant of in de app. Alleen de spraakassistent maken gaat met een tik,
+  langs de deur van besluit 203. De schrijfgrens blijft zoals hij was.
+- **Lezen bij de Supervisor:** hoe Whisper staat (het model) en of Tailscale
+  draait, via `supervisor/api` GET `/addons/<slug>/info` over een eigen korte
+  websocket, hooguit eens per vijf minuten. Lukt dat niet, dan zegt de stap
+  wat je zelf kiest en telt hij niet mee. Zo laat de eerste versie in de add-on
+  zien of de Supervisor dit toestaat.
+- **De wand meldt zelf hoe Fully Kiosk staat** (`POST /api/wand`, voor wie
+  ingelogd is): of de pagina in Fully draait, of de JavaScript-interface aan
+  staat, en of de camera meekijkt. Alleen in het geheugen, hooguit eens per tien
+  minuten, en niets naar Home Assistant.
+- **Bij Functies** staan bij Praten en Stem en luisteren de open stappen voor
+  "Hé huis", en bij Scherm uit die voor de wand, met "Alles bij Klaarzetten".
+  De tegel Inrichten noemt tot drie open stappen voor iedereen en "Nog n
+  stappen"; wie Inrichten al doorliep, komt dan op Klaarzetten.
+- In het Engels is het wekwoord "Hey house".
+- **Versie 0.114.0.**
 
 ---
 

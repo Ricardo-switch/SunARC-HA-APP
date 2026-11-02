@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.113.0';
+export const VERSIE = '0.114.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,22 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.114.0',
+    datum: '2026-11-02',
+    nieuw: [
+      'Klaarzetten per functie, als laatste deel van Inrichten: voor iedereen, gevorderd en expert, met stappen die zichzelf afvinken zodra SunArc ze ziet',
+      'De wand meldt zelf of Fully Kiosk goed staat: de koppeling met de pagina, en of de camera meekijkt',
+      'Bij Functies staan de open stappen voor "Hé huis" en voor het scherm, en de tegel Inrichten noemt wat er nog open is',
+    ],
+    en: {
+      nieuw: [
+        'Getting ready per feature, as the last part of Set up: for everyone, advanced and expert, with steps that tick themselves off as soon as SunArc sees them',
+        'The wall screen reports itself whether Fully Kiosk is set up well: the link with the page, and whether the camera watches',
+        'Features shows the open steps for "Hey house" and for the screen, and the Set up tile says what is still open',
+      ],
+    },
+  },
   {
     versie: '0.113.0',
     datum: '2026-11-02',

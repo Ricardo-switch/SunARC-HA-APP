@@ -1,5 +1,23 @@
 # Wat is er nieuw · What is new
 
+## 0.114.0
+
+*2 november 2026*
+
+**Nieuw**
+
+- Klaarzetten per functie, als laatste deel van Inrichten: voor iedereen, gevorderd en expert, met stappen die zichzelf afvinken zodra SunArc ze ziet
+- De wand meldt zelf of Fully Kiosk goed staat: de koppeling met de pagina, en of de camera meekijkt
+- Bij Functies staan de open stappen voor "Hé huis" en voor het scherm, en de tegel Inrichten noemt wat er nog open is
+
+*English*
+
+**New**
+
+- Getting ready per feature, as the last part of Set up: for everyone, advanced and expert, with steps that tick themselves off as soon as SunArc sees them
+- The wall screen reports itself whether Fully Kiosk is set up well: the link with the page, and whether the camera watches
+- Features shows the open steps for "Hey house" and for the screen, and the Set up tile says what is still open
+
 ## 0.113.0
 
 *2 november 2026*

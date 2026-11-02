@@ -323,6 +323,8 @@ export class WebServer {
       (this.#d.options.lights?.scenesEnabled === true && path === '/api/scene') ||
       // Een back-up terugzetten en opnieuw beginnen (besluit 151): alleen de eigen bestanden.
       (this.#d.options.gegevens != null && (path === '/api/back-up' || path === '/api/opnieuw')) ||
+      // De wand meldt hoe Fully Kiosk staat (besluit 246): drie ja/nee's in het geheugen, niets naar Home Assistant.
+      (this.#d.options.wandMeldt != null && path === '/api/wand') ||
       // Uitloggen (besluit 99): alleen de eigen sessie weg, verder niets.
       (access.kind === 'sessions' && path === '/auth/logout');
     if (method !== 'GET' && method !== 'HEAD' && !(method === 'POST' && mayWrite)) {

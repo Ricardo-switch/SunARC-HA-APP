@@ -211,7 +211,12 @@ export interface SpraakKeuze {
   readonly taal: string | null;
   /** Of Home Assistant hem voorop heeft. */
   readonly voorkeur: boolean;
+  /** Of hij verstaat via een dienst buiten huis (besluit 246). */
+  readonly wolk?: boolean;
 }
+
+/** Spraak naar tekst buiten huis: Home Assistant Cloud, Google Cloud of OpenAI. */
+const WOLK_STT = /^(cloud$|stt\.home_assistant_cloud|stt\.google|stt\.openai)/;
 
 /** De spraakassistenten uit `assist_pipeline/pipeline/list`, zoals Functies ze toont. */
 export function spraakKeuzes(lijst: unknown): SpraakKeuze[] {
@@ -226,6 +231,7 @@ export function spraakKeuzes(lijst: unknown): SpraakKeuze[] {
       spraakNaarTekst: typeof p['stt_engine'] === 'string' && p['stt_engine'] !== '',
       taal: typeof p['stt_language'] === 'string' ? p['stt_language'] : typeof p['language'] === 'string' ? p['language'] : null,
       voorkeur: p['id'] === voorkeur,
+      wolk: typeof p['stt_engine'] === 'string' && WOLK_STT.test(p['stt_engine']),
     }));
 }
 
