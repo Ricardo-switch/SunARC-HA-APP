@@ -113,6 +113,9 @@ er zo weinig mogelijk (beveiligingscijfer 8, het hoogste):
   dat op zon wacht, en het klimaat met de hand,
   altijd met een eindtijd. De regeling zelf schrijft niets tot het echte
   regelen begint.
+- **De Supervisor (alleen lezen):** voor Klaarzetten, om te zien hoe Whisper
+  staat en of Tailscale draait. Installeren of iets veranderen mag deze rol
+  niet; dat doe je zelf in Home Assistant.
 - **De configuratie van Home Assistant (schrijven):** alleen voor de
   integratie SunArc, na jouw tik, in `custom_components/sunarc`.
 - **`share` (schrijven):** het beslislogboek in `/share/hems`, en het

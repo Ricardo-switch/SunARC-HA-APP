@@ -19,7 +19,7 @@ name: SunArc
 # Gelijk aan VERSIE in backend/src/version.ts; een test houdt ze gelijk. De
 # Supervisor ziet een update zodra dit nummer op `main` omhooggaat, en haalt dan
 # het image met dat nummer op (besluit 153).
-version: 0.114.1
+version: 0.114.2
 slug: hems_climate
 description: >-
   Klimaat en zon in één app: kijkt mee met je verwarming, airco's en
@@ -79,6 +79,13 @@ ports_description:
 # echt schakelen (stap B) hoort niemand te rekenen op een tweede laag die er
 # niet is.
 homeassistant_api: true
+
+# De Supervisor lezen (besluit 246): alleen met de standaardrol, die de
+# informatie van add-ons mag lezen, zoals het model van Whisper en of Tailscale
+# draait, voor Klaarzetten. Installeren of instellen mag deze rol niet; dat
+# vraagt de rol manager, en die kost een punt van het beveiligingscijfer. Via
+# Home Assistant (supervisor/api) mocht de add-on dit niet: unauthorized.
+hassio_api: true
 
 # Herstart na een crash en na de zelfbeëindiging van de bewaking (besluit 18).
 startup: application

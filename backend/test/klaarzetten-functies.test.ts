@@ -3,11 +3,13 @@
  * afvinken aan wat SunArc ziet; de wand meldt zelf hoe Fully staat.
  */
 
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import { klaarzetten, type KlaarInput } from '../src/web/klaarzetten.js';
 import { klaarFuncties, wolkenVan, type KlaarExtra } from '../src/web/klaarzetten-functies.js';
-import type { InHuisStand } from '../src/web/stem-in-huis.js';
+import { addOnInfo, type InHuisStand } from '../src/web/stem-in-huis.js';
 import { registers, states } from './house-fixture.js';
 
 const input: KlaarInput = {
@@ -118,5 +120,37 @@ describe('klaarzetten per niveau (besluit 246)', () => {
   it('noemt nooit een entity-ID in een zin', () => {
     const alles = klaarFuncties(punten, { ...extra, wekker: 'binary_sensor.gang', wolken: ['cloud'] }).flatMap((f) => [f.zin, f.wat, ...f.stappen.map((s) => s.zin)]);
     for (const zin of alles) expect(zin).not.toMatch(/\b[a-z_]+\.[a-z0-9_]{3,}\b/);
+  });
+});
+
+describe('lezen bij de Supervisor (besluit 246, hassio_api met de standaardrol)', () => {
+  const antwoord = (status: number, body: unknown) => (async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
+
+  it('leest de stand en de instellingen van een add-on, en alleen met GET', async () => {
+    const gevraagd: { url: string; method: string | undefined }[] = [];
+    const f = (async (url: string, init?: RequestInit) => {
+      gevraagd.push({ url, method: init?.method });
+      return new Response(JSON.stringify({ result: 'ok', data: { state: 'started', options: { model: 'small-int8' } } }));
+    }) as unknown as typeof fetch;
+    expect(await addOnInfo('http://supervisor', 't', 'core_whisper', undefined, f)).toEqual({ er: true, draait: true, opties: { model: 'small-int8' } });
+    expect(gevraagd).toEqual([{ url: 'http://supervisor/addons/core_whisper/info', method: undefined }]);
+  });
+
+  it('ziet een add-on uit de winkel die er niet staat', async () => {
+    expect(await addOnInfo('http://supervisor', 't', 'a0d7b954_tailscale', undefined, antwoord(200, { result: 'ok', data: { state: 'unknown' } }))).toMatchObject({ er: false, draait: false });
+  });
+
+  it('zegt waarom het niet mag, en geeft dan niets', async () => {
+    const redenen: string[] = [];
+    expect(await addOnInfo('http://supervisor', 't', 'core_whisper', (r) => redenen.push(r), antwoord(403, { result: 'error', message: 'Forbidden' }))).toBeNull();
+    expect(redenen).toEqual(['403: Forbidden']);
+    // Een rare naam vraagt niets.
+    expect(await addOnInfo('http://supervisor', 't', '../core', undefined, antwoord(200, {}))).toBeNull();
+  });
+
+  it('vraagt alleen de standaardrol: geen manager of admin, want die kosten het beveiligingscijfer', () => {
+    const config = readFileSync(new URL('../../addon/config.yaml', import.meta.url), 'utf-8');
+    expect(config).toMatch(/^hassio_api: true$/m);
+    expect(config).not.toMatch(/^hassio_role:/m);
   });
 });

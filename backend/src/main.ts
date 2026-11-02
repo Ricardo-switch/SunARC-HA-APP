@@ -1690,7 +1690,7 @@ async function klaarPunten(lang?: Lang): Promise<KlaarPunt[]> {
 
 /*
  * Klaarzetten per niveau (besluit 246): hoe Whisper en Tailscale ervoor staan,
- * gelezen bij de Supervisor via Home Assistant. Hooguit eens per vijf minuten;
+ * gelezen bij de Supervisor (hassio_api, alleen lezen). Hooguit eens per vijf minuten;
  * undefined is nog niet gelezen of niet toegestaan.
  */
 const addOnRedenen = new Set<string>();
@@ -1699,7 +1699,7 @@ async function addOnStand(): Promise<typeof addOnsGelezen> {
   if (version.installatie !== 'add-on' || !supervisorToken || Date.now() - addOnsGelezen.ms < 5 * 60_000) return addOnsGelezen;
   const [whisper, tailscale] = await Promise.all(
     ['core_whisper', 'a0d7b954_tailscale'].map((slug) =>
-      addOnInfo('ws://supervisor/core/websocket', supervisorToken, slug, (reden) => {
+      addOnInfo('http://supervisor', supervisorToken, slug, (reden) => {
         // Eén keer per reden in het logboek: zo is op de Pi te zien waarom lezen niet mag (2 november 2026).
         if (addOnRedenen.has(reden)) return;
         addOnRedenen.add(reden);
