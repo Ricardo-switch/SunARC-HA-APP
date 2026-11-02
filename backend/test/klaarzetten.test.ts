@@ -62,6 +62,14 @@ describe('klaarzetten in Home Assistant (besluit 179)', () => {
     expect(van(p, 'omvormer').zin).toContain('eens per 5 minuten');
   });
 
+  it('telt een apparaat zonder ruimte in Home Assistant niet als tekort: de app heeft een eigen indeling', () => {
+    const met = new Map(states);
+    met.set('light.zonder_ruimte', st('light.zonder_ruimte', 'off'));
+    const los = { ...registers, entities: [...registers.entities, { entity_id: 'light.zonder_ruimte', area_id: null, device_id: null }] } as typeof registers;
+    const p = klaarzetten({ ...basis, registers: los, states: met });
+    expect(van(p, 'ruimtes')).toMatchObject({ stand: 'klaar', zin: '7 ruimtes op 4 etages. 6 apparaten staan in Home Assistant in geen ruimte; hun kamer kies je in de app.' });
+  });
+
   it('noemt nooit een entiteit', () => {
     for (const punt of klaarzetten(basis)) expect(punt.zin).not.toMatch(/\b(?:sensor|light|climate|person|binary_sensor)\.[a-z]/);
   });

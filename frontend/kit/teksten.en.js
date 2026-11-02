@@ -3992,7 +3992,6 @@
   'functies.naast.tedoen.3': 'The app only reads calendars; nothing in them changes',
   // Getting ready by level (decision 246)
   'kz.kop': 'Getting ready',
-  'kz.terug': '‹ Set up',
   'kz.lead': 'What each feature needs, and what is ready. A step ticks itself off as soon as SunArc sees it.',
   'kz.leadKort': 'What each feature needs, and what is ready.',
   'kz.niveau': 'Level',

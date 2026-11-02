@@ -2685,9 +2685,15 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     expect(await p.locator('#tel .vraagbalk [data-mic]').getAttribute('href')).toBe('assistent.html#praat');
 
     // Bovenin één regel: de klok en de knoppen; de stand staat bij de begroeting.
-    const regel = await p.locator('#tel .kopregel > span:last-child > :visible').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    const knoppen = '#tel .kopregel > span:last-child :is(.telknop, .weerknop):visible';
+    const regel = await p.locator(knoppen).evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
     expect(regel.length).toBeGreaterThanOrEqual(3);
     expect(new Set(regel).size).toBe(1);
+    // Grote letters op de telefoon: nog steeds één regel, binnen het scherm; de klok wordt kleiner.
+    await p.addStyleTag({ content: '#tel .boven { font-size: 26px; } #tel .tijd { font-size: 64px; }' });
+    await expect.poll(async () => new Set(await p.locator(knoppen).evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)))).size).toBe(1);
+    await expect.poll(() => p.locator('#tel .kopregel').evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+    expect(await p.locator('#tel .kopregel [data-tandwiel]').evaluate((e) => e.getBoundingClientRect().right)).toBeLessThanOrEqual(390);
     expect(await p.locator('#tel .kopregel [data-modus]').count()).toBe(0);
     expect(await p.locator('#tel .groetregel [data-modus]').count()).toBe(1);
 

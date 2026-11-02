@@ -81,8 +81,12 @@ const WOORDEN = {
       klaar: (ruimtes: number, etages: number) => `${telling(ruimtes, 'ruimte', 'ruimtes')} op ${telling(etages, 'etage', 'etages')}, elk apparaat in zijn ruimte.`,
       geen: 'Maak etages en ruimtes, en zet elk apparaat in zijn ruimte. De app neemt ze over als voorstel.',
       geenEtage: 'Zet de ruimtes op een etage; dan staat het huis goed in de tekening.',
-      // In Home Assistant, niet in de app (30 oktober 2026): Inrichten noemde een ander getal voor de kamers van de app.
-      zonder: (n: number) => `${telling(n, 'apparaat staat', 'apparaten staan')} in Home Assistant nog in geen ruimte.`,
+      /*
+       * Geen tekort (2 november 2026): de app heeft een eigen indeling, en
+       * daar kies je de kamer van elk apparaat. Een ruimte in Home Assistant
+       * is alleen het voorstel.
+       */
+      klaarZonder: (ruimtes: number, etages: number, n: number) => `${telling(ruimtes, 'ruimte', 'ruimtes')} op ${telling(etages, 'etage', 'etages')}. ${telling(n, 'apparaat staat', 'apparaten staan')} in Home Assistant in geen ruimte; hun kamer kies je in de app.`,
     },
     personen: {
       titel: 'Een persoon per bewoner',
@@ -139,7 +143,7 @@ const WOORDEN = {
       klaar: (ruimtes: number, etages: number) => `${telling(ruimtes, 'area', 'areas')} on ${telling(etages, 'floor', 'floors')}, every device in its area.`,
       geen: 'Create floors and areas, and put every device in its area. The app takes them over as a proposal.',
       geenEtage: 'Put the areas on a floor; then the house shows properly in the drawing.',
-      zonder: (n: number) => `${telling(n, 'device is', 'devices are')} not in a Home Assistant area yet.`,
+      klaarZonder: (ruimtes: number, etages: number, n: number) => `${telling(ruimtes, 'area', 'areas')} on ${telling(etages, 'floor', 'floors')}. ${telling(n, 'device is', 'devices are')} not in a Home Assistant area; you choose their room in the app.`,
     },
     personen: {
       titel: 'A person for each resident',
@@ -227,9 +231,9 @@ export function klaarzetten(i: KlaarInput, lang: Lang = 'nl'): KlaarPunt[] {
   return [
     punt('locatie', 'basis', w.locatie[0], i.locatie, true, w.locatie[1], w.locatie[2], 'algemeen'),
     punt(
-      'ruimtes', 'basis', w.ruimtes.titel, etages > 0 && ruimtes > 0 && zonder === 0, true,
-      w.ruimtes.klaar(ruimtes, etages),
-      ruimtes === 0 ? w.ruimtes.geen : etages === 0 ? w.ruimtes.geenEtage : w.ruimtes.zonder(zonder),
+      'ruimtes', 'basis', w.ruimtes.titel, etages > 0 && ruimtes > 0, true,
+      zonder ? w.ruimtes.klaarZonder(ruimtes, etages, zonder) : w.ruimtes.klaar(ruimtes, etages),
+      ruimtes === 0 ? w.ruimtes.geen : w.ruimtes.geenEtage,
       'ruimtes',
     ),
     punt(

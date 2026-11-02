@@ -451,6 +451,9 @@
   #tel .telwaar { flex: 1; min-width: 0; }
   #tel .telwaar b { display: block; font-size: 14px; }
   #tel .telwaar span { font-size: 12px; color: var(--gedempt); }
+  /* Op de wand ook een weg eruit, net als op de telefoon (2 november 2026): eerst alleen via het logo. */
+  #wand .bovenbalk .sluit { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: rgb(var(--wit) / 0.08); color: var(--zacht); font-size: 20px; text-decoration: none; }
+  #wand .bovenbalk .sluit:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
   #tel .sluit { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgb(var(--wit) / 0.08); color: var(--zacht); font-size: 18px; text-decoration: none; }
   #tel .voortgang { display: flex; gap: 3px; padding: 4px 18px 0; }
   #tel .voortgang i { flex: 1; height: 4px; border-radius: 2px; background: rgb(var(--wit) / 0.12); }
@@ -475,7 +478,7 @@
 </head>
 <body class="lucht lucht-dag">
   <div id="wand" class="wand">
-    <div class="bovenbalk"><a class="merk" href="thuis.html" aria-label="SunArc"><i aria-hidden="true"></i></a><nav class="stappen" data-t-aria-label="inr.hoofdstukken" data-stappen></nav></div>
+    <div class="bovenbalk"><a class="merk" href="thuis.html" aria-label="SunArc"><i aria-hidden="true"></i></a><nav class="stappen" data-t-aria-label="inr.hoofdstukken" data-stappen></nav><a class="sluit" href="thuis.html" data-t-aria-label="inr.sluiten"><span aria-hidden="true">×</span></a></div>
     <div class="veldje">
       <div class="podium" data-podium="wand"></div>
       <section class="glas kaart" data-kaart aria-live="polite"></section>

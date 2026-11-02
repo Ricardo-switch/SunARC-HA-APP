@@ -1,5 +1,31 @@
 # Wat is er nieuw · What is new
 
+## 0.114.1
+
+*2 november 2026*
+
+**Beter**
+
+- Apparaten zonder ruimte in Home Assistant zijn geen open stap meer: hun kamer kies je in de app
+- Terug uit Klaarzetten gaat naar Instellingen, of naar Inrichten als je daarvandaan kwam; Inrichten heeft op de wand ook een sluitknop
+
+**Opgelost**
+
+- Op de telefoon ontbrak de boog van je dag bij Vast en gepland op Te doen
+- Met grote letters op de telefoon schoof het tandwiel op Thuis naar een tweede regel; nu blijft alles op één regel en wordt de klok kleiner
+
+*English*
+
+**Improved**
+
+- Devices without an area in Home Assistant are no longer an open step: you choose their room in the app
+- Back from Getting ready goes to Settings, or to Set up if you came from there; Set up also has a close button on the wall screen
+
+**Fixed**
+
+- On the phone, the arc of your day was missing under Regular and planned on To do
+- With large text on the phone, the gear on Home moved to a second line; now everything stays on one line and the clock gets smaller
+
 ## 0.114.0
 
 *2 november 2026*

@@ -11390,6 +11390,27 @@ zonder de toets.
 - In het Engels is het wekwoord "Hey house".
 - **Versie 0.114.0.**
 
+*Na 0.114.0 (de bewoner, dezelfde dag):*
+
+- **Whisper was niet te lezen** in de add-on. Waarom, schrijft de add-on nu één
+  keer per reden in zijn logboek.
+- **Een apparaat zonder ruimte in Home Assistant is geen tekort** (ook bij Wat
+  je huis kan, besluit 179): de app heeft een eigen indeling, en daar kies je
+  de kamer. Etages en ruimtes is klaar als er etages en ruimtes zijn; de rest
+  staat er als opmerking bij.
+- **Terug uit Klaarzetten** gaat naar Instellingen, of naar Inrichten als je
+  daarvandaan kwam. Eerst ging het altijd naar Inrichten, en daar kwam je op
+  de wand bijna niet meer uit: Inrichten heeft op de wand nu ook een ×.
+- **Opgelost:** op de telefoon ontbrak de boog bij Vast en gepland op Te doen.
+  Te doen tekent hem op de wand en op de telefoon, met dezelfde naam voor het
+  kleurverloop; de telefoon pakte dat uit het verborgen wanddeel. Elke boog
+  heeft nu een eigen naam.
+- **Opgelost:** met grote letters op de telefoon schoof het tandwiel op Thuis
+  naar een tweede regel. De bewoner wil geen tweede regel: alles past op één.
+  De knoppen houden hun maat; past het niet, dan wordt de klok kleiner (tot
+  drie vijfde) en valt daarna het logootje naast de klok weg.
+- **Versie 0.114.1.**
+
 ---
 
 ## Wat nog een besluit wacht
