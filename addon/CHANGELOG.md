@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.115.1
+
+*2 november 2026*
+
+**Opgelost**
+
+- Bij Inrichten ontbraken iconen, zoals bij buiten en de apparaten; daar stond een huisje
+
+*English*
+
+**Fixed**
+
+- Set up was missing icons, such as for outside and the devices; a little house showed instead
+
 ## 0.115.0
 
 *2 november 2026*

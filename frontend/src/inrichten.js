@@ -235,17 +235,33 @@ const schakel = (attr, tekst, aan, uit = false) => `<button type="button" class=
 const S = (pad) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pad}</svg>`;
 const IK = {
   huis: iconen.binnen('thuis'),
+  oprit: iconen.binnen('oprit'),
   auto: iconen.binnen('auto'),
+  laadpaal: iconen.binnen('laadpaal'),
   carport: iconen.binnen('carport'),
+  garage: iconen.binnen('garage'),
+  tuin: iconen.binnen('tuin'),
   tuinhuis: iconen.binnen('tuinhuis'),
+  schuur: iconen.binnen('schuur'),
   terras: iconen.binnen('terras'),
+  jacuzzi: iconen.binnen('jacuzzi'),
   balkon: iconen.binnen('balkon'),
+  thermo: iconen.binnen('klimaat'),
   droger: iconen.binnen('droger'),
+  vaat: iconen.binnen('vaat'),
   boiler: iconen.binnen('boiler'),
-  lamp: iconen.binnen('lamp'),
+  accu: iconen.binnen('accu'),
+  lamp: iconen.binnen('licht'),
+  screen: iconen.binnen('screen'),
+  camera: iconen.binnen('camera'),
   lijst: iconen.binnen('lijst'),
   praat: iconen.binnen('praten'),
+  zon: iconen.binnen('zon'),
+  stekker: iconen.binnen('stekker'),
   meter: iconen.binnen('meter'),
+  tablet: iconen.binnen('tablet'),
+  koffer: iconen.binnen('koffer'),
+  tel: iconen.binnen('telefoon'),
 };
 /** Een regel; `tag: 'button'` maakt hem aan te tikken. Zin en rechts zijn al tekst of HTML. */
 function regel({ ik: icoon, titel, zin = '', rechts = '', toon = '', klasse = '', attrs = '', onder = '', tag = 'div' }) {
@@ -314,7 +330,11 @@ const stilGewenst = () => document.documentElement.classList.contains('sc-stil')
 const PIJL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const WK_IK = {
   etages: iconen.binnen('etages'),
+  kamers: iconen.binnen('kamers'),
   apparaten: iconen.binnen('apparaat'),
+  klimaat: IK.thermo,
+  panelen: IK.zon,
+  cameras: IK.camera,
 };
 function welkomSkelet(tel) {
   const belofte = (ik, kleur, b, zin) => `<li><span class="wk-ik" style="color: ${kleur}">${S(IK[ik])}</span><div><b>${esc(t(b))}</b><span>${esc(t(zin))}</span></div></li>`;
