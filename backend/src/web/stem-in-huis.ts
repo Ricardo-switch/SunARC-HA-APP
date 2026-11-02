@@ -224,3 +224,41 @@ export function maakViaWebsocket(adres: string, token: string, a: NieuweAssisten
     ws.addEventListener('error', () => einde(new Error('geen verbinding met Home Assistant')));
   });
 }
+
+/** Hoe een add-on ervoor staat bij de Supervisor: of hij er is, of hij draait, en zijn instellingen. */
+export interface AddOnInfo {
+  readonly er: boolean;
+  readonly draait: boolean;
+  readonly opties: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * Lezen hoe een add-on ervoor staat (Klaarzetten, besluit 246): één vraag
+ * `supervisor/api` GET `/addons/<slug>/info` over een eigen korte websocket,
+ * dan dicht. Alleen lezen, alleen die ene pagina; geeft null als Home
+ * Assistant of de Supervisor het niet toestaat.
+ */
+export function addOnInfo(adres: string, token: string, slug: string): Promise<AddOnInfo | null> {
+  if (!/^[a-z0-9_]+$/.test(slug)) return Promise.resolve(null);
+  return new Promise((klaar) => {
+    const ws = new WebSocket(adres);
+    const grens = setTimeout(() => einde(null), 10_000);
+    function einde(uit: AddOnInfo | null) {
+      clearTimeout(grens);
+      ws.close();
+      klaar(uit);
+    }
+    ws.addEventListener('message', (e) => {
+      const m = JSON.parse(String(e.data)) as { type: string; id?: number; success?: boolean; result?: { state?: string; options?: Record<string, unknown> } };
+      if (m.type === 'auth_required') ws.send(JSON.stringify({ type: 'auth', access_token: token }));
+      else if (m.type === 'auth_ok') ws.send(JSON.stringify({ id: 1, type: 'supervisor/api', endpoint: `/addons/${slug}/info`, method: 'get' }));
+      else if (m.type === 'auth_invalid') einde(null);
+      else if (m.type === 'result' && m.id === 1) {
+        // Een add-on uit de winkel die er niet staat, heeft de stand "unknown".
+        const state = m.success ? (m.result?.state ?? 'unknown') : null;
+        einde(state == null ? null : { er: state !== 'unknown', draait: state === 'started', opties: m.result?.options ?? {} });
+      }
+    });
+    ws.addEventListener('error', () => einde(null));
+  });
+}

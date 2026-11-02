@@ -122,6 +122,7 @@ import { SessionStore } from '../src/web/auth.js';
 import { BewonersStore, GEEN_BEWONERS, alsScherm, bewonersView, comfortVanBewoner, gastStand, herken, leesActie, personenUit, profielenVan, voegToe, voerUit, type Bewoners } from '../src/web/bewoners.js';
 import { registers as houseRegisters, states as houseStates } from './house-fixture.js';
 import { klaarzetten } from '../src/web/klaarzetten.js';
+import { klaarFuncties } from '../src/web/klaarzetten-functies.js';
 import { Sluipverbruik } from '../src/web/sluipverbruik.js';
 import { CoverSwitch } from '../src/web/covers.js';
 import type { HouseBattery, HouseReport } from '../src/web/house.js';
@@ -448,6 +449,24 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
           energy: { store: energyStore, source: ENERGY_SOURCE },
           // Klaarzetten in Home Assistant (besluit 179): het kleine huis, zonder locatie.
           klaarzetten: async () => klaarzetten({ locatie: false, registers: houseRegisters, states: houseStates, netMeter: true, zon: { heeft: true, intervalS: 30 }, energieDashboard: true, apparatenOpZon: 0, cameras: 1, deurbel: false, rookmelders: 0, spraak: [], addOn: true, eigenPoort: false }),
+          // Klaarzetten per niveau (besluit 246): een wand in Fully zonder camera, Whisper op base-int8.
+          klaarFuncties: async (punten) =>
+            klaarFuncties(punten, {
+              addOn: true,
+              eigenPoort: false,
+              eigenSlug: 'abc_sunarc',
+              inHuis: { addons: [{ id: 'whisper', slug: 'core_whisper', staat: 'aan' }, { id: 'piper', slug: 'core_piper', staat: 'aan' }, { id: 'openwakeword', slug: 'core_openwakeword', staat: 'nee' }], assistent: null, bezig: false, fout: null },
+              whisperModel: 'base-int8',
+              tailscale: null,
+              wand: { fully: true, js: true, camera: false, ms: 0 },
+              heeftWand: true,
+              schermUit: true,
+              wekker: null,
+              wolken: [],
+              spraak: [],
+              tijd: () => '10:14',
+            }),
+          wandMeldt: () => undefined,
           connection: {
             store: connStore,
             found: () => connFound,
@@ -3320,7 +3339,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       expect((await slecht()).some((x) => x.includes('"proef"'))).toBe(true);
       const huisNu = (await (await fetch(`${baseUrl}/api/huis`)).json()) as { etages: { ruimtes: { id: string; apparaten: unknown[] }[] }[] };
       const vol = huisNu.etages.flatMap((e) => e.ruimtes).sort((x, y) => y.apparaten.length - x.apparaten.length)[0]!;
-      const paginas = ['thuis.html', 'vandaag.html', 'apparaten.html', 'opbrengst.html', 'assistent.html', `kamer.html#${encodeURIComponent(vol.id)}`, 'instellingen.html', 'jij.html', 'comfort.html', 'energie.html', 'functies.html', 'regeling.html', 'huis-kan.html', 'voortgang.html', 'toegang.html', 'bewoners.html', 'indeling.html', 'inrichten.html'];
+      const paginas = ['thuis.html', 'vandaag.html', 'apparaten.html', 'opbrengst.html', 'assistent.html', `kamer.html#${encodeURIComponent(vol.id)}`, 'instellingen.html', 'jij.html', 'comfort.html', 'energie.html', 'functies.html', 'regeling.html', 'huis-kan.html', 'klaarzetten.html', 'voortgang.html', 'toegang.html', 'bewoners.html', 'indeling.html', 'inrichten.html'];
       const weg: string[] = [];
       for (const pagina of paginas) {
         await p.goto(`${baseUrl}/${pagina}`);
@@ -3974,7 +3993,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     const cdp = await context.newCDPSession(p);
     const huisNu = (await (await fetch(`${baseUrl}/api/huis`)).json()) as { etages: { ruimtes: { id: string; apparaten: unknown[] }[] }[] };
     const vol = huisNu.etages.flatMap((e) => e.ruimtes).sort((x, y) => y.apparaten.length - x.apparaten.length)[0]!;
-    const paginas = ['thuis.html', 'vandaag.html', 'apparaten.html', 'opbrengst.html', `kamer.html#${encodeURIComponent(vol.id)}`, `indeling.html#${encodeURIComponent(vol.id)}`, 'instellingen.html', 'comfort.html', 'energie.html', 'functies.html', 'regeling.html', 'huis-kan.html', 'voortgang.html', 'toegang.html', 'inrichten.html#warmte'];
+    const paginas = ['thuis.html', 'vandaag.html', 'apparaten.html', 'opbrengst.html', `kamer.html#${encodeURIComponent(vol.id)}`, `indeling.html#${encodeURIComponent(vol.id)}`, 'instellingen.html', 'comfort.html', 'energie.html', 'functies.html', 'regeling.html', 'huis-kan.html', 'klaarzetten.html', 'voortgang.html', 'toegang.html', 'inrichten.html#warmte'];
     const vast: string[] = [];
     let geveegd = 0;
     for (const pagina of paginas) {
@@ -4050,7 +4069,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     const cdp = await context.newCDPSession(p);
     const huisNu = (await (await fetch(`${baseUrl}/api/huis`)).json()) as { etages: { ruimtes: { id: string; apparaten: unknown[] }[] }[] };
     const vol = huisNu.etages.flatMap((e) => e.ruimtes).sort((x, y) => y.apparaten.length - x.apparaten.length)[0]!;
-    const paginas = ['thuis.html', 'vandaag.html', 'apparaten.html', 'opbrengst.html', 'assistent.html', `kamer.html#${encodeURIComponent(vol.id)}`, `indeling.html#${encodeURIComponent(vol.id)}`, 'instellingen.html', 'comfort.html', 'energie.html', 'functies.html', 'regeling.html', 'huis-kan.html', 'voortgang.html', 'toegang.html', 'bewoners.html', 'inrichten.html#warmte', 'inrichten.html#welkom'];
+    const paginas = ['thuis.html', 'vandaag.html', 'apparaten.html', 'opbrengst.html', 'assistent.html', `kamer.html#${encodeURIComponent(vol.id)}`, `indeling.html#${encodeURIComponent(vol.id)}`, 'instellingen.html', 'comfort.html', 'energie.html', 'functies.html', 'regeling.html', 'huis-kan.html', 'klaarzetten.html', 'voortgang.html', 'toegang.html', 'bewoners.html', 'inrichten.html#warmte', 'inrichten.html#welkom'];
     const vast: string[] = [];
     let geveegd = 0;
     for (const pagina of paginas) {
@@ -4155,6 +4174,54 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-klaarzetten.png') });
     await lijst.locator('[data-sluit]').click();
     expect(await p.evaluate('document.scrollingElement.scrollHeight <= innerHeight')).toBe(true);
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 20_000);
+
+  /*
+   * Klaarzetten per niveau (besluit 246, schets Wand-Klaarzetten): per niveau
+   * de functies met hun ring, rechts de stappen; op de telefoon in een blad.
+   */
+  it('toont Klaarzetten per niveau, met stappen die zichzelf afvinken', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/klaarzetten.html#assistent`);
+    const stappen = p.locator('#wand [data-stappen]');
+    await stappen.locator('h2', { hasText: 'De assistent in huis' }).waitFor();
+    expect(await p.locator('#wand [data-niveaus] a b').allTextContents()).toEqual(['Voor iedereen', 'Gevorderd', 'Expert']);
+    // Whisper draait, op base-int8: die stap is aan de beurt, met een weg naar Home Assistant.
+    expect(await stappen.locator('.kz-rij li.klaar b').first().textContent()).toBe('Whisper verstaat wat je zegt');
+    expect(await stappen.locator('.kz-rij li.nu b').textContent()).toBe('Whisper op small-int8');
+    expect(await stappen.locator('[data-kz-doe="spraakassistent"]').count()).toBe(1);
+    // De wand meldde Fully zonder camera: één stap open.
+    await p.locator('#wand [data-functies] a', { hasText: 'De wand' }).click();
+    await stappen.locator('h2', { hasText: 'De wand' }).waitFor();
+    expect(await stappen.locator('.kz-rij li.open').count()).toBe(1);
+    expect(await stappen.locator('.kz-rij li.nu b').textContent()).toBe('Wakker op beweging');
+    // Expert: de losse app via Tailscale.
+    await p.locator('#wand [data-niveaus] a', { hasText: 'Expert' }).click();
+    await stappen.locator('h2', { hasText: 'Losse app op je telefoon' }).waitFor();
+    expect(await p.evaluate('document.scrollingElement.scrollHeight <= innerHeight')).toBe(true);
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-klaarzetten-niveau.png') });
+    // Bij Functies op de wand rechts in de lijst hoeveel er nog open is; de wand scrolt niet.
+    await p.goto(`${baseUrl}/functies.html?groep=assistent#stem`);
+    await p.locator('#wand [data-delen] .deel .nog', { hasText: 'nog 3 stappen' }).first().waitFor();
+    expect(await p.locator('#wand .kz-nog').count()).toBe(0);
+    // Op de telefoon de lijst, en de stappen in een blad van onderen.
+    await p.setViewportSize({ width: 390, height: 844 });
+    await p.goto(`${baseUrl}/klaarzetten.html`);
+    await p.locator('#tel [data-functies] a', { hasText: 'De wand' }).click();
+    await p.locator('#tel [data-stappen] h2', { hasText: 'De wand' }).waitFor();
+    await p.locator('#tel [data-stappen] [data-sluit]').click();
+    await expect.poll(() => p.locator('#tel [data-stappen]').isHidden()).toBe(true);
+    // Op de telefoon staan de stappen zelf bij het deel.
+    await p.goto(`${baseUrl}/functies.html?groep=assistent#stem`);
+    await p.locator('#tel .kz-nog header', { hasText: 'Nog 3 stappen voor "Hé huis"' }).waitFor();
     expect(fouten).toEqual([]);
     await context.close();
   }, 20_000);

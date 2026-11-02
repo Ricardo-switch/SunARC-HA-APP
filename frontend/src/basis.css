@@ -768,3 +768,38 @@ html.sc-voorbeeld .hand-laag:not(.op-tel) .hand-vel { bottom: 124px; }
 html.sc-voorbeeld .hand-laag.op-tel { z-index: 93; }
 /* De rondleiding (via het vraagteken) gaat over de balk heen. */
 html.sc-voorbeeld .rl-kaart { z-index: 92; }
+
+/*
+ * De stappen van Klaarzetten (besluit 246, schets Wand-Klaarzetten): op de
+ * pagina Klaarzetten, bij Functies en op de tegel Inrichten.
+ */
+.kz-rij { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.kz-rij li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 2px 14px; align-items: center; padding: 10px 14px; border-radius: 16px; background: rgb(var(--wit) / 0.045); }
+.kz-rij li > i { grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 13px; font-weight: 800; border: 2px solid rgb(var(--wit) / 0.2); color: var(--gedempt); box-sizing: border-box; }
+.kz-rij li b { grid-column: 2; grid-row: 1; font-size: 15px; font-weight: 600; }
+.kz-rij li span { grid-column: 2; grid-row: 2; font-size: 13px; color: var(--gedempt); line-height: 1.4; }
+.kz-rij li.klaar > i { background: var(--mint); border-color: var(--mint); color: #0b1424; }
+.kz-rij li.klaar b { color: var(--zacht); }
+.kz-rij li.kan, .kz-rij li.onbekend { opacity: 0.75; }
+.kz-rij li.nu { background: rgba(247, 181, 72, 0.08); box-shadow: inset 0 0 0 1.5px rgba(247, 181, 72, 0.35); }
+.kz-rij li.nu > i { border-color: var(--zon); color: var(--zon-t); }
+.kz-rij .kz-doe { grid-column: 3; grid-row: 1 / span 2; }
+.kz-doe { display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 13px; border: 0; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; text-decoration: none; cursor: pointer; }
+.kz-doe.zelf { background: var(--zon); color: #0b1424; }
+.kz-doe.zelf:disabled { opacity: 0.6; cursor: default; }
+.kz-doe.ha { background: rgb(var(--wit) / 0.1); color: var(--tekst); }
+.kz-doe.naar::after { content: ' ↗'; color: var(--gedempt); white-space: pre; }
+.kz-doe.klaar { padding: 0 4px; background: none; color: var(--mint-t); cursor: default; }
+.kz-doe.mini { padding: 0; height: auto; font-size: 12.5px; font-weight: 600; color: var(--gedempt); white-space: normal; max-width: 12ch; text-align: right; }
+.kz-doe:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
+.kz-ring { width: 34px; height: 34px; flex: none; }
+.kz-nog { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 18px; background: rgba(247, 181, 72, 0.07); box-shadow: inset 0 0 0 1.5px rgba(247, 181, 72, 0.3); margin-bottom: 12px; }
+.kz-nog header { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14.5px; font-weight: 700; color: var(--zon-t); }
+.kz-nog header a { font-size: 13px; color: var(--zacht); text-decoration: none; font-weight: 600; white-space: nowrap; }
+.kz-nog .kz-rij li { background: rgb(var(--nacht) / 0.35); }
+.tel-stand .kz-rij li { grid-template-columns: 30px minmax(0, 1fr); }
+.tel-stand .kz-rij .kz-doe { grid-column: 2; grid-row: 3; justify-self: start; margin-top: 6px; }
+.tel-stand .kz-rij .kz-doe.klaar { display: none; }
+.tel-stand .kz-rij .kz-doe.mini { max-width: none; text-align: left; }
+/* Klaarzetten (besluit 246): rechts in de lijst hoeveel stappen er nog open zijn. */
+.deel .eind .nog { font-size: 12.5px; font-weight: 700; color: var(--zon-t); white-space: nowrap; }

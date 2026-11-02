@@ -26,6 +26,7 @@ import type { EnergySource, EnergyStore } from './energy.js';
 import type { Punt } from './kaart.js';
 import type { UpdateView } from './bijwerken.js';
 import type { KlaarPunt } from './klaarzetten.js';
+import type { KlaarFunctie, WandMelding } from './klaarzetten-functies.js';
 import type { Vraag } from './taalmodel.js';
 import type { Dagtelling } from './brein.js';
 import type { TeDoenDienst } from './routes/tedoen.js';
@@ -152,6 +153,10 @@ export interface WebOptions {
   /** Wat er in Home Assistant klaarstaat voor de functies van SunArc (besluit 179). */
   /** In de taal van de app (besluit 185). */
   readonly klaarzetten?: (lang?: Lang) => Promise<readonly KlaarPunt[]>;
+  /** Klaarzetten per niveau (besluit 246): per functie de stappen. */
+  readonly klaarFuncties?: (punten: readonly KlaarPunt[], lang?: Lang) => Promise<readonly KlaarFunctie[]>;
+  /** De wand meldt zelf of hij in Fully Kiosk draait (besluit 246). */
+  readonly wandMeldt?: (m: Omit<WandMelding, 'ms'>) => void;
   /** Levert het laatste besluit, of null zolang er nog niet gerekend is. */
   readonly latest: () => LiveSnapshot | null;
   /**

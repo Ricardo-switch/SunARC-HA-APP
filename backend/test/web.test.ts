@@ -121,6 +121,7 @@ async function start(options: {
   gegevens?: NonNullable<ConstructorParameters<typeof WebServer>[0]['gegevens']>;
   welkomHuis?: () => HouseReport | null;
   naOnboarding?: () => void;
+  wandMeldt?: NonNullable<ConstructorParameters<typeof WebServer>[0]['wandMeldt']>;
 }): Promise<{ base: string; server: WebServer }> {
   const webDir = options.webDir ?? (await mkdtemp(join(tmpdir(), 'hems-web-')));
   if (!options.webDir) cleanups.push(() => rm(webDir, { recursive: true, force: true }));
@@ -138,6 +139,7 @@ async function start(options: {
         ...(options.onboarding ? { onboarding: options.onboarding } : {}),
         ...(options.welkomHuis ? { welkomHuis: options.welkomHuis } : {}),
         ...(options.naOnboarding ? { naOnboarding: options.naOnboarding } : {}),
+        ...(options.wandMeldt ? { wandMeldt: options.wandMeldt } : {}),
         ...(options.feedback ? { feedback: options.feedback } : {}),
         ...(options.version ? { version: options.version } : {}),
         ...(options.location !== undefined ? { location: () => options.location ?? null } : {}),
@@ -2486,5 +2488,22 @@ describe('achter Ingress de rol uit Home Assistant (besluit 161)', () => {
     nu = 75_000;
     expect(await b.isBeheerder('u2')).toBe(false);
     expect(vragen).toBe(3);
+  });
+});
+
+describe('de wand meldt hoe Fully Kiosk staat (besluit 246)', () => {
+  it('neemt drie keer ja of nee aan, en verder niets', async () => {
+    const gemeld: unknown[] = [];
+    const { base } = await start({ wandMeldt: (m) => gemeld.push(m) });
+    const post = (body: unknown) => fetch(`${base}/api/wand`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
+    expect((await post({ fully: true, js: false, camera: null })).status).toBe(200);
+    expect((await post({ fully: 'ja', js: false, camera: null })).status).toBe(400);
+    expect(gemeld).toEqual([{ fully: true, js: false, camera: null }]);
+    expect(DOOR_ROLES['/api/wand']).toBe('bewoner');
+  });
+
+  it('bestaat niet zonder de deur', async () => {
+    const { base } = await start({});
+    expect((await fetch(`${base}/api/wand`, { method: 'POST', headers: JSON_HEADERS, body: '{}' })).status).toBe(405);
   });
 });

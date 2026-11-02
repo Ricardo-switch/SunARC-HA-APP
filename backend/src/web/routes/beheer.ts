@@ -222,7 +222,26 @@ export async function beheerRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
    */
   // Klaarzetten in Home Assistant (besluit 179): per functie wat er staat en wat er mist.
   if (path === '/api/klaarzetten') {
-    sendJson(res, 200, { punten: d.options.klaarzetten ? await d.options.klaarzetten(taalVan(url.searchParams.get('taal') ?? req.headers['x-taal'])) : [] });
+    const taal = taalVan(url.searchParams.get('taal') ?? req.headers['x-taal']);
+    const punten = (await d.options.klaarzetten?.(taal)) ?? [];
+    const functies = (await d.options.klaarFuncties?.(punten, taal)) ?? [];
+    sendJson(res, 200, { punten, functies });
+    return true;
+  }
+
+  // De wand meldt of hij in Fully Kiosk draait (besluit 246): drie ja/nee's, alleen in het geheugen.
+  if (path === '/api/wand') {
+    if (method !== 'POST') {
+      sendJson(res, 405, { fout: 'alleen POST' });
+      return true;
+    }
+    const b = (await readJson(req).catch(() => null)) as Record<string, unknown> | null;
+    if (b == null || typeof b['fully'] !== 'boolean' || typeof b['js'] !== 'boolean' || (b['camera'] !== null && typeof b['camera'] !== 'boolean')) {
+      sendJson(res, 400, { fout: 'stuur { fully, js, camera }' });
+      return true;
+    }
+    d.options.wandMeldt?.({ fully: b['fully'], js: b['js'], camera: b['camera'] as boolean | null });
+    sendJson(res, 200, { ok: true });
     return true;
   }
 

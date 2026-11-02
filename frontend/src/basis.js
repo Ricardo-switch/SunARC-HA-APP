@@ -1157,6 +1157,36 @@
     }
   }
 
+  /*
+   * De wand meldt zelf hoe Fully Kiosk staat (besluit 246): draait de pagina
+   * in Fully, staat de JavaScript-interface aan, en kijkt de camera mee. Voor
+   * Klaarzetten; hooguit eens per tien minuten, en alleen in Fully.
+   */
+  function meldWand() {
+    let f = null;
+    try {
+      f = global.fully ?? null;
+    } catch {
+      // Geen Fully.
+    }
+    const inFully = f != null || /fully/i.test(navigator.userAgent);
+    if (!inFully) return;
+    try {
+      const vorige = Number(sessionStorage.getItem('sc-wand-gemeld') ?? 0);
+      if (Date.now() - vorige < 10 * 60_000) return;
+      sessionStorage.setItem('sc-wand-gemeld', String(Date.now()));
+    } catch {
+      // Zonder opslag meldt hij bij elke pagina.
+    }
+    let camera = null;
+    try {
+      camera = f?.isMotionDetectionRunning?.() ?? null;
+    } catch {
+      // Een oudere Fully.
+    }
+    void deur('api/wand', { fully: true, js: f != null, camera: typeof camera === 'boolean' ? camera : null }).catch(() => {});
+  }
+
   function start(tab) {
     if (terugUitHA()) return;
     zetNav(tab);
@@ -1197,6 +1227,7 @@
     meldingenStart();
     luisterStart();
     teDoenStart();
+    meldWand();
     void weergaveLaden();
     niemandStart();
     if (tab === 'instellingen') void gastGrens();

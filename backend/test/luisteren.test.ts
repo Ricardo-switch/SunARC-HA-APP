@@ -50,12 +50,15 @@ describe('de spraakassistenten bij Functies', () => {
         pipelines: [
           { id: 'a', name: 'Home Assistant', language: 'nl', stt_engine: null, wake_word_entity: null, wake_word_id: null },
           { id: 'b', name: 'SunArc', language: 'nl', stt_engine: 'stt.faster_whisper', stt_language: 'nl', wake_word_entity: 'wake_word.openwakeword', wake_word_id: 'he_huis' },
+          { id: 'c', name: 'Wolk', language: 'nl', stt_engine: 'cloud', wake_word_entity: null, wake_word_id: null },
           { name: 'zonder id' },
         ],
       }),
     ).toEqual([
-      { id: 'a', naam: 'Home Assistant', wekwoord: null, spraakNaarTekst: false, taal: 'nl', voorkeur: true },
-      { id: 'b', naam: 'SunArc', wekwoord: 'he_huis', spraakNaarTekst: true, taal: 'nl', voorkeur: false },
+      { id: 'a', naam: 'Home Assistant', wekwoord: null, spraakNaarTekst: false, taal: 'nl', voorkeur: true, wolk: false },
+      { id: 'b', naam: 'SunArc', wekwoord: 'he_huis', spraakNaarTekst: true, taal: 'nl', voorkeur: false, wolk: false },
+      // Verstaan via Home Assistant Cloud (besluit 246).
+      { id: 'c', naam: 'Wolk', wekwoord: null, spraakNaarTekst: true, taal: 'nl', voorkeur: false, wolk: true },
     ]);
     expect(spraakKeuzes(null)).toEqual([]);
   });

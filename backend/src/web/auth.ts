@@ -47,6 +47,8 @@ export const DOOR_ROLES: Readonly<Record<string, Role>> = {
   '/api/uitstel': 'bewoner',
   // Een melding wegzetten (besluit 136): voor wie in huis woont.
   '/api/meldingen': 'bewoner',
+  // De wand meldt hoe Fully Kiosk staat (besluit 246): ingelogd, zoals de wand altijd is.
+  '/api/wand': 'bewoner',
   '/api/indeling': 'beheerder',
   '/api/energie': 'beheerder',
   '/api/aansluiting': 'beheerder',

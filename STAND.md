@@ -44,7 +44,9 @@ verwijzing bestaat.
   komen live ([177]). Eigen daluren en geen salderen voor een huis buiten
   Nederland, LG, Samsung en Miele op zon, en het typeplaatje voor de
   hoofdzekering ([178]). Wat je huis kan zegt wat er in Home Assistant klaar
-  moet staan, met een tik naar dat scherm ([179]). Een profiel per bewoner,
+  moet staan, met een tik naar dat scherm ([179]); sinds [246] per functie en
+  per niveau bij Klaarzetten, met stappen die zichzelf afvinken en een wand die
+  zelf meldt hoe Fully staat. Een profiel per bewoner,
   met een licht thema op de telefoon en een eigen kleur ([181]).
 - **Wat het huis verandert:** eind 2026 drie fasen van 25 A in plaats van één
   van 35 A ([78]); deze winter de ventilatie, een breukpunt voor het thermisch
@@ -811,4 +813,5 @@ verwijzing bestaat.
 [243]: DECISIONS.md#243-weer-in-het-voorbeeldhuis
 [244]: DECISIONS.md#244-een-taak-als-één-zin-en--nieuw-op-te-doen
 [245]: DECISIONS.md#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken
+[246]: DECISIONS.md#246-klaarzetten-per-niveau
 <!-- links:einde -->

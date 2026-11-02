@@ -17,9 +17,10 @@ import { PushStore, alsMelding, ontvangersVan, paneelVan, proefTekst, teSturen, 
 import { hostname } from 'node:os';
 import { loadDotEnv, tokenComplaint } from './env.js';
 import { inHouse, snelInHuis } from './web/inhuis.js';
-import { klaarzetten } from './web/klaarzetten.js';
+import { klaarzetten, type KlaarPunt } from './web/klaarzetten.js';
+import { klaarFuncties, wolkenVan, type WandMelding } from './web/klaarzetten-functies.js';
 import { Stem, kiesTaal } from './web/stem.js';
-import { InHuis, bevestigViaRest, maakViaWebsocket, type Stroom } from './web/stem-in-huis.js';
+import { InHuis, addOnInfo, bevestigViaRest, maakViaWebsocket, type AddOnInfo, type Stroom } from './web/stem-in-huis.js';
 import { rollenUitConfig } from './web/regeling.js';
 import { MeldingenStore } from './web/meldingen.js';
 import { meldingenBron } from './web/meldingen-bron.js';
@@ -1168,11 +1169,14 @@ const telefoons = (): Telefoon[] => {
 };
 /** Waar een tik op de melding naartoe gaat: SunArc in de app van Home Assistant. */
 let paneelPad: string | null = null;
+/** De naam van deze add-on bij de Supervisor, voor de pagina met zijn instellingen (besluit 246). */
+let eigenSlug: string | null = null;
 if (version.installatie === 'add-on' && process.env['SUPERVISOR_TOKEN']) {
   void fetch('http://supervisor/addons/self/info', { headers: { authorization: `Bearer ${process.env['SUPERVISOR_TOKEN']}` } })
     .then((r) => (r.ok ? (r.json() as Promise<{ data?: { slug?: string } }>) : null))
     .then((info) => {
       paneelPad = paneelVan(info?.data?.slug);
+      eigenSlug = typeof info?.data?.slug === 'string' ? info.data.slug : null;
     })
     .catch(() => undefined);
 }
@@ -1661,6 +1665,45 @@ const assistentAan = integratie && sleutel && webPort != null && supervisorToken
     })
   : null;
 
+/** Klaarzetten in Home Assistant (besluit 179): tellen wat er staat, nooit een entiteit noemen. */
+async function klaarPunten(lang?: Lang): Promise<KlaarPunt[]> {
+  const prefs = (await client.query<{ energy_sources?: { type?: string }[] }>('energy/get_prefs').catch(() => null)) ?? null;
+  const grid = baseConfig?.power.gridPower;
+  const netWaarde = grid ? Number(allStates.get(grid.id)?.state) : Number.NaN;
+  const gevonden = functiesKeuzes();
+  return klaarzetten({
+    locatie: location != null,
+    registers: houseRegisters,
+    states: allStates,
+    netMeter: Number.isFinite(netWaarde),
+    zon: { heeft: baseConfig?.solarProduction != null && Number.isFinite(Number(allStates.get(baseConfig.solarProduction.id)?.state)), intervalS: solarPace.intervalS },
+    energieDashboard: (prefs?.energy_sources ?? []).some((b) => b.type === 'grid'),
+    apparatenOpZon: houseRegisters ? findAppliances(allStates, houseRegisters.entities, houseRegisters.devices).length + findHeatStores(allStates, houseRegisters.entities, houseRegisters.devices).length : 0,
+    cameras: new Set((gevonden?.cameras ?? []).map((c) => c.naam)).size,
+    deurbel: (gevonden?.melders ?? []).length > 0,
+    rookmelders: houseRegisters ? vindRookmelders(houseRegisters.entities, houseRegisters.devices, allStates).length : 0,
+    spraak: spraakLijst,
+    addOn: version.installatie === 'add-on',
+    eigenPoort: eigenPoort != null,
+  }, lang);
+}
+
+/*
+ * Klaarzetten per niveau (besluit 246): hoe Whisper en Tailscale ervoor staan,
+ * gelezen bij de Supervisor via Home Assistant. Hooguit eens per vijf minuten;
+ * undefined is nog niet gelezen of niet toegestaan.
+ */
+let addOnsGelezen: { ms: number; whisper: AddOnInfo | null | undefined; tailscale: AddOnInfo | null } = { ms: 0, whisper: undefined, tailscale: null };
+async function addOnStand(): Promise<typeof addOnsGelezen> {
+  if (version.installatie !== 'add-on' || !supervisorToken || Date.now() - addOnsGelezen.ms < 5 * 60_000) return addOnsGelezen;
+  const [whisper, tailscale] = await Promise.all(['core_whisper', 'a0d7b954_tailscale'].map((slug) => addOnInfo('ws://supervisor/core/websocket', supervisorToken, slug)));
+  // Niet te lezen: undefined, zodat de stap zegt wat je zelf kiest. Er niet: null.
+  addOnsGelezen = { ms: Date.now(), whisper: whisper == null ? undefined : whisper.er ? whisper : null, tailscale: tailscale ?? null };
+  return addOnsGelezen;
+}
+/** Wat de wand het laatst over Fully Kiosk meldde (besluit 246). */
+let wandMelding: WandMelding | null = null;
+
 /*
  * Helemaal in huis (besluit 203): Whisper, Piper en openWakeWord bevestigen en
  * er een spraakassistent van maken. Alleen in de add-on, via de Supervisor, na
@@ -1950,26 +1993,31 @@ if (webPort != null) {
       : {}),
     ...(sleutel ? { sleutel } : {}),
     // Klaarzetten in Home Assistant (besluit 179): tellen wat er staat, nooit een entiteit noemen.
-    klaarzetten: async (lang?: Lang) => {
-      const prefs = (await client.query<{ energy_sources?: { type?: string }[] }>('energy/get_prefs').catch(() => null)) ?? null;
-      const grid = baseConfig?.power.gridPower;
-      const netWaarde = grid ? Number(allStates.get(grid.id)?.state) : Number.NaN;
-      const gevonden = functiesKeuzes();
-      return klaarzetten({
-        locatie: location != null,
-        registers: houseRegisters,
-        states: allStates,
-        netMeter: Number.isFinite(netWaarde),
-        zon: { heeft: baseConfig?.solarProduction != null && Number.isFinite(Number(allStates.get(baseConfig.solarProduction.id)?.state)), intervalS: solarPace.intervalS },
-        energieDashboard: (prefs?.energy_sources ?? []).some((b) => b.type === 'grid'),
-        apparatenOpZon: houseRegisters ? findAppliances(allStates, houseRegisters.entities, houseRegisters.devices).length + findHeatStores(allStates, houseRegisters.entities, houseRegisters.devices).length : 0,
-        cameras: new Set((gevonden?.cameras ?? []).map((c) => c.naam)).size,
-        deurbel: (gevonden?.melders ?? []).length > 0,
-        rookmelders: houseRegisters ? vindRookmelders(houseRegisters.entities, houseRegisters.devices, allStates).length : 0,
-        spraak: spraakLijst,
+    klaarzetten: (lang?: Lang) => klaarPunten(lang),
+    // Klaarzetten per niveau (besluit 246): per functie de stappen, met wat de wand zelf meldt.
+    klaarFuncties: async (punten: readonly KlaarPunt[], lang?: Lang) => {
+      const [inHuis, addons] = await Promise.all([stemInHuis ? stemInHuis.stand().catch(() => null) : null, addOnStand()]);
+      const niemand = voorkeuren?.niemand() ?? null;
+      const taal = lang ?? 'nl';
+      return klaarFuncties(punten, {
         addOn: version.installatie === 'add-on',
         eigenPoort: eigenPoort != null,
+        eigenSlug,
+        inHuis,
+        whisperModel: addons.whisper === undefined ? undefined : addons.whisper == null ? null : typeof addons.whisper.opties['model'] === 'string' ? addons.whisper.opties['model'] : null,
+        tailscale: addons.tailscale == null ? null : addons.tailscale.draait,
+        wand: wandMelding,
+        heeftWand: wandMelding != null || Object.keys(bewonersStore?.current.schermen ?? {}).length > 0,
+        schermUit: niemand != null && (niemand.nacht || niemand.weg),
+        wekker: niemand?.melder ?? null,
+        wolken: wolkenVan(houseRegisters?.entities ?? []),
+        spraak: spraakLijst,
+        tijd: (ms) => new Intl.DateTimeFormat(taal === 'en' ? 'en-GB' : 'nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: weerZone }).format(new Date(ms)),
       }, lang);
+    },
+    // De wand meldt zelf of hij in Fully Kiosk draait (besluit 246); alleen in het geheugen.
+    wandMeldt: (m: Omit<WandMelding, 'ms'>) => {
+      wandMelding = { ...m, ms: Date.now() };
     },
     // In de add-on stelt Home Assistant de vraag rechtstreeks aan de add-on, op zijn naam in het netwerk (besluit 177).
     ...(sleutel && version.installatie === 'add-on' && webPort != null ? { sleutelAdres: `http://${hostname()}:${webPort}/api/vraag` } : {}),

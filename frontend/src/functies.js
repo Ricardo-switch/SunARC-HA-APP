@@ -57,9 +57,36 @@ let luisterStand = null;
 /** De stemmen om uit te kiezen (besluit 212), en vrouw of man in beeld. */
 let stemmen = null;
 let geslacht = null;
+/** Klaarzetten per niveau (besluit 246): wat er nog open is voor de assistent en het scherm. */
+let klaar = null;
 
+async function laadKlaar() {
+  klaar = await klaarstappen.laad().catch(() => klaar);
+  teken();
+}
+/** De functie van Klaarzetten bij dit deel (besluit 246): de assistent bij Praten en Stem, de wand bij Scherm uit. */
+function klaarVan(deel) {
+  const id = { praten: 'assistent', stem: 'assistent', uit: 'wand' }[deel];
+  return id ? ((klaar?.functies ?? []).find((x) => x.id === id) ?? null) : null;
+}
+/** Hoeveel stappen er nog open zijn, voor rechts in de lijst; leeg als niets. */
+function nogTekst(deel) {
+  const f = klaarVan(deel);
+  const n = f ? klaarstappen.open(f).length : 0;
+  return n ? t('kz.nogKort', { n }) : null;
+}
+/*
+ * De open stappen boven het deel, alleen op de telefoon: op de wand is Praten
+ * en Scherm uit al vol, en de wand scrolt nooit. Daar staat het rechts in de lijst.
+ */
+function nogKlaar(deel) {
+  const f = klaarVan(deel);
+  if (!f || !app.telStand()) return '';
+  const n = klaarstappen.open(f).length;
+  return klaarstappen.nog(f, t(f.id === 'wand' ? 'kz.nogScherm' : 'kz.nogHeHuis', { n }));
+}
 async function laad() {
-  const [f, z, v, h, i, st] = await Promise.allSettled([haal('api/functies'), haal('api/zon'), haal('api/voorkeuren'), haal('api/huis'), haal('api/indeling'), haal('api/startscherm'), haal('api/luister-stand').then((x) => (luisterStand = x)), haal('api/stemmen').then((x) => (stemmen = x))]);
+  const [f, z, v, h, i, st] = await Promise.allSettled([haal('api/functies'), haal('api/zon'), haal('api/voorkeuren'), haal('api/huis'), haal('api/indeling'), haal('api/startscherm'), haal('api/luister-stand').then((x) => (luisterStand = x)), haal('api/stemmen').then((x) => (stemmen = x)), laadKlaar()]);
   if (st.status === 'fulfilled') startscherm = st.value;
   if (z.status === 'fulfilled') zon = z.value;
   if (v.status === 'fulfilled') voorkeur = v.value;
@@ -687,12 +714,12 @@ function tekenNu() {
   app.schaal();
   app.luchtVan(zon, 0);
   if (!info || !concept) return;
-  const nu = groep.tekenDelen(delen());
+  const nu = groep.tekenDelen(delen().map((x) => (x.id && nogTekst(x.id) ? { ...x, nog: nogTekst(x.id) } : x)));
   const vorm = { cameras, deurbel, licht, weer, praten, stem: stemVorm, tedoen: teDoenVorm, meldingen, scherm, startscherm: startschermVorm, aod, uit: schermUit }[nu]?.() ?? '';
   // Terug naar standaard (besluit 204): rechtsboven, alleen als dit deel afwijkt van wat de app voorstelt.
   const terug = afwijkend(nu) ? `<button type="button" class="knop stdknop" data-standaard-deel="${esc(nu)}">${esc(t('functies.std'))}</button>` : '';
   $$('[data-vorm]').forEach((el) => {
-    el.innerHTML = terug + vorm;
+    el.innerHTML = terug + nogKlaar(nu) + vorm;
     el.classList.toggle('metstd', !!terug);
   });
   const deel = NAAST[nu] ? nu : 'cameras';
@@ -722,6 +749,7 @@ function bewaar() {
 /* ------------------------------------------------------------ doen */
 
 document.addEventListener('click', (e) => {
+  if (klaarstappen.klik(e, laadKlaar)) return;
   const knop = e.target.closest('button');
   if (!knop || knop.disabled || !concept) return;
   // Op je startscherm (21 oktober 2026): Chrome vraagt het zelf.

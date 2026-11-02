@@ -576,6 +576,11 @@ export class VoorkeurenStore {
     if (account) this.#gezien.set(account, lang);
   }
 
+  /** Wat de wand doet als niemand kijkt (besluit 165), voor Klaarzetten (besluit 246). */
+  niemand(): Niemand {
+    return { ...STANDAARD_NIEMAND, ...this.#current.wand?.niemand };
+  }
+
   /** De bewegingsmelder die de wand wekt (besluit 164), of null. */
   melder(): string | null {
     return this.#current.wand?.niemand?.melder ?? null;
