@@ -23,7 +23,11 @@
    * stappen van de gekozen functie: een stap vinkt zichzelf af zodra SunArc
    * hem ziet, en heeft één knop. Wat SunArc zelf mag doen, doet hij na je tik;
    * wat in Home Assistant moet, opent daar de juiste pagina.
-   * Standen: zonder hash Voor iedereen (de assistent in huis open),
+   * Ricardo, dezelfde dag: geen negende tegel op Instellingen. Klaarzetten is het
+   * laatste deel van Inrichten (dat al een stap Klaarzetten had, besluit 202 en
+   * 203); de tegel Inrichten zegt hoeveel stappen er nog open zijn. In het Engels
+   * is het wekwoord "Hey house" ("Hi home" werkt niet).
+   * Standen: #instellingen de tegels, zonder hash Voor iedereen (de assistent in huis open),
    * #wand (Fully Kiosk), #gevorderd (de cloud), #expert (Tailscale), #functie
    * (dezelfde stappen bij Functies › Assistent).
    */
@@ -97,6 +101,19 @@
   .route .doe { margin-top: auto; align-self: flex-start; height: 40px; padding: 0 16px; border-radius: 12px; border: 0; font: inherit; font-size: 14px; font-weight: 700; background: rgba(255, 255, 255, 0.1); color: var(--tekst); }
   .route.gekozen .doe { background: var(--violet); color: #0b1424; }
 
+  /* Instellingen: twee rijen van vier, zoals nu; Inrichten met de open stappen. */
+  .tegels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .tegel { display: flex; flex-direction: column; gap: 10px; min-height: 150px; padding: 16px 18px; border-radius: 22px; text-decoration: none; color: inherit; }
+  .tegel h3 { margin: 0; display: flex; justify-content: space-between; font-family: var(--kop); font-size: 19px; font-weight: 600; }
+  .tegel h3::after { content: '›'; color: var(--gedempt); }
+  .tegel p { margin: 0; font-size: 13.5px; color: var(--gedempt); line-height: 1.45; }
+  .tegel .pil { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+  .tegel .pil.mis { color: var(--gloed-t); background: rgba(255, 122, 77, 0.12); }
+  .tegel .pil.stappen { color: var(--zon-t); background: rgba(247, 181, 72, 0.14); }
+  .tegel.inrichten { box-shadow: inset 0 0 0 1.5px rgba(247, 181, 72, 0.4); }
+  .tegel .rijtje { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--zacht); }
+  .tegel .rijtje span::before { content: '○ '; color: var(--zon-t); }
+
   /* Bij Functies: dezelfde stappen, ingeklapt onder de functie. */
   .fn { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; flex: 1; min-height: 0; }
   .fn-lijst { padding: 14px; display: flex; flex-direction: column; gap: 4px; }
@@ -122,7 +139,7 @@
   <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
   <main>
     <div data-stand="iedereen wand gevorderd expert">
-      <a class="terugje" href="#">‹ Instellingen</a>
+      <a class="terugje" href="#">‹ Inrichten</a>
       <div class="kopregel">
         <div>
           <h1 class="kop-1">Klaarzetten</h1>
@@ -148,7 +165,7 @@
           <li class="klaar"><i>✓</i><b>Whisper verstaat wat je zegt</b><span>De add-on draait.</span><button class="doe klaar">Klaar</button></li>
           <li class="nu"><i>2</i><b>Whisper op small-int8</b><span>Staat nu op base-int8: sneller, maar het verstaat "screen" en "zolder" slecht. Small-int8 verstaat 51 van 60 zinnen goed.</span><button class="doe zelf">Zet op small-int8</button></li>
           <li class="klaar"><i>✓</i><b>Piper geeft de stem</b><span>De add-on draait, met een Nederlandse stem.</span><button class="doe klaar">Klaar</button></li>
-          <li><i>4</i><b>openWakeWord hoort "Hé huis"</b><span>Nog niet geïnstalleerd. SunArc installeert hem en zet het wekwoord erbij.</span><button class="doe zelf">Installeer</button></li>
+          <li><i>4</i><b>openWakeWord hoort "Hé huis"</b><span>Nog niet geïnstalleerd. SunArc installeert hem en zet het wekwoord erbij; in het Engels "Hey house".</span><button class="doe zelf">Installeer</button></li>
           <li class="wacht"><i>5</i><b>De spraakassistent van SunArc</b><span>Na stap 4: verstaan, stem en wekwoord samen, met één tik.</span><button class="doe zelf" disabled>Zet klaar</button></li>
         </ol>
         <p class="let"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd27a" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.5"/></svg><span><b>Na je tik doet SunArc het zelf</b>: de add-on installeren of instellen via de Supervisor, alleen deze drie. Je ziet het hier gebeuren; Home Assistant hoeft niet opnieuw te starten.</span></p>
@@ -222,6 +239,12 @@
       </section>
     </div>
 
+    <!-- #instellingen: geen negende tegel; Inrichten zegt wat er nog open is. -->
+    <div data-stand="instellingen" style="display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0;">
+      <h1 class="kop-1">Instellingen</h1>
+      <div class="tegels" id="tegels"></div>
+    </div>
+
     <!-- #functie: dezelfde stappen bij Functies › Assistent. -->
     <div data-stand="functie" style="display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0;">
       <a class="terugje" href="#">‹ Instellingen</a>
@@ -243,7 +266,7 @@
             <header><span>Nog 2 stappen voor "Hé huis"</span><a href="#">Alles bij Klaarzetten ›</a></header>
             <ol class="rij">
               <li class="nu"><i>2</i><b>Whisper op small-int8</b><span>Verstaat huiswoorden als "screen" en "zolder" beter.</span><button class="doe zelf">Zet op small-int8</button></li>
-              <li><i>4</i><b>openWakeWord hoort "Hé huis"</b><span>SunArc installeert hem en zet het wekwoord erbij.</span><button class="doe zelf">Installeer</button></li>
+              <li><i>4</i><b>openWakeWord hoort "Hé huis"</b><span>SunArc installeert hem en zet het wekwoord erbij; in het Engels "Hey house".</span><button class="doe zelf">Installeer</button></li>
             </ol>
           </div>
           <div class="fn-rij"><span>Stem<small>In huis met Piper, of via de cloud (bij Klaarzetten › Gevorderd)</small></span><b style="font-size: 14px">In huis</b></div>
@@ -258,6 +281,18 @@
 <script src="../../frontend/kit/nav.js"></script>
 <script>
   nav.balk(document.getElementById('balk'), 'instellingen');
+  // Instellingen: dezelfde acht tegels; Inrichten noemt de open stappen van Klaarzetten.
+  const TEGELS = [
+    ['Je huis', 'Kamers, etages, sensoren'],
+    ['Comfort', 'Temperaturen, dagdelen, vakantie'],
+    ['Energie', 'Panelen, zekering, meters, prijzen', 'mist 1'],
+    ['Regeling', 'Wie wat regelt, apparaten op zon'],
+    ['Functies', "Licht, screens, camera's, weer, meldingen"],
+    ['Assistent', 'Praten, stem en luisteren, te doen'],
+    ['Bewoners en toegang', 'Wie hier woont, inloggen, gegevens'],
+  ];
+  document.getElementById('tegels').innerHTML = TEGELS.map(([naam, zin, mis]) => `<a class="glas tegel" href="#"><h3>${naam}</h3><p>${zin}</p>${mis ? `<span class="pil mis">${mis}</span>` : ''}</a>`).join('')
+    + `<a class="glas tegel inrichten" href="#"><h3>Inrichten</h3><p>Stap voor stap door alles, en wat elke functie nodig heeft</p><div class="rijtje"><span>Whisper op small-int8</span><span>openWakeWord</span><span>Fully: wakker op beweging</span></div><span class="pil stappen">Nog 3 stappen</span></a>`;
   const stand = location.hash.slice(1) || 'iedereen';
   for (const el of document.querySelectorAll('[data-stand]')) el.hidden = !el.dataset.stand.split(' ').includes(stand);
   const niveau = stand === 'wand' ? 'iedereen' : stand;
