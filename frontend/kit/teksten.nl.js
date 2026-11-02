@@ -3206,7 +3206,6 @@
   'inr.as.s.oudeWeg': 'De oude koppeling weghalen',
   'inr.as.overzetten': 'De koppeling heet nu sunarc. Eén tik zet hem over: Home Assistant herstart, SunArc komt erin onder de nieuwe naam, en de oude gaat weg.',
   'inr.as.overzetKnop': 'Zet de koppeling over',
-  'toegang.oudeNaamHACS': '<b>De integratie staat er nog onder de oude naam</b> (smart_climate), via HACS. Verwijder hem in HACS: dan staat hier de knop die hem onder de nieuwe naam (sunarc) neerzet, en de add-on houdt hem daarna bij.',
   'inr.as.nog': 'nog zo’n {n} tellen',
   'inr.as.knop': 'Zet de assistent aan',
   'inr.as.bijKlaar': 'Gaat vanzelf aan bij Klaar, terwijl de film speelt.',

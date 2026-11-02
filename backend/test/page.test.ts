@@ -134,7 +134,7 @@ let meldingenStore: MeldingenStore;
 /** Batterijen die een test erbij zet (besluit 122); leeg is: wat het huis zegt. */
 let extraBatterijen: HouseBattery[] = [];
 /** De integratie in Home Assistant (besluit 184), zoals de nagebootste add-on hem ziet. */
-let integratieNu: { kan: boolean; staat: 'nee' | 'add-on' | 'anders'; versie: string | null; nieuw: string | null; oud: 'nee' | 'add-on' | 'anders'; geladen: string | null; toegevoegd: boolean | null } = { kan: true, staat: 'nee', versie: null, nieuw: VERSIE, oud: 'nee', geladen: null, toegevoegd: null };
+let integratieNu: { kan: boolean; staat: 'nee' | 'add-on' | 'anders'; versie: string | null; nieuw: string | null; oud: 'nee' | 'add-on' | 'rest' | 'anders'; geladen: string | null; toegevoegd: boolean | null } = { kan: true, staat: 'nee', versie: null, nieuw: VERSIE, oud: 'nee', geladen: null, toegevoegd: null };
 /** De proefmeldingen die de app vroeg (besluit 183), per account. */
 const proefmeldingen: (string | null)[] = [];
 /** Een thuisbatterij en een auto die een test erbij zet (besluit 182); null is: wat het huis zegt. */
@@ -3492,6 +3492,8 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       await knop.waitFor();
       // Geen YAML meer in de uitleg.
       expect(await p.locator('#wand [data-vorm]').textContent()).not.toMatch(/secrets\.yaml|rest_command|configuration\.yaml/);
+      // Adres en sleutel ingeklapt (2 november 2026): met de add-on niet nodig.
+      expect(await p.locator('#wand [data-sleutel]').isVisible()).toBe(false);
       await knop.click();
       await p.locator('#wand [data-vorm]', { hasText: 'neergezet door de add-on' }).waitFor();
       expect(await p.locator('#wand [data-vorm]').textContent()).toContain('Herstart Home Assistant');

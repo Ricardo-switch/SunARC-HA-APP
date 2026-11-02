@@ -11183,9 +11183,12 @@ naam erin. Daarom:
 
 - **De releases van de app zijn voorversies** (prerelease), ook de bestaande.
   HACS ziet dan alleen de releases van de integratie (2.0.0).
-- **Wie de oude naam via HACS heeft,** verwijdert hem in HACS; daarna zet de
-  knop in de app de integratie onder de nieuwe naam neer en houdt de add-on
-  hem bij. Met de add-on is HACS voor de integratie niet nodig.
+- **Een oude map van SunArc is een rest.** HACS kent de integratie sinds
+  2.0.0 als `sunarc` en ruimt bij verwijderen die map op, niet de oude
+  `smart_climate`. Een oude map waarvan het manifest SunArc als eigenaar
+  noemt, haalt de add-on weg na de tik op de knop, en zet `sunarc` neer. Een
+  map `smart_climate` van het andere project blijft staan. Met de add-on is
+  HACS voor de integratie niet nodig.
 - **Het adres en de sleutel zijn ingeklapt** onder "Geen add-on?": met de
   add-on heb je ze niet nodig.
 - **Versie 0.110.1.**

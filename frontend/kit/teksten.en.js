@@ -3201,7 +3201,6 @@
   'inr.as.s.oudeWeg': 'Remove the old link',
   'inr.as.overzetten': 'The link is now called sunarc. One tap moves it over: Home Assistant restarts, SunArc is added under the new name, and the old one goes away.',
   'inr.as.overzetKnop': 'Move the link over',
-  'toegang.oudeNaamHACS': '<b>The integration is still there under its old name</b> (smart_climate), through HACS. Remove it in HACS: then the button appears here that puts it in under the new name (sunarc), and the add-on keeps it up to date after that.',
   'inr.as.nog': 'about {n} seconds left',
   'inr.as.knop': 'Turn on the assistant',
   'inr.as.bijKlaar': 'Turns on by itself at Done, while the film plays.',

@@ -48,12 +48,12 @@ export const NIEUW: readonly Nieuw[] = [
     versie: '0.110.1',
     datum: '2026-11-02',
     opgelost: [
-      'Staat de koppeling met Assist er nog via HACS onder de oude naam, dan zegt de app nu: verwijder hem in HACS, en de knop zet hem neer',
+      'Na verwijderen in HACS bleef de oude map van de koppeling met Assist staan, en verscheen de knop niet. De knop ruimt die map nu op en zet SunArc neer',
     ],
     beter: ['Het adres en de sleutel voor Assist staan ingeklapt: met de add-on heb je ze niet nodig'],
     en: {
       opgelost: [
-        'If the Assist link is still there through HACS under its old name, the app now says: remove it in HACS, and the button puts it in',
+        'After removing it in HACS, the old folder of the Assist link stayed behind and the button did not appear. The button now clears that folder and puts SunArc in',
       ],
       beter: ['The address and key for Assist are folded away: with the add-on you do not need them'],
     },

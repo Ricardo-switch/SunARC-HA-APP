@@ -10,7 +10,7 @@
 
 **Opgelost**
 
-- Staat de koppeling met Assist er nog via HACS onder de oude naam, dan zegt de app nu: verwijder hem in HACS, en de knop zet hem neer
+- Na verwijderen in HACS bleef de oude map van de koppeling met Assist staan, en verscheen de knop niet. De knop ruimt die map nu op en zet SunArc neer
 
 *English*
 
@@ -20,7 +20,7 @@
 
 **Fixed**
 
-- If the Assist link is still there through HACS under its old name, the app now says: remove it in HACS, and the button puts it in
+- After removing it in HACS, the old folder of the Assist link stayed behind and the button did not appear. The button now clears that folder and puts SunArc in
 
 ## 0.110.0
 

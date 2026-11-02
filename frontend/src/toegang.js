@@ -170,7 +170,6 @@ function integratieVorm() {
   // Met één knop, in de add-on, zolang hij nog niet werkt (of het net loopt).
   if (i?.aanzetten && i.staat !== 'anders' && (i.aanzetten.bezig || i.toegevoegd !== true || i.geladen !== i.versie || i.oudeKoppeling === true)) return aanzetVorm(i);
   if (!i?.kan) return `<p class="klein" style="margin: 0">${esc(t('toegang.viaHACS'))}</p>${hacsStappen()}${eenmalig()}`;
-  if (i.staat === 'anders' && i.oud === 'anders') return `<p class="klein" style="margin: 0">${t('toegang.oudeNaamHACS')}</p>${zin}`;
   if (i.staat === 'anders') return `<p class="klein" style="margin: 0">${i.versie ? metHtml('toegang.staatHACSVersie', { versie: i.versie }) : t('toegang.staatHACS')}</p>${toegevoegdZin(i)}${zin}`;
   if (i.staat === 'nee') {
     return `<p class="klein" style="margin: 0">${t('toegang.zonderHACS')}</p>
