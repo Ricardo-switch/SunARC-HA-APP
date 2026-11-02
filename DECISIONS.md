@@ -11176,6 +11176,20 @@ site en in de Brands-repository:
   openbaar en gaat alleen met het akkoord van de bewoner.
 - **Versie 0.110.0.**
 
+*Aanvulling, 2 november 2026:* HACS kijkt níet naar welke release "Latest"
+is, maar neemt de nieuwste release die geen voorversie is. Op 1 november
+installeerde HACS zo de app-release v0.107.0 als integratie, met de oude
+naam erin. Daarom:
+
+- **De releases van de app zijn voorversies** (prerelease), ook de bestaande.
+  HACS ziet dan alleen de releases van de integratie (2.0.0).
+- **Wie de oude naam via HACS heeft,** verwijdert hem in HACS; daarna zet de
+  knop in de app de integratie onder de nieuwe naam neer en houdt de add-on
+  hem bij. Met de add-on is HACS voor de integratie niet nodig.
+- **Het adres en de sleutel zijn ingeklapt** onder "Geen add-on?": met de
+  add-on heb je ze niet nodig.
+- **Versie 0.110.1.**
+
 ---
 
 ## Wat nog een besluit wacht

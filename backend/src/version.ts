@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.110.0';
+export const VERSIE = '0.110.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,20 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.110.1',
+    datum: '2026-11-02',
+    opgelost: [
+      'Staat de koppeling met Assist er nog via HACS onder de oude naam, dan zegt de app nu: verwijder hem in HACS, en de knop zet hem neer',
+    ],
+    beter: ['Het adres en de sleutel voor Assist staan ingeklapt: met de add-on heb je ze niet nodig'],
+    en: {
+      opgelost: [
+        'If the Assist link is still there through HACS under its old name, the app now says: remove it in HACS, and the button puts it in',
+      ],
+      beter: ['The address and key for Assist are folded away: with the add-on you do not need them'],
+    },
+  },
   {
     versie: '0.110.0',
     datum: '2026-11-01',

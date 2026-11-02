@@ -103,16 +103,19 @@ function bewonersVorm() {
  * De sleutel voor de assistent van Home Assistant (besluit 147), alleen voor
  * een beheerder. Sinds besluit 184 gaat het via de integratie SunArc:
  * met de add-on meldt die zich vanzelf; anders vul je hier het adres en de
- * sleutel in. Geen YAML meer.
+ * sleutel in. Geen YAML meer. Dat adres en die sleutel zijn ingeklapt (2
+ * november 2026): met de add-on heb je ze niet nodig.
  */
 function assistentVorm() {
   return `<h2 class="kop-2">${esc(t('toegang.sleutel'))}</h2>
     <p class="klein" style="margin: 0">${esc(t('toegang.assistUitleg'))}</p>
     ${integratieVorm()}
-    <p class="klein" style="margin: 0">${esc(t('toegang.zonderAddon'))}</p>
-    ${vraagAdres ? `<div class="sleutel" data-vraagadres>${esc(vraagAdres.replace(/\/api\/vraag$/, ''))}</div>` : ''}
-    <div class="sleutel" data-sleutel>${esc(sleutel ?? '')}</div>
-    <p class="mini" style="margin: 0">${esc(t('toegang.deelNiet'))}</p>`;
+    <details class="hacs"><summary class="klein">${esc(t('toegang.geenAddon'))}</summary>
+      <p class="klein" style="margin: 0">${esc(t('toegang.zonderAddon'))}</p>
+      ${vraagAdres ? `<div class="sleutel" data-vraagadres>${esc(vraagAdres.replace(/\/api\/vraag$/, ''))}</div>` : ''}
+      <div class="sleutel" data-sleutel>${esc(sleutel ?? '')}</div>
+      <p class="mini" style="margin: 0">${esc(t('toegang.deelNiet'))}</p>
+    </details>`;
 }
 
 /**

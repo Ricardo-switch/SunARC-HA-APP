@@ -1,5 +1,27 @@
 # Wat is er nieuw · What is new
 
+## 0.110.1
+
+*2 november 2026*
+
+**Beter**
+
+- Het adres en de sleutel voor Assist staan ingeklapt: met de add-on heb je ze niet nodig
+
+**Opgelost**
+
+- Staat de koppeling met Assist er nog via HACS onder de oude naam, dan zegt de app nu: verwijder hem in HACS, en de knop zet hem neer
+
+*English*
+
+**Improved**
+
+- The address and key for Assist are folded away: with the add-on you do not need them
+
+**Fixed**
+
+- If the Assist link is still there through HACS under its old name, the app now says: remove it in HACS, and the button puts it in
+
 ## 0.110.0
 
 *1 november 2026*

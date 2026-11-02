@@ -5,8 +5,10 @@
 # release "SunArc <versie>" bij, met de tekst uit addon/CHANGELOG.md: dezelfde
 # tekst die Home Assistant bij de update toont.
 #
-# De release wordt níet "Latest": HACS leest de laatste release voor de
-# integratie (custom_components/sunarc), en die heeft een eigen versie.
+# De release is een voorversie (prerelease): HACS neemt voor de integratie
+# (custom_components/sunarc) de nieuwste release die geen voorversie is, en
+# kijkt níet naar "Latest". Op 1 november 2026 installeerde HACS zo v0.107.0
+# als integratie. De integratie heeft eigen releases met een eigen versie.
 
 name: release
 
@@ -48,7 +50,7 @@ jobs:
           VERSIE: ${{ steps.tekst.outputs.versie }}
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release edit "$TAG" --title "SunArc $VERSIE" --notes-file notities.md --latest=false
+            gh release edit "$TAG" --title "SunArc $VERSIE" --notes-file notities.md --prerelease --latest=false
           else
-            gh release create "$TAG" --title "SunArc $VERSIE" --notes-file notities.md --latest=false --verify-tag
+            gh release create "$TAG" --title "SunArc $VERSIE" --notes-file notities.md --prerelease --latest=false --verify-tag
           fi
