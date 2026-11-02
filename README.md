@@ -17,6 +17,7 @@ and explains every decision it makes.</p>
 <img alt="Stage: experimental" src="https://img.shields.io/badge/stage-experimental-e58a3a">
 <img alt="aarch64 and amd64" src="https://img.shields.io/badge/arch-aarch64%20%7C%20amd64-6fd3ff">
 <img alt="License AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-8f86ff">
+<a href="https://paypal.me/sunarc"><img alt="Buy me a coffee via PayPal" src="https://img.shields.io/badge/buy%20me%20a%20coffee-PayPal-0070ba?logo=paypal"></a>
 </p>
 
 <p align="center"><b>English</b> · <a href="README.nl.md">Nederlands</a></p>
@@ -149,6 +150,10 @@ cd backend && npm ci && npm test
 ```
 
 Work goes to `beta`. CI checks every push (typecheck, lint, tests, the page in a browser and the image), and only a pull request goes to `main`. `main` is what Home Assistant installs. A bug or an idea? Open an [issue](https://github.com/Ricardo-switch/SunARC-HA-APP/issues/new/choose); English or Dutch.
+
+## Support
+
+SunArc is free. Like it? You can [buy me a coffee via PayPal](https://paypal.me/sunarc). Thank you!
 
 ## License
 
