@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Klaarzetten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Klaarzetten per niveau (schets, 2 november 2026).
+   * Ricardo: "Bij alle instellingen uitzoeken wat er vereist is en detecteren
+   * of het al gebeurd is. Dat verlaagt de drempel om te zorgen dat alle
+   * functies voor iedere gebruiker toegankelijk zijn."
+   *
+   * Zijn keuzes: één pagina bij Instellingen per niveau (voor iedereen,
+   * gevorderd, expert) én dezelfde stappen bij elke functie; SunArc mag
+   * Whisper, Piper en openWakeWord installeren en instellen na een tik van de
+   * beheerder; voor de cloud drie routes (Home Assistant Cloud, Google Cloud
+   * met Chirp, OpenAI); de wand meldt zelf of Fully Kiosk goed staat.
+   *
+   * Links de functies van het niveau, elk met hoe ver hij is. Rechts de
+   * stappen van de gekozen functie: een stap vinkt zichzelf af zodra SunArc
+   * hem ziet, en heeft één knop. Wat SunArc zelf mag doen, doet hij na je tik;
+   * wat in Home Assistant moet, opent daar de juiste pagina.
+   * Ricardo, dezelfde dag: geen negende tegel op Instellingen. Klaarzetten is het
+   * laatste deel van Inrichten (dat al een stap Klaarzetten had, besluit 202 en
+   * 203); de tegel Inrichten zegt hoeveel stappen er nog open zijn. In het Engels
+   * is het wekwoord "Hey house" ("Hi home" werkt niet).
+   * Standen: #instellingen de tegels, zonder hash Voor iedereen (de assistent in huis open),
+   * #wand (Fully Kiosk), #gevorderd (de cloud), #expert (Tailscale), #functie
+   * (dezelfde stappen bij Functies › Assistent).
+   */
+  main { position: relative; padding: 22px 26px 20px 22px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  [hidden] { display: none !important; }
+  .terugje { font-size: 14px; font-weight: 600; color: var(--zacht); text-decoration: none; }
+  .kopregel { display: flex; justify-content: space-between; align-items: end; gap: 24px; }
+  .kopregel .lead { margin-top: 6px; max-width: 60ch; }
+
+  /* Het niveau: een balk met drie, elk met hoeveel er klaar is. */
+  .niveaus { display: flex; gap: 6px; padding: 4px; border-radius: 18px; background: rgba(255, 255, 255, 0.06); }
+  .niveaus a { display: flex; flex-direction: column; gap: 2px; min-width: 150px; padding: 9px 16px; border-radius: 14px; text-decoration: none; color: var(--zacht); }
+  .niveaus a b { font-size: 15px; font-weight: 700; color: inherit; }
+  .niveaus a span { font-size: 12.5px; color: var(--gedempt); }
+  .niveaus a[aria-current='page'] { background: rgba(255, 255, 255, 0.13); color: var(--tekst); }
+  .niveaus a[aria-current='page'] span { color: var(--zacht); }
+  .niveaus i { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--mint); vertical-align: 1px; }
+  .niveaus i.half { background: var(--zon); }
+  .niveaus i.leeg { background: rgba(255, 255, 255, 0.25); }
+
+  .veld { flex: 1; min-height: 0; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 16px; }
+
+  /* Links: de functies van dit niveau. */
+  .functies { padding: 12px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+  .functie { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 0 12px; align-items: center; padding: 7px 12px; border-radius: 18px; border: 1.5px solid transparent; text-decoration: none; color: inherit; }
+  .functie .ik { grid-column: 1; grid-row: 1 / span 2; width: 38px; height: 38px; border-radius: 14px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.06); }
+  .functie .ik svg { width: 22px; height: 22px; }
+  .functie b { grid-column: 2; grid-row: 1; font-size: 15px; font-weight: 600; }
+  .functie span { grid-column: 2; grid-row: 2; font-size: 12.5px; color: var(--gedempt); }
+  .functie .ring { grid-column: 3; grid-row: 1 / span 2; width: 34px; height: 34px; }
+  .functie.open { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.16); }
+  .functie.klaar span { color: var(--mint-t); }
+  .functie.half span { color: var(--zon-t); }
+  .functies .onder { margin-top: auto; padding: 10px 6px 2px; font-size: 13px; color: var(--gedempt); line-height: 1.45; }
+
+  /* Rechts: de stappen van de gekozen functie. */
+  .stappen { padding: 22px 26px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .stappen .boven { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+  .stappen h2 { margin: 0; font-family: var(--kop); font-size: 28px; font-weight: 600; }
+  .stappen .wat { margin: 4px 0 0; font-size: 14.5px; color: var(--zacht); line-height: 1.45; max-width: 62ch; }
+  .stand { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .stand.half { color: var(--zon-t); background: rgba(247, 181, 72, 0.12); }
+  .stand.klaar { color: var(--mint-t); background: rgba(110, 231, 183, 0.1); }
+  ol.rij { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  ol.rij li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 2px 14px; align-items: center; padding: 10px 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.045); }
+  ol.rij li > i { grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 13px; font-weight: 800; border: 2px solid rgba(255, 255, 255, 0.2); color: var(--gedempt); box-sizing: border-box; }
+  ol.rij li b { grid-column: 2; grid-row: 1; font-size: 15px; font-weight: 600; }
+  ol.rij li span { grid-column: 2; grid-row: 2; font-size: 13px; color: var(--gedempt); line-height: 1.4; }
+  ol.rij li.klaar > i { background: var(--mint); border-color: var(--mint); color: #0b1424; }
+  ol.rij li.klaar b { color: var(--zacht); }
+  ol.rij li.nu { background: rgba(247, 181, 72, 0.08); box-shadow: inset 0 0 0 1.5px rgba(247, 181, 72, 0.35); }
+  ol.rij li.nu > i { border-color: var(--zon); color: var(--zon-t); }
+  ol.rij li.wacht { opacity: 0.55; }
+  ol.rij li .doe { grid-column: 3; grid-row: 1 / span 2; height: 42px; padding: 0 18px; border-radius: 13px; border: 0; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .doe.zelf { background: var(--zon); color: #0b1424; }
+  .doe.ha { background: rgba(255, 255, 255, 0.1); color: var(--tekst); }
+  .doe.ha::after { content: ' ↗'; color: var(--gedempt); }
+  .doe.klaar { background: none; color: var(--mint-t); padding: 0 4px; }
+  .let { margin: auto 0 0; display: flex; gap: 12px; align-items: start; padding: 12px 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.04); font-size: 13.5px; color: var(--zacht); line-height: 1.45; }
+  .let b { color: var(--tekst); }
+
+  /* De cloud: drie routes naast elkaar, elk met wat het kost en wat de cloud hoort. */
+  .routes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .route { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border-radius: 20px; background: rgba(255, 255, 255, 0.045); border: 1.5px solid transparent; }
+  .route.gekozen { border-color: rgba(143, 134, 255, 0.55); background: rgba(143, 134, 255, 0.08); }
+  .route h3 { margin: 0; font-family: var(--kop); font-size: 19px; font-weight: 600; }
+  .route p { margin: 0; font-size: 13.5px; color: var(--zacht); line-height: 1.45; }
+  .route dl { margin: 4px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 13px; }
+  .route dt { color: var(--gedempt); }
+  .route dd { margin: 0; color: var(--tekst); }
+  .route .doe { margin-top: auto; align-self: flex-start; height: 40px; padding: 0 16px; border-radius: 12px; border: 0; font: inherit; font-size: 14px; font-weight: 700; background: rgba(255, 255, 255, 0.1); color: var(--tekst); }
+  .route.gekozen .doe { background: var(--violet); color: #0b1424; }
+
+  /* Instellingen: twee rijen van vier, zoals nu; Inrichten met de open stappen. */
+  .tegels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .tegel { display: flex; flex-direction: column; gap: 10px; min-height: 150px; padding: 16px 18px; border-radius: 22px; text-decoration: none; color: inherit; }
+  .tegel h3 { margin: 0; display: flex; justify-content: space-between; font-family: var(--kop); font-size: 19px; font-weight: 600; }
+  .tegel h3::after { content: '›'; color: var(--gedempt); }
+  .tegel p { margin: 0; font-size: 13.5px; color: var(--gedempt); line-height: 1.45; }
+  .tegel .pil { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+  .tegel .pil.mis { color: var(--gloed-t); background: rgba(255, 122, 77, 0.12); }
+  .tegel .pil.stappen { color: var(--zon-t); background: rgba(247, 181, 72, 0.14); }
+  .tegel.inrichten { box-shadow: inset 0 0 0 1.5px rgba(247, 181, 72, 0.4); }
+  .tegel .rijtje { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--zacht); }
+  .tegel .rijtje span::before { content: '○ '; color: var(--zon-t); }
+
+  /* Bij Functies: dezelfde stappen, ingeklapt onder de functie. */
+  .fn { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; flex: 1; min-height: 0; }
+  .fn-lijst { padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+  .fn-lijst div { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; font-size: 15px; }
+  .fn-lijst div.open { background: rgba(255, 255, 255, 0.08); }
+  .fn-lijst div em { margin-left: auto; font-style: normal; font-size: 12.5px; font-weight: 700; color: var(--zon-t); }
+  .fn-blad { padding: 22px 26px; display: flex; flex-direction: column; gap: 14px; }
+  .fn-rij { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.05); font-size: 15px; }
+  .fn-rij span { flex: 1; }
+  .fn-rij small { display: block; font-size: 13px; color: var(--gedempt); }
+  .nog { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 18px; background: rgba(247, 181, 72, 0.07); box-shadow: inset 0 0 0 1.5px rgba(247, 181, 72, 0.3); }
+  .nog header { display: flex; justify-content: space-between; align-items: center; font-size: 14.5px; font-weight: 700; color: var(--zon-t); }
+  .nog header a { font-size: 13px; color: var(--zacht); text-decoration: none; font-weight: 600; }
+  .nog ol.rij li { background: rgba(5, 10, 20, 0.35); }
+  .schakelaar { position: relative; flex: none; width: 46px; height: 28px; border-radius: 999px; border: 0; padding: 0; background: rgba(255, 255, 255, 0.14); }
+  .schakelaar::after { content: ''; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #c9d3dc; }
+  .schakelaar[aria-checked='true'] { background: var(--mint); }
+  .schakelaar[aria-checked='true']::after { left: 21px; background: #fff; }
+</style>
+</head>
+<body>
+<div class="wand lucht lucht-dag">
+  <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
+  <main>
+    <div data-stand="iedereen wand gevorderd expert">
+      <a class="terugje" href="#">‹ Inrichten</a>
+      <div class="kopregel">
+        <div>
+          <h1 class="kop-1">Klaarzetten</h1>
+          <p class="lead">Wat elke functie nodig heeft, en wat al klaar is. Een stap vinkt zichzelf af zodra SunArc hem ziet.</p>
+        </div>
+        <nav class="niveaus" aria-label="Niveau">
+          <a href="#" data-niveau="iedereen"><b><i class="half"></i>Voor iedereen</b><span>6 van 8 klaar</span></a>
+          <a href="#gevorderd" data-niveau="gevorderd"><b><i class="leeg"></i>Gevorderd</b><span>1 van 2 klaar</span></a>
+          <a href="#expert" data-niveau="expert"><b><i class="leeg"></i>Expert</b><span>0 van 1 klaar</span></a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Voor iedereen, en de wand. -->
+    <div class="veld" data-stand="iedereen wand">
+      <section class="glas functies" id="lijst-iedereen"></section>
+      <section class="glas stappen" data-stand="iedereen">
+        <div class="boven">
+          <div><h2>De assistent in huis</h2><p class="wat">Praten met je huis zonder dat er iets naar buiten gaat: verstaan, antwoorden en het wekwoord "Hé huis", allemaal op je eigen Home Assistant.</p></div>
+          <span class="stand half">Nog 2 stappen</span>
+        </div>
+        <ol class="rij">
+          <li class="klaar"><i>✓</i><b>Whisper verstaat wat je zegt</b><span>De add-on draait.</span><button class="doe klaar">Klaar</button></li>
+          <li class="nu"><i>2</i><b>Whisper op small-int8</b><span>Staat nu op base-int8: sneller, maar het verstaat "screen" en "zolder" slecht. Small-int8 verstaat 51 van 60 zinnen goed.</span><button class="doe zelf">Zet op small-int8</button></li>
+          <li class="klaar"><i>✓</i><b>Piper geeft de stem</b><span>De add-on draait, met een Nederlandse stem.</span><button class="doe klaar">Klaar</button></li>
+          <li><i>4</i><b>openWakeWord hoort "Hé huis"</b><span>Nog niet geïnstalleerd. SunArc installeert hem en zet het wekwoord erbij; in het Engels "Hey house".</span><button class="doe zelf">Installeer</button></li>
+          <li class="wacht"><i>5</i><b>De spraakassistent van SunArc</b><span>Na stap 4: verstaan, stem en wekwoord samen, met één tik.</span><button class="doe zelf" disabled>Zet klaar</button></li>
+        </ol>
+        <p class="let"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd27a" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.5"/></svg><span><b>Na je tik doet SunArc het zelf</b>: de add-on installeren of instellen via de Supervisor, alleen deze drie. Je ziet het hier gebeuren; Home Assistant hoeft niet opnieuw te starten.</span></p>
+      </section>
+      <section class="glas stappen" data-stand="wand">
+        <div class="boven">
+          <div><h2>De wand</h2><p class="wat">Het scherm gaat uit als er niemand is, en wakker als er iemand langsloopt. Dat kan met Fully Kiosk Browser op de tablet; de wand vertelt SunArc zelf hoe hij staat.</p></div>
+          <span class="stand half">Nog 1 stap</span>
+        </div>
+        <ol class="rij">
+          <li class="klaar"><i>✓</i><b>Fully Kiosk Browser</b><span>De wand draait in Fully (gezien om 10:14).</span><button class="doe klaar">Klaar</button></li>
+          <li class="klaar"><i>✓</i><b>De koppeling met de pagina</b><span>JavaScript Interface staat aan: SunArc kan het scherm uit en aan zetten.</span><button class="doe klaar">Klaar</button></li>
+          <li class="nu"><i>3</i><b>Wakker op beweging voor de camera</b><span>In Fully: Motion Detection aan (vraagt Fully Plus). Instellingen › Motion Detection › Enable Visual Motion Detection.</span><button class="doe ha" style="background: rgba(255,255,255,0.1)">Hoe in Fully</button></li>
+          <li class="klaar"><i>✓</i><b>Scherm uit als niemand thuis is</b><span>Staat aan bij Functies › Scherm.</span><button class="doe klaar">Klaar</button></li>
+        </ol>
+        <p class="let"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a9e6ff" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M9 21h6"/></svg><span><b>Zonder Fully</b> werkt de wand ook, alleen blijft het scherm aan; een bewegingsmelder in Home Assistant kan hem dan wel wekken.</span></p>
+      </section>
+    </div>
+
+    <!-- Gevorderd: de cloud. -->
+    <div class="veld" data-stand="gevorderd">
+      <section class="glas functies" id="lijst-gevorderd"></section>
+      <section class="glas stappen">
+        <div class="boven">
+          <div><h2>De assistent via de cloud</h2><p class="wat">Beter verstaan en een rijkere stem, maar wat je zegt gaat dan naar een dienst buiten je huis. Kies er één; SunArc zet hem daarna als spraakassistent klaar.</p></div>
+          <span class="stand half">Kies een route</span>
+        </div>
+        <div class="routes">
+          <div class="route">
+            <h3>Home Assistant Cloud</h3>
+            <p>Het abonnement van Nabu Casa: spraak en stem in één keer.</p>
+            <dl><dt>Kost</dt><dd>vast per maand</dd><dt>Sleutel</dt><dd>nee, inloggen</dd></dl>
+            <button class="doe">Inloggen ↗</button>
+          </div>
+          <div class="route gekozen">
+            <h3>Google Cloud</h3>
+            <p>Chirp voor het verstaan, en een stem van Google.</p>
+            <dl><dt>Kost</dt><dd>per gebruik</dd><dt>Sleutel</dt><dd>ja, een JSON-bestand</dd></dl>
+            <button class="doe">Stap voor stap</button>
+          </div>
+          <div class="route">
+            <h3>OpenAI</h3>
+            <p>Verstaan, stem en taalmodel bij één dienst.</p>
+            <dl><dt>Kost</dt><dd>per gebruik</dd><dt>Sleutel</dt><dd>ja, om te plakken</dd></dl>
+            <button class="doe">Stap voor stap</button>
+          </div>
+        </div>
+        <ol class="rij">
+          <li class="klaar"><i>✓</i><b>Een taalmodel (AI-taak)</b><span>Google Gemini staat er; de assistent zegt het in eigen woorden.</span><button class="doe klaar">Klaar</button></li>
+          <li class="nu"><i>2</i><b>Google Cloud in Home Assistant</b><span>Voeg de integratie Google Cloud toe met je sleutel (JSON). Kies Chirp bij spraak naar tekst.</span><button class="doe ha">Toevoegen</button></li>
+          <li class="wacht"><i>3</i><b>De spraakassistent naar de cloud</b><span>SunArc zet verstaan en stem om; het wekwoord blijft in huis.</span><button class="doe zelf" disabled>Zet om</button></li>
+        </ol>
+      </section>
+    </div>
+
+    <!-- Expert: Tailscale. -->
+    <div class="veld" data-stand="expert">
+      <section class="glas functies" id="lijst-expert"></section>
+      <section class="glas stappen">
+        <div class="boven">
+          <div><h2>SunArc als losse app op je telefoon</h2><p class="wat">Zonder de Home Assistant-app: SunArc op je beginscherm, ook onderweg. Dat gaat veilig via Tailscale, je eigen netwerk; niets staat open naar internet.</p></div>
+          <span class="stand half">Nog 4 stappen</span>
+        </div>
+        <ol class="rij">
+          <li class="nu"><i>1</i><b>De Tailscale-add-on</b><span>Niet geïnstalleerd. SunArc installeert hem; daarna log je één keer in bij Tailscale.</span><button class="doe zelf">Installeer</button></li>
+          <li class="wacht"><i>2</i><b>Een eigen poort voor SunArc</b><span>8100, alleen bereikbaar via Tailscale. SunArc zet hem open in de add-on.</span><button class="doe zelf" disabled>Zet open</button></li>
+          <li class="wacht"><i>3</i><b>Een veilig adres (https)</b><span>Via Tailscale serve: https://homeassistant.jouw-net.ts.net:8100. SunArc test of hij antwoordt.</span><button class="doe zelf" disabled>Test</button></li>
+          <li class="wacht"><i>4</i><b>Op je telefoon</b><span>Tailscale op je telefoon, dan deze QR-code in Chrome, en Toevoegen aan beginscherm.</span><button class="doe ha" disabled>QR-code</button></li>
+        </ol>
+        <p class="let"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c9c3ff" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg><span><b>Nooit open naar internet</b>: geen Funnel en geen portforward (besluit 108). Wie niet in je Tailscale zit, komt er niet bij.</span></p>
+      </section>
+    </div>
+
+    <!-- #instellingen: geen negende tegel; Inrichten zegt wat er nog open is. -->
+    <div data-stand="instellingen" style="display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0;">
+      <h1 class="kop-1">Instellingen</h1>
+      <div class="tegels" id="tegels"></div>
+    </div>
+
+    <!-- #functie: dezelfde stappen bij Functies › Assistent. -->
+    <div data-stand="functie" style="display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0;">
+      <a class="terugje" href="#">‹ Instellingen</a>
+      <h1 class="kop-1">Functies</h1>
+      <div class="fn">
+        <section class="glas fn-lijst">
+          <div>Licht en scènes</div>
+          <div>Schermen</div>
+          <div>Klimaat met de hand</div>
+          <div class="open">De assistent<em>nog 2 stappen</em></div>
+          <div>Te doen</div>
+          <div>Scherm van de wand<em>nog 1 stap</em></div>
+          <div>Meldingen</div>
+        </section>
+        <section class="glas fn-blad">
+          <h2 style="margin: 0; font-family: var(--kop); font-size: 28px; font-weight: 600;">De assistent</h2>
+          <div class="fn-rij"><span>Praten met je huis<small>Op de wand en in de app; ook via Assist van Home Assistant</small></span><button class="schakelaar" role="switch" aria-checked="true" aria-label="Aan"></button></div>
+          <div class="nog">
+            <header><span>Nog 2 stappen voor "Hé huis"</span><a href="#">Alles bij Klaarzetten ›</a></header>
+            <ol class="rij">
+              <li class="nu"><i>2</i><b>Whisper op small-int8</b><span>Verstaat huiswoorden als "screen" en "zolder" beter.</span><button class="doe zelf">Zet op small-int8</button></li>
+              <li><i>4</i><b>openWakeWord hoort "Hé huis"</b><span>SunArc installeert hem en zet het wekwoord erbij; in het Engels "Hey house".</span><button class="doe zelf">Installeer</button></li>
+            </ol>
+          </div>
+          <div class="fn-rij"><span>Stem<small>In huis met Piper, of via de cloud (bij Klaarzetten › Gevorderd)</small></span><b style="font-size: 14px">In huis</b></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script>
+  nav.balk(document.getElementById('balk'), 'instellingen');
+  // Instellingen: dezelfde acht tegels; Inrichten noemt de open stappen van Klaarzetten.
+  const TEGELS = [
+    ['Je huis', 'Kamers, etages, sensoren'],
+    ['Comfort', 'Temperaturen, dagdelen, vakantie'],
+    ['Energie', 'Panelen, zekering, meters, prijzen', 'mist 1'],
+    ['Regeling', 'Wie wat regelt, apparaten op zon'],
+    ['Functies', "Licht, screens, camera's, weer, meldingen"],
+    ['Assistent', 'Praten, stem en luisteren, te doen'],
+    ['Bewoners en toegang', 'Wie hier woont, inloggen, gegevens'],
+  ];
+  document.getElementById('tegels').innerHTML = TEGELS.map(([naam, zin, mis]) => `<a class="glas tegel" href="#"><h3>${naam}</h3><p>${zin}</p>${mis ? `<span class="pil mis">${mis}</span>` : ''}</a>`).join('')
+    + `<a class="glas tegel inrichten" href="#"><h3>Inrichten</h3><p>Stap voor stap door alles, en wat elke functie nodig heeft</p><div class="rijtje"><span>Whisper op small-int8</span><span>openWakeWord</span><span>Fully: wakker op beweging</span></div><span class="pil stappen">Nog 3 stappen</span></a>`;
+  const stand = location.hash.slice(1) || 'iedereen';
+  for (const el of document.querySelectorAll('[data-stand]')) el.hidden = !el.dataset.stand.split(' ').includes(stand);
+  const niveau = stand === 'wand' ? 'iedereen' : stand;
+  for (const a of document.querySelectorAll('[data-niveau]')) a.setAttribute('aria-current', a.dataset.niveau === niveau ? 'page' : 'false');
+
+  /* De functies per niveau: naam, hoe ver, en het icoon. */
+  const IK = {
+    huis: '<path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',
+    klimaat: '<path d="M12 3v10M8.5 16a3.5 3.5 0 1 0 7 0c0-1.3-.7-2.4-1.5-3V5a2 2 0 0 0-4 0v8c-.8.6-1.5 1.7-1.5 3z"/>',
+    zon: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
+    licht: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/>',
+    witgoed: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M7 6.5h2"/>',
+    praten: '<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    wand: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M9 21h6"/>',
+    weer: '<path d="M7 18h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/>',
+    wolk: '<path d="M7 18h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/><path d="M12 10v6M9.5 13.5 12 16l2.5-2.5"/>',
+    brein: '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 3 5 3 3 0 0 0 5 1V5a3 3 0 0 0-3-1zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-3 5 3 3 0 0 1-5 1"/>',
+    tel: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  };
+  const LIJST = {
+    iedereen: [
+      ['huis', 'Het huis', 'Ligging, kamers en bewoners', 1],
+      ['klimaat', 'Klimaat', '4 apparaten, 6 thermometers', 1],
+      ['zon', 'Zon en energie', 'Netmeter, panelen en prijzen', 1],
+      ['licht', 'Licht en schermen', '9 lampen, 2 screens', 1],
+      ['witgoed', 'Witgoed op zon', 'Droger met op afstand starten', 1],
+      ['weer', 'Het weer', 'Buienradar', 1],
+      ['praten', 'De assistent in huis', 'Nog 2 stappen', 0.6, 'iedereen'],
+      ['wand', 'De wand', 'Nog 1 stap', 0.75, 'wand'],
+    ],
+    gevorderd: [
+      ['brein', 'Een taalmodel', 'Google Gemini', 1],
+      ['wolk', 'De assistent via de cloud', 'Kies een route', 0.3, 'gevorderd'],
+    ],
+    expert: [['tel', 'Losse app op je telefoon', 'Via Tailscale; nog 4 stappen', 0.1, 'expert']],
+  };
+  const ring = (deel) => {
+    const r = 14, o = 2 * Math.PI * r;
+    if (deel >= 1) return `<svg class="ring" viewBox="0 0 34 34"><circle cx="17" cy="17" r="${r}" fill="rgba(110,231,183,0.14)"/><path d="M11 17.5l4 4 8-9" fill="none" stroke="#6ee7b7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    return `<svg class="ring" viewBox="0 0 34 34"><circle cx="17" cy="17" r="${r}" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3.5"/><circle cx="17" cy="17" r="${r}" fill="none" stroke="#f7b548" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${(o * deel).toFixed(1)} ${o.toFixed(1)}" transform="rotate(-90 17 17)"/></svg>`;
+  };
+  const uitleg = {
+    iedereen: 'Wat hier staat, werkt zonder abonnement of eigen sleutels; alles blijft in huis.',
+    gevorderd: 'Voor wie meer wil: een dienst buiten je huis, met een eigen sleutel of abonnement.',
+    expert: 'Voor wie zijn eigen netwerk regelt.',
+  };
+  for (const [n, lijst] of Object.entries(LIJST)) {
+    const el = document.getElementById(`lijst-${n}`);
+    if (!el) continue;
+    el.innerHTML = lijst.map(([ik, naam, zin, deel, open]) => `<a class="functie${open === stand ? ' open' : ''}${deel >= 1 ? ' klaar' : ' half'}" href="${open ? `#${open === 'iedereen' ? '' : open}` : '#'}"><span class="ik"><svg viewBox="0 0 24 24" fill="none" stroke="${deel >= 1 ? 'var(--zacht)' : '#ffd27a'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IK[ik]}</svg></span><b>${naam}</b>${ring(deel)}<span>${zin}</span></a>`).join('') + `<p class="onder">${uitleg[n]}</p>`;
+  }
+</script>
+</body>
+</html>
