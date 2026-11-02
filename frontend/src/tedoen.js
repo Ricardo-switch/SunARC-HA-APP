@@ -23,17 +23,17 @@
   const nl = () => global.taal?.code !== 'en';
 
   const IK = {
-    bak: '<path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
-    klok: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M5 4 2.5 6.5M19 4l2.5 2.5"/>',
-    mand: '<path d="M3 9h18l-2 10H5z"/><path d="M8 9l3-5M16 9l-3-5M9 13v3M15 13v3"/>',
-    lijst: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',
-    agenda: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
-    vink: '<path d="M5 12.5l4.5 4.5L19 7"/>',
-    kruis: '<path d="M6 6l12 12M18 6 6 18"/>',
-    wand: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M9 21h6"/>',
-    tel: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
-    taak: '<path d="M5 14a7 7 0 0 1 14 0"/><circle cx="12" cy="14" r="2.5"/><path d="M3 18h18M8 21h8"/>',
-    pijl: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    bak: iconen.binnen('bak'),
+    klok: iconen.binnen('klok'),
+    mand: iconen.binnen('mand'),
+    lijst: iconen.binnen('lijst'),
+    agenda: iconen.binnen('agenda'),
+    vink: iconen.binnen('vink'),
+    kruis: iconen.binnen('kruis'),
+    wand: iconen.binnen('wand'),
+    tel: iconen.binnen('telefoon'),
+    taak: iconen.binnen('taak'),
+    pijl: iconen.binnen('pijl'),
   };
   const svg = (pad, w = 1.8) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pad}</svg>`;
 

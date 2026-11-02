@@ -217,8 +217,8 @@ const uren = (ms) => {
 /** De rol van een klimaatapparaat: houdt, zon of kijken (teksten.*.js). */
 const ROL = (rol) => t(`apparaten.rol.${rol}`);
 const IK = {
-  airco: '<svg viewBox="0 0 24 24" fill="none" stroke="#a9e6ff" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="8" rx="2"/><path d="M6 10h12M8 16.5c-.5 1-.5 2 0 3M12 16v3.5M16 16.5c.5 1 .5 2 0 3"/></svg>',
-  warm: '<svg viewBox="0 0 24 24" fill="none" stroke="#ffb090" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/></svg>',
+  airco: iconen.svg('airco'),
+  warm: iconen.svg('boiler'),
 };
 
 /** Elk klimaatapparaat in een kamer, met zijn kamer. */
@@ -291,8 +291,8 @@ function klimaatKaart({ a, r }) {
  * (apparaten.html#auto, #batterij).
  */
 const LADING_IK = {
-  auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="16" r="1.5"/><circle cx="16.5" cy="16" r="1.5"/></svg>',
-  batterij: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M10 2h4M9 14h6M9 10h6"/></svg>',
+  auto: iconen.svg('auto'),
+  batterij: iconen.svg('batterij'),
 };
 function ladingKaart(soort, o) {
   const w = o.vermogenW;

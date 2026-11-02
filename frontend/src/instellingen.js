@@ -48,16 +48,16 @@ function kan() {
 /* --------------------------------------------------------- de groepen */
 
 const ICOON = {
-  huis: '<svg viewBox="0 0 24 24" fill="none" stroke="var(--ijs)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
-  comfort: '<svg viewBox="0 0 24 24" fill="none" stroke="var(--mint)" stroke-width="1.8" stroke-linecap="round"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/></svg>',
-  energie: '<svg viewBox="0 0 24 24" fill="none" stroke="var(--zon)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>',
-  regeling: '<svg viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="6" width="18" height="8" rx="2"/><path d="M7 18c0-1.5 1-2 1-3M12 19c0-1.5 1-2 1-3M17 18c0-1.5 1-2 1-3"/></svg>',
-  functies: '<svg viewBox="0 0 24 24" fill="none" stroke="var(--zacht)" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/></svg>',
+  huis: iconen.svg('thuis'),
+  comfort: iconen.svg('comfort'),
+  energie: iconen.svg('zon'),
+  regeling: iconen.svg('voorrang'),
+  functies: iconen.svg('kaarten'),
   // Inrichten (0.90.1): een pad met stappen.
-  inrichten: '<svg viewBox="0 0 24 24" fill="none" stroke="var(--mint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18h6a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h6"/></svg>',
+  inrichten: iconen.svg('lijst'),
   // De assistent (besluit 217): een spraakwolk.
-  assistent: '<svg viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg>',
-  toegang: '<svg viewBox="0 0 24 24" fill="none" stroke="var(--zacht)" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M10 18h4"/></svg>',
+  assistent: iconen.svg('assistent'),
+  toegang: iconen.svg('inloggen'),
 };
 
 const euro = (v) => (v == null ? null : `€ ${nl(v, 2)}`);

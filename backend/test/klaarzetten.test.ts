@@ -52,7 +52,8 @@ describe('klaarzetten in Home Assistant (besluit 179)', () => {
     met.set('person.a', st('person.a', 'home', { user_id: 'u1', device_trackers: ['device_tracker.telefoon_a'] }));
     met.set('person.b', st('person.b', 'not_home', {}));
     const p = klaarzetten({ ...basis, states: met });
-    expect(van(p, 'personen')).toMatchObject({ stand: 'mist', zin: '1 persoon heeft nog geen account; koppel er een.' });
+    // Een persoon zonder account (een kind, iemand die niet inlogt) is geen tekort (2 november 2026).
+    expect(van(p, 'personen')).toMatchObject({ stand: 'klaar', zin: '2 personen; 1 heeft geen account en logt dus niet in.' });
     expect(van(p, 'telefoon')).toMatchObject({ stand: 'klaar', zin: expect.stringContaining('1 van 2') });
   });
 

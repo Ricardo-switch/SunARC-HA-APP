@@ -1,5 +1,41 @@
 # Wat is er nieuw · What is new
 
+## 0.115.0
+
+*2 november 2026*
+
+**Nieuw**
+
+- Nieuwe iconen overal: één set, met een fijne lijn en een zacht vlak in de kleur van het onderwerp; in het menu krijgt waar je bent zijn kleur
+
+*English*
+
+**New**
+
+- New icons everywhere: one set, with a fine line and a soft fill in the colour of the subject; in the menu, where you are gets its colour
+
+## 0.114.4
+
+*2 november 2026*
+
+**Beter**
+
+- Een bewoner zonder account, zoals een kind, is bij Klaarzetten geen open stap meer
+
+**Opgelost**
+
+- Op de telefoon kon het tankje van de boiler op Thuis zijn kleur missen
+
+*English*
+
+**Improved**
+
+- A resident without an account, such as a child, is no longer an open step in Getting ready
+
+**Fixed**
+
+- On the phone, the boiler tank on Home could lose its colour
+
 ## 0.114.3
 
 *2 november 2026*

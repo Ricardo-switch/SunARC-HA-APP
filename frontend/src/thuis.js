@@ -602,7 +602,10 @@ function balkjes(waarden) {
   const max = Math.max(...waarden, 0.001);
   return `<svg class="beeld" style="top: 8px" width="54" height="26" viewBox="0 0 54 26" aria-hidden="true">${waarden.map((w, i) => `<rect x="${i * 6}" y="${(26 - Math.max(2, (w / max) * 24)).toFixed(0)}" width="4" height="${Math.max(2, (w / max) * 24).toFixed(0)}" rx="1.5" fill="${i === waarden.length - 1 ? 'var(--zon)' : 'rgb(255 255 255 / 0.25)'}"/>`).join('')}</svg>`;
 }
-function tank(pct, id) {
+/** Elk tankje een eigen nummer: op wand en telefoon dezelfde naam liet de telefoon het verloop uit het verborgen deel pakken. */
+let tankNr = 0;
+function tank(pct, naam) {
+  const id = `${naam}-${++tankNr}`;
   const p = Math.max(0.05, Math.min(1, pct));
   return `<svg class="beeld" width="26" height="46" viewBox="0 0 26 46" aria-hidden="true"><defs><linearGradient id="tank-${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#4d86c9"/><stop offset="0.6" stop-color="#ff9a6b"/><stop offset="1" stop-color="#ff6a3d"/></linearGradient><clipPath id="tankvorm-${id}"><rect x="1" y="1" width="24" height="44" rx="11"/></clipPath></defs><rect x="1" y="1" width="24" height="44" rx="11" fill="rgb(255 255 255 / 0.08)" stroke="rgb(255 255 255 / 0.2)"/><rect clip-path="url(#tankvorm-${id})" x="1" y="${(45 - 44 * p).toFixed(0)}" width="24" height="44" fill="url(#tank-${id})"/></svg>`;
 }

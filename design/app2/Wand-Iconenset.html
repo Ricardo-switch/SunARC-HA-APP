@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Iconenset</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * De hele set (2 november 2026): duotoon, lijn 1,6, zoals gekozen bij
+   * Wand-Iconen. Dit is de set uit frontend/kit/iconen.js zelf: de schets is
+   * de code. #groot toont ze op 40 pixels, om de tekening na te lopen.
+   */
+  main { padding: 20px 26px; display: flex; flex-direction: column; gap: 12px; }
+  .set { display: grid; grid-template-columns: repeat(16, 1fr); gap: 8px 4px; }
+  .cel { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: var(--gedempt); text-align: center; }
+  .cel svg { width: 28px; height: 28px; color: var(--tekst); }
+  body.groot .cel svg { width: 40px; height: 40px; }
+  body.groot .set { grid-template-columns: repeat(12, 1fr); }
+</style>
+</head>
+<body>
+<div class="wand lucht lucht-avond">
+  <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
+  <main>
+    <h1 class="kop-1" style="margin: 0">Iconenset</h1>
+    <div class="set" id="set"></div>
+  </main>
+</div>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script>
+  nav.balk(document.getElementById('balk'), 'thuis');
+  if (location.hash === '#groot') document.body.classList.add('groot');
+  const namen = iconen.namen();
+  const deel = location.hash === '#groot2' ? namen.slice(64) : location.hash === '#groot' ? namen.slice(0, 64) : namen;
+  if (location.hash === '#groot2') document.body.classList.add('groot');
+  document.getElementById('set').innerHTML = deel.map((n) => `<div class="cel">${iconen.svg(n)}<span>${n}</span></div>`).join('');
+</script>
+</body>
+</html>

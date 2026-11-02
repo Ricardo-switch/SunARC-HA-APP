@@ -35,13 +35,13 @@
   /** Zoveel stappen neemt de dienst in één taak (MAX_STAPPEN in routes/tedoen.ts). */
   const MAX_STAPPEN = 12;
   const IK = {
-    licht: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/>',
-    scene: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
-    scherm: '<rect x="4" y="4" width="16" height="4" rx="1"/><path d="M6 8v11h12V8M6 13h12"/>',
-    klimaat: '<path d="M12 3v10M8.5 16a3.5 3.5 0 1 0 7 0c0-1.3-.7-2.4-1.5-3V5a2 2 0 0 0-4 0v8c-.8.6-1.5 1.7-1.5 3z"/>',
-    stekker: '<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>',
-    witgoed: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M7 6.5h2"/>',
-    mic: '<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    licht: iconen.binnen('licht'),
+    scene: iconen.binnen('scene'),
+    scherm: iconen.binnen('screen'),
+    klimaat: iconen.binnen('klimaat'),
+    stekker: iconen.binnen('stekker'),
+    witgoed: iconen.binnen('witgoed'),
+    mic: iconen.binnen('mic'),
   };
   const svg = (d, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const graden = (c) => `${String(c).replace('.', en() ? '.' : ',')}°`;

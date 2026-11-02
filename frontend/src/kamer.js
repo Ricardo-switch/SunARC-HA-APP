@@ -121,15 +121,15 @@ function vind() {
 /* ------------------------------------------------------------ iconen */
 
 const ICOON = {
-  licht: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
-  screen: '<rect x="3" y="3.5" width="18" height="3.5" rx="1"/><path d="M5 7v10h14V7M5 10.5h14M5 14h14"/>',
-  airco: '<rect x="2.5" y="5" width="19" height="8" rx="2"/><path d="M6 10h12M8 16.5c-.5 1-.5 2 0 3M12 16v3.5M16 16.5c.5 1 .5 2 0 3"/>',
-  thermostaat: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/>',
-  meter: '<path d="M10 14.5V5a2 2 0 1 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 9.5V17"/>',
-  apparaat: '<rect x="4.5" y="3" width="15" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M8 6.5h2"/>',
-  camera: '<rect x="2.5" y="6.5" width="14" height="11" rx="2.5"/><path d="M16.5 10.5l5-3v9l-5-3z"/>',
-  rookmelder: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2"/>',
-  beweging: '<circle cx="13" cy="4.5" r="1.8"/><path d="M9.5 21l2-6 3 3v3M8 12.5l2.5-4.5 3 1 2.5 3.5 2.5.5M11 9.5l-1.5 5"/>',
+  licht: iconen.binnen('licht'),
+  screen: iconen.binnen('screen'),
+  airco: iconen.binnen('airco'),
+  thermostaat: iconen.binnen('thermostaat'),
+  meter: iconen.binnen('meter'),
+  apparaat: iconen.binnen('apparaat'),
+  camera: iconen.binnen('camera'),
+  rookmelder: iconen.binnen('rookmelder'),
+  beweging: iconen.binnen('beweging'),
 };
 // Een bewegingsmelder is een melder, ook als hij de temperatuur meet; die staat ernaast als tekst.
 const soortVan = (d) => (d.soort === 'klimaat' ? (d.klimaat?.kanKoelen ? 'airco' : 'thermostaat') : d.soort === 'meter' && d.meting?.beweging ? 'beweging' : d.soort);

@@ -27,17 +27,17 @@ async function laad() {
 const NIVEAUS = ['iedereen', 'gevorderd', 'expert'];
 
 const IK = {
-  huis: '<path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',
-  klimaat: '<path d="M12 3v10M8.5 16a3.5 3.5 0 1 0 7 0c0-1.3-.7-2.4-1.5-3V5a2 2 0 0 0-4 0v8c-.8.6-1.5 1.7-1.5 3z"/>',
-  energie: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
-  licht: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/>',
-  witgoed: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M7 6.5h2"/>',
-  weer: '<path d="M7 18h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/>',
-  assistent: '<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
-  wand: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M9 21h6"/>',
-  taalmodel: '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 3 5 3 3 0 0 0 5 1V5a3 3 0 0 0-3-1zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-3 5 3 3 0 0 1-5 1"/>',
-  cloud: '<path d="M7 18h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/><path d="M12 10v6M9.5 13.5 12 16l2.5-2.5"/>',
-  telefoon: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  huis: iconen.binnen('thuis'),
+  klimaat: iconen.binnen('klimaat'),
+  energie: iconen.binnen('zon'),
+  licht: iconen.binnen('licht'),
+  witgoed: iconen.binnen('witgoed'),
+  weer: iconen.binnen('weer'),
+  assistent: iconen.binnen('assistent'),
+  wand: iconen.binnen('wand'),
+  taalmodel: iconen.binnen('taalmodel'),
+  cloud: iconen.binnen('cloud'),
+  telefoon: iconen.binnen('telefoon'),
 };
 const LET_IK = {
   assistent: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.5"/>',

@@ -137,9 +137,9 @@
   const klokNu = () => global.taal.klok(Date.now());
   /** Het logo voluit, klein rechtsboven (ronde 5, schets Wand-Nacht-Logo); een tik opent Over deze app. */
   const MERK = `<a class="merkje nk-hoek" href="over.html" data-nk-over aria-label="${t('over.kop')}"><img src="kit/merk.svg" alt=""><b>SunArc</b></a>`;
-  const ICOON_HUIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z"/></svg>';
+  const ICOON_HUIS = iconen.svg('thuis');
   /** Een nieuwe versie: een pijl omlaag, zoals bij Meldingen. */
-  const ICOON_UPDATE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>';
+  const ICOON_UPDATE = iconen.svg('update');
   const WOLK = '<path d="M12 29h14a5.5 5.5 0 0 0 .5-11A7.5 7.5 0 0 0 12.4 20 4.5 4.5 0 0 0 12 29z" fill="#B8C4CF"/>';
   const WEER = {
     zon: '<circle cx="18" cy="18" r="7" fill="#F7B548"/><g stroke="#F7B548" stroke-width="2.2" stroke-linecap="round"><path d="M18 4v3M18 29v3M4 18h3M29 18h3M8 8l2 2M26 26l2 2M8 28l2-2M26 10l2-2"/></g>',

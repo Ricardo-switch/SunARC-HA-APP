@@ -245,6 +245,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [240. Nieuw in Vast en gepland: zeg het, of kies het zelf in vier stappen](#240-nieuw-in-vast-en-gepland-zeg-het-of-kies-het-zelf-in-vier-stappen)
 - [244. Een taak als één zin, en + Nieuw op Te doen](#244-een-taak-als-één-zin-en--nieuw-op-te-doen)
 - [245. Te doen in drie kolommen, witgoed altijd aan te tikken](#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken)
+- [247. Eén iconenset, duotoon](#247-eén-iconenset-duotoon)
 
 **Veiligheid**
 
@@ -11437,6 +11438,52 @@ is.
 - **De melding blijft bewaard** naast het logboek (`wand-melding.json`), ook
   na een herstart of update.
 - **Versie 0.114.3.**
+
+*Daarna, nog dezelfde dag:*
+
+- **Een persoon zonder account is geen tekort** (ook bij Wat je huis kan,
+  besluit 179): een kind of iemand die niet inlogt, heeft er geen nodig. "Een
+  persoon per bewoner" is klaar zodra iemand een account heeft.
+- **Elk beeld een eigen naam voor zijn kleurverloop.** Het tankje van de boiler
+  op Thuis had op wand en telefoon dezelfde naam, net als de boog op Te doen
+  (0.114.1). Een paginatest kijkt nu op tien pagina's dat geen kleurverloop,
+  masker of patroon twee keer dezelfde naam heeft.
+- **"Hé huis" als het scherm 's nachts uit is: niet.** Fully zet het scherm
+  echt uit, en Android legt de pagina en de microfoon dan stil. Een zwart
+  scherm op de laagste helderheid zou blijven luisteren, maar geeft een zwakke
+  gloed en kost stroom. De bewoner koos: echt uit, en 's nachts niet luisteren.
+- **Versie 0.114.4.**
+
+## 247. Eén iconenset, duotoon
+
+*Onderwerp: weergave · Status: geldig*
+
+2 november 2026. De bewoner: de iconenset compleet opnieuw, premium en passend
+bij de app, en pas daarna de beelden voor GitHub (anders verouderen die
+meteen). Er waren 22 losse lijstjes met 235 iconen, zo'n 150 onderwerpen in
+184 verschillende tekeningen, en nog 69 losse plaatjes in de code. Hetzelfde
+onderwerp stond vaak een paar keer net anders getekend.
+
+De schets Wand-Iconen toonde 24 nieuwe tekeningen in drie afwerkingen: lijn,
+duotoon en tegel. Zijn keuzes waren de aanbevolen.
+
+*Besluit:*
+
+- **Duotoon:** een fijne lijn van 1,6 met een zacht vlak in de kleur van het
+  onderwerp (zon, ijs, mint, violet, gloed, grijs). Raster van 24, 2 rand vrij,
+  ronde uiteinden en hoeken, hoekstraal 2,5 tot 3.
+- **Eén set** in `frontend/kit/iconen.js`: per icoon de lijn, het vlak en de
+  kleur, met aliassen voor de oude namen. `iconen.svg(naam)` geeft het hele
+  icoon; `iconen.binnen(naam)` alleen de binnenkant, voor een omhulsel dat een
+  pagina al had. Elke pagina en elke schets laadt de set; de lijstjes van de
+  pagina's wijzen er nu naar, met per pagina wat een naam betekent ("scherm" is
+  de zonwering bij Gepland, en de wand bij Functies). De schets Wand-Iconenset
+  toont de hele set uit dat bestand.
+- **In het menu alleen de lijn;** waar je bent, krijgt het vlak voluit in zijn
+  kleur.
+- **Wat blijft:** het weer (gekleurde tekeningen), het infoteken bij
+  Klaarzetten, en kleine knoppen als pijl, zoeken, afspelen en potlood.
+- **Versie 0.115.0.**
 
 ---
 

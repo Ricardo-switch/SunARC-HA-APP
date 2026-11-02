@@ -3815,7 +3815,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     const fouten: string[] = [];
     p.on('pageerror', (e) => fouten.push(e.message));
     await p.goto(`${baseUrl}/manifest.webmanifest`);
-    await p.setContent(`<!doctype html><body style="margin:0;background:#0b1424"><div id="uit" style="display:grid;grid-template-columns:repeat(2,700px)"></div><script src="${baseUrl}/kit/huis.js"></script></body>`);
+    await p.setContent(`<!doctype html><body style="margin:0;background:#0b1424"><div id="uit" style="display:grid;grid-template-columns:repeat(2,700px)"></div><script src="${baseUrl}/kit/iconen.js"></script><script src="${baseUrl}/kit/huis.js"></script></body>`);
     await p.waitForFunction('window.huis != null');
     type Blok = { kamer?: string; wat: string; soort?: string; x0: number; x1: number; y0: number; y1: number; z0: number; z1: number; ruimte: [number, number]; plafond?: number };
     const uitkomst = await p.evaluate(() => {
@@ -3904,7 +3904,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     const p = await browser.newPage();
     await p.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
     await p.goto(`${baseUrl}/manifest.webmanifest`);
-    await p.setContent(`<!doctype html><body><script src="${baseUrl}/kit/huis.js"></script></body>`);
+    await p.setContent(`<!doctype html><body><script src="${baseUrl}/kit/iconen.js"></script><script src="${baseUrl}/kit/huis.js"></script></body>`);
     await p.waitForFunction('window.huis != null');
     const midden = await p.evaluate(() => {
       const w = globalThis as unknown as { huis: { svg: (m: unknown, o: unknown) => string } };
@@ -4183,6 +4183,30 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     expect(fouten).toEqual([]);
     await context.close();
   }, 20_000);
+
+  /*
+   * Geen twee beelden met dezelfde naam voor een kleurverloop, masker of
+   * patroon (2 november 2026): een pagina tekent veel op de wand én op de
+   * telefoon, en met dezelfde naam pakte de telefoon het verloop uit het
+   * verborgen wanddeel. Dan viel het stil weg, zoals de boog op Te doen.
+   */
+  it('geeft elk kleurverloop, masker en patroon een eigen naam', async () => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const p = await context.newPage();
+    const dubbel: string[] = [];
+    for (const pagina of ['thuis.html', 'vandaag.html', 'tedoen.html', 'apparaten.html', 'opbrengst.html', 'instellingen.html', 'huis-kan.html', 'voortgang.html', 'klaarzetten.html', 'gepland.html']) {
+      await p.goto(`${baseUrl}/${pagina}`);
+      await p.waitForTimeout(1200);
+      const namen = await p.evaluate<string[]>("[...document.querySelectorAll('svg :is(linearGradient, radialGradient, clipPath, mask, pattern, filter)[id]')].map((e) => e.id)");
+      const gezien = new Set<string>();
+      for (const n of namen) (gezien.has(n) ? dubbel.push(`${pagina}: ${n}`) : gezien.add(n));
+    }
+    expect(dubbel).toEqual([]);
+    await context.close();
+  }, 40_000);
 
   /*
    * Klaarzetten per niveau (besluit 246, schets Wand-Klaarzetten): per niveau

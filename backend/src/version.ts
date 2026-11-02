@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.114.3';
+export const VERSIE = '0.115.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,22 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.115.0',
+    datum: '2026-11-02',
+    nieuw: ['Nieuwe iconen overal: één set, met een fijne lijn en een zacht vlak in de kleur van het onderwerp; in het menu krijgt waar je bent zijn kleur'],
+    en: { nieuw: ['New icons everywhere: one set, with a fine line and a soft fill in the colour of the subject; in the menu, where you are gets its colour'] },
+  },
+  {
+    versie: '0.114.4',
+    datum: '2026-11-02',
+    beter: ['Een bewoner zonder account, zoals een kind, is bij Klaarzetten geen open stap meer'],
+    opgelost: ['Op de telefoon kon het tankje van de boiler op Thuis zijn kleur missen'],
+    en: {
+      beter: ['A resident without an account, such as a child, is no longer an open step in Getting ready'],
+      opgelost: ['On the phone, the boiler tank on Home could lose its colour'],
+    },
+  },
   {
     versie: '0.114.3',
     datum: '2026-11-02',

@@ -234,18 +234,18 @@ const schakel = (attr, tekst, aan, uit = false) => `<button type="button" class=
  */
 const S = (pad) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pad}</svg>`;
 const IK = {
-  huis: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>', oprit: '<path d="M5 21l3-18M19 21L16 3M12 6v2M12 11v2M12 16v2"/>',
-  auto: '<path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/>', laadpaal: '<rect x="6" y="3" width="9" height="18" rx="2"/><path d="M15 8h2a2 2 0 0 1 2 2v5"/><path d="M11 8l-2 4h3l-2 4"/>',
-  carport: '<path d="M3 8h18M5 8v12M19 8v12"/>', garage: '<path d="M3 9l9-5 9 5v11H3z"/><path d="M6 20v-8h12v8"/>', tuin: '<path d="M12 21v-8M8 13c0-4 4-8 4-8s4 4 4 8a4 4 0 0 1-8 0z"/>',
-  tuinhuis: '<path d="M4 9h16M5 9v11h14V9M3 9l2-3h14l2 3"/><path d="M10 20v-5h4v5"/>', schuur: '<path d="M4 11l8-6 8 6v9H4z"/><path d="M10 20v-5h4v5"/>',
-  terras: '<path d="M3 17h18M6 17v4M18 17v4M5 13h14l-1-5H6z"/>', jacuzzi: '<path d="M3 12h18v3a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/><path d="M8 8c0-1.5 1-2 1-3M12 8c0-1.5 1-2 1-3M16 8c0-1.5 1-2 1-3"/>',
-  balkon: '<path d="M4 12h16v8H4zM8 12v8M12 12v8M16 12v8M6 4h12v8"/>', thermo: '<path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/>',
-  droger: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4"/>', vaat: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 8h14M9 13h6"/>',
-  boiler: '<rect x="7" y="2.5" width="10" height="19" rx="5"/><path d="M10 15h4"/>', accu: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M10 2h4M12 9l-2 4h4l-2 4"/>',
-  lamp: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/>', screen: '<rect x="4" y="4" width="16" height="4" rx="1"/><path d="M6 8v9h12V8"/>', camera: '<rect x="3" y="7" width="13" height="10" rx="2"/><path d="m16 11 5-3v8l-5-3"/>',
-  lijst: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',
-  praat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-5A8 8 0 1 1 21 12z"/>', zon: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/>', stekker: '<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>',
-  meter: '<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/>', tablet: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M11 18h2"/>', koffer: '<rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V4h6v3M4 12h16"/>', tel: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/>',
+  huis: iconen.binnen('thuis'),
+  auto: iconen.binnen('auto'),
+  carport: iconen.binnen('carport'),
+  tuinhuis: iconen.binnen('tuinhuis'),
+  terras: iconen.binnen('terras'),
+  balkon: iconen.binnen('balkon'),
+  droger: iconen.binnen('droger'),
+  boiler: iconen.binnen('boiler'),
+  lamp: iconen.binnen('lamp'),
+  lijst: iconen.binnen('lijst'),
+  praat: iconen.binnen('praten'),
+  meter: iconen.binnen('meter'),
 };
 /** Een regel; `tag: 'button'` maakt hem aan te tikken. Zin en rechts zijn al tekst of HTML. */
 function regel({ ik: icoon, titel, zin = '', rechts = '', toon = '', klasse = '', attrs = '', onder = '', tag = 'div' }) {
@@ -313,8 +313,8 @@ let opgebouwd = false;
 const stilGewenst = () => document.documentElement.classList.contains('sc-stil') || (matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
 const PIJL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const WK_IK = {
-  etages: '<path d="M3 10l9-6 9 6M5 9v10h14V9"/>', kamers: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/>',
-  apparaten: '<rect x="3" y="6" width="18" height="10" rx="2"/><path d="M8 20h8M12 16v4"/>', klimaat: IK.thermo, panelen: IK.zon, cameras: IK.camera,
+  etages: iconen.binnen('etages'),
+  apparaten: iconen.binnen('apparaat'),
 };
 function welkomSkelet(tel) {
   const belofte = (ik, kleur, b, zin) => `<li><span class="wk-ik" style="color: ${kleur}">${S(IK[ik])}</span><div><b>${esc(t(b))}</b><span>${esc(t(zin))}</span></div></li>`;
