@@ -1,5 +1,31 @@
 # Wat is er nieuw · What is new
 
+## 0.113.0
+
+*2 november 2026*
+
+**Beter**
+
+- Te doen is rustiger: drie kolommen, boodschappen en to-do als tabbladen onder de herinneringen, en je agenda’s ingeklapt tot één regel
+- De droger, de wasmachine en de vaatwasser zijn altijd aan te tikken; staat hij nog niet klaar, dan zie je hoe je hem klaarzet
+- Over deze app staat ook bij Bewoners en toegang
+
+**Opgelost**
+
+- Op een brede telefoon liet het blad van een apparaat rechts een strook open
+
+*English*
+
+**Improved**
+
+- To do is calmer: three columns, shopping and to-do as tabs under the reminders, and your calendars folded into one line
+- The dryer, washing machine and dishwasher can always be tapped; if it is not ready yet, you see how to get it ready
+- About this app is also under Residents and access
+
+**Fixed**
+
+- On a wide phone, the sheet of a device left a strip open on the right
+
 ## 0.112.0
 
 *2 november 2026*

@@ -524,7 +524,14 @@ html.sc-stil::view-transition-group(*), html.sc-stil::view-transition-old(*), ht
 .tdp .pil:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
 .tdp-drie { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; min-height: 0; }
 /* Met Vast en gepland als eigen kolom (besluit 244): herinneringen, taken, agenda, lijsten. */
-.tdp-drie.vier { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.05fr) minmax(0, 0.95fr) minmax(0, 1.1fr); }
+/* Drie kolommen (besluit 245): de agenda's ingeklapt tot één regel, de lijsten als tabbladen onder de herinneringen. */
+.tdp-agendas { border: 0; background: none; padding: 0; font: 600 13px var(--romp); color: var(--accent); cursor: pointer; }
+.tdp-kiezen { display: inline-flex; align-items: center; height: 26px; padding: 0 4px; font-size: 12.5px; font-weight: 700; color: var(--accent); text-decoration: none; }
+.tdp-lijsten { margin-top: 6px; padding-top: 12px; border-top: 1px solid rgb(var(--wit) / 0.07); display: flex; flex-direction: column; gap: 8px; }
+.tdp-tabs { display: flex; padding: 3px; border-radius: 13px; background: rgb(var(--wit) / 0.06); }
+.tdp-tabs button { flex: 1; min-width: 0; height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 10px; background: transparent; color: var(--zacht); font: 600 13.5px var(--romp); cursor: pointer; }
+.tdp-tabs button b { font-size: 12px; color: var(--gedempt); }
+.tdp-tabs button[aria-selected='true'] { background: rgb(var(--wit) / 0.14); color: var(--tekst); }
 .tdp { position: relative; }
 .td-boog { display: block; flex: none; border-radius: 14px; background: rgb(5 10 20 / 0.4); overflow: hidden; }
 .td-boog svg { display: block; width: 100%; height: 84px; }
@@ -628,13 +635,13 @@ html.sc-voorbeeld #tel .td-keuze { bottom: calc(250px + env(safe-area-inset-bott
  * naast de kaarten, die zichtbaar blijven; op de telefoon van onderen.
  */
 .hand-laag { position: absolute; inset: 0; z-index: 40; }
-.hand-laag.tel { position: fixed; z-index: 70; }
+.hand-laag.op-tel { position: fixed; z-index: 70; }
 .hand-achter { position: absolute; inset: 0; background: rgb(4 8 16 / 0.6); }
-.hand-laag:not(.tel) .hand-achter { background: transparent; }
+.hand-laag:not(.op-tel) .hand-achter { background: transparent; }
 .hand-vel { position: absolute; top: 24px; right: 26px; bottom: 20px; width: 470px; display: flex; }
 .hand-vel > .hand-blad { flex: 1; }
-.hand-laag.tel .hand-vel { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 92vh; overflow-y: auto; border-radius: 26px 26px 0 0; }
-.hand-laag.tel .hand-vel > .hand-blad { border-radius: 26px 26px 0 0; }
+.hand-laag.op-tel .hand-vel { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 92vh; overflow-y: auto; border-radius: 26px 26px 0 0; }
+.hand-laag.op-tel .hand-vel > .hand-blad { border-radius: 26px 26px 0 0; }
 /* De draaiknop met min en plus, en de tijd voor witgoed. */
 .hand-knoprij { display: flex; align-items: center; justify-content: center; gap: 16px; }
 .hand-knoprij button, .hand-tijd button { width: 52px; height: 52px; flex: none; border-radius: 50%; border: 1px solid rgb(var(--wit) / 0.14); background: rgb(var(--wit) / 0.04); color: var(--tekst); font-size: 24px; cursor: pointer; }
@@ -673,9 +680,14 @@ html.sc-voorbeeld #tel .td-keuze { bottom: calc(250px + env(safe-area-inset-bott
 .hand-terug { border: 0; background: none; padding: 0; color: var(--zacht); font: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer; }
 .hand-zet { margin-left: auto; height: 48px; padding: 0 24px; border-radius: 15px; border: 0; background: var(--tekst); color: var(--inkt); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
 .hand-zet:disabled { opacity: 0.4; cursor: default; }
-.hand-laag.tel .hand-blad { padding: 18px; gap: 12px; }
-.hand-laag.tel .hand-vraag { flex-direction: column; align-items: stretch; gap: 6px; }
-.hand-laag.tel .hand-zet { flex: 1; }
+.hand-laag.op-tel .hand-blad { padding: 18px; gap: 12px; }
+.hand-laag.op-tel .hand-vraag { flex-direction: column; align-items: stretch; gap: 6px; }
+.hand-laag.op-tel .hand-zet { flex: 1; }
+/* Witgoed dat nog niet klaarstaat (besluit 245): een regel op de kaart, en de stappen in het blad. */
+.wg-regel { margin: 0; color: var(--zon-t); font-weight: 600; }
+.wg-stappen { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.wg-stappen li { display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-radius: 14px; background: rgb(var(--wit) / 0.05); font-size: 14.5px; line-height: 1.4; }
+.wg-stappen i { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 13px; font-weight: 800; background: rgb(247 181 72 / 0.2); color: var(--zon-t); }
 /* Wat nu met de hand of op zon loopt, bij Te doen en Vast en gepland (besluit 238). */
 .nu-regels { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .nu-regel { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 18px; background: rgb(247 181 72 / 0.08); border: 1px solid rgb(247 181 72 / 0.25); color: var(--tekst); text-decoration: none; }
@@ -751,8 +763,8 @@ html.tel-stand.sc-voorbeeld #tel { padding-bottom: 150px; }
 html.tel-stand .vb-terug .vb-lang { display: none; }
 html.tel-stand .vb-terug .vb-kort { display: inline; }
 /* In het voorbeeld staat de balk van de dag onderaan: het blad stopt erboven. */
-html.sc-voorbeeld .hand-laag:not(.tel) .hand-vel { bottom: 124px; }
+html.sc-voorbeeld .hand-laag:not(.op-tel) .hand-vel { bottom: 124px; }
 /* Op de telefoon gaat het blad over de balk heen, zoals elk blad van onderen. */
-html.sc-voorbeeld .hand-laag.tel { z-index: 93; }
+html.sc-voorbeeld .hand-laag.op-tel { z-index: 93; }
 /* De rondleiding (via het vraagteken) gaat over de balk heen. */
 html.sc-voorbeeld .rl-kaart { z-index: 92; }

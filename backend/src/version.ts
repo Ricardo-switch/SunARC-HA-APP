@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.112.0';
+export const VERSIE = '0.113.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,24 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.113.0',
+    datum: '2026-11-02',
+    beter: [
+      'Te doen is rustiger: drie kolommen, boodschappen en to-do als tabbladen onder de herinneringen, en je agenda’s ingeklapt tot één regel',
+      'De droger, de wasmachine en de vaatwasser zijn altijd aan te tikken; staat hij nog niet klaar, dan zie je hoe je hem klaarzet',
+      'Over deze app staat ook bij Bewoners en toegang',
+    ],
+    opgelost: ['Op een brede telefoon liet het blad van een apparaat rechts een strook open'],
+    en: {
+      beter: [
+        'To do is calmer: three columns, shopping and to-do as tabs under the reminders, and your calendars folded into one line',
+        'The dryer, washing machine and dishwasher can always be tapped; if it is not ready yet, you see how to get it ready',
+        'About this app is also under Residents and access',
+      ],
+      opgelost: ['On a wide phone, the sheet of a device left a strip open on the right'],
+    },
+  },
   {
     versie: '0.112.0',
     datum: '2026-11-02',

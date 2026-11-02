@@ -243,6 +243,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [239. Wat de app zegt, klopt met wat er in huis gebeurt](#239-wat-de-app-zegt-klopt-met-wat-er-in-huis-gebeurt)
 - [240. Nieuw in Vast en gepland: zeg het, of kies het zelf in vier stappen](#240-nieuw-in-vast-en-gepland-zeg-het-of-kies-het-zelf-in-vier-stappen)
 - [244. Een taak als één zin, en + Nieuw op Te doen](#244-een-taak-als-één-zin-en--nieuw-op-te-doen)
+- [245. Te doen in drie kolommen, witgoed altijd aan te tikken](#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken)
 
 **Veiligheid**
 
@@ -11307,6 +11308,37 @@ zijn vier keuzes waren steeds de aanbevolen.
 - **In de tekening van het huis** staat het dak op een muurtje (knieschot)
   als de zolder kamers heeft, zodat de zolder hoger is (Ricardo, zelfde dag).
 - **Versie 0.112.0.**
+
+---
+
+## 245. Te doen in drie kolommen, witgoed altijd aan te tikken
+
+*Onderwerp: weergave · Status: geldig*
+
+2 november 2026. De bewoner, na 0.112.0: vier kolommen zijn op de wand te
+breed, en bovenaan is het druk. Witgoed was alleen aan te tikken als het al
+klaarstond, dus wist je niet dat er iets mee kon. En Over deze app hoort ook
+bij Bewoners en toegang. Zijn keuzes waren de aanbevolen.
+
+*Besluit:*
+
+- **Te doen in drie kolommen:** herinneringen met daaronder Boodschappen en
+  To-do als twee tabbladen (één lijst tegelijk), Vast en gepland, en de agenda.
+- **Rustig bovenaan:** alleen Te doen, de datum en + Nieuw. De tip over zeggen
+  staat al onder + Nieuw. De agenda's met hun kleur zijn ingeklapt tot één
+  regel ("3 agenda's ›") bovenaan de agendakolom; open staat er Agenda's
+  kiezen bij. De kleur blijft als stip bij elke afspraak.
+- **Witgoed altijd aan te tikken:** elk apparaat dat op de bewoner kan wachten
+  (droger, wasmachine, vaatwasser). Staat hij klaar, dan het blad van besluit
+  238; anders zegt de kaart "Hoe zet ik hem klaar? ›" en toont het blad de drie
+  stappen, met Nu starten als dat kan. De kaart zei "Dan kies ik het moment";
+  dat is nu "Dan kiest SunArc het moment" (geen ik-vorm).
+- **Over deze app** staat als deel bij Bewoners en toegang, ook voor een gast.
+- **Opgelost:** het blad van een apparaat op de telefoon had de klasse `tel`,
+  en die is in kit.css het telefoonframe van de schetsen, 390 breed. Op een
+  bredere telefoon bleef rechts een strook open. Het heet nu `op-tel`; de
+  paginatest meet het op 430 breed.
+- **Versie 0.113.0.**
 
 ---
 

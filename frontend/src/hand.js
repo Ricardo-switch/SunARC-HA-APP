@@ -137,8 +137,25 @@
       <div class="hand-onder">${terugKnop}<button type="button" class="hand-zet" data-hand-zet ${kan ? '' : 'disabled'}>${esc(zet)}</button></div>`;
   }
 
-  /** Het blad van witgoed: uiterlijk klaar, en Nu starten (besluit 238). */
+  /**
+   * Witgoed dat (nog) niet klaarstaat (besluit 245): hoe je hem klaarzet, of dat
+   * hij nu draait. Zo weet je dat er iets mee kan, ook voordat hij wacht.
+   */
+  function witgoedUitleg(d, stand) {
+    const draait = d.stand === 'running';
+    const stappen = ['vul', 'afstand', 'kies'].map((s, i) => `<li><i>${i + 1}</i><span>${esc(t(`witgoed.stap.${s}`))}</span></li>`).join('');
+    const nu = stand?.kan ? `<button type="button" class="hand-terug" data-wg-start>${esc(t('witgoed.nuStarten'))}</button>` : '';
+    // De zin van de kaart niet nog eens: de stappen zeggen hetzelfde, uitgebreider.
+    return `${kopVan(d.naam, d.kop)}
+      <div class="hand-vraag hand-kolom"><span>${esc(t(draait ? 'witgoed.straks' : 'witgoed.zoKlaar'))}</span><ol class="wg-stappen">${stappen}</ol></div>
+      <div class="hand-hoe">${esc(t('witgoed.hoe'))}</div>
+      ${fout ? `<p class="hand-fout">${esc(fout)}</p>` : ''}
+      <div class="hand-onder">${nu}<button type="button" class="hand-zet" data-hand-sluit>${esc(t('witgoed.begrepen'))}</button></div>`;
+  }
+
+  /** Het blad van witgoed: uiterlijk klaar, en Nu starten (besluit 238); staat hij niet klaar, de uitleg. */
   function witgoedBlad(d) {
+    if (!d.kanKiezen) return witgoedUitleg(d, (witgoed?.apparaten ?? []).find((x) => x.id === d.id));
     const stappen = [{ tekst: t('apparaten.geenHaast'), waarde: null }, ...(d.stappen ?? [])];
     const s = stappen[open.stap] ?? stappen[0];
     const stand = (witgoed?.apparaten ?? []).find((x) => x.id === d.id);
@@ -175,7 +192,8 @@
       laag.setAttribute('aria-modal', 'true');
       (telStand() ? document.body : (document.getElementById('wand') ?? document.body)).append(laag);
     }
-    laag.classList.toggle('tel', telStand());
+    // Niet 'tel': die klasse is in kit.css het telefoonframe van de schetsen, 390 breed (2 november 2026).
+    laag.classList.toggle('op-tel', telStand());
     const naam = open.wg ? open.wg.naam : vind(open.id)?.naam ?? '';
     laag.setAttribute('aria-label', naam);
     const inhoud = open.wg ? witgoedBlad(open.wg) : (() => {

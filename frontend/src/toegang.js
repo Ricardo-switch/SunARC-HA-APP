@@ -53,8 +53,10 @@ function delen() {
   const inlog = !sessie ? '…' : sessie.toegang === 'open' ? t('instellingen.geenInlog') : sessie.ingelogd ? `${sessie.naam ?? t('toegang.ingelogd')}${sessie.rol ? `, ${t(`toegang.rol.${sessie.rol}`)}` : ''}` : t('toegang.nietIngelogd');
   const namen = bewoners ? bewoners.bewoners.map((b) => b.naam).join(', ') || t('instellingen.nogNiemand') : '…';
   const versie = { id: 'versie', titel: t('toegang.versie'), zin: health?.nummer ? t('toegang.versieNieuw', { nummer: health.nummer }) : '…', stand: health ? 'goed' : null };
-  // Een gast (besluit 151): alleen wie hij is en de versie; instellingen veranderen kan hij niet.
-  if (isGast()) return [{ id: 'bewoners', titel: t('jij.kop'), zin: inlog, stand: sessie ? 'goed' : null }, versie];
+  // Over deze app (besluit 245): dezelfde pagina als een tik op het logo.
+  const over = { id: 'over', href: 'over.html', titel: t('over.kop'), zin: t('toegang.overZin'), stand: 'goed' };
+  // Een gast (besluit 151): alleen wie hij is, de versie en over; instellingen veranderen kan hij niet.
+  if (isGast()) return [{ id: 'bewoners', titel: t('jij.kop'), zin: inlog, stand: sessie ? 'goed' : null }, versie, over];
   return [
     // Bewoners opent meteen zijn eigen pagina (besluit 227): hier stond alleen een knop erheen.
     { id: 'bewoners', href: 'bewoners.html', titel: t('instellingen.bewoners'), zin: namen, stand: bewoners ? 'goed' : null },
@@ -62,6 +64,7 @@ function delen() {
     ...(sleutel && integratie?.toegevoegd !== true ? [{ id: 'assistent', titel: t('toegang.sleutel'), zin: t('toegang.voorHA'), stand: 'goed' }] : []),
     { id: 'gegevens', titel: t('toegang.gegevens'), zin: gegevens?.bestanden != null ? t('toegang.dagenBewaard', { n: gegevens.bestanden }) : '…', stand: gegevens ? 'goed' : null },
     versie,
+    over,
   ];
 }
 

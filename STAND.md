@@ -325,7 +325,9 @@ verwijzing bestaat.
   tikbare stukken, met meerdere apparaten per kamer die per soort samen doen,
   en heeft Te doen één knop + Nieuw (herinnering of taak) en een eigen kolom
   Vast en gepland. In de tekening staat het dak op een muurtje als de zolder
-  kamers heeft ([244]).
+  kamers heeft ([244]). Te doen heeft drie kolommen, met de lijsten als
+  tabbladen onder de herinneringen en de agenda's ingeklapt; witgoed is altijd
+  aan te tikken, ook als het nog niet klaarstaat ([245]).
 - **De integratie heet sunarc:** de add-on zet een oude installatie over, en de
   integratie gaat naar de standaardlijst van HACS, zodat Home Assistant haar
   installaties onder de eigen naam telt ([241]).
@@ -808,4 +810,5 @@ verwijzing bestaat.
 [242]: DECISIONS.md#242-uit-de-leerstand-één-image-en-vandaag-van-vóór-het-openen
 [243]: DECISIONS.md#243-weer-in-het-voorbeeldhuis
 [244]: DECISIONS.md#244-een-taak-als-één-zin-en--nieuw-op-te-doen
+[245]: DECISIONS.md#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken
 <!-- links:einde -->
