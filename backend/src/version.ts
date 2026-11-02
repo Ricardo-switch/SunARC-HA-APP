@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.111.0';
+export const VERSIE = '0.112.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,22 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.112.0',
+    datum: '2026-11-02',
+    nieuw: [
+      'Een taak als één zin: kies meerdere apparaten per kamer, en lees meteen wat het huis gaat doen. "Elke werkdag om 07:00 gaan de keukenlamp en de hal aan."',
+      'Op Te doen één knop + Nieuw voor een herinnering of een taak, en Vast en gepland als eigen kolom',
+    ],
+    beter: ['Wordt de zolder gebruikt, dan staat het dak in de tekening op een muurtje, zodat de zolder hoger is'],
+    en: {
+      nieuw: [
+        'A task as one sentence: choose several devices per room, and read right away what the house will do. "Every weekday at 07:00 the kitchen light and the hall turn on."',
+        'On To do one + New button for a reminder or a task, and Regular and planned as its own column',
+      ],
+      beter: ['When the attic is in use, the roof in the drawing stands on a low wall, so the attic is taller'],
+    },
+  },
   {
     versie: '0.111.0',
     datum: '2026-11-02',

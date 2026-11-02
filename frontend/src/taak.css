@@ -1,0 +1,153 @@
+/*
+ * Een nieuwe taak als één zin (besluit 244, schets Wand-Nieuw-Taak), van
+ * plannen.js. Op Te doen en op Vast en gepland. Op de wand een blad over de
+ * pagina: links de zin met eronder de keuze, rechts je dag. Op de telefoon van
+ * onderen, alles onder elkaar.
+ */
+
+/* Het blad ligt in dezelfde cel als de pagina; allebei een vaste plek, anders schuift de pagina een rij omlaag. */
+#wand > main, .pl-laag { grid-column: 2; grid-row: 1; }
+.pl-laag { position: relative; z-index: 6; min-height: 0; }
+/* In het voorbeeldhuis staat de balk van de dag onderaan: op de wand stopt het blad erboven, op de telefoon gaat het eroverheen. */
+html.sc-voorbeeld #wand .tk-blad { bottom: 112px; }
+html.sc-voorbeeld #tel .pl-laag { z-index: 93; }
+
+.tk-blad { position: absolute; inset: 18px 22px 18px 18px; display: grid; grid-template-columns: minmax(0, 1fr) 380px; border-radius: 28px; overflow: hidden; background: rgb(var(--nacht) / 0.97); border: 1px solid var(--glas-rand); box-shadow: 0 30px 90px rgb(0 0 0 / 0.55); }
+.tk-blad > section { padding: 24px 30px 22px; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+.tk-blad button { font: inherit; color: inherit; cursor: pointer; }
+.tk-blad button:disabled { cursor: default; opacity: 0.45; }
+.tk-sluit { position: absolute; right: 18px; top: 16px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgb(var(--wit) / 0.08); color: var(--tekst); font-size: 18px; z-index: 2; }
+.tk-soortje { font-size: 12.5px; font-weight: 700; color: var(--zon-t); letter-spacing: 0.03em; text-transform: uppercase; }
+.tk-rechts .tk-soortje { color: var(--gedempt); }
+.tk-leeg, .tk-uitleg { margin: 0; color: var(--zacht); font-size: 14px; }
+.tk-fout { color: #ffb090; font-size: 14px; }
+
+/* De zin: groot, elk stuk onderstreept en aan te tikken; het open stuk licht op. */
+.tk-zin { margin: -4px 0 0; padding-right: 40px; font-family: var(--kop); font-size: 34px; font-weight: 600; line-height: 1.32; letter-spacing: -0.01em; }
+.tk-stuk { color: var(--zon-t); text-decoration: underline dashed rgb(247 181 72 / 0.45) 2px; text-underline-offset: 7px; cursor: pointer; }
+.tk-stuk.open { color: #0b1424; background: var(--zon); border-radius: 12px; padding: 0 8px; text-decoration: none; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.tk-stuk.nog { color: rgb(170 185 200 / 0.6); text-decoration-color: rgb(170 185 200 / 0.35); }
+.tk-stuk.nog.open { color: #0b1424; }
+
+/* Eronder de keuze voor het open stuk. */
+.tk-paneel { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid rgb(var(--wit) / 0.07); padding-top: 14px; }
+.tk-kop { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--gedempt); letter-spacing: 0.03em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 16px; }
+.tk-kop em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--zacht); text-align: right; }
+
+/* Wat: per etage, per kamer, de apparaten om aan te vinken. */
+.tk-huis { columns: 3; column-gap: 12px; }
+/* Een verdieping bij elkaar als het past; een hoge breekt wel, per kamer. */
+.tk-etage { break-inside: avoid; }
+.tk-etage > span { display: block; break-after: avoid; margin: 2px 0 6px; font-size: 12px; font-weight: 700; color: var(--gedempt); letter-spacing: 0.04em; text-transform: uppercase; }
+.tk-kamer { break-inside: avoid; margin-bottom: 10px; padding: 4px 6px 6px; border-radius: 16px; background: rgb(var(--wit) / 0.045); }
+.tk-kamer.gekozen { background: rgb(247 181 72 / 0.08); box-shadow: inset 0 0 0 1.5px rgb(247 181 72 / 0.35); }
+.tk-kamer header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 2px 8px; }
+.tk-kamer header b { font-size: 15px; font-weight: 600; }
+.tk-heel { border: 0; background: none; padding: 4px 6px; font-size: 12.5px !important; font-weight: 700; color: var(--zacht) !important; white-space: nowrap; }
+.tk-heel[aria-pressed='true'] { color: var(--zon-t) !important; }
+.tk-heel[aria-pressed='true']::after { content: ' ✓'; }
+.tk-app { width: 100%; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 0; border-radius: 11px; background: none; color: var(--zacht) !important; font-size: 14px; text-align: left; }
+.tk-app svg { width: 18px; height: 18px; flex: none; }
+.tk-app span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-app i { width: 20px; height: 20px; flex: none; border-radius: 7px; border: 2px solid rgb(var(--wit) / 0.22); box-sizing: border-box; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 800; }
+.tk-app[aria-pressed='true'] { color: var(--tekst) !important; background: rgb(var(--wit) / 0.05); }
+.tk-app[aria-pressed='true'] i { background: var(--zon); border-color: var(--zon); color: #0b1424; }
+.tk-app[aria-pressed='true'] i::after { content: '✓'; }
+
+/* Wanneer en hoe vaak, naast elkaar. */
+.tk-twee { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.tk-vraag { display: flex; flex-direction: column; gap: 10px; }
+.tk-vraag > span { font-size: 12.5px; font-weight: 700; color: var(--gedempt); letter-spacing: 0.03em; text-transform: uppercase; }
+.tk-seg { display: flex; padding: 3px; border-radius: 14px; background: rgb(var(--wit) / 0.06); }
+.tk-seg button { flex: 1; min-width: 0; height: 42px; padding: 0 8px; border: 0; border-radius: 11px; background: transparent; color: var(--zacht) !important; font-size: 14.5px; font-weight: 600; white-space: nowrap; }
+.tk-seg button[aria-pressed='true'] { background: rgb(var(--wit) / 0.14); color: var(--tekst) !important; }
+.tk-tijd { align-self: flex-start; height: 58px; padding: 0 16px; border-radius: 15px; border: 1px solid var(--glas-rand); background: rgb(var(--wit) / 0.05); color: var(--tekst); font: inherit; font-family: var(--kop); font-size: 34px; color-scheme: dark; }
+.tk-stapper { display: flex; align-items: center; gap: 12px; }
+.tk-stapper button { width: 46px; height: 46px; flex: none; border-radius: 14px; border: 0; background: rgb(var(--wit) / 0.08); font-size: 21px; font-weight: 600; }
+.tk-stapper b { flex: 1; text-align: center; font-family: var(--kop); font-size: 24px; font-weight: 600; }
+.tk-zo { font-size: 14px; color: var(--zon-t); }
+.tk-keus { display: flex; flex-direction: column; border-radius: 16px; background: rgb(var(--wit) / 0.05); padding: 2px 16px; }
+.tk-keus button { display: flex; align-items: center; gap: 10px; padding: 11px 0; border: 0; border-top: 1px solid rgb(var(--wit) / 0.06); background: none; font-size: 15px; text-align: left; }
+.tk-keus button:first-child { border-top: 0; }
+.tk-keus span { flex: 1; }
+.tk-keus small { color: var(--gedempt); font-size: 13px; }
+.tk-keus [aria-pressed='true'] { font-weight: 700; }
+.tk-keus [aria-pressed='true']::after { content: '✓'; color: var(--zon-t); font-weight: 800; }
+.tk-dagen { display: flex; gap: 5px; padding: 3px; border-radius: 13px; background: rgb(var(--wit) / 0.06); }
+.tk-dagen button { flex: 1; height: 38px; border: 0; border-radius: 10px; background: transparent; color: var(--zacht) !important; font-size: 14px; font-weight: 700; }
+.tk-dagen button[aria-pressed='true'] { background: rgb(247 181 72 / 0.22); color: var(--zon-t) !important; }
+
+/* Hoe: per soort samen, en per apparaat los als uitzondering. */
+.tk-soorten { display: flex; flex-direction: column; gap: 10px; }
+.tk-soort { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(0, 340px); gap: 6px 16px; align-items: center; padding: 14px 18px; border-radius: 18px; background: rgb(var(--wit) / 0.05); }
+.tk-soort > svg { width: 28px; height: 28px; color: var(--zon-t); }
+.tk-soort b { display: block; font-size: 16px; font-weight: 600; }
+.tk-soort small { display: block; font-size: 13px; color: var(--gedempt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-los { margin-top: 4px; border: 0; background: none; padding: 0; font-size: 13px !important; font-weight: 700; color: var(--zon-t) !important; }
+.tk-klimaat { display: flex; flex-direction: column; gap: 8px; }
+.tk-klimaat .tk-stapper b { font-size: 22px; }
+.tk-apart { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 6px; }
+.tk-apart > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 12px; align-items: center; font-size: 14px; }
+.tk-apart > div > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-apart .tk-seg button { height: 36px; font-size: 13.5px; }
+
+/* Klaar. */
+.tk-rij { display: flex; align-items: center; gap: 14px; font-size: 15px; padding: 13px 16px; border-radius: 16px; background: rgb(var(--wit) / 0.05); }
+.tk-rij span { flex: 1; }
+.tk-rij small { display: block; font-size: 13px; color: var(--gedempt); }
+
+/* Zeg het. */
+.tk-invoer { display: flex; align-items: center; gap: 8px; padding: 7px; border-radius: 18px; background: rgb(5 10 20 / 0.6); border: 1px solid rgb(143 134 255 / 0.4); }
+.tk-invoer input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 0; background: none; color: var(--tekst); font: inherit; font-size: 16px; outline: none; }
+.tk-mic { width: 44px; height: 44px; flex: none; border-radius: 14px; border: 0; background: rgb(143 134 255 / 0.2); color: var(--violet-t) !important; display: grid; place-items: center; }
+.tk-mic.aan { background: var(--violet); color: #0b1424 !important; }
+.tk-mic svg { width: 21px; height: 21px; }
+.tk-maak { height: 44px; padding: 0 20px; flex: none; border-radius: 14px; border: 0; background: var(--violet); color: #0b1424 !important; font-weight: 700 !important; }
+.tk-voorbeelden { display: flex; flex-direction: column; border-radius: 16px; background: rgb(var(--wit) / 0.04); padding: 2px 16px; }
+.tk-voorbeelden button { display: flex; gap: 10px; align-items: center; padding: 11px 0; border: 0; border-top: 1px solid rgb(var(--wit) / 0.06); background: none; text-align: left; font-size: 15px; }
+.tk-voorbeelden button:first-child { border-top: 0; }
+.tk-voorbeelden button span { flex: 1; }
+.tk-voorbeelden button span::before { content: '“ '; font-family: var(--kop); color: var(--violet-t); }
+.tk-voorbeelden button i { font-style: normal; color: var(--gedempt); font-size: 18px; }
+
+/* Onderaan: wat je koos, of hulp, en de knop. */
+.tk-onder { display: flex; align-items: center; gap: 14px; min-height: 50px; }
+.tk-onder > span { flex: 1; min-width: 0; font-size: 14px; color: var(--zacht); }
+.tk-samen { color: var(--tekst) !important; font-weight: 600; }
+.tk-hulp { color: var(--gedempt) !important; }
+.tk-link { border: 0; background: none; padding: 0; color: var(--violet-t) !important; font-weight: 700; }
+.tk-verder { margin-left: auto; height: 50px; padding: 0 30px; border-radius: 16px; border: 0; background: var(--tekst); color: var(--inkt) !important; font-weight: 700; font-size: 16px; }
+.tk-verder.zon { background: var(--zon); color: #0b1424 !important; }
+
+/* Rechts: je dag. */
+.tk-rechts { background: linear-gradient(180deg, rgb(247 181 72 / 0.07), rgb(143 134 255 / 0.06)); border-left: 1px solid rgb(var(--wit) / 0.06); }
+.tk-boog { border-radius: 20px; background: rgb(5 10 20 / 0.45); overflow: hidden; flex: none; }
+.tk-boog svg { display: block; width: 100%; height: 210px; }
+.tk-komend { display: flex; flex-direction: column; border-radius: 16px; background: rgb(var(--wit) / 0.04); padding: 2px 16px; }
+.tk-komend div { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid rgb(var(--wit) / 0.06); font-size: 14.5px; }
+.tk-komend div:first-child { border-top: 0; }
+.tk-komend b { font-weight: 600; }
+.tk-komend span { color: var(--gedempt); }
+.tk-let { margin: auto 0 0; font-size: 13px; color: var(--gedempt); line-height: 1.45; }
+
+/* De telefoon: van onderen, alles onder elkaar. */
+#tel .pl-laag { position: fixed; inset: 0; z-index: 70; }
+#tel .pl-achter { position: absolute; inset: 0; background: rgb(4 8 16 / 0.6); }
+#tel .tk-blad { inset: 54px 0 0 0; display: flex; flex-direction: column; border-radius: 26px 26px 0 0; background: rgb(var(--nacht)); }
+#tel .tk-greep { align-self: center; flex: none; width: 40px; height: 5px; margin-top: 10px; border-radius: 3px; background: rgb(var(--wit) / 0.18); }
+#tel .tk-sluit { top: 12px; right: 14px; width: 32px; height: 32px; font-size: 16px; }
+#tel .tk-links { flex: 1; padding: 10px 18px calc(14px + env(safe-area-inset-bottom)); gap: 12px; }
+#tel .tk-zin { font-size: 23px; line-height: 1.38; }
+#tel .tk-stuk.open { border-radius: 9px; padding: 0 6px; }
+#tel .tk-kop em { display: none; }
+#tel .tk-huis { columns: 1; }
+#tel .tk-twee { grid-template-columns: 1fr; gap: 14px; }
+#tel .tk-soort { grid-template-columns: 28px minmax(0, 1fr); padding: 12px 14px; }
+#tel .tk-soort > .tk-seg, #tel .tk-klimaat { grid-column: 1 / -1; }
+#tel .tk-apart { grid-column: 1 / -1; }
+#tel .tk-apart > div { grid-template-columns: 1fr; gap: 4px; }
+#tel .tk-tijd { font-size: 28px; height: 52px; }
+#tel .tk-boog svg { height: 160px; }
+#tel .tk-verder { flex: 1; }
+#tel .tk-onder { flex-wrap: wrap; }
+#tel .tk-onder > span { flex-basis: 100%; }

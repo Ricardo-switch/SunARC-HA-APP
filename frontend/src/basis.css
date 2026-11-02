@@ -523,6 +523,37 @@ html.sc-stil::view-transition-group(*), html.sc-stil::view-transition-old(*), ht
 .tdp .pil.licht { background: var(--tekst); color: var(--inkt); border-color: transparent; }
 .tdp .pil:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
 .tdp-drie { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; min-height: 0; }
+/* Met Vast en gepland als eigen kolom (besluit 244): herinneringen, taken, agenda, lijsten. */
+.tdp-drie.vier { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.05fr) minmax(0, 0.95fr) minmax(0, 1.1fr); }
+.tdp { position: relative; }
+.td-boog { display: block; flex: none; border-radius: 14px; background: rgb(5 10 20 / 0.4); overflow: hidden; }
+.td-boog svg { display: block; width: 100%; height: 84px; }
+.td-taak { display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgb(var(--wit) / 0.06); }
+.td-taak:first-of-type, .td-boog + .td-taak { border-top: 0; }
+.td-taak-uur { font-family: var(--kop); font-size: 16px; font-weight: 600; }
+.td-taak-uur.zon { color: var(--zon-t); }
+.td-taak .td-wat b { font-size: 14px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.td-taak .td-wat span { font-size: 12.5px; }
+.td-taak.uit { opacity: 0.5; }
+.td-taak .schakelaar { width: 42px; height: 26px; }
+/* + Nieuw: twee wegen en zeg het, onder de knop. */
+.td-keuze-achter { position: fixed; inset: 0; z-index: 7; background: rgb(5 9 18 / 0.45); }
+.td-keuze { position: absolute; right: 0; top: 66px; z-index: 8; width: 520px; padding: 14px; border-radius: 26px; background: rgb(var(--nacht) / 0.98); border: 1px solid var(--glas-rand); box-shadow: 0 30px 80px rgb(0 0 0 / 0.55); display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.td-weg { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px; border-radius: 20px; color: var(--tekst); font: inherit; text-align: left; cursor: pointer; }
+.td-weg svg { width: 38px; height: 38px; margin-bottom: 4px; }
+.td-weg b { font-family: var(--kop); font-size: 22px; font-weight: 600; }
+.td-weg span { font-size: 14px; color: var(--zacht); line-height: 1.4; }
+.td-weg small { margin-top: auto; padding-top: 6px; font-size: 13px; color: var(--gedempt); font-style: italic; }
+.td-weg.herinnering { background: radial-gradient(120% 100% at 0% 0%, rgb(111 211 255 / 0.2), rgb(111 211 255 / 0.03) 65%); border: 1px solid rgb(111 211 255 / 0.3); color: var(--ijs-t); }
+.td-weg.taak { background: radial-gradient(120% 100% at 100% 0%, rgb(247 181 72 / 0.24), rgb(247 181 72 / 0.04) 65%); border: 1px solid rgb(247 181 72 / 0.38); color: var(--zon-t); }
+.td-weg b, .td-weg span, .td-weg small { color: var(--tekst); }
+.td-weg span, .td-weg small { color: var(--zacht); }
+.td-keuze:has(.td-weg:only-of-type) { grid-template-columns: 1fr; width: 300px; }
+.td-zeg { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 16px; border-radius: 16px; background: rgb(143 134 255 / 0.1); border: 1px solid rgb(143 134 255 / 0.3); }
+.td-zeg input { flex: 1; min-width: 0; height: 40px; border: 0; background: none; color: var(--tekst); font: inherit; font-size: 14.5px; outline: none; }
+.td-zeg input::placeholder { color: var(--zacht); }
+.td-zeg button { width: 40px; height: 40px; flex: none; border-radius: 12px; border: 0; background: var(--violet); color: #0b1424; display: grid; place-items: center; cursor: pointer; }
+.td-zeg button svg { width: 20px; height: 20px; }
 .tdp-vak { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: auto; }
 .tdp-vak h2 { margin: 0; font-family: var(--kop); font-size: 19px; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .tdp-vak h2 a, .tdp-vak h2 em { font: 600 13px var(--romp); font-style: normal; color: var(--accent); text-decoration: none; }
@@ -561,6 +592,15 @@ html.sc-stil::view-transition-group(*), html.sc-stil::view-transition-old(*), ht
 #tel .tdp-kop, .tel-stand .tdp-kop { flex-direction: column; align-items: stretch; gap: 10px; }
 #tel .tdp-kop h1, .tel-stand .tdp-kop h1 { font-size: 34px; }
 #tel .tdp-drie, .tel-stand .tdp-drie { grid-template-columns: 1fr; }
+/* + Nieuw op de telefoon: van onderen, de twee wegen onder elkaar. */
+#tel .td-keuze { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(96px + env(safe-area-inset-bottom)); width: auto; grid-template-columns: 1fr; z-index: 71; }
+#tel .td-keuze-achter { z-index: 70; }
+#tel .td-weg { padding: 14px 16px; }
+#tel .td-weg svg { width: 30px; height: 30px; }
+#tel .td-weg b { font-size: 19px; }
+#tel .td-weg small { display: none; }
+/* In het voorbeeldhuis staat de balk van de dag boven de tabs: de keuze daarboven. */
+html.sc-voorbeeld #tel .td-keuze { bottom: calc(250px + env(safe-area-inset-bottom)); }
 #tel .tdp-vak, .tel-stand .tdp-vak { overflow: visible; padding: 14px; }
 
 .td-moment { position: fixed; inset: 0; z-index: 1050; background: radial-gradient(ellipse at 32% 45%, rgba(40, 30, 90, 0.92), rgba(6, 10, 20, 0.96) 70%); backdrop-filter: blur(8px); }

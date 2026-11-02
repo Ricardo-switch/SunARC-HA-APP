@@ -197,16 +197,20 @@ export function leesAanpassing(body: Record<string, unknown>): Aanpassing | stri
   return w;
 }
 
+/** Zoveel stappen mag één taak hebben: genoeg voor een paar kamers tegelijk (besluit 244). */
+export const MAX_STAPPEN = 12;
+
 /**
- * Een nieuwe opdracht uit Nieuw (besluit 240): een naam, één tot zes stappen
- * door de deuren die later mogen, en verplicht wanneer en hoe vaak. Aan en
- * overslaan als niemand thuis is mogen weg. Een tekst als er iets niet klopt.
+ * Een nieuwe opdracht uit Nieuw (besluit 240): een naam, één tot twaalf stappen
+ * door de deuren die later mogen (meerdere apparaten in één taak, besluit 244),
+ * en verplicht wanneer en hoe vaak. Aan en overslaan als niemand thuis is mogen
+ * weg. Een tekst als er iets niet klopt.
  */
 export function leesPlan(body: Record<string, unknown>): { readonly tekst: string; readonly opdracht: GeplandeOpdracht } | string {
   const tekst = typeof body['tekst'] === 'string' ? body['tekst'].trim() : '';
   if (tekst === '' || tekst.length > 120) return 'tekst is 1 tot 120 tekens';
   const ruw = body['stappen'];
-  if (!Array.isArray(ruw) || ruw.length < 1 || ruw.length > 6) return 'stappen is een lijst van 1 tot 6';
+  if (!Array.isArray(ruw) || ruw.length < 1 || ruw.length > MAX_STAPPEN) return `stappen is een lijst van 1 tot ${MAX_STAPPEN}`;
   const stappen: Stap[] = [];
   for (const s of ruw) {
     const st = leesStap(s);

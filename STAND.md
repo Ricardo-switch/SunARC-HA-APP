@@ -320,9 +320,12 @@ verwijzing bestaat.
 - **Wat de app zegt, klopt:** verwarmt of koelt een apparaat echt, dan staat dat er;
   een kamer boven het doel is op temperatuur; Vandaag zegt "zou" als het apparaat
   iets anders deed, en thuiskomen telt meteen voor het comfort ([239]).
-- **Nieuw in Vast en gepland:** zeg het, of kies het zelf in vier stappen (wat,
-  wanneer, hoe vaak, klaar), met de zin en de boog die meegroeien; ook klimaat
-  met de hand en witgoed op een tijd ([240]).
+- **Nieuw in Vast en gepland:** zeg het, of kies het zelf; ook klimaat met de
+  hand en witgoed op een tijd ([240]). Sinds [244] is een taak één zin met
+  tikbare stukken, met meerdere apparaten per kamer die per soort samen doen,
+  en heeft Te doen één knop + Nieuw (herinnering of taak) en een eigen kolom
+  Vast en gepland. In de tekening staat het dak op een muurtje als de zolder
+  kamers heeft ([244]).
 - **De integratie heet sunarc:** de add-on zet een oude installatie over, en de
   integratie gaat naar de standaardlijst van HACS, zodat Home Assistant haar
   installaties onder de eigen naam telt ([241]).
@@ -804,4 +807,5 @@ verwijzing bestaat.
 [241]: DECISIONS.md#241-de-integratie-heet-sunarc-en-gaat-naar-de-standaardlijst-van-hacs
 [242]: DECISIONS.md#242-uit-de-leerstand-één-image-en-vandaag-van-vóór-het-openen
 [243]: DECISIONS.md#243-weer-in-het-voorbeeldhuis
+[244]: DECISIONS.md#244-een-taak-als-één-zin-en--nieuw-op-te-doen
 <!-- links:einde -->

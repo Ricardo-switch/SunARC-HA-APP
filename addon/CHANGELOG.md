@@ -1,5 +1,29 @@
 # Wat is er nieuw · What is new
 
+## 0.112.0
+
+*2 november 2026*
+
+**Nieuw**
+
+- Een taak als één zin: kies meerdere apparaten per kamer, en lees meteen wat het huis gaat doen. "Elke werkdag om 07:00 gaan de keukenlamp en de hal aan."
+- Op Te doen één knop + Nieuw voor een herinnering of een taak, en Vast en gepland als eigen kolom
+
+**Beter**
+
+- Wordt de zolder gebruikt, dan staat het dak in de tekening op een muurtje, zodat de zolder hoger is
+
+*English*
+
+**New**
+
+- A task as one sentence: choose several devices per room, and read right away what the house will do. "Every weekday at 07:00 the kitchen light and the hall turn on."
+- On To do one + New button for a reminder or a task, and Regular and planned as its own column
+
+**Improved**
+
+- When the attic is in use, the roof in the drawing stands on a low wall, so the attic is taller
+
 ## 0.111.0
 
 *2 november 2026*
