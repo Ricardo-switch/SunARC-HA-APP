@@ -30,6 +30,17 @@ async function laad() {
   teken();
 }
 
+/*
+ * De zon elke tien minuten opnieuw (4 november 2026): eerst alleen bij het
+ * openen, en ging dat net mis (na een herstart), dan bleef het hier nacht.
+ */
+setInterval(() => {
+  haal('api/zon').then((z) => {
+    d.zon = z;
+    teken();
+  }, () => {});
+}, 10 * 60_000);
+
 /* ------------------------------------------------------------ de stappen */
 
 /** Acht hoofdstukken, elk met kleine stappen (besluit 144 en 190, schets Wand-Inrichten-3). */
@@ -1427,9 +1438,22 @@ function prijzenStap() {
     kop: t('inr.prijsKop'),
     uitleg: meters.length ? t('inr.prijsMeters', { meters: lijstje(meters) }) : t('inr.prijsZin'),
     inhoud: `<div class="chips">${CONTRACT.map(([w, x]) => knop(`data-contract="${w}"`, x, contract === w)).join('')}</div>
+      ${contract === 'dynamisch' ? uurprijsTip(p) : ''}
       ${velden ? `<div class="rijen kolom">${velden}</div>` : ''}
       <div class="noot">${esc(t('inr.prijsNoot'))}</div>`,
   };
+}
+
+/**
+ * Bij een dynamisch contract (issue 119): rekent Opbrengst met de uurprijs van
+ * Home Assistant, of wat er daar nog mist, met de sensor die hem al geeft.
+ */
+function uurprijsTip(p) {
+  const nu = d.energie?.prijsNu;
+  if (p.dynamisch) return tip(nu != null ? t('energie.uurprijsAan', { prijs: taal.geld(nu, 2) }) : t('energie.uurprijsAanZonder'));
+  const sensor = d.energie?.prijsSensoren?.[0] ?? null;
+  const erbij = sensor ? ` ${t(sensor.prijs != null ? 'energie.uurprijsSensor' : 'energie.uurprijsSensorZonder', { naam: sensor.naam, prijs: sensor.prijs != null ? taal.geld(sensor.prijs, 2) : '' })}` : '';
+  return tip(`${t('energie.uurprijsMist')}${erbij}`);
 }
 
 /* Gemak: licht en camera's in de app (besluit 130), en de wand die één keer inlogt. */
@@ -1823,7 +1847,7 @@ const BEVESTIG = {
 
 /** Lijsten die verder gaan dan de kaart, lopen zichtbaar uit (besluit 158). */
 function markeerMeer() {
-  $$('[data-kaart] .rijen').forEach((el) => {
+  $$('[data-kaart] .rijen, [data-kaart] > .midden').forEach((el) => {
     const zet = () => el.classList.toggle('meer', el.scrollHeight > el.clientHeight + 2 && el.scrollTop + el.clientHeight < el.scrollHeight - 2);
     el.onscroll = zet;
     zet();
@@ -1874,14 +1898,17 @@ function tekenNu() {
   getekend = nu;
   $$('[data-kaart]').forEach((el) => {
     const was = zelfde ? el.querySelector('.rijen')?.scrollTop ?? 0 : 0;
+    const wasMidden = zelfde ? el.querySelector(':scope > .midden')?.scrollTop ?? 0 : 0;
     el.innerHTML = `<span class="waar">${esc(v.waar)}</span>
       <h1 class="${v.groot ? 'kop-1' : 'kop-2'}" style="${v.groot ? 'font-size: 40px; line-height: 1.05' : ''}">${esc(v.kop)}</h1>
       <p class="uitleg">${esc(v.uitleg)}</p>
-      ${v.inhoud}
+      <div class="midden${nu === 'apparaat' ? ' groei' : ''}">${v.inhoud}</div>
       <span class="melding-inr${melding.fout ? ' fout' : ''}" data-melding>${esc(melding.tekst)}</span>
       <div class="voet">${links || '<span></span>'}${rechts}</div>`;
     const rijen = el.querySelector('.rijen');
     if (rijen && was) rijen.scrollTop = was;
+    const midden = el.querySelector(':scope > .midden');
+    if (midden && wasMidden) midden.scrollTop = wasMidden;
     app.segmenten(el);
   });
   markeerMeer();
@@ -2393,7 +2420,14 @@ document.addEventListener('click', async (e) => {
       a.tarief = tarief;
       await bewaarAansluiting(a);
     }
-    if (contractKeuze !== 'dagnacht' && energieNu()?.prijzen?.stroomDal != null) await bewaarPrijzen({ stroomDal: null });
+    const wijzig = {};
+    if (contractKeuze !== 'dagnacht' && energieNu()?.prijzen?.stroomDal != null) wijzig.stroomDal = null;
+    // De uurprijs van Home Assistant gaat mee met het contract (issue 119).
+    const dyn = d.energie?.voorstel?.prijzen?.dynamisch;
+    const heeft = !!energieNu()?.prijzen?.dynamisch;
+    if (tarief === 'dynamisch' && !heeft && dyn) wijzig.dynamisch = JSON.parse(JSON.stringify(dyn));
+    if (tarief !== 'dynamisch' && heeft) wijzig.dynamisch = null;
+    if (Object.keys(wijzig).length) await bewaarPrijzen(wijzig);
     else teken();
     return;
   }

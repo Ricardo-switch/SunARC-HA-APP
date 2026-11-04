@@ -1045,6 +1045,73 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
   }, 60_000);
 
   /*
+   * Inrichten op de wand (4 november 2026): bij Meter van nu viel Volgende
+   * onder de kaart weg en schoof er niets. Nu schuift de inhoud, en blijven de
+   * knoppen bij elke stap binnen de kaart en aan te tikken.
+   */
+  it('houdt op de wand bij elke stap van Inrichten de knoppen binnen de kaart', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    const stappen = ['woning', 'huis', 'buiten', 'bewoners', 'apparaten', 'meten', 'warmte', 'apparaat', 'comfort', 'afwezig', 'zekering', 'vermogen', 'zon', 'ligging', 'opzon', 'prijzen', 'functies', 'wand', 'ha', 'stem', 'account', 'klaar'];
+    for (const stap of stappen) {
+      await p.goto(`${baseUrl}/inrichten.html#${stap}`);
+      const kaart = p.locator('#wand [data-kaart]');
+      await kaart.locator('h1').waitFor({ timeout: 10_000 });
+      const knop = kaart.locator('.voet .knop, .voet .zachtknop').last();
+      await knop.waitFor();
+      // De gegevens komen na de eerste tekening: even laten opbouwen.
+      await p.waitForTimeout(300);
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', `-inr-${stap}.png`) });
+      // Zoals bij een huis met veel meters: de inhoud langer dan de kaart.
+      const maat = await kaart.evaluate((k) => {
+        const lang = k.ownerDocument.createElement('div');
+        lang.style.cssText = 'flex: none; height: 900px';
+        k.querySelector(':scope > .midden')!.append(lang);
+        const voet = k.querySelector(':scope > .voet')!.getBoundingClientRect();
+        const rand = k.getBoundingClientRect();
+        const knoppen = [...k.querySelectorAll(':scope > .voet .knop, :scope > .voet .zachtknop')].map((b) => {
+          const r = b.getBoundingClientRect();
+          const raak = k.ownerDocument.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return !!raak && (raak === b || b.contains(raak));
+        });
+        return { onder: Math.round(voet.bottom - rand.bottom), knoppen };
+      });
+      expect(maat.onder, stap).toBeLessThanOrEqual(0);
+      expect(maat.knoppen.every(Boolean), stap).toBe(true);
+    }
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 120_000);
+
+  /*
+   * Dag of nacht zonder zonnestand (4 november 2026): gaf de dienst geen zon,
+   * dan toonde Thuis nacht, ook om twee uur 's middags. Nu de klok.
+   */
+  it('toont overdag dag, ook als de dienst geen zonnestand geeft', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'Europe/Amsterdam', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    await context.route(`${baseUrl}/api/zon*`, (route) => route.fulfill({ status: 503, json: { wachten: 'de ligging van het huis komt van Home Assistant zodra die verbonden is' } }));
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.clock.setFixedTime(new Date('2026-11-04T13:00:00Z'));
+    await p.goto(`${baseUrl}/thuis.html`);
+    const luchtNu = "[...document.body.classList].find((c) => c.startsWith('lucht-')) ?? null";
+    await expect.poll(() => p.evaluate<string | null>(luchtNu), { timeout: 10_000 }).not.toBeNull();
+    const lucht = await p.evaluate<string | null>(luchtNu);
+    expect(lucht).not.toBe('lucht-nacht');
+    expect(await p.evaluate<string>('app.tijdVanDeDag(null)')).toBe('dag');
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 30_000);
+
+  /*
    * Etages op de telefoon (28 oktober 2026): vanuit elke etage naar elke andere.
    * Vanaf Buiten kon het naar de eerste verdieping, vanuit de rest niet.
    */
@@ -4427,7 +4494,7 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
     // Het adres naar GitHub opvangen in plaats van een venster te openen.
-    await context.addInitScript("localStorage.setItem('sc-rondleiding-gezien', '1'); window.geopend = []; window.open = (url) => { window.geopend.push(url); return null; };");
+    await context.addInitScript("localStorage.setItem('sc-rondleiding-gezien', '1'); window.geopend = []; window.open = (url) => { window.geopend.push(url); return null; }; window.klembord = null; Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (x) => { window.klembord = x; } } });");
     await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
     const p = await context.newPage();
     const fouten: string[] = [];
@@ -4459,17 +4526,40 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
       await context.route(`${baseUrl}/api/versie*`, async (route) => {
         const res = await route.fetch();
         const v = (await res.json()) as { nieuw: Record<string, unknown>[] };
-        v.nieuw[0] = { ...v.nieuw[0], meldingen: [{ code, uitkomst: 'opgelost' }] };
+        v.nieuw[0] = { ...v.nieuw[0], meldingen: [{ code, uitkomst: 'opgelost', issue: 119 }] };
         await route.fulfill({ response: res, json: v });
       });
       await p.reload();
       await p.locator('[data-nieuwpop]', { hasText: `Je melding ${code} is opgelost in` }).waitFor({ timeout: 8000 });
       expect(await p.evaluate<string>("JSON.parse(localStorage.getItem('sc-meldingen'))[0].uitkomst")).toBe('opgelost');
+
+      // Werkt nog niet (4 november 2026): een blad, dan het issue zelf, met de tekst op het klembord.
+      await p.locator('[data-nieuwpop] [data-meldnietgoed]').click();
+      await blad.locator('h2', { hasText: 'Werkt nog niet' }).waitFor();
+      await blad.locator('[data-meldwat]').fill('Hij zegt nog steeds koelen');
+      await blad.locator('[data-meldpop-stuur]').click();
+      await blad.locator('h2', { hasText: 'Plak je tekst in het issue' }).waitFor();
+      expect((await p.evaluate<string[]>('window.geopend')).at(-1)).toBe('https://github.com/Ricardo-switch/SunArc/issues/119');
+      const klembord = await p.evaluate<string>('window.klembord');
+      expect(klembord).toMatch(/^Werkt nog niet in \d+\.\d+\.\d+ \(meldcode SA-[A-Z2-9]{4}\)\./);
+      expect(klembord).toContain(`(meldcode ${code})`);
+      expect(klembord).toContain('Hij zegt nog steeds koelen');
+      expect(await p.evaluate<string>("JSON.parse(localStorage.getItem('sc-meldingen'))[0].bevestigd")).toBe('nietGoed');
+      await blad.locator('[data-meldpop-dicht]').click();
+
+      // Bij Over › Versie: je meldingen met hun stand, en later alsnog Werkt nu.
+      await p.goto(`${baseUrl}/toegang.html#versie`);
+      const lijst = p.locator('#wand .jouw-meldingen');
+      await lijst.locator('li', { hasText: code! }).locator('text=werkt nog niet, in je issue gezet').waitFor({ timeout: 8000 });
+      await lijst.locator('[data-meldwerkt]').click();
+      await lijst.locator('text=Fijn, bedankt.').waitFor();
+      expect(await p.evaluate<string>("JSON.parse(localStorage.getItem('sc-meldingen'))[0].bevestigd")).toBe('werkt');
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-jouw-meldingen.png') });
       expect(fouten).toEqual([]);
     } finally {
       await context.close();
     }
-  }, 40_000);
+  }, 50_000);
 
   /*
    * Een prijs per uur (testerronde, november 2026): rekent Home Assistant met
@@ -4498,14 +4588,74 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
       await p.locator('#wand [data-uurprijs]').click();
       await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toEqual(dynamisch);
       await p.locator('#wand', { hasText: 'Prijs per uur uit Home Assistant, nu € 0,23 per kWh' }).first().waitFor({ timeout: 5000 });
+      // Het soort contract gaat mee (issue 119).
+      await expect.poll(() => connStore.current?.tarief ?? null, { timeout: 5000 }).toBe('dynamisch');
       // Toch een vaste prijs: dan weer zonder.
       await p.locator('#wand [data-uurprijs-uit]').click();
       await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toBeNull();
+      await expect.poll(() => connStore.current?.tarief ?? null, { timeout: 5000 }).toBe('vast');
       expect(fouten).toEqual([]);
     } finally {
       await context.close();
     }
   }, 30_000);
+
+  /*
+   * Issue 119: "Per uur" kiezen deed niets. Nu neemt het de uurprijs van Home
+   * Assistant over; kent Home Assistant die nog niet, dan zegt Prijzen wat er
+   * mist en welke sensor de prijs al geeft.
+   */
+  it('neemt bij Per uur de uurprijs over, of zegt wat er mist', async () => {
+    const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    if (energyStore.current == null) await energyStore.save(importFromPrefs(await ENERGY_SOURCE.prefs(), await ENERGY_SOURCE.meters()));
+    const tariefWas = connStore.current?.tarief ?? null;
+    const dynamisch = { prijsEntiteit: 'sensor.zonneplan_current_electricity_tariff', afname: ['sensor.p1_afname_cost'], terug: [] };
+    // Eerst zonder prijs per uur in Home Assistant, wel met een sensor die hem geeft.
+    let kent = false;
+    await context.route(`${baseUrl}/api/energie*`, async (route) => {
+      if (route.request().method() !== 'GET') return route.continue();
+      const res = await route.fetch();
+      const v = (await res.json()) as { voorstel: { prijzen: Record<string, unknown> } | null; instellingen: unknown };
+      const voorstel = v.voorstel ?? (v.instellingen as typeof v.voorstel);
+      const prijzen = { ...voorstel!.prijzen };
+      if (kent) prijzen['dynamisch'] = dynamisch;
+      else delete prijzen['dynamisch'];
+      await route.fulfill({ response: res, json: { ...v, voorstel: { ...voorstel, prijzen }, prijsNu: kent ? 0.2345 : null, prijsSensoren: kent ? [] : [{ id: 'sensor.zonneplan_current_electricity_tariff', naam: 'Zonneplan huidige stroomprijs', prijs: 0.2311 }] } });
+    });
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    const contract = (w: string) => p.locator(`#wand [data-kies="contract"][data-waarde='"${w}"']`);
+    try {
+      await p.goto(`${baseUrl}/energie.html#prijzen`);
+      await contract('vast').click();
+      await contract('dynamisch').click();
+      const mist = p.locator('#wand [data-uurprijs-mist]');
+      await mist.waitFor({ timeout: 5000 });
+      expect(await mist.innerText()).toContain('Zonneplan huidige stroomprijs (nu € 0,23 per kWh)');
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-uurprijs-mist.png') });
+      await expect.poll(() => connStore.current?.tarief ?? null, { timeout: 5000 }).toBe('dynamisch');
+      expect(energyStore.current?.prijzen.dynamisch ?? null).toBeNull();
+      // Daarna in Home Assistant gezet: opnieuw kijken, en dan neemt Per uur hem over.
+      kent = true;
+      await p.locator('#wand [data-uurprijs-opnieuw]').click();
+      await p.locator('#wand [data-uurprijs]').waitFor({ timeout: 5000 });
+      await contract('vast').click();
+      await contract('dynamisch').click();
+      await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toEqual(dynamisch);
+      await p.locator('#wand', { hasText: 'Prijs per uur uit Home Assistant, nu € 0,23 per kWh' }).first().waitFor({ timeout: 5000 });
+      // Een vaste prijs zet hem weer uit.
+      await contract('vast').click();
+      await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toBeNull();
+      expect(fouten).toEqual([]);
+    } finally {
+      await context.close();
+      if (connStore.current) await connStore.save({ ...connStore.current, tarief: tariefWas });
+    }
+  }, 40_000);
 
   /*
    * De valuta van het huis (testerronde, november 2026): zegt Home Assistant

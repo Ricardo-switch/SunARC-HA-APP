@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.119.0';
+export const VERSIE = '0.120.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,8 @@ export interface MeldingUitkomst {
   readonly tekstEn?: string;
   /** Een plek in de app, zoals energie.html#meters, bij een instelling. */
   readonly href?: string;
+  /** Het nummer van het issue: "Werkt nog niet" opent dat issue om te reageren. */
+  readonly issue?: number;
 }
 
 /** Wat er nieuw is, in de taal van de app: de Engelse regels als die er zijn. */
@@ -66,6 +68,38 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.120.0',
+    datum: '2026-11-04',
+    nieuw: ['Na een opgeloste melding kun je zeggen of het werkt: Werkt nog niet opent je issue op GitHub om te reageren. Bij Versie staan je meldingen met hun stand'],
+    opgelost: [
+      'Inrichten op de wand: past een stap niet op de kaart, dan schuift hij, en Volgende blijft in beeld; bij Meter van nu viel de knop eerst weg',
+      'Energie › Prijzen: Per uur kiezen neemt de uurprijs van Home Assistant over; kent Home Assistant die nog niet, dan staat er wat er mist en welke sensor de prijs al geeft',
+      'Een eigen kostensensor in Home Assistant, zoals die van Tibber, telt nu ook als prijs per uur',
+      'Thuis en Inrichten tonen overdag dag, ook als de dienst de stand van de zon niet geeft of de panelen nog niet kent; eerst was het dan altijd nacht',
+      'De browsers van Browser Mod staan niet meer als lamp tussen je apparaten, ook niet bij Inrichten',
+    ],
+    en: {
+      nieuw: ['After a fixed report you can say whether it works: Still not working opens your issue on GitHub to reply. Under Version your reports are listed with their status'],
+      opgelost: [
+        'Setup on the wall: when a step does not fit on the card it scrolls, and Next stays in view; at Live meter the button dropped out of sight before',
+        'Energy › Prices: choosing Per hour takes over the hourly price from Home Assistant; if Home Assistant does not know it yet, it says what is missing and which sensor already gives the price',
+        'An own cost sensor in Home Assistant, such as the one from Tibber, now also counts as an hourly price',
+        'Home and Setup show day in daytime, even when the service gives no sun position or does not know the panels yet; before, it was always night then',
+        'Browsers from Browser Mod no longer show up as lights among your devices, also not in Setup',
+      ],
+    },
+    meldingen: [
+      {
+        code: 'SA-36UM',
+        uitkomst: 'opgelost',
+        tekst: 'Per uur neemt nu de uurprijs over. Staat er dat Home Assistant hem nog niet kent, zet hem dan daar bij Energie.',
+        tekstEn: 'Per hour now takes over the hourly price. If it says Home Assistant does not know it yet, set it there under Energy.',
+        href: 'energie.html#prijzen',
+        issue: 119,
+      },
+    ],
+  },
   {
     versie: '0.119.0',
     datum: '2026-11-04',

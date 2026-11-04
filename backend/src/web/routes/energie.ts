@@ -73,7 +73,9 @@ export async function energieRoute(d: Diensten, req: IncomingMessage, res: Serve
   // De prijs van nu bij een dynamisch contract (testerronde, november 2026): live uit de entiteit.
   const dyn = energy.store.current?.prijzen.dynamisch ?? voorstel?.prijzen.dynamisch ?? null;
   const prijsNu = dyn?.prijsEntiteit ? (energy.source.entityNumber?.(dyn.prijsEntiteit) ?? null) : null;
-  sendJson(res, 200, { instellingen: energy.store.current, voorstel, dashboardPrijzen, dashboard, meters, prijsNu, ...(fout ? { fout } : {}) });
+  // Kent Home Assistant geen prijs per uur, dan de sensoren die er een geven (issue 119): die kun je in Home Assistant bij Energie zetten.
+  const prijsSensoren = dyn ? [] : (energy.source.prijsSensoren?.() ?? []);
+  sendJson(res, 200, { instellingen: energy.store.current, voorstel, dashboardPrijzen, dashboard, meters, prijsNu, prijsSensoren, ...(fout ? { fout } : {}) });
 }
 
 /** De zon en je aansluiting (besluit 103): wat er staat, of de antwoorden bewaren. */

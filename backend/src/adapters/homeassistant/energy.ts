@@ -3,7 +3,7 @@
  * (besluit 102). Alleen leesopdrachten, via de witte lijst van de client.
  */
 
-import { meterRole, type EnergySource, type MeterOption } from '../../web/energy.js';
+import { isPrijsPerKwh, meterRole, type EnergySource, type MeterOption, type PrijsSensor } from '../../web/energy.js';
 import type { HaClient, HaEntityState } from './client.js';
 
 interface StatisticId {
@@ -29,6 +29,8 @@ export function haEnergySource(
   state: (entityId: string) => HaEntityState | undefined = () => undefined,
   /** De integratie van een entiteit, uit het register: voor de rol van een meter. */
   platform: (entityId: string) => string | null = () => null,
+  /** Alle entiteiten van nu: om sensoren met een prijs per kWh te vinden. */
+  alle: () => Iterable<HaEntityState> = () => [],
 ): EnergySource {
   const friendly = (id: string) => {
     const n = state(id)?.attributes['friendly_name'];
@@ -38,6 +40,17 @@ export function haEnergySource(
     entityNumber(entityId) {
       const v = Number(state(entityId)?.state);
       return Number.isFinite(v) ? v : null;
+    },
+    prijsSensoren(): readonly PrijsSensor[] {
+      const lijst: PrijsSensor[] = [];
+      for (const s of alle()) {
+        if (!s.entity_id.startsWith('sensor.') || !isPrijsPerKwh(s.attributes['unit_of_measurement'])) continue;
+        const v = Number(s.state);
+        lijst.push({ id: s.entity_id, naam: friendly(s.entity_id) ?? s.entity_id, prijs: s.state !== '' && Number.isFinite(v) ? v : null });
+      }
+      // De prijs van nu eerst (niet de prijs van morgen of het gemiddelde), dan op naam.
+      const nu = (x: PrijsSensor) => (/current|huidig|now|nu\b|actue/i.test(`${x.id} ${x.naam}`) ? 0 : 1);
+      return lijst.sort((a, b) => nu(a) - nu(b) || a.naam.localeCompare(b.naam, 'nl')).slice(0, 5);
     },
     async prefs() {
       try {

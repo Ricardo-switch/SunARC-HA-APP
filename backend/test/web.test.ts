@@ -515,7 +515,9 @@ describe('welke versie er draait (besluit 54)', () => {
       for (const soort of ['nieuw', 'beter', 'opgelost'] as const) expect([n.versie, soort, n.en?.[soort]?.length ?? 0]).toEqual([n.versie, soort, n[soort]?.length ?? 0]);
     }
     const en = (await (await fetch(`${base}/api/versie`, { headers: { 'x-taal': 'en' } })).json()) as Version & { nieuw: typeof NIEUW };
-    expect(en.nieuw[0]).toEqual({ versie: VERSIE, datum: NIEUW[0]!.datum, ...NIEUW[0]!.en });
+    // Met de uitkomst van meldingen, ook in het Engels.
+    const meld = NIEUW[0]!.meldingen?.map(({ tekstEn, ...u }) => ({ ...u, ...(tekstEn ? { tekst: tekstEn } : {}) }));
+    expect(en.nieuw[0]).toEqual({ versie: VERSIE, datum: NIEUW[0]!.datum, ...NIEUW[0]!.en, ...(meld?.length ? { meldingen: meld } : {}) });
     expect(v.nieuw.some((n) => 'en' in n)).toBe(false);
   });
 });
@@ -1354,6 +1356,20 @@ describe('de zoninval (besluit 93)', () => {
     const res = await fetch(`${base}/api/zon`);
     expect(res.status).toBe(503);
     expect(((await res.json()) as { wachten: string }).wachten).toContain('Home Assistant');
+  });
+
+  // Zonder gevels en panelen toch de stand van de zon: anders was het in de app nacht, ook overdag.
+  it('zegt zonder gevels en panelen toch waar de zon staat', async () => {
+    const { base } = await start({ latest: () => snapshot(), withoutConfig: true, location: { latDeg: 52.1, lonDeg: 5.1 } });
+    const res = await fetch(`${base}/api/zon`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { zon: { boven: boolean }; dag: { opMs: number | null; onderMs: number | null }; gevels: unknown[]; panelen: unknown[]; heldereLuchtW: number; zonderLigging: boolean };
+    expect(typeof body.zon.boven).toBe('boolean');
+    expect(body.dag.opMs).not.toBeNull();
+    expect(body.gevels).toEqual([]);
+    expect(body.panelen).toEqual([]);
+    expect(body.heldereLuchtW).toBe(0);
+    expect(body.zonderLigging).toBe(true);
   });
 
   it('zegt waar de zon staat, op welke gevel hij valt en wat de panelen bij een heldere lucht leveren', async () => {

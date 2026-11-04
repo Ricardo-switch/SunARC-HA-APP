@@ -11,7 +11,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { HaClient } from '../src/adapters/homeassistant/client.js';
-import { EnergyStore, importFromPrefs, meterRole, pricesInPrefs, validateEnergy, type EnergySettings, type EnergySource } from '../src/web/energy.js';
+import { EnergyStore, importFromPrefs, isPrijsPerKwh, meterRole, pricesInPrefs, validateEnergy, type EnergySettings, type EnergySource } from '../src/web/energy.js';
+import { haEnergySource } from '../src/adapters/homeassistant/energy.js';
 import { partsIn, zonedMidnight } from '../src/web/today.js';
 import { periodRange, verdeel, yearStartOf, yieldReport } from '../src/web/yield.js';
 import { goedkoopVandaag } from '../src/web/routes/opbrengst.js';
@@ -435,6 +436,35 @@ describe('een prijs per uur (testerronde, november 2026)', () => {
     const ok = validateEnergy(v);
     expect(ok.ok && ok.settings.prijzen.dynamisch).toEqual(v.prijzen.dynamisch);
     expect(importFromPrefs({ energy_sources: [{ type: 'grid', flow_from: [{ stat_energy_from: 'sensor.afname', number_energy_price: 0.25 }] }] })!.prijzen.dynamisch).toBeUndefined();
+  });
+
+  // Issue 119: een eigen kostensensor (zoals Tibber er een geeft) telt al per uur, ook zonder prijs erbij.
+  it('neemt een eigen kostensensor over, ook zonder prijs', () => {
+    const prefs = { energy_sources: [{ type: 'grid', stat_energy_from: 'sensor.tibber_afname', stat_cost: 'sensor.tibber_kosten', stat_energy_to: 'sensor.tibber_terug', stat_compensation: 'sensor.tibber_opbrengst' }] };
+    const v = importFromPrefs(prefs)!;
+    expect(v.prijzen.dynamisch).toEqual({ prijsEntiteit: null, afname: ['sensor.tibber_kosten'], terug: ['sensor.tibber_opbrengst'] });
+    expect(validateEnergy(v).ok).toBe(true);
+    // Twee tarieven, maar maar één met een teller: dan rekent Opbrengst zelf, zoals eerst.
+    const half = { energy_sources: [{ type: 'grid', flow_from: [{ stat_energy_from: 'sensor.t1', stat_cost: 'sensor.t1_kosten' }, { stat_energy_from: 'sensor.t2' }] }] };
+    expect(importFromPrefs(half)!.prijzen.dynamisch).toBeUndefined();
+  });
+
+  it('vindt de sensoren met een prijs per kWh, de prijs van nu eerst', () => {
+    expect(['€/kWh', 'EUR/kWh', ' eur / kwh', 'SEK/kWh', '$/kWh'].every(isPrijsPerKwh)).toBe(true);
+    expect(['ct/kWh', 'kWh', 'W', '€', '€/m³', null].some(isPrijsPerKwh)).toBe(false);
+    const staat = (entity_id: string, state: string, unit: string, naam: string) => ({ entity_id, state, attributes: { unit_of_measurement: unit, friendly_name: naam }, last_changed: '', last_updated: '' });
+    const alle = [
+      staat('sensor.zonneplan_gemiddelde_prijs', '0.21', '€/kWh', 'Zonneplan gemiddelde prijs'),
+      staat('sensor.zonneplan_current_electricity_tariff', '0.2311', '€/kWh', 'Zonneplan huidige stroomprijs'),
+      staat('sensor.stroomprijs_cent', '23', 'ct/kWh', 'Stroomprijs in cent'),
+      staat('sensor.p1_vermogen', '210', 'W', 'P1 vermogen'),
+      staat('input_number.prijs', '0.25', '€/kWh', 'Vaste prijs'),
+    ];
+    const bron = haEnergySource({} as HaClient, (id) => alle.find((s) => s.entity_id === id), () => null, () => alle);
+    expect(bron.prijsSensoren!()).toEqual([
+      { id: 'sensor.zonneplan_current_electricity_tariff', naam: 'Zonneplan huidige stroomprijs', prijs: 0.2311 },
+      { id: 'sensor.zonneplan_gemiddelde_prijs', naam: 'Zonneplan gemiddelde prijs', prijs: 0.21 },
+    ]);
   });
 
   it('rekent de stroom en de teruglevering zoals Home Assistant ze telde, ook met een negatieve prijs', async () => {

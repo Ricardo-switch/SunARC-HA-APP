@@ -1,5 +1,35 @@
 # Wat is er nieuw · What is new
 
+## 0.120.0
+
+*4 november 2026*
+
+**Nieuw**
+
+- Na een opgeloste melding kun je zeggen of het werkt: Werkt nog niet opent je issue op GitHub om te reageren. Bij Versie staan je meldingen met hun stand
+
+**Opgelost**
+
+- Inrichten op de wand: past een stap niet op de kaart, dan schuift hij, en Volgende blijft in beeld; bij Meter van nu viel de knop eerst weg
+- Energie › Prijzen: Per uur kiezen neemt de uurprijs van Home Assistant over; kent Home Assistant die nog niet, dan staat er wat er mist en welke sensor de prijs al geeft
+- Een eigen kostensensor in Home Assistant, zoals die van Tibber, telt nu ook als prijs per uur
+- Thuis en Inrichten tonen overdag dag, ook als de dienst de stand van de zon niet geeft of de panelen nog niet kent; eerst was het dan altijd nacht
+- De browsers van Browser Mod staan niet meer als lamp tussen je apparaten, ook niet bij Inrichten
+
+*English*
+
+**New**
+
+- After a fixed report you can say whether it works: Still not working opens your issue on GitHub to reply. Under Version your reports are listed with their status
+
+**Fixed**
+
+- Setup on the wall: when a step does not fit on the card it scrolls, and Next stays in view; at Live meter the button dropped out of sight before
+- Energy › Prices: choosing Per hour takes over the hourly price from Home Assistant; if Home Assistant does not know it yet, it says what is missing and which sensor already gives the price
+- An own cost sensor in Home Assistant, such as the one from Tibber, now also counts as an hourly price
+- Home and Setup show day in daytime, even when the service gives no sun position or does not know the panels yet; before, it was always night then
+- Browsers from Browser Mod no longer show up as lights among your devices, also not in Setup
+
 ## 0.119.0
 
 *4 november 2026*
