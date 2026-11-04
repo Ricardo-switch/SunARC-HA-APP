@@ -22,7 +22,8 @@ const antwoorden = {};
 let fout = '';
 /** Wat de toets van de dienst noemde (4 november 2026): eerst zag je alleen "zo niet bruikbaar". */
 let foutLijst = [];
-const foutHtml = () => `<span class="fout" role="alert">${esc(fout)}</span>${fout && foutLijst.length ? `<ul class="fout-lijst">${foutLijst.slice(0, 8).map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}`;
+// Met Meld dit (4 november 2026): het meldblad met de fout en de lijst al ingevuld, en het logboek erbij.
+const foutHtml = () => `<span class="fout" role="alert">${esc(fout)}</span>${fout && foutLijst.length ? `<ul class="fout-lijst">${foutLijst.slice(0, 8).map((p) => `<li>${esc(p)}</li>`).join('')}</ul><button type="button" class="knop meld-dit" data-meld-probleem data-meld-wat="${esc([fout, ...foutLijst.slice(0, 20)].join('\n'))}">${esc(t('melden.meldDit'))}</button>` : ''}`;
 let bezigTekst = '';
 
 const ICOON = {

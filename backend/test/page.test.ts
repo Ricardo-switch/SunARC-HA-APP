@@ -1096,6 +1096,9 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
     await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
     const huis = await (await fetch(`${baseUrl}/api/huis`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json();
+    // Het adres naar GitHub opvangen, en een logboek met één regel.
+    await context.addInitScript("window.geopend = []; window.open = (url) => { window.geopend.push(url); return null; };");
+    await context.route(`${baseUrl}/api/logboek*`, (route) => route.fulfill({ json: { regels: [{ ms: Date.UTC(2026, 10, 4, 12), niveau: 'waarschuwing', tekst: 'Eerste start niet opgeslagen: zones.0.climate.0: onbekende adapter' }] } }));
     await context.route(`${baseUrl}/api/onboarding*`, (route) =>
       route.request().method() === 'POST'
         ? route.fulfill({ status: 422, json: { ok: false, reden: 'De configuratie is zo niet bruikbaar.', problemen: ['zones.0.climate.0: onbekende adapter', 'outdoorTemperature: geen sensor'] } })
@@ -1110,9 +1113,25 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await lijst.waitFor({ timeout: 10_000 });
     expect(await lijst.innerText()).toContain('zones.0.climate.0: onbekende adapter');
     expect(await p.locator('.fout').first().innerText()).toBe('De configuratie is zo niet bruikbaar.');
+
+    // Meld dit: het meldblad met de fout erin, en het logboek mee naar GitHub.
+    await p.locator('.meld-dit').first().click();
+    const blad = p.locator('[data-meldpop]');
+    await blad.locator('[data-meldlog]').waitFor({ timeout: 10_000 });
+    expect(await blad.locator('[data-meldwat]').inputValue()).toContain('zones.0.climate.0: onbekende adapter');
+    expect(await blad.locator('[data-meldlog]').isChecked()).toBe(true);
+    await blad.locator('[data-meldpop-stuur]').click();
+    await expect.poll(() => p.evaluate<number>('window.geopend.length')).toBe(1);
+    const url = new URL((await p.evaluate<string[]>('window.geopend'))[0]!);
+    expect(url.searchParams.get('logboek')).toBe('2026-11-04 12:00:00 LET OP Eerste start niet opgeslagen: zones.0.climate.0: onbekende adapter');
+
+    // Bij Versie: het logboek zelf lezen.
+    await p.goto(`${baseUrl}/toegang.html#versie`);
+    await p.locator('#wand [data-logboek] summary').click();
+    await expect.poll(() => p.locator('#wand [data-logboek-tekst]').innerText(), { timeout: 8000 }).toContain('onbekende adapter');
     expect(fouten).toEqual([]);
     await context.close();
-  }, 40_000);
+  }, 50_000);
 
   /*
    * Dag of nacht zonder zonnestand (4 november 2026): gaf de dienst geen zon,

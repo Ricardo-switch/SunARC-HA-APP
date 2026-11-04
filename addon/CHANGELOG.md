@@ -1,14 +1,26 @@
 # Wat is er nieuw · What is new
 
-## 0.120.1
+## 0.121.0
 
 *4 november 2026*
+
+**Nieuw**
+
+- Meld een probleem kan het logboek meesturen: de laatste waarschuwingen en fouten, zonder adressen of sleutels; je ziet vooraf wat er meegaat
+- Bij Versie kun je het logboek zelf lezen
+- Gaat de eerste start mis, dan staat er een knop Meld dit, met de fout en het logboek al ingevuld
 
 **Opgelost**
 
 - Bij de eerste start staat onder "De configuratie is zo niet bruikbaar" nu wat er precies mis is, en het logboek van de add-on schrijft het ook op
 
 *English*
+
+**New**
+
+- Report a problem can send the log: the latest warnings and errors, without addresses or keys; you see beforehand what is sent
+- Under Version you can read the log yourself
+- If the first start goes wrong, there is a Report this button, with the error and the log already filled in
 
 **Fixed**
 

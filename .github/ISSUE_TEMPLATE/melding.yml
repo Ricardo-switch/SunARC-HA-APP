@@ -24,6 +24,12 @@ body:
       label: Device data · Apparaatgegevens
       description: Only the kind of device, its state and its properties; no names or addresses.
       render: json
+  - type: textarea
+    id: logboek
+    attributes:
+      label: Log · Logboek
+      description: The latest warnings and errors of SunArc; addresses, keys and e-mail are removed.
+      render: text
   - type: input
     id: versie
     attributes:

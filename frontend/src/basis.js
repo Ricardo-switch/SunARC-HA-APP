@@ -1842,7 +1842,7 @@
       s.onerror = fout;
       document.head.append(s);
     });
-    meldenLaden.then(() => (k.dataset.meldnietgoed ? global.melden.vervolg(k.dataset.meldnietgoed) : global.melden.open({ apparaat: k.dataset.apparaat ?? null, naam: k.dataset.naam ?? null })), () => (meldenLaden = null));
+    meldenLaden.then(() => (k.dataset.meldnietgoed ? global.melden.vervolg(k.dataset.meldnietgoed) : global.melden.open({ apparaat: k.dataset.apparaat ?? null, naam: k.dataset.naam ?? null, wat: k.dataset.meldWat ?? '' })), () => (meldenLaden = null));
   }, true);
 
   function meldingenStart() {

@@ -411,7 +411,7 @@ verwijzing bestaat.
   aan de omtrek van het huis in OpenStreetMap, na een tik. De assistent sluit
   af op "oké, bedankt" en negeert ruis; het beeld bij aanbellen begint met een
   plaatje, en de wand houdt zijn toegang via Home Assistant zelf vast.
-- **Meld een probleem:** in het menu, bij Versie, Over en elk apparaat; een vooraf ingevuld issue op GitHub met een meldcode, en na een update de uitkomst ([250]), met Werkt nu of Werkt nog niet ([252]). Apparaatgegevens zonder namen gaan mee; een warmtepomp met een stooklijn of water als doel regelt geen kamer.
+- **Meld een probleem:** in het menu, bij Versie, Over en elk apparaat; een vooraf ingevuld issue op GitHub met een meldcode, en na een update de uitkomst ([250]), met Werkt nu of Werkt nog niet ([252]), en het logboek mee ([253]). Apparaatgegevens zonder namen gaan mee; een warmtepomp met een stooklijn of water als doel regelt geen kamer.
 - **Bijwerken vanuit de app:** in de add-on zegt Meldingen dat er een nieuwe
   versie klaarstaat; een tik geeft wat er nieuw is (uit `addon/CHANGELOG.md`,
   via Home Assistant) en voor de beheerder een knop Bijwerken ([171]). Ook op
@@ -827,4 +827,5 @@ verwijzing bestaat.
 [250]: DECISIONS.md#250-meld-een-probleem-apparaatgegevens-en-warmtepompen
 [251]: DECISIONS.md#251-een-prijs-per-uur-de-kosten-zoals-home-assistant-ze-telt
 [252]: DECISIONS.md#252-terugzeggen-na-een-opgeloste-melding
+[253]: DECISIONS.md#253-het-logboek-delen-bij-een-melding
 <!-- links:einde -->

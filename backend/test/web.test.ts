@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { bewaarRegel, leegLogboek } from '../src/web/logboek.js';
 import { BETA_ICOON, WebServer, versionFromEnv, type Version } from '../src/web/server.js';
 import { NIEUW, TERUGKIJKEN, VERSIE } from '../src/version.js';
 import { DivergenceCache, type DivergenceReport } from '../src/web/divergence.js';
@@ -1347,6 +1348,19 @@ describe('de assistent die uitlegt (ONTWERP §7, fase 1)', () => {
     // Leeg of te lang wordt geweigerd.
     expect((await vraag('')).status).toBe(400);
     expect((await vraag('x'.repeat(201))).status).toBe(400);
+  });
+});
+
+describe('het logboek om te delen (4 november 2026)', () => {
+  it('geeft de laatste waarschuwingen en fouten, opgeschoond', async () => {
+    leegLogboek();
+    bewaarRegel('waarschuwing', ['Eerste start niet opgeslagen: De configuratie is zo niet bruikbaar.\n  zones.0: kapot, via 192.168.1.20']);
+    const { base } = await start({ latest: () => snapshot() });
+    const res = await fetch(`${base}/api/logboek`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { regels: { niveau: string; tekst: string }[] };
+    expect(body.regels.at(-1)!.tekst).toContain('zones.0: kapot, via [ip]');
+    leegLogboek();
   });
 });
 

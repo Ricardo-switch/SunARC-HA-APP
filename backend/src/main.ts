@@ -100,6 +100,10 @@ import { Voorbeeld } from './web/voorbeeld.js';
 import { Witgoed } from './web/witgoed.js';
 import { voerStapUit, type GeplandeDeuren } from './web/gepland-uit.js';
 import { kiesVerstaan, Verstaan } from './web/verstaan.js';
+import { installeerLogboek } from './web/logboek.js';
+
+// De laatste waarschuwingen en fouten, om te delen bij een melding (4 november 2026).
+installeerLogboek();
 
 
 const packageRoot = resolve(dirname(new URL(import.meta.url).pathname), '..');
