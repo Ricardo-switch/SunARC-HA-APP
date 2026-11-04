@@ -27,6 +27,9 @@ const HOURLY: Record<string, (h: number) => number> = {
   'sensor.zon': (h) => (h >= 10 && h < 17 ? 2 : 0),
   'sensor.airco': (h) => (h === 12 || h === 13 ? 0.5 : h === 20 ? 0.2 : 0),
   'sensor.gas': (h) => (h === 7 ? 0.2 : 0),
+  // De kostentellers van Home Assistant bij een prijs per uur (testerronde, november 2026): 's nachts een negatieve prijs.
+  'sensor.afname_cost': (h) => (h >= 10 && h < 17 ? 0 : 0.4) * (h < 7 ? -0.05 : 0.3),
+  'sensor.terug_compensation': (h) => (h >= 10 && h < 17 ? 1 : 0) * 0.1,
 };
 const daily = (id: string) => Array.from({ length: 24 }, (_, h) => HOURLY[id]!(h)).reduce((a, b) => a + b, 0);
 
@@ -309,7 +312,8 @@ describe('meters en prijzen in de app', () => {
         { id: 'sensor.airconditioning_woonkamer_energie_kwh', naam: 'Airco woonkamer energie' },
         { id: 'sensor.samsung_oled_energie', naam: 'Tv' },
       ],
-      prijzen: { stroom: 0.27, teruglevering: null, gas: 1.25, vastPerMaand: null },
+      // Tarief 2 heeft een prijs uit een entiteit: dan de kostentellers van beide tarieven (testerronde, november 2026).
+      prijzen: { stroom: 0.27, teruglevering: null, gas: 1.25, vastPerMaand: null, dynamisch: { prijsEntiteit: 'sensor.prijs', afname: ['sensor.p1_meter_energy_import_tariff_1_cost', 'sensor.p1_meter_energy_import_tariff_2_cost'], terug: [] } },
     });
     expect(importFromPrefs(null)).toBeNull();
     expect(importFromPrefs({ energy_sources: 'x' })).toBeNull();
@@ -376,7 +380,7 @@ describe('meters en prijzen in de app', () => {
   it('neemt een prijs uit een entiteit over met de stand van nu', () => {
     const only = { energy_sources: [{ type: 'grid', flow_from: [{ stat_energy_from: 'sensor.afname', entity_energy_price: 'input_number.stroomprijs' }] }, { type: 'gas', stat_energy_from: 'sensor.gas', entity_energy_price: 'input_number.gasprijs' }] };
     const prices: Record<string, number> = { 'input_number.stroomprijs': 0.2899, 'input_number.gasprijs': 1.31 };
-    expect(importFromPrefs(only, [], (id) => prices[id] ?? null)?.prijzen).toEqual({ stroom: 0.2899, teruglevering: null, gas: 1.31, vastPerMaand: null });
+    expect(importFromPrefs(only, [], (id) => prices[id] ?? null)?.prijzen).toEqual({ stroom: 0.2899, teruglevering: null, gas: 1.31, vastPerMaand: null, dynamisch: { prijsEntiteit: 'input_number.stroomprijs', afname: ['sensor.afname_cost'], terug: [] } });
   });
 
   it('bewaart alleen meters en redelijke bedragen, en houdt ze over een herstart', async () => {
@@ -420,3 +424,30 @@ describe('zonder salderen (besluit 178)', () => {
     expect(validateEnergy({ ...SETTINGS, prijzen: { ...p, salderen: 'ja' } })).toMatchObject({ ok: false });
   });
 });
+
+describe('een prijs per uur (testerronde, november 2026)', () => {
+  it('neemt bij een prijs-entiteit de kostentellers van Home Assistant over', () => {
+    const prefs = { energy_sources: [{ type: 'grid', flow_from: [{ stat_energy_from: 'sensor.afname', entity_energy_price: 'sensor.zonneplan_current_electricity_tariff', stat_cost: null }], flow_to: [{ stat_energy_to: 'sensor.terug', entity_energy_price: 'sensor.zonneplan_current_electricity_tariff' }] }] };
+    const v = importFromPrefs(prefs, [], () => 0.23)!;
+    expect(v.prijzen.stroom).toBe(0.23);
+    expect(v.prijzen.dynamisch).toEqual({ prijsEntiteit: 'sensor.zonneplan_current_electricity_tariff', afname: ['sensor.afname_cost'], terug: ['sensor.terug_compensation'] });
+    // Bewaren laat hem staan; een vaste prijs heeft er geen.
+    const ok = validateEnergy(v);
+    expect(ok.ok && ok.settings.prijzen.dynamisch).toEqual(v.prijzen.dynamisch);
+    expect(importFromPrefs({ energy_sources: [{ type: 'grid', flow_from: [{ stat_energy_from: 'sensor.afname', number_energy_price: 0.25 }] }] })!.prijzen.dynamisch).toBeUndefined();
+  });
+
+  it('rekent de stroom en de teruglevering zoals Home Assistant ze telde, ook met een negatieve prijs', async () => {
+    const dyn = { ...SETTINGS, prijzen: { ...SETTINGS.prijzen, dynamisch: { prijsEntiteit: 'sensor.prijs', afname: ['sensor.afname_cost'], terug: ['sensor.terug_compensation'] } } };
+    const r = (await yieldReport(fakeSource(), dyn, 'dag', '2026-09-15', TZ, Date.UTC(2026, 9, 7, 12)))!;
+    const stroom = r.kosten.regels.find((x) => x.soort === 'stroom')!;
+    const terug = r.kosten.regels.find((x) => x.soort === 'terug')!;
+    // Zeven nachturen 0,4 kWh tegen -0,05, tien uren tegen 0,30; zeven uren 1 kWh terug tegen 0,10.
+    expect(stroom.euro).toBeCloseTo(1.06, 2);
+    expect(stroom.uitleg).toContain('met de prijs van elk uur');
+    expect(terug.euro).toBeCloseTo(-0.7, 2);
+    // Het gas blijft met zijn eigen prijs.
+    expect(r.kosten.regels.find((x) => x.soort === 'gas')!.euro).toBeCloseTo(0.26, 2);
+  });
+});
+

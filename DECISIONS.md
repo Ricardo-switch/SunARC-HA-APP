@@ -141,6 +141,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [157. Hoe de panelen liggen, gemeten uit tien dagen opbrengst; de bewoner bevestigt](#157-hoe-de-panelen-liggen-gemeten-uit-tien-dagen-opbrengst-de-bewoner-bevestigt)
 - [230. Een thuisbatterij op je eigen uren](#230-een-thuisbatterij-op-je-eigen-uren)
 - [231. Hoe je huis warmte vasthoudt: het thermisch model leert en laat zien](#231-hoe-je-huis-warmte-vasthoudt-het-thermisch-model-leert-en-laat-zien)
+- [251. Een prijs per uur: de kosten zoals Home Assistant ze telt](#251-een-prijs-per-uur-de-kosten-zoals-home-assistant-ze-telt)
 
 **Weergave**
 
@@ -11646,6 +11647,37 @@ niet goed werd begrepen (Luxtronik, Clivet/Midea).
 - **Labels op GitHub:** melding, fout, idee, apparaat, en per uitkomst
   meer-info, instelling, later, dubbel, afgewezen, opgelost, geen-reactie.
 - **Versie 0.118.0.**
+
+---
+
+## 251. Een prijs per uur: de kosten zoals Home Assistant ze telt
+
+*Onderwerp: meten, data en analyse · Status: geldig*
+
+4 november 2026, stap 5 van de testerronde. Een tester met Zonneplan zag
+kosten die niet klopten. Nagelopen: "Meters overnemen" las een prijs uit een
+entiteit één keer en bewaarde dat getal vast. Bij een dynamisch contract
+(Zonneplan, Tibber, Frank, ENTSO-E) rekende Opbrengst daarna elk uur met de
+prijs van dat ene moment. Zonneplan zelf geeft de prijs in euro per kWh, met
+de uren en kwartieren erbij; daar lag het niet aan.
+
+*Besluit:*
+
+- **De kostentellers van Home Assistant.** Bij een meter met een prijs houdt
+  Home Assistant zelf de kosten bij, met de prijs van elk uur: de eigen
+  kostensensor uit het dashboard, of anders `<meter>_cost` en
+  `<meter>_compensation`. Staat er bij het net een prijs uit een entiteit, dan
+  bewaart het overnemen die tellers (`prijzen.dynamisch`), maar alleen als elke
+  afnamemeter er een heeft. Opbrengst rekent de stroom en de teruglevering dan
+  met die tellers, ook een uur met een negatieve prijs; gas en de vaste posten
+  blijven zoals uitgerekend. Zonder rijen van de teller rekent hij zoals eerst.
+- **De prijs van nu** staat bij Energie › Prijzen, live uit de entiteit. Wie de
+  meters al eerder overnam, krijgt daar een melding met "Uurprijs overnemen";
+  "Toch een vaste prijs" zet het weer uit.
+- **Nog niet:** de vergelijking met eerdere periodes in de grafiek rekent nog
+  met de vaste prijs, en Goedkope uren (de prijzen van morgen) is een eigen
+  stap.
+- **Versie 0.119.0.**
 
 ---
 

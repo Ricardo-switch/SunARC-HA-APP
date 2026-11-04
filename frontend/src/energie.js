@@ -337,10 +337,18 @@ function prijzenVorm() {
     </div>`).join('');
   const erbij = VOORSTELLEN.filter((x) => !p.vast.some((v) => v.naam.toLowerCase() === x.naam.toLowerCase()));
   const mist = p.stroom == null ? t('energie.mistStroom') : e.gas && p.gas == null ? t('energie.mistGas') : '';
+  // Een prijs per uur (testerronde, november 2026): Opbrengst rekent dan met de kostentellers van Home Assistant.
+  const dynKan = !p.dynamisch ? eInfo?.voorstel?.prijzen?.dynamisch ?? null : null;
+  const uurprijs = p.dynamisch
+    ? `<div class="melding"><span class="stip" style="background: var(--mint)"></span><span>${esc(t('energie.uurprijsAan', { prijs: eInfo?.prijsNu != null ? taal.geld(eInfo.prijsNu, 2) : '…' }))} <button type="button" class="knop-tekst" data-uurprijs-uit>${esc(t('energie.uurprijsUit'))}</button></span></div>`
+    : dynKan
+      ? `<div class="melding"><span class="stip" style="background: var(--gloed)"></span><span>${esc(t('energie.uurprijsKan'))} <button type="button" class="knop-tekst" data-uurprijs>${esc(t('energie.uurprijsOvernemen'))}</button></span></div>`
+      : '';
   return `${kop(t('energie.prijzen'))}
     ${mist ? `<div class="melding"><span class="stip" style="background: var(--gloed)"></span>${esc(mist)}</div>` : ''}
     ${kolommen(`${blok(t('energie.soortContract'), `${keuzes(t('energie.soortContract'), 'contract', [['vast', t('energie.contract.vast')], ['dynamisch', t('energie.contract.dynamisch')], ['weetniet', t('energie.weetNiet')]], a?.tarief ?? null, !a)}
       <p class="mini">${esc(t('energie.dynamischUitleg'))}</p>
+      ${uurprijs}
       <label class="veldnaam">${esc(t('energie.contractStart'))}<input class="invoer" type="date" data-contract value="${esc(p.contractStart ?? '')}" min="2000-01-01" max="2100-12-31"></label>
       <p class="mini">${esc(t('energie.contractUitleg'))}</p>`)}${blok(t('energie.stroomKop'), `${keuzes(t('energie.tarief'), 'stroomtarief', [['enkel', t('energie.enkel')], ['dubbel', t('energie.dubbel')]], dubbel ? 'dubbel' : 'enkel')}
       <div class="${dubbel ? 'twee' : ''}">${bedragVeld(t(dubbel ? 'energie.normaalKwh' : 'energie.perKwh'), 'stroom', p.stroom, nl(0.27, 2), '0', true)}${dubbel ? bedragVeld(t('energie.dalKwh'), 'stroomDal', p.stroomDal, nl(0.25, 2), '0', true) : ''}</div>
@@ -556,7 +564,12 @@ document.addEventListener('click', (ev) => {
     return;
   } else if (knop.hasAttribute('data-overnemen')) {
     const v = JSON.parse(JSON.stringify(eInfo.voorstel));
-    e = aanvullen({ ...v, prijzen: { ...p, stroom: p.stroom ?? v.prijzen.stroom, gas: p.gas ?? v.prijzen.gas, teruglevering: p.teruglevering ?? v.prijzen.teruglevering } });
+    // Met de uurprijs, als Home Assistant er een kent (testerronde, november 2026).
+    e = aanvullen({ ...v, prijzen: { ...p, stroom: p.stroom ?? v.prijzen.stroom, gas: p.gas ?? v.prijzen.gas, teruglevering: p.teruglevering ?? v.prijzen.teruglevering, ...(v.prijzen.dynamisch ? { dynamisch: v.prijzen.dynamisch } : {}) } });
+  } else if (knop.hasAttribute('data-uurprijs')) {
+    e.prijzen.dynamisch = JSON.parse(JSON.stringify(eInfo.voorstel.prijzen.dynamisch));
+  } else if (knop.hasAttribute('data-uurprijs-uit')) {
+    delete e.prijzen.dynamisch;
   } else return;
   teken();
   bewaarEnergie();

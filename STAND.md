@@ -251,6 +251,7 @@ verwijzing bestaat.
 - **De assistent** leest ook een vraag in eigen woorden, over het huis en over
   de app, met een woordzoeker ([115]).
 - **Het jaar in Opbrengst** begint op de startdatum van het contract ([116]).
+- **Een prijs per uur** (Zonneplan, Tibber): Opbrengst rekent met de kostentellers van Home Assistant, en Energie toont de prijs van nu ([251]).
 - **De hoofdzekering** stel je in de app in, en die gaat voor de configuratie
   ([117]). Sinds [248] ook de netmeter (één sensor, of afname en teruglevering
   apart zoals DSMR) en de omvormers, die opgeteld worden; kW telt als W.
@@ -824,4 +825,5 @@ verwijzing bestaat.
 [248]: DECISIONS.md#248-de-netmeter-en-de-omvormers-kies-je-in-de-app
 [249]: DECISIONS.md#249-zoeken-naar-updates-en-opnieuw-starten-vanuit-de-app
 [250]: DECISIONS.md#250-meld-een-probleem-apparaatgegevens-en-warmtepompen
+[251]: DECISIONS.md#251-een-prijs-per-uur-de-kosten-zoals-home-assistant-ze-telt
 <!-- links:einde -->
