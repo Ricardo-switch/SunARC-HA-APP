@@ -88,7 +88,7 @@ export async function aansluitingRoute(d: Diensten, req: IncomingMessage, res: S
       sendJson(res, 400, { fout: (error as Error).message });
       return;
     }
-    const checked = validateConnection(body, connection.found());
+    const checked = validateConnection(body, connection.found(), connection.store.current);
     if (!checked.ok) {
       sendJson(res, 400, { fout: checked.reden });
       return;

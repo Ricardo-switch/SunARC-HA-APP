@@ -252,7 +252,8 @@ verwijzing bestaat.
   de app, met een woordzoeker ([115]).
 - **Het jaar in Opbrengst** begint op de startdatum van het contract ([116]).
 - **De hoofdzekering** stel je in de app in, en die gaat voor de configuratie
-  ([117]).
+  ([117]). Sinds [248] ook de netmeter (één sensor, of afname en teruglevering
+  apart zoals DSMR) en de omvormers, die opgeteld worden; kW telt als W.
 - **Uitrollen** gaat na de winter via een eigen add-on-bibliotheek op GitHub;
   HACS alleen voor de integratie ([118]).
 - **Kamers hebben een soort,** te kiezen bij Indeling, met een voorstel uit de
@@ -816,4 +817,5 @@ verwijzing bestaat.
 [245]: DECISIONS.md#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken
 [246]: DECISIONS.md#246-klaarzetten-per-niveau
 [247]: DECISIONS.md#247-eén-iconenset-duotoon
+[248]: DECISIONS.md#248-de-netmeter-en-de-omvormers-kies-je-in-de-app
 <!-- links:einde -->

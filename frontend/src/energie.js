@@ -187,8 +187,10 @@ function tekenPanelenHuis() {
 function panelenVorm() {
   const kant = a.panelen.ligging;
   // Zonnepanelen 3.0 (besluit 187): het overzicht, zodra de kant van het dak bekend is.
+  // De omvormers (testerronde, november 2026): welke samen de opbrengst van nu zijn.
+  const omvormers = kant === 'geen' ? '' : blok(t('energie.omvormersKop'), vermogens.zonBlok(aInfo, a));
   if (!ligStaat.zelf && !ligStaat.aanpassen && kant && kant !== 'geen' && kant !== 'weetniet') {
-    return ligging.overzicht(aInfo.ligging, a, { plekken: anderePlekken(), elders: a.elders });
+    return `${ligging.overzicht(aInfo.ligging, a, { plekken: anderePlekken(), elders: a.elders })}${omvormers}`;
   }
   const aantallen = kant === 'beide' ? `<div class="twee">${aantal(t('energie.aantalVoor'), 'voorkant')}${aantal(t('energie.aantalAchter'), 'achterkant')}</div>` : kant && kant !== 'weetniet' && kant !== 'geen' ? aantal(t('energie.aantal'), 'aantal') : '';
   // Hoe ze liggen (besluit 157): gemeten, bevestigd of aangepast, uit panelen.js.
@@ -208,7 +210,7 @@ function panelenVorm() {
   return `${kop(t('energie.zonnepanelen'), terug)}
     ${kolommen(blok(t('energie.welkeKant'), `${zijaanzicht(kant)}
       ${keuzes(t('energie.kantDak'), 'ligging', kanten, kant)}
-      ${aantallen}${aantallen ? `<p class="mini">${esc(t('energie.metAantal'))}</p>` : ''}`), `${liggingBlok}${sensor}`)}`;
+      ${aantallen}${aantallen ? `<p class="mini">${esc(t('energie.metAantal'))}</p>` : ''}`), `${liggingBlok}${sensor}${omvormers}`)}`;
 }
 
 /* Aansluiting */
@@ -291,7 +293,7 @@ function metersVorm() {
   const apparatenBlok = blok(t('energie.eigenMeter'), `${rijen || `<p class="uitleg">${esc(t('energie.nogGeenApparaat'))}</p>`}${meterKeuze(t('energie.apparaatErbij'), 'apparaat', 'apparaat', 'energy', t('energie.apparaatErbijLeeg'))}`);
   return `${kop(t('energie.meters'))}
     ${e.net.afname.length ? '' : `<div class="melding"><span class="stip" style="background: var(--gloed)"></span>${esc(t('stand.metersZin'))}</div>`}
-    ${kolommen(`${uitHa}${apparatenBlok}`, blok(t('energie.welkeMeter'), `${rol('afname', e.net.afname, 'afname', 'energy')}${rol('teruglevering', e.net.teruglevering, 'teruglevering', 'energy')}${rol('zon', e.zon, 'zon', 'energy')}${rol('gas', e.gas ? [e.gas] : [], 'gas', 'volume', true)}${dubbel ? `<p class="mini">${esc(t('energie.tikDal'))}</p>` : ''}`))}`;
+    ${kolommen(`${uitHa}${aInfo && a ? blok(t('energie.vermogenKop'), vermogens.netBlok(aInfo, a)) : ''}${apparatenBlok}`, blok(t('energie.welkeMeter'), `${rol('afname', e.net.afname, 'afname', 'energy')}${rol('teruglevering', e.net.teruglevering, 'teruglevering', 'energy')}${rol('zon', e.zon, 'zon', 'energy')}${rol('gas', e.gas ? [e.gas] : [], 'gas', 'volume', true)}${dubbel ? `<p class="mini">${esc(t('energie.tikDal'))}</p>` : ''}`))}`;
 }
 
 /* Contract en prijzen */
@@ -383,8 +385,9 @@ const NAAST = { panelen: 2, aansluiting: 2, meters: 2, prijzen: 3, verwarming: 2
 function naast(id) {
   const deel = NAAST[id] ? id : 'panelen';
   const lijst = Array.from({ length: NAAST[deel] }, (_, i) => t(`energie.naast.${deel}.${i + 1}`));
-  // De ligging van de panelen gaat meteen in (besluit 157); de zekering na een start.
-  const later = aInfo?.volgendeStart && id === 'aansluiting' ? `<div class="glas"><h3>${esc(t('regeling.ingaat'))}</h3><p style="margin: 0">${esc(t('energie.zekeringLater'))}</p></div>` : '';
+  // De ligging van de panelen gaat meteen in (besluit 157); de zekering, de netmeter en de omvormers na een start.
+  const laterZin = { aansluiting: 'energie.zekeringLater', meters: 'energie.later', panelen: 'energie.later' }[id];
+  const later = aInfo?.volgendeStart && laterZin ? `<div class="glas"><h3>${esc(t('regeling.ingaat'))}</h3><p style="margin: 0">${esc(t(laterZin))}</p></div>` : '';
   return `<div class="glas"><h3>${esc(t('energie.waarvoor'))}</h3><ul>${lijst.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
     <div class="glas"><h3>${esc(t('energie.waarVind'))}</h3><p style="margin: 0">${esc(t(`energie.naast.${deel}.waar`))}</p></div>${later}`;
 }
@@ -415,7 +418,8 @@ function tekenNu() {
 function bewaarAansluiting() {
   groep.bewaarStraks(async () => {
     const opZon = Object.fromEntries(Object.entries(a.opZon).filter(([, v]) => typeof v === 'boolean'));
-    const uit = await groep.stuur('api/aansluiting', { panelen: a.panelen, zekering: a.zekering, tarief: a.tarief, verwarming: a.verwarming, voorkantZon: a.voorkantZon, dak: a.dak, elders: a.elders, opZon, opZonUit: a.opZonUit });
+    // De netmeter en de omvormers alleen als ze hier gekozen zijn; anders houdt de dienst wat er stond.
+    const uit = await groep.stuur('api/aansluiting', { panelen: a.panelen, zekering: a.zekering, tarief: a.tarief, verwarming: a.verwarming, voorkantZon: a.voorkantZon, dak: a.dak, elders: a.elders, opZon, opZonUit: a.opZonUit, netmeter: a.netmeter, omvormers: a.omvormers });
     if (uit?.ok) {
       aInfo = uit.antwoord;
       // Het dak zoals de dienst het bewaarde: "klopt" en "aanpassen" worden een gewoon dak.
@@ -482,6 +486,11 @@ document.addEventListener('click', (ev) => {
   if (knop.hasAttribute('data-pan-zelf') || knop.hasAttribute('data-pan-klaar')) {
     ligStaat.zelf = knop.hasAttribute('data-pan-zelf');
     return teken();
+  }
+  // Een omvormer weghalen (testerronde, november 2026).
+  if (a && vermogens.klik(knop, aInfo, a)) {
+    teken();
+    return bewaarAansluiting();
   }
   // Hoe de panelen liggen (besluit 157).
   if (a && Object.keys(knop.dataset).some((k) => k.startsWith('lig'))) {
@@ -555,6 +564,11 @@ document.addEventListener('click', (ev) => {
 document.addEventListener('change', (ev) => {
   const t = ev.target;
   if (ligging.verander(t, ligStaat)) return teken();
+  // De netmeter en de omvormers (testerronde, november 2026).
+  if (a && vermogens.verander(t, aInfo, a)) {
+    teken();
+    return bewaarAansluiting();
+  }
   // De aansluiting.
   const z = t.closest('[data-zekering]');
   if (z && zelf && a) {

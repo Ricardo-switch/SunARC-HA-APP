@@ -59,7 +59,7 @@ import { ScenePictures } from './web/scene-pictures.js';
 import { EnergyStore } from './web/energy.js';
 import { partsIn, zonedMidnight, type PowerRow } from './web/today.js';
 import { WeatherLog, type EntityForecast } from './web/weather.js';
-import { Historie } from './web/historie.js';
+import { Historie, somPerVak } from './web/historie.js';
 import { Sluipverbruik, jaarPrijs, sluipVoorBel } from './web/sluipverbruik.js';
 import { verwachtingVan, weerNaamVan } from './web/weerbron.js';
 import { OPEN_METEO, OpenMeteo } from './web/open-meteo.js';
@@ -72,7 +72,7 @@ import type { TeDoenDienst } from './web/routes/tedoen.js';
 import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
-import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, withConnection, type Applied } from './web/aansluiting.js';
+import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied } from './web/aansluiting.js';
 import { findHeatStores } from './web/buffers-vinden.js';
 import { kiesLigging, meetLigging, omvormerUitType, type Meting } from './web/ligging.js';
 import { alarmSensoren, vindRookmelders } from './web/rookmelders.js';
@@ -1020,21 +1020,24 @@ if (scenePictures) setInterval(() => void scenePictures.refresh(), 10 * 60_000).
  */
 let liggingRijen: { at: number; rijen: PowerRow[] } | null = null;
 async function leesLigging(): Promise<void> {
-  const p = siteConfig?.solarProduction;
-  if (!p || ('attribute' in p && p.attribute)) return;
+  // Met meer omvormers de som (testerronde, november 2026); een meetpunt met een attribuut heeft geen statistiek.
+  const punten = siteConfig?.solarProduction ? [siteConfig.solarProduction, ...(siteConfig.solarExtra ?? [])] : [];
+  if (!punten.length || punten.some((p) => p.attribute)) return;
+  const ids = punten.map((p) => p.id);
   const nu = Date.now();
   const raw = await client.query<Record<string, { start: number | string; mean?: number | null }[]>>('recorder/statistics_during_period', {
     start_time: new Date(nu - 10 * 86_400_000).toISOString(),
     end_time: new Date(nu).toISOString(),
-    statistic_ids: [p.id],
+    statistic_ids: ids,
     period: '5minute',
     types: ['mean'],
     units: { power: 'W' },
   });
-  const rijen = (raw?.[p.id] ?? [])
+  const reeks = (id: string) => (raw?.[id] ?? [])
     .filter((r) => typeof r.mean === 'number' && Number.isFinite(r.mean))
     .map((r) => ({ startMs: typeof r.start === 'number' ? r.start : Date.parse(r.start), meanW: r.mean as number }));
-  liggingRijen = { at: nu, rijen };
+  // Alleen vakken waarin elke omvormer iets gaf: anders lijkt het dak minder sterk.
+  liggingRijen = { at: nu, rijen: somPerVak(ids.map(reeks), [], true) };
 }
 // Eerst kort na het verbinden, daarna om de drie uur; mislukt het, dan over tien minuten opnieuw.
 setInterval(() => {
@@ -2160,6 +2163,8 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
     // Hoe de panelen liggen (besluit 157): om "klopt" te kunnen bewaren.
     meting: metingNu(),
     omvormerGevonden: omvormerGevonden(),
+    // De netmeter en de omvormers om uit te kiezen (testerronde, november 2026).
+    vermogens: findPowers(allStates.values()),
   });
   const solarId = base.solarProduction?.id ?? null;
   return {
@@ -2174,6 +2179,10 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
         answers: store.current,
         meting: metingNu(),
         omvormerGevonden: omvormerGevonden(),
+        inGebruik: {
+          netmeter: siteConfig?.power.gridPower ? { afname: siteConfig.power.gridPower.id, terug: siteConfig.power.gridExport?.id ?? null } : null,
+          omvormers: siteConfig?.solarProduction ? [siteConfig.solarProduction.id, ...(siteConfig.solarExtra ?? []).map((p) => p.id)] : [],
+        },
         solar: solarId
           ? {
               naam: String(allStates.get(solarId)?.attributes['friendly_name'] ?? 'je zonnesensor'),

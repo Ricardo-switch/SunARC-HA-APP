@@ -38,7 +38,7 @@ const HOOFDSTUKKEN = [
   ['buiten', ['buiten']],
   ['bewoners', ['bewoners']],
   ['klimaat', ['warmte', 'apparaat', 'meten', 'comfort', 'afwezig']],
-  ['energie', ['zekering', 'zon', 'ligging', 'opzon', 'prijzen']],
+  ['energie', ['zekering', 'vermogen', 'zon', 'ligging', 'opzon', 'prijzen']],
   ['gemak', ['functies']],
   ['schermen', ['account', 'wand']],
   ['klaar', ['ha', 'stem', 'klaar']],
@@ -80,6 +80,8 @@ function gedaan(id) {
   // Hoe ze liggen (besluit 157): bevestigd, met de hand ingesteld, of geen panelen.
   if (id === 'ligging') return ['bevestigd', 'configuratie'].includes(d.aans?.ligging?.stand) || d.aans?.antwoorden?.panelen?.ligging === 'geen';
   if (id === 'zekering') return d.aans?.antwoorden?.zekering != null;
+  // De netmeter (testerronde, november 2026): gekozen, of de regeling heeft er al een.
+  if (id === 'vermogen') return vermogens.netNu(d.aans, null) != null;
   if (id === 'prijzen') return d.energie?.instellingen?.prijzen?.stroom != null;
   if (id === 'functies') return d.functies?.instellingen != null;
   if (id === 'wand' || id === 'account') return (d.bewoners?.schermen ?? []).length > 0;
@@ -1316,6 +1318,23 @@ function liggingStap() {
   };
 }
 
+/*
+ * De netmeter en de omvormers (testerronde, november 2026): welke sensor het
+ * vermogen van nu geeft. Uit vermogens.js, net als bij Energie.
+ */
+function vermogenStap() {
+  const a = antwoorden();
+  const panelen = a.panelen.ligging !== 'geen';
+  return {
+    waar: waarVan('vermogen'),
+    kop: t('inr.verKop'),
+    uitleg: t('inr.verZin'),
+    inhoud: `<div class="kolom"><div class="etagekop">${esc(t('energie.vermogenKop'))}</div>${vermogens.netBlok(d.aans, a)}</div>
+      ${panelen ? `<div class="kolom"><div class="etagekop">${esc(t('energie.omvormersKop'))}</div>${vermogens.zonBlok(d.aans, a)}</div>` : ''}
+      ${d.aans?.volgendeStart ? `<p class="mini">${esc(t('energie.later'))}</p>` : ''}`,
+  };
+}
+
 /* De zekering zoals de schets: eerst de fasen, dan de ampère in een vak (besluit 146). */
 // 32 A is in België gewoon; een andere waarde vul je zelf in, net als bij Energie.
 const AMPERES = [16, 20, 25, 32, 35, 40, 50, 63, 80];
@@ -1332,7 +1351,7 @@ function zekeringStap() {
     kop: t('inr.zekKop'),
     uitleg: t('inr.zekZin'),
     inhoud: `<div class="chips">${knop('data-fasen="1"', t('energie.eenFase'), zek?.fasen === 1)}${knop('data-fasen="3"', t('energie.drieFasen'), zek?.fasen === 3)}${knop('data-zekering="weetniet"', t('energie.weetNiet'), a.zekering === 'weetniet')}</div>
-      <label class="invul"><span>${esc(t('instellingen.zekering'))}</span>${keuze}</label>`,
+      ${a.zekering === 'weetniet' ? tip(t('inr.zekWeetNiet')) : `<label class="invul"><span>${esc(t('instellingen.zekering'))}</span>${keuze}</label>`}`,
   };
 }
 
@@ -1645,7 +1664,8 @@ function inHuisOnder() {
 }
 async function bewaarAansluiting(a) {
   const opZon = Object.fromEntries(Object.entries(a.opZon).filter(([, v]) => typeof v === 'boolean'));
-  const uit = await stuur('api/aansluiting', { panelen: a.panelen, zekering: a.zekering, tarief: a.tarief, verwarming: a.verwarming, voorkantZon: a.voorkantZon, dak: a.dak, elders: a.elders, opZon, opZonUit: a.opZonUit });
+  // De netmeter en de omvormers alleen als ze gekozen zijn; anders houdt de dienst wat er stond.
+  const uit = await stuur('api/aansluiting', { panelen: a.panelen, zekering: a.zekering, tarief: a.tarief, verwarming: a.verwarming, voorkantZon: a.voorkantZon, dak: a.dak, elders: a.elders, opZon, opZonUit: a.opZonUit, netmeter: a.netmeter, omvormers: a.omvormers });
   if (uit) {
     d.aans = uit;
     teken();
@@ -1807,7 +1827,7 @@ function tekenNu() {
   $$('[data-voortgang]').forEach((el) => {
     el.innerHTML = STAPPEN.map(([id]) => `<i class="${id === nu ? 'nu' : nagelopen.has(id) ? 'al' : gedaan(id) ? 'half' : ''}"></i>`).join('');
   });
-  const v = { welkom, woning: woningStap, huis: huisStap, buiten: buitenStap, bewoners: bewonersStap, apparaten: apparatenStap, meten: metenStap, warmte: warmteStap, apparaat: kanStap, comfort: comfortStap, afwezig: afwezigStap, zon: zonStap, ligging: liggingStap, zekering: zekeringStap, opzon: opzonStap, prijzen: prijzenStap, functies: functiesStap, wand: wandStap, ha: haStap, stem: stemStap, klaar: klaarStap, account: accountStap }[nu]();
+  const v = { welkom, woning: woningStap, huis: huisStap, buiten: buitenStap, bewoners: bewonersStap, apparaten: apparatenStap, meten: metenStap, warmte: warmteStap, apparaat: kanStap, comfort: comfortStap, afwezig: afwezigStap, zon: zonStap, ligging: liggingStap, zekering: zekeringStap, vermogen: vermogenStap, opzon: opzonStap, prijzen: prijzenStap, functies: functiesStap, wand: wandStap, ha: haStap, stem: stemStap, klaar: klaarStap, account: accountStap }[nu]();
   // Onderaan overal hetzelfde (besluit 158): Terug, Later en Volgende, tenzij de stap iets anders zegt.
   const [links, rechts] = v.voet ?? [terugKnop(), volgendeKnoppen()];
   const actief = document.activeElement;
@@ -1910,6 +1930,12 @@ let bezig = false;
 document.addEventListener('click', async (e) => {
   const el = e.target.closest('button, a');
   if (!el) return;
+  // Een omvormer weghalen (testerronde, november 2026).
+  if (el.hasAttribute('data-omvormer-weg')) {
+    const va = antwoorden();
+    if (vermogens.klik(el, d.aans, va)) await bewaarAansluiting(va);
+    return;
+  }
   if (el.hasAttribute('data-film')) {
     // Het filmpje (besluit 139), en daarna de rondleiding op Thuis. Moet de assistent nog aan
     // (besluit 202), dan herstart Home Assistant terwijl de film speelt; de film heeft zijn cijfers dan al.
@@ -2374,6 +2400,9 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('change', async (e) => {
   if (ligging.verander(e.target, ligStaat)) return teken();
   const el = e.target;
+  // De netmeter en de omvormers (testerronde, november 2026).
+  const va = antwoorden();
+  if (vermogens.verander(el, d.aans, va)) return bewaarAansluiting(va);
   const kamerNu = (next) => next?.kamers.find((x) => x.id === open);
   if (el.dataset.kanBereik) {
     // Wat elk apparaat kan: het bereik dat de regeling aanhoudt; de laagste blijft onder de hoogste.

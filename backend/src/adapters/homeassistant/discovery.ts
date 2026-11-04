@@ -182,9 +182,14 @@ function listAttr(state: HaEntityState | undefined, key: string): string[] {
 const BEFORE_BOUNDARY = '(?:^|[^a-z0-9])';
 const AFTER_BOUNDARY = '(?:[^a-z0-9]|$)';
 const METER_WORDS = new RegExp(
-  `${BEFORE_BOUNDARY}(?:p1|grid|net|netto)${AFTER_BOUNDARY}|smart[ _-]?meter|slimme[ _-]?meter`,
+  `${BEFORE_BOUNDARY}(?:p1|grid|net|netto|dsmr)${AFTER_BOUNDARY}|smart[ _-]?meter|slimme[ _-]?meter|` +
+    // Ook DSMR, HomeWizard en Homey (testerronde, november 2026): die zeiden het woord p1 of net niet.
+    'electricity[ _-]?meter|elektriciteitsmeter|homewizard|homey|energy[ _-]?dongle|power[ _-]?consumption',
   'i',
 );
+/** Wat naar het net gaat, of een meting per fase: niet de netmeter zelf. */
+const EXPORT_WORDS = /production|teruglever|levering|export|return|injecti|delivered/i;
+const PHASE_WORDS = new RegExp(`phase|fase|${BEFORE_BOUNDARY}l[123]${AFTER_BOUNDARY}`, 'i');
 /**
  * Wat een weerintegratie naast de huidige temperatuur nog meer levert.
  *
@@ -386,7 +391,9 @@ export function discover(r: Registers): Proposal {
 
   const climate = from('climate');
   const humiditySensors = sensorsOf('humidity');
-  const powerSensors = sensorsOf('power');
+  // Ook een sensor in W of kW zonder device_class, zoals een template of een Homey-dongle (testerronde, november 2026).
+  const unitOf = (e: HaRegistryEntity) => String(statePer.get(e.entity_id)?.attributes['unit_of_measurement'] ?? '').toLowerCase();
+  const powerSensors = from('sensor').filter((e) => deviceClass(e, statePer.get(e.entity_id)) === 'power' || unitOf(e) === 'w' || unitOf(e) === 'kw');
 
   const zones: Record<string, unknown>[] = [];
   const actuators: Record<string, unknown>[] = [];
@@ -627,17 +634,29 @@ export function discover(r: Registers): Proposal {
 
   // ---- netmeting ----------------------------------------------------------
 
+  const meterText = (e: HaRegistryEntity) => `${e.entity_id} ${nameOf(e, statePer.get(e.entity_id))}`;
   const meterCandidates = powerSensors.filter(
-    (e) => METER_WORDS.test(e.entity_id) || METER_WORDS.test(nameOf(e, statePer.get(e.entity_id))),
+    (e) => METER_WORDS.test(meterText(e)) && !EXPORT_WORDS.test(meterText(e)) && !PHASE_WORDS.test(e.entity_id),
   );
   const meter = meterCandidates[0] ?? null;
+  /*
+   * DSMR geeft afname en teruglevering als twee sensoren, allebei positief
+   * (testerronde, november 2026). Dan hoort de teruglevering erbij: op hetzelfde
+   * apparaat, of met dezelfde naam waar "consumption" "production" wordt.
+   */
+  const meterExport = meter && /consumption|afname|verbruik/i.test(meter.entity_id)
+    ? (powerSensors.find((e) => e.entity_id === meter.entity_id.replace(/consumption/i, 'production').replace(/afname/i, 'teruglevering').replace(/verbruik/i, 'teruglevering'))
+      ?? powerSensors.find((e) => meter.device_id != null && e.device_id === meter.device_id && EXPORT_WORDS.test(e.entity_id) && !PHASE_WORDS.test(e.entity_id))
+      ?? null)
+    : null;
   if (meter) {
     findings.push({
       soort: 'geraden',
       pad: 'power.gridPower',
-      tekst:
-        `${meter.entity_id} lijkt de netmeting. Controleer dat hij negatief wordt ` +
-        'bij teruglevering — anders klopt het hele overschot niet.',
+      tekst: meterExport
+        ? `${meter.entity_id} min ${meterExport.entity_id} lijkt de netmeting: afname min teruglevering.`
+        : `${meter.entity_id} lijkt de netmeting. Controleer dat hij negatief wordt ` +
+          'bij teruglevering — anders klopt het hele overschot niet.',
       ...(meterCandidates.length > 1
         ? { alternatieven: meterCandidates.slice(1).map((e) => e.entity_id) }
         : {}),
@@ -675,10 +694,11 @@ export function discover(r: Registers): Proposal {
     const unit = (st?.attributes as Record<string, unknown> | undefined)?.[
       'unit_of_measurement'
     ];
+    // Ook in kW: de regeling rekent het om (testerronde, november 2026).
     return (
       PRODUCTION_WORDS.test(e.entity_id) &&
       !METER_WORDS.test(e.entity_id) &&
-      unit === 'W'
+      (unit === 'W' || unit === 'kW')
     );
   });
   const production = productionCandidates[0] ?? null;
@@ -743,7 +763,7 @@ export function discover(r: Registers): Proposal {
     schemaVersion: 1,
     id: 'mijn-huis',
     ...(timezone ? { timezone } : {}),
-    ...(meter ? { power: { gridPower: meter.entity_id } } : {}),
+    ...(meter ? { power: { gridPower: meter.entity_id, ...(meterExport ? { gridExport: meterExport.entity_id } : {}) } } : {}),
     ...(persons.length > 0
       ? {
           occupancy: persons.map((e) => ({
@@ -794,7 +814,12 @@ export function applyChoices(
       else config['outdoorTemperature'] = response;
     } else if (choice.soort === 'veld' && choice.pad === 'power.gridPower') {
       if (response == null) delete config['power'];
-      else config['power'] = { ...(config['power'] as object | undefined), gridPower: response };
+      else {
+        // Een andere meter dan voorgesteld: de teruglevering die bij de voorgestelde hoorde, valt weg.
+        const power = { ...(config['power'] as Record<string, unknown> | undefined) };
+        if (power['gridPower'] !== response) delete power['gridExport'];
+        config['power'] = { ...power, gridPower: response };
+      }
     } else if (choice.soort === 'zoneTemperatuur') {
       const zones = (config['zones'] as Record<string, unknown>[] | undefined) ?? [];
       for (const zone of zones) {

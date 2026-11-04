@@ -116,6 +116,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [237. Het voorbeeldhuis: de app op een nagemaakt Home Assistant, met een dag om door te spelen](#237-het-voorbeeldhuis-de-app-op-een-nagemaakt-home-assistant-met-een-dag-om-door-te-spelen)
 - [243. Weer in het voorbeeldhuis](#243-weer-in-het-voorbeeldhuis)
 - [246. Klaarzetten per niveau](#246-klaarzetten-per-niveau)
+- [248. De netmeter en de omvormers kies je in de app](#248-de-netmeter-en-de-omvormers-kies-je-in-de-app)
 
 **Meten, data en analyse**
 
@@ -11495,6 +11496,54 @@ browser op die van het voorbeeld (15 juli, 12:45). De korte film volgt nog.
 *Opgelost in 0.115.1:* bij Inrichten stonden meerdere iconen op één regel, en
 het omzetten nam per regel alleen het eerste mee. Zeventien iconen vielen weg
 en Inrichten tekende daar een huisje. Ze staan er weer, één per regel.
+
+---
+
+## 248. De netmeter en de omvormers kies je in de app
+
+*Onderwerp: configuratie en onboarding · Status: geldig*
+
+4 november 2026. De eerste betatesters (Facebookgroep Home Assistant Dutch)
+liepen vast op de meting van nu. Nagelopen in de code:
+
+- De netmeter werd alleen bij de eerste ontdekking gekozen, en alleen als de
+  naam p1, grid, net of slimme meter zei en de sensor `device_class: power`
+  had. DSMR (`electricity_meter_power_consumption`), een Homey-dongle en een
+  template zonder device_class vielen weg, en daarna was hij nergens te kiezen.
+- DSMR geeft afname en teruglevering als twee sensoren, allebei positief.
+- Een meter of omvormer in kW werd als watt gelezen: 0,45 kW werd 0,45 W.
+- Twee omvormers (2× SolarEdge) konden niet samen de opbrengst van nu zijn;
+  Opbrengst telde ze wel op.
+
+De fasebewaking zelf was goed: die leest de stroom per fase (A), en anders het
+netvermogen. De kWh-meters van "Meters overnemen" doen daar niet aan mee; dat
+dacht het rapport van de testers ten onrechte.
+
+*Besluit:*
+
+- **Twee nieuwe velden in de configuratie:** `power.gridExport` (teruglevering
+  als aparte sensor; het netvermogen is dan afname min teruglevering, en
+  onbekend als er een mist) en `solarExtra` (meer omvormers naast
+  `solarProduction`; de som, en een omvormer die niets geeft telt niet mee).
+- **kW wordt W**, voor het net en de omvormers, zoals al bij de buffers.
+- **Kiezen in de app:** bij Energie › Meters "Vermogen van nu" (van het net, en
+  naar het net als dat apart is), bij Energie › Panelen de omvormers, en in
+  Inrichten een stap "Meter van nu" na de zekering (`vermogens.js`, voor
+  allebei). De lijst is elke sensor in W of kW, met wat hij nu zegt; wat op het
+  net, teruglevering of de panelen lijkt, staat voorop. De keuze staat in
+  `aansluiting.json` (`netmeter`, `omvormers`) en gaat voor de configuratie,
+  net als de zekering (besluit 117). Hij gaat in na de volgende start.
+- **Wat de pagina niet meestuurt, blijft staan:** een pagina die alleen de
+  zekering bewaart, wist de netmeter niet.
+- **De ontdekking kijkt ruimer:** ook sensoren in W of kW zonder device_class,
+  ook DSMR, HomeWizard en Homey, zonder meting per fase of teruglevering als
+  netmeter; bij DSMR komt de teruglevering er als paar bij. Omvormers mogen in
+  kW.
+- **Vandaag en de ligging** tellen de omvormers op, en het net als afname min
+  teruglevering.
+- **Inrichten, zekering "Weet ik niet":** geen uitgeschakelde lijst meer, maar
+  een zin waar het staat en dat het later kan.
+- **Versie 0.116.0.**
 
 ---
 

@@ -584,8 +584,8 @@ function unreliableWords(config: SiteConfig, ids: readonly string[], lang: Lang)
   for (const id of ids) {
     const zone = config.zones.find((z) => z.temperature.id === id);
     if (zone) words.add(lang === 'nl' ? `de temperatuur in ${zoneName(zone, lang)}` : `the temperature in ${zoneName(zone, lang)}`);
-    else if (config.power.gridPower?.id === id) words.add(lang === 'nl' ? 'de slimme meter' : 'the smart meter');
-    else if (config.solarProduction?.id === id) words.add(lang === 'nl' ? 'de zonnepanelen' : 'the solar panels');
+    else if (config.power.gridPower?.id === id || config.power.gridExport?.id === id) words.add(lang === 'nl' ? 'de slimme meter' : 'the smart meter');
+    else if (config.solarProduction?.id === id || (config.solarExtra ?? []).some((p) => p.id === id)) words.add(lang === 'nl' ? 'de zonnepanelen' : 'the solar panels');
     else words.add(lang === 'nl' ? 'een meting' : 'a measurement');
   }
   return [...words].join(lang === 'nl' ? ' en ' : ' and ');
