@@ -1,5 +1,21 @@
 # Wat is er nieuw · What is new
 
+## 0.121.1
+
+*4 november 2026*
+
+**Opgelost**
+
+- De eerste start loopt niet meer vast op "zo niet bruikbaar": wat SunArc nog niet begrijpt, laat hij weg, en dat staat op het scherm en in het logboek
+- Het grote welkom van Inrichten heeft weer een kruisje rechtsboven, naar Thuis
+
+*English*
+
+**Fixed**
+
+- The first start no longer gets stuck on "cannot be used like this": SunArc leaves out what it does not understand yet, and says so on screen and in the log
+- The big welcome of Setup has a close button at the top right again, back to Home
+
 ## 0.121.0
 
 *4 november 2026*

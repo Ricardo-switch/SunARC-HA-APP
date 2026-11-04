@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.121.0';
+export const VERSIE = '0.121.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,20 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.121.1',
+    datum: '2026-11-04',
+    opgelost: [
+      'De eerste start loopt niet meer vast op "zo niet bruikbaar": wat SunArc nog niet begrijpt, laat hij weg, en dat staat op het scherm en in het logboek',
+      'Het grote welkom van Inrichten heeft weer een kruisje rechtsboven, naar Thuis',
+    ],
+    en: {
+      opgelost: [
+        'The first start no longer gets stuck on "cannot be used like this": SunArc leaves out what it does not understand yet, and says so on screen and in the log',
+        'The big welcome of Setup has a close button at the top right again, back to Home',
+      ],
+    },
+  },
   {
     versie: '0.121.0',
     datum: '2026-11-04',

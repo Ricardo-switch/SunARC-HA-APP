@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Inrichten, waar liggen je panelen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Inrichten, de korte stap (schets, 4 november 2026): alleen waar panelen
+   * liggen en hoeveel. Richting en helling zoekt SunArc daarna op in wat ze
+   * leveren; de vlakken verfijn je bij Energie › Daken en panelen.
+   * Standen: standaard, #voorstel (na een paar zonnige dagen).
+   */
+  .scherm { position: relative; width: 1280px; height: 800px; overflow: hidden; }
+  .hoofdstukken { position: absolute; left: 26px; right: 26px; top: 18px; display: flex; gap: 8px; align-items: center; }
+  .hoofdstukken .logo { width: 36px; height: 36px; border-radius: 11px; background: url('../../frontend/kit/icoon-klein.svg') center / cover; flex: none; }
+  .hs { flex: 1; min-width: 0; height: 40px; padding: 6px 12px; border-radius: 14px; background: rgb(255 255 255 / 0.05); display: flex; flex-direction: column; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: var(--gedempt); }
+  .hs.nu { background: rgb(255 255 255 / 0.12); color: var(--tekst); }
+  .hs i { display: flex; gap: 3px; } .hs i b { flex: 1; height: 3px; border-radius: 2px; background: rgb(255 255 255 / 0.12); } .hs i b.al { background: var(--mint); } .hs i b.nu { background: var(--tekst); }
+  .dicht { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / 0.08); font-weight: 700; flex: none; }
+  .podium { position: absolute; left: 26px; top: 84px; width: 740px; height: 690px; }
+  .podium svg { width: 100%; height: 100%; }
+  .wacht { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); padding: 12px 18px; border-radius: 16px; background: rgb(11 20 36 / 0.8); border: 1px solid rgb(255 255 255 / 0.15); font-size: 14px; font-weight: 700; color: var(--zacht); text-align: center; }
+  .wacht small { display: block; font-weight: 500; color: var(--gedempt); margin-top: 3px; }
+  .kaart { position: absolute; right: 26px; top: 84px; bottom: 26px; width: 470px; padding: 26px 28px 22px; display: flex; flex-direction: column; gap: 12px; }
+  .waar { font-size: 13.5px; font-weight: 600; color: var(--gedempt); }
+  .kaart h1 { margin: 0; }
+  .uitleg { margin: 0; font-size: 15.5px; line-height: 1.5; color: var(--zacht); }
+  .plaatsken { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .plaats { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 2px 10px; align-items: center; padding: 10px; border-radius: 14px; background: rgb(255 255 255 / 0.05); border: 1.5px solid transparent; }
+  .plaats svg { grid-row: 1 / 3; width: 38px; height: 32px; }
+  .plaats b { font-size: 14px; }
+  .plaats .aantal { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--zacht); }
+  .plaats .aantal i { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / 0.1); font-style: normal; font-weight: 800; }
+  .plaats .aantal b { font: 600 15px var(--kop); min-width: 20px; text-align: center; }
+  .plaats.aan { border-color: var(--zon); background: rgb(247 181 72 / 0.07); }
+  .plaats span.niet { font-size: 12px; color: var(--gedempt); }
+  .kanten { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 13px; color: var(--zacht); }
+  .kanten > b { width: 100%; font-weight: 700; }
+  .kanten span { white-space: nowrap; }
+  .kanten span { height: 30px; padding: 0 11px; border-radius: 999px; display: inline-flex; align-items: center; background: rgb(255 255 255 / 0.06); font-weight: 700; }
+  .kanten span.aan { background: var(--tekst); color: #0b1424; }
+  .tip { padding: 11px 14px; border-radius: 14px; background: rgb(111 211 255 / 0.07); border: 1px solid rgb(111 211 255 / 0.2); font-size: 13px; color: var(--zacht); line-height: 1.45; }
+  .voet { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgb(255 255 255 / 0.07); }
+  .voet .rechts { display: flex; gap: 14px; align-items: center; }
+  .zacht { color: var(--zacht); font-weight: 700; font-size: 14.5px; }
+  .vlak { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 0 10px; align-items: center; padding: 8px 10px; border-radius: 13px; background: rgb(255 255 255 / 0.05); }
+  .letter { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font: 800 13px var(--kop); color: #0b1424; }
+  .vlak b { display: block; font-size: 14px; }
+  .vlak span { font-size: 12px; color: var(--gedempt); }
+  .vlak .letter { font: 800 13px var(--kop); color: #0b1424; }
+  .vlak em { font-style: normal; font: 600 15px var(--kop); }
+</style>
+</head>
+<body>
+<div class="scherm lucht lucht-dag">
+  <div class="hoofdstukken" id="hs"></div>
+  <div class="podium" id="podium"></div>
+
+  <section class="glas kaart" data-stand="vraag">
+    <span class="waar">5. Energie · Daken</span>
+    <h1 class="kop-2">Waar liggen je panelen?</h1>
+    <p class="uitleg">Tik aan waar panelen liggen, met hoeveel. Richting en helling zoekt SunArc zelf op in wat ze leveren.</p>
+    <div class="plaatsken" id="plekken"></div>
+    <div class="kanten"><b>Het hoofddak: hoeveel kanten met panelen?</b><span>1</span><span>2</span><span class="aan">3 of meer</span><span>Weet ik niet</span></div>
+    <div class="tip">Weet je het niet precies? Geen punt: na een paar zonnige dagen stelt SunArc de vlakken voor. Verfijnen kan bij Energie › Daken en panelen.</div>
+    <div class="voet"><span class="zacht">Terug</span><span class="rechts"><span class="zacht">Later</span><span class="knop knop-licht" style="height: 44px; display: inline-flex; align-items: center">Volgende</span></span></div>
+  </section>
+
+  <section class="glas kaart" data-stand="voorstel">
+    <span class="waar">5. Energie · Daken</span>
+    <h1 class="kop-2">Zo liggen ze, denken we</h1>
+    <p class="uitleg">Gevonden in vijf zonnige dagen. Klopt het? Een vlak dat niet klopt, zet je straks goed.</p>
+    <div id="voorstel" style="display: flex; flex-direction: column; gap: 6px"></div>
+    <div class="tip">A, B en C meet één omvormer: wat hij meet, verdeelt SunArc naar wat elk vlak bij heldere lucht levert.</div>
+    <div class="voet"><span class="zacht">Terug</span><span class="rechts"><span class="zacht">Aanpassen</span><span class="knop knop-licht" style="height: 44px; display: inline-flex; align-items: center">Klopt</span></span></div>
+  </section>
+</div>
+<script src="daken.js"></script>
+<script>
+  const toon = location.hash === '#voorstel' ? 'voorstel' : 'vraag';
+  document.querySelectorAll('[data-stand]').forEach((el) => { if (el.dataset.stand !== toon) el.remove(); });
+  addEventListener('hashchange', () => location.reload());
+  const HS = [['1. Je huis', 3, 3], ['2. Buiten', 1, 1], ['3. Wie woont hier', 1, 1], ['4. Klimaat', 5, 5], ['5. Energie', 6, 2], ['6. Gemak', 1, 0], ['7. Je schermen', 2, 0], ['8. Klaar', 3, 0]];
+  document.getElementById('hs').innerHTML = '<span class="logo"></span>' + HS.map(([n, tot, al], i) => `<div class="hs${i === 4 ? ' nu' : ''}">${n}<i>${Array.from({ length: tot }, (_, k) => `<b class="${k < al ? 'al' : i === 4 && k === al ? 'nu' : ''}"></b>`).join('')}</i></div>`).join('') + '<span class="dicht">×</span>';
+  const ICOON = (d) => `<svg viewBox="0 0 44 36" fill="none" stroke="#f7b548" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">${d}</svg>`;
+  const PLEKKEN = [
+    ['Hoofddak', 22, '<path d="M4 22 22 8l18 14"/><path d="M8 19v13h28V19"/><path d="M26 13l8 6" stroke-width="4" stroke="#4d7eac"/>'],
+    ['Uitbouw', 16, '<path d="M4 18 16 8l12 10v14H4z"/><path d="M28 22h12v10H28z"/><path d="M29 21h10" stroke-width="3" stroke="#4d7eac"/>'],
+    ['Garage', 8, '<path d="M5 14h34v18H5z"/><path d="M11 32V21h22v11"/><path d="M8 13h28" stroke-width="3" stroke="#4d7eac"/>'],
+    ['Op de grond', 6, '<path d="M4 32h36"/><path d="M8 30 20 16h16L24 30" fill="#4d7eac" stroke="#9cc0e4"/>'],
+    ['Carport', 0, '<path d="M5 12h34M8 12v20M36 12v20"/><path d="M7 10h30" stroke-width="3" stroke="#4d7eac"/>'],
+    ['Tuinhuis of schuur', 0, '<path d="M8 18l14-9 14 9v14H8z"/><path d="M19 32v-8h6v8"/><path d="M24 12l9 6" stroke-width="3" stroke="#4d7eac"/>'],
+    ['Gevel of balkon', 0, '<path d="M8 6h20v26H8z"/><path d="M28 14l8 3v10l-8-3z" fill="#4d7eac" stroke="#9cc0e4"/>'],
+    ['Ergens anders', 0, '<circle cx="22" cy="18" r="12"/><path d="M22 12v12M16 18h12"/>'],
+  ];
+  const plekken = document.getElementById('plekken');
+  if (plekken) plekken.innerHTML = PLEKKEN.map(([naam, n, d]) => `<div class="plaats${n ? ' aan' : ''}">${ICOON(d)}<b>${naam}</b>${n ? `<span class="aantal"><i>−</i><b>${n}</b><i>+</i> panelen</span>` : '<span class="niet">tik aan als hier panelen liggen</span>'}</div>`).join('');
+  const voorstel = document.getElementById('voorstel');
+  if (voorstel) voorstel.innerHTML = daken.VLAKKEN.map((v) => `<div class="vlak"><span class="letter" style="background: ${daken.STANDKLEUR[v.stand === 'zelf' ? 'gemeten' : v.stand]}">${v.l}</span><div><b>${v.kort}</b><span>${v.waar}</span></div><em>${v.n}</em></div>`).join('');
+  const podium = document.getElementById('podium');
+  podium.innerHTML = `<svg viewBox="14 40 614 532" preserveAspectRatio="xMidYMid meet">${daken.vanBoven(toon === 'vraag' ? { alleen: [] } : {})}</svg>`;
+  if (toon === 'vraag') podium.insertAdjacentHTML('beforeend', '<div class="wacht">De omtrek van je huis, uit de kaart<small>De daken tekent SunArc zodra hij weet hoe ze liggen</small></div>');
+</script>
+</body>
+</html>

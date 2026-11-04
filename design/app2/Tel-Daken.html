@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telefoon · Energie › Daken en panelen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Daken en panelen op de telefoon (schets, 4 november 2026): Wand-Daken op
+   * 390 breed. Bovenaan het huis van boven, eronder de vlakken met hun letter;
+   * een vlak opent als blad van onderen. Standen: standaard, #vlak (de
+   * uitbouw, oost-west), #klopt (een vlak levert minder).
+   */
+  body { min-height: 844px; }
+  .boven { padding: 16px 18px 6px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+  .inhoud { padding: 0 16px 120px; display: flex; flex-direction: column; gap: 12px; }
+  .tekening { height: 290px; border-radius: 20px; overflow: hidden; background: rgb(255 255 255 / 0.03); }
+  .tekening svg { width: 100%; height: 100%; display: block; }
+  .chip { height: 26px; padding: 0 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; font: 700 12px var(--romp); }
+  .chip.mint { color: var(--mint); background: rgb(110 231 183 / 0.12); }
+  .chip.gloed { color: #ffb39f; background: rgb(255 138 107 / 0.14); }
+  .kop3 { margin: 4px 0 0; font-size: 13px; font-weight: 700; color: var(--zacht); display: flex; justify-content: space-between; }
+  .kop3 a { color: var(--ijs-t); }
+  .vlak { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 0 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: rgb(var(--wit) / 0.05); }
+  .letter { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font: 800 13px var(--kop); color: #0b1424; }
+  .vlak b { display: block; font-size: 14.5px; }
+  .vlak span.waar { display: block; font-size: 12px; color: var(--gedempt); }
+  .vlak .kw { text-align: right; font: 600 16px var(--kop); }
+  .vlak .kw small { display: block; font: 500 11.5px var(--romp); color: var(--gedempt); }
+  .stand { font-size: 11.5px; font-weight: 700; }
+  .stand.gemeten { color: var(--mint); } .stand.zelf { color: var(--ijs-t); } .stand.leert { color: var(--zon); } .stand.mis { color: #ff8a6b; }
+  .som { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .feit { padding: 9px 11px; border-radius: 14px; background: rgb(var(--wit) / 0.05); }
+  .feit small { display: block; font-size: 11px; font-weight: 700; color: var(--gedempt); }
+  .feit b { display: block; font: 600 17px var(--kop); }
+  .knop.breed { height: 48px; width: 100%; justify-content: center; display: inline-flex; align-items: center; font-size: 15px; }
+  /* Blad van onderen. */
+  .achter { position: fixed; inset: 0; background: rgb(5 10 20 / 0.55); }
+  .blad { position: fixed; left: 0; right: 0; bottom: 0; max-height: 78%; overflow: hidden; padding: 10px 18px 26px; border-radius: 26px 26px 0 0; background: #142238; border-top: 1px solid rgb(255 255 255 / 0.12); display: flex; flex-direction: column; gap: 12px; }
+  .greep { width: 44px; height: 5px; border-radius: 3px; background: rgb(255 255 255 / 0.25); align-self: center; }
+  .veld small { display: block; font-size: 12px; font-weight: 700; color: var(--gedempt); margin-bottom: 6px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg span { height: 34px; padding: 0 12px; border-radius: 12px; display: inline-flex; align-items: center; background: rgb(255 255 255 / 0.06); font-size: 13.5px; font-weight: 700; color: var(--zacht); }
+  .seg span.aan { background: var(--tekst); color: #0b1424; }
+  .rij3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stapper { display: flex; align-items: center; justify-content: space-between; padding: 4px; border-radius: 12px; background: rgb(255 255 255 / 0.05); }
+  .stapper i { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / 0.08); font-style: normal; font-weight: 800; color: var(--zacht); }
+  .stapper b { font: 600 17px var(--kop); white-space: nowrap; }
+  .meting { padding: 10px 12px; border-radius: 12px; background: rgb(110 231 183 / 0.08); border: 1px solid rgb(110 231 183 / 0.22); font-size: 13px; color: var(--zacht); }
+  .meting b { color: var(--mint); }
+  .zorg { padding: 14px; border-radius: 18px; background: rgb(255 138 107 / 0.08); border: 1px solid rgb(255 138 107 / 0.25); display: flex; flex-direction: column; gap: 8px; }
+  .zorg h2 { margin: 0; font: 600 19px var(--kop); }
+  .zorg p { margin: 0; font-size: 13.5px; color: var(--zacht); line-height: 1.45; }
+</style>
+</head>
+<body>
+<div class="tel lucht lucht-dag">
+  <div class="boven"><span>‹ Energie</span><span class="chip mint" data-stand="alle vlak">✓ Gemeten · 96%</span><span class="chip gloed" data-stand="klopt">! Eén vlak levert minder</span></div>
+  <div class="inhoud">
+    <h1 class="kop-1" style="font-size: 30px; margin: 4px 0 0">Daken en panelen</h1>
+    <div class="zorg" data-stand="klopt">
+      <h2>C levert 's ochtends een derde minder</h2>
+      <p>Elke zonnige ochtend tot ongeveer 10:00. Dat lijkt op schaduw van iets aan de oostkant, zoals een boom.</p>
+      <span class="knop knop-licht breed">Er staat een boom: leer de schaduw</span>
+      <span class="knop breed">Ik kijk het na</span>
+    </div>
+    <div class="tekening" id="tekening"></div>
+    <p class="kop3">6 vlakken <a>+ Dak of vlak erbij</a></p>
+    <div id="lijst" style="display: flex; flex-direction: column; gap: 6px"></div>
+    <div class="som"><div class="feit"><small>Panelen</small><b>52</b></div><div class="feit"><small>Samen</small><b>21,7 kWp</b></div><div class="feit"><small>Helder nu</small><b>14,2 kW</b></div></div>
+  </div>
+  <div data-stand="vlak">
+    <div class="achter"></div>
+    <div class="blad">
+      <span class="greep"></span>
+      <div class="vlak" style="background: transparent; padding: 0"><span class="letter" style="background: #6ee7b7">D</span><div><b>Uitbouw, plat dak</b><span class="waar">achter het huis · <span class="stand gemeten">✓ gemeten</span></span></div><span class="kw">6,9<small>kWp</small></span></div>
+      <div class="veld"><small>Hoe liggen ze?</small><div class="seg"><span>Naar één kant</span><span class="aan">Oost-west</span><span>Plat liggend</span></div></div>
+      <div class="veld"><small>Richting</small><div class="stapper"><i>−</i><b>92° en 272°</b><i>+</i></div></div>
+      <div class="veld"><small>Helling</small><div class="seg"><span>5°</span><span class="aan">10°</span><span>15°</span><span>20°</span><span>30°</span><span>Anders</span></div></div>
+      <div class="rij3">
+        <div class="veld"><small>Oost</small><div class="stapper"><i>−</i><b>8</b><i>+</i></div></div>
+        <div class="veld"><small>West</small><div class="stapper"><i>−</i><b>8</b><i>+</i></div></div>
+        <div class="veld"><small>Per paneel</small><div class="stapper"><i>−</i><b>430</b><i>+</i></div></div>
+      </div>
+      <div class="veld"><small>Gemeten door</small><div class="seg"><span class="aan">Micro-omvormers</span><span>Omvormer huis</span><span>Weet ik niet</span></div></div>
+      <div class="meting"><b>✓ Klopt met de meting:</b> 94° en 274°, 10°, 6,7 kWp.</div>
+      <span class="knop knop-licht breed">Bewaar</span>
+    </div>
+  </div>
+</div>
+<script src="daken.js"></script>
+<script>
+  const toon = { '#vlak': 'vlak', '#klopt': 'klopt' }[location.hash] ?? 'alle';
+  document.querySelectorAll('[data-stand]').forEach((el) => { if (!el.dataset.stand.split(' ').includes(toon)) el.remove(); });
+  addEventListener('hashchange', () => location.reload());
+  const { VLAKKEN, STANDKLEUR, STAND, kwp } = daken;
+  document.getElementById('lijst').innerHTML = VLAKKEN.map((v) => {
+    const stand = toon === 'klopt' && v.l === 'C' ? 'mis' : v.stand;
+    return `<div class="vlak"><span class="letter" style="background: ${STANDKLEUR[stand]}">${v.l}</span><div><b>${v.naam}</b><span class="waar">${v.waar.split(' · ')[0]} · <span class="stand ${stand}">${STAND[stand]}</span></span></div><span class="kw">${kwp(v)}<small>${v.n} panelen</small></span></div>`;
+  }).join('');
+  const opts = { vlak: { open: 'D' }, klopt: { mis: 'C', boom: true } }[toon] ?? {};
+  document.getElementById('tekening').innerHTML = `<svg viewBox="20 50 610 510" preserveAspectRatio="xMidYMid meet">${daken.vanBoven(opts)}</svg>`;
+</script>
+</body>
+</html>

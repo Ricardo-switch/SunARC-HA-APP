@@ -1091,6 +1091,28 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
    * De eerste start (4 november 2026): kwam het voorstel niet door de toets,
    * dan zag een tester alleen "zo niet bruikbaar". Nu staat erbij wat er mis is.
    */
+  it('zegt bij de eerste start wat SunArc wegliet', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const huis = await (await fetch(`${baseUrl}/api/huis`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json();
+    await context.route(`${baseUrl}/api/onboarding*`, (route) =>
+      route.request().method() === 'POST'
+        ? route.fulfill({ json: { ok: true, pad: '/config/sites/mijn-huis.json', weggelaten: ['apparaat Kapotte kachel: kan niets', 'zone Zolder: zonder apparaat'] } })
+        : route.fulfill({ json: { huis, keuzes: [], bestaande: [] } }),
+    );
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/begin.html`);
+    await p.locator('[data-inrichten]').first().click({ timeout: 15_000 });
+    const zin = p.locator('[data-weggelaten]').first();
+    await zin.waitFor({ timeout: 10_000 });
+    expect(await zin.innerText()).toContain('Wat SunArc nog niet begrijpt, liet hij weg (2).');
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 30_000);
+
   it('zegt bij de eerste start wat er mis is als het voorstel niet bruikbaar is', async () => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
@@ -2049,6 +2071,9 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await welkom.locator('h1', { hasText: 'Welkom' }).waitFor({ timeout: 10_000 });
     await welkom.locator('.wk-label[data-lijst="apparaten"]').waitFor({ timeout: 10_000 });
     expect(await p.locator('#wand .bovenbalk').isVisible()).toBe(false);
+    // Ook hier een kruisje naar Thuis (4 november 2026): de balk met het kruisje staat er niet.
+    expect(await welkom.locator('.wk-sluit').isVisible()).toBe(true);
+    expect(await welkom.locator('.wk-sluit').getAttribute('href')).toBe('thuis.html');
     await p.waitForTimeout(800);
     // Acht hoofdstukken met hun stappen (besluit 190).
     expect(await p.locator('#wand [data-stappen] .stap').count()).toBe(8);
