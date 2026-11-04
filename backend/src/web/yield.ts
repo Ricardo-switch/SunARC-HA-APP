@@ -21,7 +21,7 @@
  */
 
 import type { Lang } from './assistant.js';
-import { SALDEREN_TOT_MS, dalAandeel, kostenVan, raadDal, type Gebruik, type KostenRegel } from './tarief.js';
+import { SALDEREN_TOT_MS, dalAandeel, kostenVan, metKostentellers, raadDal, type Gebruik, type KostenRegel } from './tarief.js';
 import { BASIS_ZONDER_METER_W, type EnergySettings, type EnergySource } from './energy.js';
 import { partsIn, zonedMidnight } from './today.js';
 
@@ -350,7 +350,9 @@ export async function yieldReport(
   if (!range) return null;
   const s = settings;
   const deviceIds = s.apparaten.map((a) => a.id);
-  const all = [...s.net.afname, ...s.net.teruglevering, ...s.zon, ...(s.gas ? [s.gas] : []), ...deviceIds];
+  // Bij een dynamisch contract ook de kostentellers van Home Assistant (testerronde, november 2026).
+  const dyn = s.prijzen.dynamisch ?? null;
+  const all = [...s.net.afname, ...s.net.teruglevering, ...s.zon, ...(s.gas ? [s.gas] : []), ...deviceIds, ...(dyn ? [...dyn.afname, ...dyn.terug] : [])];
 
   // Per uur, of per dag voor een heel jaar: fijn genoeg om zon per apparaat toe te rekenen.
   // Panelen zonder slimme meter (besluit 196): zelf gebruikt en terug zijn geschat, en dat
@@ -436,7 +438,11 @@ export async function yieldReport(
   const dagen = (totMs - vanMs) / 86_400_000;
   const vanP = partsIn(vanMs + 3 * 3_600_000, tz);
   const dekking = vanMs > range.startMs ? { vanaf: iso(vanP.y, vanP.m, vanP.d), dagen: Math.round(dagen), vanDagen: Math.round((totMs - range.startMs) / 86_400_000) } : null;
-  const kosten = kostenVan(s.prijzen, { ...gebruik, gasM3, dagen: Math.max(0, dagen), heelJaar: kind === 'jaar' }, { net: s.net.afname.length > 0, terug: s.net.teruglevering.length > 0, gas: s.gas != null }, lang);
+  const berekend = kostenVan(s.prijzen, { ...gebruik, gasM3, dagen: Math.max(0, dagen), heelJaar: kind === 'jaar' }, { net: s.net.afname.length > 0, terug: s.net.teruglevering.length > 0, gas: s.gas != null }, lang);
+  // Met de kostentellers van Home Assistant, als die er zijn; een uur met een negatieve prijs telt ook mee.
+  const teller = (ids: readonly string[]) => (ids.some((id) => (rows[id] ?? []).length) ? ids.reduce((som, id) => som + (rows[id] ?? []).reduce((a, r) => a + r.change, 0), 0) : null);
+  const afKost = dyn ? teller(dyn.afname) : null;
+  const kosten = dyn && afKost != null ? metKostentellers(berekend, afKost, teller(dyn.terug), afnameKwh, terugKwh, lang) : berekend;
   const stroomPrijs = kosten.stroomPerKwh;
 
   // Vakken in de grafiek: ook de lege, zodat een dag zonder meting een gat is.

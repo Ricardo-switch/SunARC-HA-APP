@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.118.0';
+export const VERSIE = '0.119.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -66,6 +66,16 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.119.0',
+    datum: '2026-11-04',
+    nieuw: ['Energie › Prijzen toont de prijs van nu, met een knop om de uurprijs over te nemen'],
+    opgelost: ['Bij een prijs per uur (zoals Zonneplan of Tibber) rekent Opbrengst met de kosten zoals Home Assistant ze telt, met de prijs van elk uur; eerst bleef de prijs staan op het moment van overnemen'],
+    en: {
+      nieuw: ['Energy › Prices shows the price right now, with a button to take over the hourly price'],
+      opgelost: ['With an hourly price (such as Zonneplan or Tibber) Energy counts the costs as Home Assistant does, at the price of each hour; before, the price stayed at the moment it was taken over'],
+    },
+  },
   {
     versie: '0.118.0',
     datum: '2026-11-04',

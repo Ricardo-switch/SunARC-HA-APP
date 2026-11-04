@@ -138,6 +138,8 @@ body.offline #wand main, body.offline #tel .inhoud { filter: grayscale(0.85); op
 .vastregel select.invoer { width: auto; padding: 0 8px; }
 .vastregel .knop { height: 44px; padding: 0 14px; }
 .meterchip { display: inline-flex; gap: 2px; }
+/* Een knop als woord in een zin (testerronde, november 2026). */
+.knop-tekst { border: 0; background: none; padding: 0; color: var(--ijs-t); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 /* Een omvormer zonder weghaalknop, en een die nu niets geeft (vermogens.js). */
 .meterchip-tekst { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px; background: rgb(var(--wit) / 0.08); font-size: 13px; font-weight: 600; }
 .meterchip.leeg button, .meterchip.leeg .meterchip-tekst { color: var(--gedempt); }

@@ -65,6 +65,21 @@ export interface Tarieven {
   readonly contractStart?: string | null;
   /** Oud: alle vaste kosten samen per maand. Geldt alleen zolang er geen vaste posten zijn. */
   readonly vastPerMaand: number | null;
+  /**
+   * Een prijs per uur of kwartier (testerronde, november 2026), zoals
+   * Zonneplan, Tibber of Frank: de entiteit met de prijs van nu, en per meter de
+   * kostenteller die Home Assistant zelf bijhoudt met die prijs. Dan rekent
+   * Opbrengst met die tellers in plaats van met één vaste prijs.
+   */
+  readonly dynamisch?: Dynamisch | null;
+}
+
+export interface Dynamisch {
+  readonly prijsEntiteit: string | null;
+  /** De kostentellers bij de afname, zoals `sensor.p1_afname_cost`. */
+  readonly afname: readonly string[];
+  /** De vergoeding bij de teruglevering, zoals `sensor.p1_terug_compensation`. */
+  readonly terug: readonly string[];
 }
 
 /** Het salderen stopt op 1 januari 2027, middernacht in Nederland. */
@@ -214,6 +229,7 @@ const WOORDEN = {
     vergoeding: (wat: string, prijs: string, kosten: string | null) => `${wat} × ${prijs} vergoeding${kosten ? `, min ${kosten} kosten` : ''}`,
     perMaand: (prijs: string) => `${prijs} per maand`,
     nietIngesteld: 'nog niet ingesteld',
+    uurprijs: (wat: string) => `${wat}, met de prijs van elk uur, zoals Home Assistant telt`,
   },
   en: {
     stroom: 'Electricity from the grid',
@@ -234,8 +250,28 @@ const WOORDEN = {
     vergoeding: (wat: string, prijs: string, kosten: string | null) => `${wat} × ${prijs} payment${kosten ? `, minus ${kosten} costs` : ''}`,
     perMaand: (prijs: string) => `${prijs} a month`,
     nietIngesteld: 'not set yet',
+    uurprijs: (wat: string) => `${wat}, at the price of each hour, as Home Assistant counts`,
   },
 } satisfies Record<Lang, unknown>;
+
+/**
+ * De kosten bij een dynamisch contract (testerronde, november 2026): stroom en
+ * teruglevering zoals de kostentellers van Home Assistant ze telden, met de
+ * prijs van elk uur. Gas en de vaste posten blijven zoals uitgerekend. Zonder
+ * teller voor de teruglevering blijft die regel ook zoals hij was.
+ */
+export function metKostentellers(k: Kosten, af: number, terug: number | null, afKwh: number, terugKwh: number, lang: Lang = 'nl'): Kosten {
+  const w = WOORDEN[lang];
+  const regels: KostenRegel[] = [
+    { soort: 'stroom', naam: w.stroom, uitleg: w.uurprijs(kwh(afKwh, lang)), euro: r2(af) },
+    ...(terug != null
+      ? [{ soort: 'terug' as const, naam: w.terug, uitleg: w.uurprijs(kwh(terugKwh, lang)), euro: r2(-terug) }]
+      : k.regels.filter((r) => r.soort === 'terug' || r.soort === 'terug-na')),
+    ...k.regels.filter((r) => r.soort === 'gas' || r.soort === 'vast'),
+  ];
+  const variabel = regels.filter((r) => r.soort !== 'vast').reduce((som, r) => som + (r.euro ?? 0), 0);
+  return { regels, variabel: r2(variabel), vast: k.vast, stroomPerKwh: afKwh > 0 ? af / afKwh : k.stroomPerKwh };
+}
 
 /** Een vaste post over een periode van zoveel dagen. */
 export function vastOver(post: VastePost, dagen: number): number {

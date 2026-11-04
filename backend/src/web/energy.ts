@@ -14,7 +14,7 @@
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { raadDal, type DalEigen, type DalRegio, type Tarieven, type VastePost } from './tarief.js';
+import { raadDal, type DalEigen, type DalRegio, type Dynamisch, type Tarieven, type VastePost } from './tarief.js';
 
 export const ENERGY_FILE = 'energie.json';
 
@@ -146,6 +146,25 @@ export function importFromPrefs(
   let stroomPrijs: number | null = null;
   let terugPrijs: number | null = null;
   let gasPrijs: number | null = null;
+  /*
+   * Een dynamisch contract (testerronde, november 2026): een prijs uit een
+   * entiteit. Home Assistant houdt dan per meter een kostenteller bij, met de
+   * prijs van elk uur: de eigen kostensensor, of anders `<meter>_cost` en
+   * `<meter>_compensation`. Die neemt Opbrengst over; de prijs van nu blijft
+   * alleen als terugval.
+   */
+  let prijsEntiteit: string | null = null;
+  const kostAf: string[] = [];
+  const kostTerug: string[] = [];
+  // Home Assistant telt kosten bij elke meter met een prijs, vast of uit een entiteit; dynamisch is het pas met een entiteit.
+  const teller = (x: Record<string, unknown>, meter: string | null, eigen: string, achter: '_cost' | '_compensation', suffix = '') => {
+    const entiteit = x[`entity_energy_price${suffix}`];
+    const vastePrijs = typeof x[`number_energy_price${suffix}`] === 'number';
+    if (!meter || (typeof entiteit !== 'string' && !vastePrijs)) return null;
+    if (typeof entiteit === 'string') prijsEntiteit ??= entiteit;
+    const eigenTeller = str(x[eigen]);
+    return eigenTeller && eigenTeller !== meter ? eigenTeller : `${meter}${achter}`;
+  };
   for (const src of prefs['energy_sources']) {
     if (!isRecord(src)) continue;
     if (src['type'] === 'grid') {
@@ -159,11 +178,15 @@ export function importFromPrefs(
         const id = isRecord(f) ? str(f['stat_energy_from']) : null;
         if (id && !afname.includes(id)) afname.push(id);
         if (isRecord(f)) stroomPrijs ??= priceIn(f);
+        const k = isRecord(f) ? teller(f, id, 'stat_cost', '_cost') : null;
+        if (k && !kostAf.includes(k)) kostAf.push(k);
       }
       for (const t of to) {
         const id = isRecord(t) ? str(t['stat_energy_to']) : null;
         if (id && !terug.includes(id)) terug.push(id);
         if (isRecord(t)) terugPrijs ??= priceIn(t, flat ? '_export' : '');
+        const k = isRecord(t) ? teller(t, id, 'stat_compensation', '_compensation', flat ? '_export' : '') : null;
+        if (k && !kostTerug.includes(k)) kostTerug.push(k);
       }
     } else if (src['type'] === 'solar') {
       const id = str(src['stat_energy_from']);
@@ -188,7 +211,14 @@ export function importFromPrefs(
     zon,
     gas,
     apparaten,
-    prijzen: { stroom: stroomPrijs, teruglevering: terugPrijs, gas: gasPrijs, vastPerMaand: null },
+    prijzen: {
+      stroom: stroomPrijs,
+      teruglevering: terugPrijs,
+      gas: gasPrijs,
+      vastPerMaand: null,
+      // Alleen als elke afnamemeter een teller heeft; anders telt Opbrengst zelf, zoals eerst.
+      ...(prijsEntiteit && kostAf.length === afname.length && afname.length ? { dynamisch: { prijsEntiteit, afname: kostAf, terug: kostTerug.length === terug.length ? kostTerug : [] } } : {}),
+    },
   };
 }
 
@@ -341,8 +371,21 @@ export function validateEnergy(body: unknown): EnergyCheck {
     if (soort !== 'stroom' && soort !== 'gas') return { ok: false, reden: `vaste post ${naam}: stroom of gas` };
     vast.push({ naam, bedrag: Math.round(b * 100_000) / 100_000, per, soort });
   }
+  // Een dynamisch contract (testerronde, november 2026): de prijs-entiteit en de kostentellers van Home Assistant.
+  const dynRaw = p['dynamisch'] ?? null;
+  let dynamisch: Dynamisch | null = null;
+  if (dynRaw !== null) {
+    const d = isRecord(dynRaw) ? dynRaw : {};
+    const lijst = (v: unknown) => (Array.isArray(v) && v.length <= 10 && v.every((x) => typeof x === 'string' && STAT_ID.test(x)) ? (v as string[]) : null);
+    const pe = d['prijsEntiteit'] ?? null;
+    const af = lijst(d['afname']);
+    const tr = lijst(d['terug'] ?? []);
+    if (!af || !af.length || !tr || (pe !== null && (typeof pe !== 'string' || !STAT_ID.test(pe)))) return { ok: false, reden: 'prijzen.dynamisch is { prijsEntiteit, afname, terug } met entiteiten uit Home Assistant' };
+    dynamisch = { prijsEntiteit: pe as string | null, afname: af, terug: tr };
+  }
   const prijzen: EnergyPrices = {
     ...enkel,
+    ...(dynamisch ? { dynamisch } : {}),
     dalUren: dalUren as DalRegio,
     ...(dalEigen ? { dalEigen } : {}),
     salderen,

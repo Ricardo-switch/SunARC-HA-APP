@@ -1,5 +1,27 @@
 # Wat is er nieuw · What is new
 
+## 0.119.0
+
+*4 november 2026*
+
+**Nieuw**
+
+- Energie › Prijzen toont de prijs van nu, met een knop om de uurprijs over te nemen
+
+**Opgelost**
+
+- Bij een prijs per uur (zoals Zonneplan of Tibber) rekent Opbrengst met de kosten zoals Home Assistant ze telt, met de prijs van elk uur; eerst bleef de prijs staan op het moment van overnemen
+
+*English*
+
+**New**
+
+- Energy › Prices shows the price right now, with a button to take over the hourly price
+
+**Fixed**
+
+- With an hourly price (such as Zonneplan or Tibber) Energy counts the costs as Home Assistant does, at the price of each hour; before, the price stayed at the moment it was taken over
+
 ## 0.118.0
 
 *4 november 2026*

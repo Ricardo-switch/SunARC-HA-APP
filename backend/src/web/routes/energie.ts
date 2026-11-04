@@ -70,7 +70,10 @@ export async function energieRoute(d: Diensten, req: IncomingMessage, res: Serve
   } catch (error) {
     fout = `Home Assistant gaf de meters niet: ${(error as Error).message}`;
   }
-  sendJson(res, 200, { instellingen: energy.store.current, voorstel, dashboardPrijzen, dashboard, meters, ...(fout ? { fout } : {}) });
+  // De prijs van nu bij een dynamisch contract (testerronde, november 2026): live uit de entiteit.
+  const dyn = energy.store.current?.prijzen.dynamisch ?? voorstel?.prijzen.dynamisch ?? null;
+  const prijsNu = dyn?.prijsEntiteit ? (energy.source.entityNumber?.(dyn.prijsEntiteit) ?? null) : null;
+  sendJson(res, 200, { instellingen: energy.store.current, voorstel, dashboardPrijzen, dashboard, meters, prijsNu, ...(fout ? { fout } : {}) });
 }
 
 /** De zon en je aansluiting (besluit 103): wat er staat, of de antwoorden bewaren. */
