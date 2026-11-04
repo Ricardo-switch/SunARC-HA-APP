@@ -117,6 +117,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [243. Weer in het voorbeeldhuis](#243-weer-in-het-voorbeeldhuis)
 - [246. Klaarzetten per niveau](#246-klaarzetten-per-niveau)
 - [248. De netmeter en de omvormers kies je in de app](#248-de-netmeter-en-de-omvormers-kies-je-in-de-app)
+- [254. Daken en panelen: elk dakvlak apart (ontwerp)](#254-daken-en-panelen-elk-dakvlak-apart-ontwerp)
 
 **Meten, data en analyse**
 
@@ -11736,6 +11737,54 @@ add-on niet op.
   een knop Meld dit, met de fout en de lijst al ingevuld. Bij Versie kun je
   het logboek zelf lezen.
 - **Versie 0.121.0**, met de lijst onder "zo niet bruikbaar" (eerst 0.120.1).
+
+---
+
+## 254. Daken en panelen: elk dakvlak apart (ontwerp)
+
+*Onderwerp: configuratie en onboarding · Status: geldig*
+
+4 november 2026. Gemini-ticket 3.1 (meerdere losse dakvlakken) was bij het
+stappenplan van de testerronde weggevallen; alleen het tussenstuk, meerdere
+omvormers optellen ([248]), kwam erin. Idee #121 liet zien waarom het
+nodig is: 48 panelen op een plat dak, de helft naar het oosten en de helft
+naar het westen, op 10°. Dat is in de app niet in te voeren. De dienst rekent
+al met elk aantal `solarPlanes`; de app kent alleen voorkant, achterkant,
+beide of plat met één helling, garage, carport en tuinhuis tellen niet mee in
+de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
+
+*Besluit (ontwerp, nog niet gebouwd):*
+
+- **Elk dakvlak apart,** met een letter, een plek (hoofddak, dwarskap,
+  uitbouw, garage, carport, tuinhuis of schuur, de grond, gevel of balkon), een
+  opstelling (schuin, naar één kant op rekken, oost-west, plat liggend), een
+  richting, een helling, het aantal panelen en de Wp per paneel. De eerste
+  versie kan alles: een hoofddak met meer richtingen, een plat dak in elke
+  opstelling, bijgebouwen en de grond, en meerdere omvormers, strings of
+  micro-omvormers.
+- **Energie › Daken en panelen** vervangt Zonnepanelen. De hoofdzaak is het
+  huis **van boven**, het noorden boven, met elk vlak aan te tikken; de
+  3D-tekening blijft voor Thuis en groeit mee waar hij kan.
+- **De omtrek** komt als voorstel uit OpenStreetMap (zoals de gevels); klopt
+  hij niet of ontbreekt hij, dan schuif je blokken (hoofdhuis, uitbouw,
+  garage) zelf op hun plek. **De vlakken** volgen uit een dakvorm per gebouw
+  (zadeldak, schilddak, lessenaar, plat, L); je tikt aan waar panelen liggen.
+- **De meting stelt voor, de bewoner verbetert** per vlak. Meet één meter
+  meer vlakken, dan verdeelt SunArc wat hij meet naar wat elk vlak bij heldere
+  lucht zou leveren; een string of micro-omvormer per vlak maakt het precies.
+- **Een vlak dat achterblijft** zegt de app (met wanneer: 's ochtends, de
+  hele dag). Schaduw per uur leren komt later.
+- **Inrichten** krijgt een korte stap: waar liggen panelen en hoeveel; na
+  een paar zonnige dagen stelt SunArc de vlakken voor.
+- **Thuis en Opbrengst** tonen per vlak wat het nu levert en wat een paneel
+  per maand oplevert, zodat een achterblijvend vlak opvalt.
+- **Volgorde, elk een eigen versie:** 1 het datamodel en Daken en panelen als
+  lijst met kaartjes en meters (dan kan #121 al worden ingevoerd), 2 de
+  tekening van boven met omtrek en dakvormen, 3 de korte stap in Inrichten, 4
+  de meting met meer vlakken, 5 Thuis en Opbrengst per vlak, daarna schaduw.
+- **Schetsen:** `design/app2/Wand-Daken.html` (`#vlak`, `#erbij`, `#meters`,
+  `#klopt`, `#huis`), `Tel-Daken.html`, `Wand-Inrichten-Daken.html`,
+  `Wand-Daken-Elders.html`; de tekening van boven staat in `daken.js`.
 
 ---
 

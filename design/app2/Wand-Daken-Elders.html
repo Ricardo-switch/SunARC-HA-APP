@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Daken op Thuis en in Opbrengst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Wat elk dakvlak oplevert (schets, 4 november 2026). Op Thuis: bij de
+   * panelen het vermogen van nu, en een tik geeft het per vlak van boven.
+   * In Opbrengst: per vlak de kWh van de maand en wat een paneel daar
+   * oplevert, zodat een vlak dat achterblijft opvalt.
+   * Standen: standaard Thuis, #opbrengst.
+   */
+  main { padding: 22px 26px 20px 22px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; min-height: 0; }
+  .podium { position: relative; min-height: 0; }
+  .glas.rechts { padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .glas.rechts h2 { margin: 0; font: 600 24px var(--kop); display: flex; justify-content: space-between; align-items: baseline; }
+  .glas.rechts h2 small { font: 700 13px var(--romp); color: var(--gedempt); }
+  .vanboven { height: 300px; border-radius: 18px; overflow: hidden; background: rgb(255 255 255 / 0.03); }
+  .vanboven svg { width: 100%; height: 100%; display: block; }
+  .rijv { display: grid; grid-template-columns: 26px 128px minmax(0, 1fr) 76px; gap: 10px; align-items: center; font-size: 13.5px; }
+  .letter { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font: 800 12px var(--kop); color: #0b1424; }
+  .staaf { position: relative; height: 12px; border-radius: 6px; background: rgb(255 255 255 / 0.06); overflow: hidden; }
+  .staaf i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; }
+  .staaf em { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgb(255 255 255 / 0.6); }
+  .rijv b { text-align: right; font: 600 15px var(--kop); white-space: nowrap; }
+  .klein { font-size: 12px; color: var(--gedempt); }
+  .wissel { display: flex; padding: 3px; border-radius: 999px; background: rgb(var(--wit) / 0.06); align-self: flex-start; }
+  .wissel span { padding: 6px 12px; border-radius: 999px; font: 700 13px var(--romp); color: var(--zacht); }
+  .wissel span.aan { background: rgb(var(--wit) / 0.16); color: var(--tekst); }
+  .opval { padding: 11px 13px; border-radius: 14px; background: rgb(255 138 107 / 0.08); border: 1px solid rgb(255 138 107 / 0.25); font-size: 13.5px; color: var(--zacht); line-height: 1.45; }
+  .opval b { color: #ffb39f; }
+</style>
+</head>
+<body>
+<div class="wand lucht lucht-dag">
+  <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
+  <main>
+    <div class="podium" id="podium"></div>
+    <section class="glas rechts" data-stand="thuis">
+      <h2>De zon op je daken <small>nu 9,8 kW · helder zou 14,2 zijn</small></h2>
+      <div class="vanboven" id="boven"></div>
+      <div id="nu" style="display: flex; flex-direction: column; gap: 8px"></div>
+      <span class="klein">Wit streepje: wat het vlak nu bij heldere lucht zou leveren.</span>
+    </section>
+    <section class="glas rechts" data-stand="opbrengst">
+      <h2>Oktober per dak <small>1.412 kWh</small></h2>
+      <span class="wissel"><span>Samen</span><span class="aan">Per dak</span></span>
+      <div id="maand" style="display: flex; flex-direction: column; gap: 9px"></div>
+      <span class="klein">Rechts per paneel: zo vergelijk je daken van verschillende grootte.</span>
+      <div class="opval"><b>C levert per paneel 18% minder dan B,</b> terwijl ze even groot zijn en even schuin liggen. Op zonnige ochtenden het meest: waarschijnlijk de boom aan de oostkant.</div>
+    </section>
+  </main>
+</div>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script src="../../frontend/kit/huis.js"></script>
+<script src="daken.js"></script>
+<script>
+  const balk = document.getElementById('balk');
+  const toon = location.hash === '#opbrengst' ? 'opbrengst' : 'thuis';
+  nav.balk(balk, toon === 'thuis' ? 'thuis' : 'opbrengst');
+  document.querySelectorAll('[data-stand]').forEach((el) => { if (el.dataset.stand !== toon) el.remove(); });
+  addEventListener('hashchange', () => location.reload());
+  const { VLAKKEN, STANDKLEUR } = daken;
+  const kleur = (v) => (v.l === 'C' && toon === 'opbrengst' ? STANDKLEUR.mis : '#f7b548');
+  // Nu per vlak, en bij heldere lucht.
+  const NU = { A: [4.1, 5.0], B: [0.5, 0.6], C: [0.5, 0.9], D: [2.6, 4.0], E: [1.6, 2.5], F: [0.5, 1.2] };
+  const fmt = (x) => x.toLocaleString('nl-NL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  if (toon === 'thuis') {
+    document.getElementById('boven').innerHTML = `<svg viewBox="14 40 614 532" preserveAspectRatio="xMidYMid meet">${daken.vanBoven({ waarden: Object.fromEntries(Object.entries(NU).map(([l, [w]]) => [l, ` ${fmt(w)}`])), zonX: 300, zonY: 560 })}</svg>`;
+    document.getElementById('nu').innerHTML = VLAKKEN.map((v) => {
+      const [w, h] = NU[v.l];
+      return `<div class="rijv"><span class="letter" style="background: ${kleur(v)}">${v.l}</span><span>${v.kort}</span><span class="staaf"><i style="width: ${(w / 5.5) * 100}%; background: ${kleur(v)}"></i><em style="left: ${(h / 5.5) * 100}%"></em></span><b>${fmt(w)} kW</b></div>`;
+    }).join('');
+  } else {
+    // De maand per vlak, en per paneel.
+    const MAAND = { A: 512, B: 118, C: 97, D: 388, E: 214, F: 83 };
+    document.getElementById('maand').innerHTML = VLAKKEN.map((v) => `<div class="rijv"><span class="letter" style="background: ${kleur(v)}">${v.l}</span><span>${v.kort}</span><span class="staaf"><i style="width: ${(MAAND[v.l] / 520) * 100}%; background: ${kleur(v)}"></i></span><b>${MAAND[v.l]} kWh<br><span class="klein" style="font: 600 12px var(--romp)">${(MAAND[v.l] / v.n).toFixed(1).replace('.', ',')} per paneel</span></b></div>`).join('');
+  }
+  const podium = document.getElementById('podium');
+  const r = podium.getBoundingClientRect();
+  huis.teken(podium, {
+    tijd: 'dag', seizoen: 'zomer', wolken: 0.25,
+    zon: { stand: 0.55, aandeel: 0.75, panelen: 7, panelenLinks: 7 },
+    etages: [
+      { naam: 'Begane grond', kamers: [{ naam: 'Keuken', gewicht: 0.9, apparaten: [] }, { naam: 'Woonkamer', gewicht: 1.3, apparaten: [{ soort: 'bank' }] }] },
+      { naam: 'Eerste', kamers: [{ naam: 'Badkamer', gewicht: 0.8, apparaten: [] }, { naam: 'Slaapkamer', gewicht: 1.3, apparaten: [] }] },
+      { dak: true, kamers: [] },
+    ],
+    voordeur: {}, garage: { panelen: 8 }, tuin: { tuinhuis: true },
+    labels: [{ bij: 'panelen', titel: toon === 'thuis' ? 'Zon nu · 9,8 kW' : 'Oktober · 1.412 kWh', toon: 'zon', regels: [toon === 'thuis' ? '6 daken · tik voor elk dak' : 'C blijft achter · tik voor elk dak'], dx: 10, dy: -70 }],
+  }, { breedte: r.width, hoogte: r.height, wereld: true, eigenLucht: false, marge: 0.06, schuifY: 20 });
+</script>
+</body>
+</html>

@@ -252,6 +252,7 @@ verwijzing bestaat.
   de app, met een woordzoeker ([115]).
 - **Het jaar in Opbrengst** begint op de startdatum van het contract ([116]).
 - **Een prijs per uur** (Zonneplan, Tibber): Opbrengst rekent met de kostentellers van Home Assistant, en Energie toont de prijs van nu ([251]).
+- **Daken en panelen, elk vlak apart** is ontworpen, nog niet gebouwd: van boven, dakvorm per gebouw, meting stelt voor, verdelen naar de heldere lucht ([254]).
 - **De hoofdzekering** stel je in de app in, en die gaat voor de configuratie
   ([117]). Sinds [248] ook de netmeter (één sensor, of afname en teruglevering
   apart zoals DSMR) en de omvormers, die opgeteld worden; kW telt als W.
@@ -828,4 +829,5 @@ verwijzing bestaat.
 [251]: DECISIONS.md#251-een-prijs-per-uur-de-kosten-zoals-home-assistant-ze-telt
 [252]: DECISIONS.md#252-terugzeggen-na-een-opgeloste-melding
 [253]: DECISIONS.md#253-het-logboek-delen-bij-een-melding
+[254]: DECISIONS.md#254-daken-en-panelen-elk-dakvlak-apart-ontwerp
 <!-- links:einde -->

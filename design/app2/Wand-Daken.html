@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Energie › Daken en panelen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Daken en panelen (schets, 4 november 2026; ticket 3.1 en idee #121). Een
+   * huis heeft niet één dak met twee kanten: een hoofddak met meer vlakken,
+   * een uitbouw met een plat dak (oost-west, zoals Wendy), een garage, panelen
+   * op de grond. Elk vlak is een kaartje met een letter, op het huis van boven
+   * aan te wijzen. De meting uit de opbrengst stelt voor, de bewoner verbetert
+   * per vlak; elke meter (omvormer, string, micro-omvormers) hoort bij een of
+   * meer vlakken, en wat één meter samen meet, verdeelt SunArc met de heldere
+   * lucht per vlak.
+   *
+   * Standen: standaard alle vlakken, #vlak de uitbouw open, #erbij een dak of
+   * vlak erbij, #meters wat bij welke meter hoort, #huis dezelfde lijst naast
+   * de 3D-tekening zoals hij nu is.
+   */
+  main { padding: 22px 26px 20px 22px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .kopregel { display: flex; align-items: center; gap: 14px; }
+  .terug { height: 40px; padding: 0 14px; border-radius: 14px; display: inline-flex; align-items: center; background: rgb(var(--wit) / 0.06); border: 1px solid var(--glas-rand); font-weight: 700; font-size: 14px; color: var(--zacht); }
+  .stel { flex: 1; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 16px; min-height: 0; }
+  .delen { padding: 10px; display: flex; flex-direction: column; gap: 4px; align-self: start; }
+  .deel { display: grid; grid-template-columns: 34px 1fr; gap: 0 10px; align-items: center; padding: 10px; border-radius: 14px; }
+  .deel.nu { background: rgb(var(--wit) / 0.08); }
+  .deel i { grid-row: 1 / 3; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgb(var(--wit) / 0.07); font-style: normal; }
+  .deel i svg { width: 19px; height: 19px; }
+  .deel b { font-size: 14px; }
+  .deel span { font-size: 12px; color: var(--gedempt); }
+  .paneel { position: relative; padding: 18px 20px; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 10px 20px; min-height: 0; overflow: hidden; }
+  .paneel h2 { grid-column: 1 / -1; margin: 0; font-family: var(--kop); font-size: 26px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+  .chip { height: 28px; padding: 0 11px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; font: 700 12.5px var(--romp); white-space: nowrap; }
+  .chip.mint { color: var(--mint); background: rgb(110 231 183 / 0.12); }
+  .chip.ijs { color: var(--ijs-t); background: rgb(111 211 255 / 0.14); }
+  .chip.gloed { color: #ffb39f; background: rgb(255 138 107 / 0.14); }
+  .stand.mis { color: #ff8a6b; }
+  .vlak.open { outline-color: rgb(255 138 107 / 0.6); }
+  .zorg { padding: 12px 14px; border-radius: 14px; background: rgb(255 138 107 / 0.07); border: 1px solid rgb(255 138 107 / 0.25); display: flex; flex-direction: column; gap: 8px; }
+  .zorg h3 { margin: 0; font: 600 18px var(--kop); }
+  .zorg p { margin: 0; font-size: 13.5px; color: var(--zacht); line-height: 1.45; }
+  .zorg svg { width: 100%; height: 110px; display: block; }
+  .keus { display: flex; flex-wrap: wrap; gap: 6px; }
+  .keus .knop { height: 36px; font-size: 13.5px; display: inline-flex; align-items: center; }
+  .wissel { margin-left: auto; display: flex; padding: 3px; border-radius: 999px; background: rgb(var(--wit) / 0.06); }
+  .wissel span { padding: 6px 12px; border-radius: 999px; font: 700 13px var(--romp); color: var(--zacht); }
+  .wissel span.aan { background: rgb(var(--wit) / 0.16); color: var(--tekst); }
+  .podium { position: relative; min-height: 0; border-radius: 18px; overflow: hidden; background: radial-gradient(120% 100% at 50% 40%, rgb(255 255 255 / 0.04), transparent 70%); }
+  .podium svg.boven { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .rechts { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .kop3 { font-size: 13px; font-weight: 700; color: var(--zacht); margin: 0; display: flex; justify-content: space-between; align-items: baseline; }
+  .kop3 a { color: var(--ijs-t); text-decoration: none; }
+  .vlakken { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
+  .vlak { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 0 10px; align-items: center; padding: 8px 10px; border-radius: 14px; background: rgb(var(--wit) / 0.045); }
+  .vlak.open { outline: 1.5px solid rgb(var(--wit) / 0.25); background: rgb(var(--wit) / 0.08); }
+  .letter { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font: 800 14px var(--kop); color: #0b1424; }
+  .vlak b { display: block; font-size: 14px; }
+  .vlak .waar { display: block; font-size: 12px; color: var(--gedempt); }
+  .vlak .rechtsaf { text-align: right; font-size: 12px; color: var(--zacht); line-height: 1.3; }
+  .vlak .rechtsaf b { font: 600 15px var(--kop); }
+  .stand { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; }
+  .stand.gemeten { color: var(--mint); }
+  .stand.zelf { color: var(--ijs-t); }
+  .stand.leert { color: var(--zon); }
+  .som { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .feit { padding: 9px 12px; border-radius: 14px; background: rgb(var(--wit) / 0.045); }
+  .feit small { display: block; font-size: 11.5px; font-weight: 700; color: var(--gedempt); }
+  .feit b { display: block; font: 600 19px var(--kop); margin-top: 2px; white-space: nowrap; }
+  .voet { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .voet .knop { height: 40px; font-size: 14px; white-space: nowrap; display: inline-flex; align-items: center; }
+  /* Eén vlak open. */
+  .veld { display: flex; flex-direction: column; gap: 6px; }
+  .veld > small { font-size: 12px; font-weight: 700; color: var(--gedempt); }
+  .opstel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .opstel div { padding: 8px 6px 6px; border-radius: 12px; background: rgb(var(--wit) / 0.05); border: 1.5px solid transparent; text-align: center; font-size: 12.5px; font-weight: 700; color: var(--zacht); }
+  .opstel div.aan { border-color: var(--zon); color: var(--tekst); background: rgb(247 181 72 / 0.08); }
+  .opstel svg { width: 100%; height: 38px; display: block; }
+  .twee { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .rij3 { display: grid; grid-template-columns: auto auto 1fr; gap: 14px; }
+  .stapper { display: flex; align-items: center; gap: 8px; }
+  .stapper .r { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgb(var(--wit) / 0.08); font-weight: 800; color: var(--zacht); }
+  .stapper b { min-width: 34px; text-align: center; font: 600 18px var(--kop); white-space: nowrap; }
+  .klein { font-size: 11.5px; color: var(--gedempt); }
+  .seg { display: flex; flex-wrap: wrap; gap: 5px; }
+  .seg span { height: 30px; padding: 0 11px; border-radius: 999px; display: inline-flex; align-items: center; background: rgb(var(--wit) / 0.06); font-size: 13px; font-weight: 700; color: var(--zacht); }
+  .seg span.aan { background: rgb(var(--wit) / 0.18); color: var(--tekst); }
+  .seg span.meet { box-shadow: inset 0 0 0 1.5px rgb(110 231 183 / 0.6); }
+  .meting { padding: 9px 12px; border-radius: 12px; background: rgb(110 231 183 / 0.08); border: 1px solid rgb(110 231 183 / 0.22); font-size: 12.5px; color: var(--zacht); line-height: 1.45; }
+  .meting b { color: var(--mint); }
+  /* Erbij. */
+  .tegels { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .tegel { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 2px 10px; align-items: center; padding: 10px; border-radius: 14px; background: rgb(var(--wit) / 0.05); }
+  .tegel svg { grid-row: 1 / 3; width: 44px; height: 36px; }
+  .tegel b { font-size: 14px; }
+  .tegel span { font-size: 11.5px; color: var(--gedempt); line-height: 1.3; }
+  .tegel.aan { outline: 1.5px solid var(--zon); background: rgb(247 181 72 / 0.07); }
+  .stappen { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--zacht); }
+  .stappen i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; background: rgb(var(--wit) / 0.1); }
+  .stappen i.nu { background: var(--zon); color: #0b1424; }
+  /* Meters. */
+  .meter { padding: 10px 12px; border-radius: 14px; background: rgb(var(--wit) / 0.045); display: grid; grid-template-columns: 12px auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
+  .meter > i { grid-row: 1 / 3; width: 12px; height: 34px; border-radius: 6px; }
+  .meter > b, .meter > span { grid-column: 3; }
+  .meter b { font-size: 14px; }
+  .meter span { font-size: 12px; color: var(--gedempt); }
+  .meter .naar { grid-row: 1 / 3; grid-column: 2; display: flex; gap: 4px; }
+  .meter .naar em { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font: 800 12px var(--kop); font-style: normal; color: #0b1424; }
+  .verdeel { padding: 10px 12px; border-radius: 14px; background: rgb(var(--wit) / 0.045); }
+  .verdeel svg { width: 100%; height: 108px; display: block; }
+  .legenda { display: flex; gap: 12px; font-size: 11.5px; color: var(--zacht); }
+  .legenda i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<div class="wand lucht lucht-dag">
+  <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
+  <main>
+    <div class="kopregel"><span class="terug">‹ Instellingen</span><h1 class="kop-1" style="font-size: 38px">Energie</h1></div>
+    <div class="stel">
+      <section class="glas delen">
+        <div class="deel nu"><i style="color: var(--zon)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg></i><b>Daken en panelen</b><span>6 vlakken, 21,7 kWp</span></div>
+        <div class="deel"><i style="color: var(--ijs)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></svg></i><b>Aansluiting</b><span>3 × 25 A</span></div>
+        <div class="deel"><i style="color: var(--mint)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/><path d="M3 21h18"/></svg></i><b>Meters</b><span>stroom, gas, 3 omvormers</span></div>
+        <div class="deel"><i style="color: var(--zon)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 6.5A7 7 0 1 0 17 17.5"/><path d="M4 10h9M4 14h9"/></svg></i><b>Contract en prijzen</b><span>per uur</span></div>
+        <div class="deel"><i style="color: var(--gloed)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1 1.5 2 1.5 3 1.5-1.5 1.5-5 1.5-8z"/></svg></i><b>Verwarming</b><span>warmtepomp</span></div>
+      </section>
+
+      <section class="glas paneel">
+        <h2>Daken en panelen
+          <span class="chip mint" data-stand="alle vlak huis">✓ Gemeten · klopt voor 96%</span>
+          <span class="chip ijs" data-stand="erbij">Stap 1 van 3 · waar ligt hij?</span>
+          <span class="chip ijs" data-stand="meters">3 meters, 6 vlakken</span>
+          <span class="chip gloed" data-stand="klopt">! Eén vlak levert minder</span>
+          <span class="wissel" data-stand="alle vlak erbij meters huis klopt"><span data-aan="alle vlak erbij meters klopt">Van boven</span><span data-aan="huis">Het huis</span></span>
+        </h2>
+
+        <div class="podium" id="podium"></div>
+
+        <!-- Alle vlakken -->
+        <div class="rechts" data-stand="alle huis">
+          <p class="kop3">Waar de panelen liggen <a>+ Dak of vlak erbij</a></p>
+          <div class="vlakken" id="lijst"></div>
+          <div class="som">
+            <div class="feit"><small>Panelen</small><b>52</b></div>
+            <div class="feit"><small>Samen</small><b>21,7 kWp</b></div>
+            <div class="feit"><small>Bij helder weer nu</small><b>14,2 kW</b></div>
+          </div>
+          <div class="voet"><span class="mini">De meting vergelijkt elke zonnige dag wat ieder vlak zou leveren met wat de meters zeggen.</span><span class="knop">Opnieuw meten</span></div>
+        </div>
+
+        <!-- De meting klopt niet: C levert 's ochtends minder -->
+        <div class="rechts" data-stand="klopt">
+          <div class="zorg">
+            <h3>C levert 's ochtends een derde minder</h3>
+            <svg viewBox="0 0 400 110" preserveAspectRatio="none" id="zorg"></svg>
+            <div class="legenda"><span><i style="background: rgb(255 255 255 / .5)"></i>bij heldere lucht</span><span><i style="background: #ff8a6b"></i>gemeten, vijf zonnige dagen</span></div>
+            <p>Elke zonnige ochtend tot ongeveer 10:00, daarna klopt het weer. Dat lijkt op schaduw van iets aan de oostkant, zoals een boom. Een vuil of kapot paneel geeft de hele dag minder.</p>
+            <div class="keus"><span class="knop knop-licht">Er staat een boom: leer de schaduw</span><span class="knop">Ik kijk het na</span><span class="knop">Invoer aanpassen</span></div>
+          </div>
+          <p class="kop3">De andere vlakken</p>
+          <div class="vlakken" id="lijst"></div>
+        </div>
+
+        <!-- Eén vlak open: de uitbouw, zoals Wendy -->
+        <div class="rechts" data-stand="vlak">
+          <div class="vlak open"><span class="letter" style="background: #6ee7b7">D</span><div><b>Uitbouw, plat dak</b><span class="waar">achter het huis · <span class="stand gemeten">✓ gemeten</span></span></div><span class="rechtsaf"><b>6,9</b> kWp</span></div>
+          <div class="veld"><small>Hoe liggen ze?</small>
+            <div class="opstel">
+              <div><svg viewBox="0 0 90 38"><path d="M6 32h78" stroke="rgb(255 255 255 / .35)" stroke-width="2"/><path d="M18 31l22-14v14z M50 31l22-14v14z" fill="#4d7eac" stroke="#9cc0e4" stroke-width="1.2"/></svg>Naar één kant</div>
+              <div class="aan"><svg viewBox="0 0 90 38"><path d="M6 32h78" stroke="rgb(255 255 255 / .35)" stroke-width="2"/><path d="M12 31l14-9 14 9z M50 31l14-9 14 9z" fill="#4d7eac" stroke="#9cc0e4" stroke-width="1.2"/></svg>Oost-west</div>
+              <div><svg viewBox="0 0 90 38"><path d="M6 32h78" stroke="rgb(255 255 255 / .35)" stroke-width="2"/><path d="M14 30h28v-3H14z M48 30h28v-3H48z" fill="#4d7eac" stroke="#9cc0e4" stroke-width="1.2"/></svg>Plat liggend</div>
+            </div>
+          </div>
+          <div class="twee">
+            <svg viewBox="-50 -50 100 100" width="96" height="96">
+              <circle r="46" fill="rgb(255 255 255 / 0.04)" stroke="rgb(255 255 255 / 0.3)" stroke-width="1.5"/>
+              <g font-family="Figtree" font-size="12" font-weight="800" text-anchor="middle" fill="#fff"><text y="-31" fill="var(--zon)">N</text><text x="33" y="4">O</text><text y="38">Z</text><text x="-33" y="4">W</text></g>
+              <path d="M0 -24V24" stroke="rgb(255 255 255 / 0.5)" stroke-width="2" stroke-dasharray="3 3"/>
+              <path d="M4 0H30M26 -5l5 5-5 5" stroke="var(--zon)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M-4 0H-30M-26 -5l-5 5 5 5" stroke="var(--zon)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="30" cy="0" r="6" fill="var(--zon)"/>
+            </svg>
+            <div class="veld"><small>Richting</small><div class="stapper"><span class="r">−</span><b>92°</b><span class="r">+</span><span class="klein">en 272°</span></div><span class="klein">Draai aan de stip; de andere kant draait mee.</span></div>
+          </div>
+          <div class="veld"><small>Helling</small><div class="seg"><span>5°</span><span class="aan meet">10°</span><span>15°</span><span>20°</span><span>30°</span><span>Anders</span></div></div>
+          <div class="rij3">
+            <div class="veld"><small>Oost</small><div class="stapper"><span class="r">−</span><b>8</b><span class="r">+</span></div></div>
+            <div class="veld"><small>West</small><div class="stapper"><span class="r">−</span><b>8</b><span class="r">+</span></div></div>
+            <div class="veld"><small>Per paneel</small><div class="stapper"><span class="r">−</span><b style="min-width: 62px">430 Wp</b><span class="r">+</span></div></div>
+          </div>
+          <div class="veld"><small>Gemeten door</small><div class="seg"><span class="aan">Micro-omvormers</span><span>Omvormer huis</span><span>Weet ik niet</span></div></div>
+          <div class="meting"><b>✓ Klopt met de meting:</b> 94° en 274°, 10°, 6,7 kWp.</div>
+          <div class="voet"><span class="knop">‹ Alle vlakken</span><span class="knop knop-licht">Bewaar</span></div>
+        </div>
+
+        <!-- Erbij -->
+        <div class="rechts" data-stand="erbij">
+          <div class="stappen"><i class="nu">1</i>Wat voor dak <i>2</i>Waar op de tekening <i>3</i>Hoe liggen ze</div>
+          <div class="tegels" id="tegels"></div>
+          <div class="meting" style="background: rgb(111 211 255 / 0.07); border-color: rgb(111 211 255 / 0.22)">Daarna tik je in de tekening waar hij ligt. Ken je de helling of de richting niet, laat dan de meting het zoeken: dat lukt na een paar zonnige dagen.</div>
+          <div class="voet"><span class="knop">‹ Terug</span><span class="knop knop-licht">Volgende</span></div>
+        </div>
+
+        <!-- Meters -->
+        <div class="rechts" data-stand="meters">
+          <p class="kop3">Wat bij welke meter hoort <a>Meters in Home Assistant ›</a></p>
+          <div class="meter"><i style="background: var(--zon)"></i><b>Omvormer huis</b><div class="naar"><em style="background: var(--zon)">A</em><em style="background: var(--zon)">B</em><em style="background: var(--zon)">C</em></div><span>SolarEdge SE8K · samen gemeten, SunArc verdeelt</span></div>
+          <div class="meter"><i style="background: var(--ijs)"></i><b>Micro-omvormers</b><div class="naar"><em style="background: var(--ijs)">D</em></div><span>Enphase IQ8 · elk paneel apart</span></div>
+          <div class="meter"><i style="background: #a99cff"></i><b>Omvormer garage</b><div class="naar"><em style="background: #a99cff">E</em><em style="background: #a99cff">F</em></div><span>Growatt MIN 3600 · twee strings, elk apart</span></div>
+          <div class="verdeel">
+            <p class="kop3" style="margin-bottom: 4px">Omvormer huis, gisteren <span class="klein">verdeeld met de heldere lucht per vlak</span></p>
+            <svg viewBox="0 0 400 108" preserveAspectRatio="none" id="verdeel"></svg>
+            <div class="legenda"><span><i style="background: #f7b548"></i>A zuid</span><span><i style="background: #f3d48a"></i>C oost</span><span><i style="background: #d98c3a"></i>B west</span></div>
+          </div>
+          <div class="meting">Meet één meter meer vlakken, dan verdeelt SunArc wat hij meet naar wat elk vlak bij heldere lucht zou leveren. Een string of micro-omvormer per vlak maakt het precies.</div>
+          <div class="voet"><span class="knop">‹ Alle vlakken</span><span class="knop knop-licht">Klaar</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script src="../../frontend/kit/huis.js"></script>
+<script src="daken.js"></script>
+<script>
+  nav.balk(document.getElementById('balk'), 'instellingen');
+  const toon = { '#vlak': 'vlak', '#erbij': 'erbij', '#meters': 'meters', '#huis': 'huis', '#klopt': 'klopt' }[location.hash] ?? 'alle';
+  document.querySelectorAll('[data-stand]').forEach((el) => { if (!el.dataset.stand.split(' ').includes(toon)) el.remove(); });
+  document.querySelectorAll('[data-aan]').forEach((el) => el.classList.toggle('aan', el.dataset.aan.split(' ').includes(toon)));
+  addEventListener('hashchange', () => location.reload());
+
+  // De vlakken komen uit daken.js, gedeeld met de andere schetsen.
+  const { VLAKKEN, STANDKLEUR, STAND, kwp } = daken;
+  const lijst = document.getElementById('lijst');
+  // Bij een vlak dat minder levert: de andere als een rij letters met hun stand.
+  if (lijst && toon === 'klopt') lijst.outerHTML = `<div class="keus">${VLAKKEN.filter((v) => v.l !== 'C').map((v) => `<span class="chip" style="background: rgb(255 255 255 / .06); color: var(--zacht)"><span class="letter" style="width: 20px; height: 20px; font-size: 11px; border-radius: 6px; background: ${STANDKLEUR[v.stand]}">${v.l}</span>${STAND[v.stand]}</span>`).join('')}</div>`;
+  else if (lijst) lijst.innerHTML = VLAKKEN.map((v) => {
+    const stand = toon === 'klopt' && v.l === 'C' ? 'mis' : v.stand;
+    return `<div class="vlak${toon === 'klopt' && v.l === 'C' ? ' open' : ''}"><span class="letter" style="background: ${STANDKLEUR[stand]}">${v.l}</span><div><b>${v.naam}</b><span class="waar">${v.waar} · <span class="stand ${stand}">${STAND[stand]}</span></span></div><span class="rechtsaf"><b>${kwp(v)}</b> kWp<br>${v.n} × ${v.wp} Wp</span></div>`;
+  }).join('');
+
+  const tegels = document.getElementById('tegels');
+  const ICOON = (d) => `<svg viewBox="0 0 44 36" fill="none" stroke="#f7b548" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">${d}</svg>`;
+  if (tegels) tegels.innerHTML = [
+    ['Een vlak op het hoofddak', 'een kant die nog mist, of een dakkapel', '<path d="M4 22 22 8l18 14"/><path d="M8 19v13h28V19"/><path d="M26 13l8 6" stroke-width="4" stroke="#4d7eac"/>', true],
+    ['Uitbouw of aanbouw', 'meestal een plat dak', '<path d="M4 18 16 8l12 10v14H4z"/><path d="M28 22h12v10H28z"/><path d="M29 21h10" stroke-width="3" stroke="#4d7eac"/>'],
+    ['Garage', 'plat of met een puntdak', '<path d="M5 14h34v18H5z"/><path d="M11 32V21h22v11"/><path d="M8 13h28" stroke-width="3" stroke="#4d7eac"/>'],
+    ['Carport', 'panelen als dak', '<path d="M5 12h34M8 12v20M36 12v20"/><path d="M7 10h30" stroke-width="3" stroke="#4d7eac"/>'],
+    ['Tuinhuis of schuur', 'achter in de tuin', '<path d="M8 18l14-9 14 9v14H8z"/><path d="M19 32v-8h6v8"/><path d="M24 12l9 6" stroke-width="3" stroke="#4d7eac"/>'],
+    ['Op de grond', 'een rek in de tuin of het veld', '<path d="M4 32h36"/><path d="M8 30 20 16h16L24 30" fill="#4d7eac" stroke="#9cc0e4"/>'],
+    ['Aan de gevel of balkon', 'rechtop of schuin', '<path d="M8 6h20v26H8z"/><path d="M28 14l8 3v10l-8-3z" fill="#4d7eac" stroke="#9cc0e4"/>'],
+    ['Weet ik niet', 'de meting zoekt het, jij wijst het daarna aan', '<circle cx="22" cy="18" r="12"/><path d="M18 14a4 4 0 1 1 5 4v3M22 26v.5"/>'],
+  ].map(([b, s, d, aan]) => `<div class="tegel${aan ? ' aan' : ''}">${ICOON(d)}<b>${b}</b><span>${s}</span></div>`).join('');
+
+  // De verdeling van gisteren: wat de omvormer huis mat, naar de heldere lucht per vlak.
+  const verdeel = document.getElementById('verdeel');
+  if (verdeel) {
+    const uren = Array.from({ length: 61 }, (_, i) => 6 + i * 0.25);
+    const bel = (t, m, s) => Math.exp(-((t - m) ** 2) / (2 * s * s));
+    const lagen = [
+      { kleur: '#f3d48a', f: (t) => 1.3 * bel(t, 10, 2.1) },
+      { kleur: '#f7b548', f: (t) => 3.9 * bel(t, 13.5, 2.6) },
+      { kleur: '#d98c3a', f: (t) => 1.3 * bel(t, 17, 2.1) },
+    ];
+    const X = (t) => ((t - 6) / 15) * 400, Y = (w) => 100 - w * 17;
+    let onder = uren.map(() => 0);
+    let svg = '<path d="M0 100H400" stroke="rgb(255 255 255 / .2)"/>';
+    for (const l of lagen) {
+      const boven = uren.map((t, i) => onder[i] + l.f(t) * (0.92 + 0.08 * Math.sin(i)));
+      const pad = `M${uren.map((t, i) => `${X(t)},${Y(boven[i])}`).join(' L')} L${uren.map((t, i) => `${X(t)},${Y(onder[i])}`).reverse().join(' L')}Z`;
+      svg += `<path d="${pad}" fill="${l.kleur}" fill-opacity="0.85"/>`;
+      onder = boven;
+    }
+    svg += ['8:00', '12:00', '16:00', '20:00'].map((u, i) => `<text x="${X(8 + i * 4)}" y="107" font-size="8" fill="rgb(255 255 255 / .5)" text-anchor="middle" font-family="Figtree">${u}</text>`).join('');
+    verdeel.innerHTML = svg;
+  }
+
+  const zorg = document.getElementById('zorg');
+  if (zorg) {
+    const bel = (t, m, sd) => Math.exp(-((t - m) ** 2) / (2 * sd * sd));
+    const uren = Array.from({ length: 57 }, (_, i) => 6 + i * 0.25);
+    const X = (t) => ((t - 6) / 14) * 400, Y = (w) => 100 - w * 80;
+    const verwacht = (t) => bel(t, 10.2, 2.2);
+    const gemeten = (t) => verwacht(t) * (t < 10 ? 0.62 + 0.38 * Math.max(0, (t - 7.5) / 2.5) ** 2 : 1);
+    const lijn = (f) => uren.map((t, i) => `${i ? 'L' : 'M'}${X(t)},${Y(f(t))}`).join(' ');
+    zorg.innerHTML = `<rect x="${X(7)}" y="0" width="${X(10) - X(7)}" height="100" fill="rgb(255 138 107 / 0.08)"/>`
+      + `<path d="M0 100H400" stroke="rgb(255 255 255 / .2)"/>`
+      + `<path d="${lijn(verwacht)}" fill="none" stroke="rgb(255 255 255 / .55)" stroke-width="2" stroke-dasharray="5 5"/>`
+      + `<path d="${lijn(gemeten)} L400,100 L0,100Z" fill="rgb(255 138 107 / .25)"/><path d="${lijn(gemeten)}" fill="none" stroke="#ff8a6b" stroke-width="2.5"/>`
+      + ['8:00', '12:00', '16:00'].map((u, i) => `<text x="${X(8 + i * 4)}" y="109" font-size="8" fill="rgb(255 255 255 / .5)" text-anchor="middle" font-family="Figtree">${u}</text>`).join('');
+  }
+
+  const podium = document.getElementById('podium');
+  if (toon === 'huis') {
+    // Zoals de tekening nu kan: twee kanten van het hoofddak, de garage en het tuinhuis.
+    const r = podium.getBoundingClientRect();
+    huis.teken(podium, {
+      tijd: 'dag', seizoen: 'zomer', wolken: 0.1,
+      zon: { stand: 0.62, aandeel: 0.8, panelen: 7, panelenLinks: 7 },
+      kompas: { voorgevelDeg: 180, groot: true },
+      etages: [
+        { naam: 'Begane grond', kamers: [{ naam: 'Keuken', gewicht: 0.9, stil: true, apparaten: [] }, { naam: 'Woonkamer', gewicht: 1.3, stil: true, apparaten: [{ soort: 'bank' }] }] },
+        { naam: 'Eerste', kamers: [{ naam: 'Badkamer', gewicht: 0.8, stil: true, apparaten: [] }, { naam: 'Slaapkamer', gewicht: 1.3, stil: true, apparaten: [] }] },
+        { dak: true, kamers: [] },
+      ],
+      voordeur: {}, garage: { panelen: 8 }, tuin: { tuinhuis: true, tuinhuisPanelen: true },
+      labels: [
+        { bij: 'panelen', titel: 'A · zuid', toon: 'zon', regels: ['40°, 14 panelen'], dx: 10, dy: -60 },
+        { bij: 'panelenGarage', titel: 'E · garage', toon: 'zon', regels: ['15°, 8 panelen'], dx: 30, dy: -90 },
+      ],
+    }, { breedte: r.width, hoogte: r.height, wereld: true, eigenLucht: false, marge: 0.07, schuifY: 30 });
+    podium.insertAdjacentHTML('beforeend', '<div class="meting" style="position: absolute; left: 14px; right: 14px; bottom: 12px; background: rgb(11 20 36 / 0.82)">De tekening kent nu twee kanten van het hoofddak, de garage, de carport en het tuinhuis. Een dwarskap, een uitbouw en panelen op de grond (B, C, D en F) kan hij nog niet tekenen.</div>');
+  } else {
+    const opts = { meters: { kleur: 'meter' }, vlak: { open: 'D' }, erbij: { open: 'nieuw' }, klopt: { mis: 'C', boom: true } }[toon] ?? {};
+    podium.innerHTML = `<svg class="boven" viewBox="14 40 614 532" preserveAspectRatio="xMidYMid meet">${daken.vanBoven(opts)}</svg>`;
+  }
+
+</script>
+</body>
+</html>
