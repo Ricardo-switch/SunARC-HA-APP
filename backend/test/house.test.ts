@@ -375,7 +375,7 @@ describe('het voorstel uit Home Assistant', () => {
     expect(nest.klimaat).toMatchObject({ kanKoelen: false, kanVerwarmen: true });
     const ac = wk.apparaten.find((d) => d.id === 'ac-woonkamer')!;
     expect(ac.meting).toEqual({ temperatuurC: 22.4, vochtPct: null });
-    expect(ac.klimaat).toEqual({ kanKoelen: true, kanVerwarmen: true, doelC: 22, actie: 'koelt', actieCode: 'koelt', rol: 'zon', vermogenW: null, ha: { koppeling: null, minC: null, maxC: null, standen: [], zegtActie: true } });
+    expect(ac.klimaat).toEqual({ kanKoelen: true, kanVerwarmen: true, doelC: 22, actie: 'koelt', actieCode: 'koelt', rol: 'zon', vermogenW: null, ha: { koppeling: null, minC: null, maxC: null, standen: [], zegtActie: true, doel: 'kamer' } });
     // Wat de regeling ermee doet (besluit 138): de Nest houdt de kamer op temperatuur.
     expect(nest.klimaat?.rol).toBe('houdt');
     // Met een regelgebied komt de temperatuur van de kamer daarvandaan, niet van een meter.
@@ -815,5 +815,15 @@ describe('het huis in het Engels (besluit 185)', () => {
     const knop = (lang: 'nl' | 'en') => apparaat(buildHouse(config, metKnop, metStand, snapshot, null, undefined, undefined, null, undefined, lang), 'climate.radiator_badkamer');
     expect([knop('nl').stand, knop('nl').standCode, knop('nl').klimaat?.actieCode]).toEqual(['verwarmt, doel 20,5°', 'verwarmt', 'verwarmt']);
     expect([knop('en').stand, knop('en').standCode, knop('en').klimaat?.actie]).toEqual(['heating, target 20.5°', 'verwarmt', 'heating']);
+  });
+});
+
+describe('wat het doel van een klimaatapparaat is (testerronde, november 2026)', () => {
+  it('herkent een stooklijn en een watertemperatuur aan het bereik', async () => {
+    const { doelSoort } = await import('../src/web/doelsoort.js');
+    // Luxtronik zonder slimme kamerunit: een correctie van −5 tot +5.
+    expect(doelSoort(-5, 5)).toBe('stooklijn');
+    // Midea in watertemperatuur, en een kamerthermostaat, een airco, of zonder bereik.
+    expect([doelSoort(25, 60), doelSoort(5, 35), doelSoort(16, 30), doelSoort(null, null), doelSoort(7, 30)]).toEqual(['water', 'kamer', 'kamer', 'kamer', 'kamer']);
   });
 });

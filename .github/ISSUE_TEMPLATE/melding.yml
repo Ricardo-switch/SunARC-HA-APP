@@ -1,0 +1,39 @@
+# Een melding uit de app (testerronde, november 2026): de knop "Meld een
+# probleem" vult dit formulier vooraf in. De meldcode staat ook in de app; zo
+# zegt de app na een update wat er met de melding gebeurde.
+name: A report from the app · Een melding uit de app
+description: Filled in by SunArc itself, from "Report a problem". Nederlands mag.
+labels: [melding]
+body:
+  - type: input
+    id: soort
+    attributes:
+      label: What kind · Wat voor melding
+    validations:
+      required: true
+  - type: textarea
+    id: wat
+    attributes:
+      label: What happened · Wat gebeurde er
+      description: What did you do, what did you expect, and what did SunArc do instead?
+    validations:
+      required: true
+  - type: textarea
+    id: gegevens
+    attributes:
+      label: Device data · Apparaatgegevens
+      description: Only the kind of device, its state and its properties; no names or addresses.
+      render: json
+  - type: input
+    id: versie
+    attributes:
+      label: SunArc version · Versie
+  - type: input
+    id: waar
+    attributes:
+      label: Page and screen · Pagina en scherm
+  - type: input
+    id: meldcode
+    attributes:
+      label: Report code · Meldcode
+      description: The app keeps this code, so it can tell you what happened with your report after an update.

@@ -1416,7 +1416,8 @@
     const alles = meld.actief.length || meld.eerder.length ? `<button type="button" class="meldalles" data-meld-alles>${esc(global.t('basis.meld.allesWissen'))}</button>` : '';
     return `<div class="kop"><h2 class="kop-2">${esc(global.t('nav.meldingen'))}</h2>${alles}<button type="button" class="sluit" data-meld-sluit aria-label="${esc(global.t('algemeen.sluiten'))}">×</button></div>
       ${aandacht}${eerder}
-      ${onderhoudKnop()}`;
+      ${onderhoudKnop()}
+      <button type="button" class="meld-probleem-regel" data-meld-probleem>${esc(global.t('melden.kop'))}</button>`;
   }
 
   /*
@@ -1707,6 +1708,38 @@
     zin.textContent = tekst;
   }
 
+  /*
+   * Wat er met je eigen meldingen gebeurde (testerronde, november 2026): de
+   * meldcodes op dit toestel die bij een versie staan, elk één keer. Er gaat
+   * niets het huis uit; de lijst komt met de update mee.
+   */
+  function eigenUitkomsten(nieuw) {
+    let mijn;
+    try {
+      mijn = JSON.parse(localStorage.getItem('sc-meldingen') ?? '[]');
+    } catch {
+      return '';
+    }
+    if (!Array.isArray(mijn) || !mijn.length) return '';
+    const open = new Map(mijn.filter((m) => !m.uitkomst).map((m) => [m.code, m]));
+    const uit = [];
+    for (const n of nieuw ?? []) {
+      for (const u of n.meldingen ?? []) {
+        if (!open.has(u.code)) continue;
+        uit.push({ ...u, versie: n.versie });
+        open.delete(u.code);
+      }
+    }
+    if (!uit.length) return '';
+    try {
+      localStorage.setItem('sc-meldingen', JSON.stringify(mijn.map((m) => ({ ...m, ...(uit.some((u) => u.code === m.code) ? { uitkomst: uit.find((u) => u.code === m.code).uitkomst } : {}) }))));
+    } catch {
+      // Dan zegt hij het de volgende keer nog eens.
+    }
+    const regel = (u) => `<li>${esc(global.t(`melden.uitkomst.${u.uitkomst}`, { code: u.code, versie: u.versie }))}${u.tekst ? ` ${esc(u.tekst)}` : ''}${u.href ? ` <a href="${esc(u.href)}">${esc(global.t('melden.naarPlek'))}</a>` : ''}</li>`;
+    return `<div class="soort nieuw"><span class="label">${esc(global.t('melden.jouw'))}</span><ul>${uit.map(regel).join('')}</ul></div>`;
+  }
+
   async function watIsErNieuw(welke = null) {
     let v;
     try {
@@ -1735,12 +1768,35 @@
       n = v.nieuw?.[0];
       if (gezien == null || gezien === v.nummer || !n || n.versie !== v.nummer) return;
     }
-    const delen = UPDATE_SOORT.filter((k) => (n[k] ?? []).length).map((k) => `<div class="soort ${k}"><span class="label">${esc(soortNaam(k))}</span><ul>${n[k].map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>`).join('');
+    const delen = (welke ? '' : eigenUitkomsten(v.nieuw)) + UPDATE_SOORT.filter((k) => (n[k] ?? []).length).map((k) => `<div class="soort ${k}"><span class="label">${esc(soortNaam(k))}</span><ul>${n[k].map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>`).join('');
     document.body.insertAdjacentHTML('beforeend', `<div class="meldachter" data-nieuw-achter></div><div class="glas nieuwpop" role="dialog" aria-modal="true" aria-labelledby="nieuwkop" data-nieuwpop>
       <span class="mini">${esc(welke ? global.taal.datum(new Date(`${n.datum}T12:00:00Z`), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : global.t('basis.versie.bijgewerkt'))}</span><h2 class="kop-2" id="nieuwkop" style="margin: 2px 0 0">${esc(global.t('basis.versie.watNieuw', { versie: n.versie }))}</h2>${delen}
       <div class="knoppen"><a class="knop" href="toegang.html#versie">${esc(global.t('basis.versie.alle'))}</a><button type="button" class="knop knop-licht" data-nieuw-dicht>${esc(global.t('algemeen.oke'))}</button></div></div>`);
     document.querySelector('[data-nieuw-dicht]').focus();
   }
+
+  /*
+   * Meld een probleem (testerronde, november 2026): elke knop met
+   * `data-meld-probleem`, ook in een link of kaart. melden.js laadt pas bij de
+   * eerste tik, met dezelfde stempel als dit bestand.
+   */
+  let meldenLaden = null;
+  document.addEventListener('click', (e) => {
+    const k = e.target.closest('[data-meld-probleem]');
+    if (!k) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (document.querySelector('[data-meldblad]:not([hidden])')) meldDicht();
+    const stempel = document.querySelector('script[src*="basis.js"]')?.getAttribute('src')?.split('?')[1];
+    meldenLaden ??= new Promise((ok, fout) => {
+      const s = document.createElement('script');
+      s.src = `melden.js${stempel ? `?${stempel}` : ''}`;
+      s.onload = ok;
+      s.onerror = fout;
+      document.head.append(s);
+    });
+    meldenLaden.then(() => global.melden.open({ apparaat: k.dataset.apparaat ?? null, naam: k.dataset.naam ?? null }), () => (meldenLaden = null));
+  }, true);
 
   function meldingenStart() {
     $$('[data-meldicoon]').forEach((b) => b.insertAdjacentHTML('afterbegin', nav.svg('meldingen')));

@@ -16,6 +16,7 @@ function teken(versie) {
       <div><h2>${esc(t('over.naamKop'))}</h2><p>${esc(t('over.naam'))}</p></div>
       <div><h2>${esc(t('over.openKop'))}</h2><p>${esc(t('over.open'))} <a href="${BRON}" target="_blank" rel="noopener">${esc(t('over.bron'))}</a></p></div>
       <div><h2>${esc(t('over.steunKop'))}</h2><p>${esc(t('over.steun'))}</p><div style="margin-top: 10px">${app.koffieKnop()}</div></div>
+      <div><h2>${esc(t('melden.overKop'))}</h2><p>${esc(t('melden.overZin'))}</p><div style="margin-top: 10px"><button type="button" class="knop" data-meld-probleem>${esc(t('melden.kop'))}</button></div></div>
     </div>`;
   document.querySelectorAll('[data-over]').forEach((el) => (el.innerHTML = html));
 }

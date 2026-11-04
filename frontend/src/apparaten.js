@@ -237,7 +237,10 @@ function klimaatKaart({ a, r }) {
   const stand = bew?.soort === 'wait' ? [t('apparaten.wachtZon'), 'var(--zon)'] : doet ? [huismodel.metHoofdletter(a.klimaat.actie), code === 'koelt' ? 'var(--ijs)' : 'var(--gloed)'] : [huismodel.metHoofdletter(a.stand ?? t('apparaten.onbekend')), 'var(--mint)'];
   // Niet twee keer hetzelfde (29 oktober 2026): de zin begon met de stand ("Verwarmen naar 20° · onder het doel"),
   // en een stand die het doel al noemt ("Automatisch naar 18°") kreeg "Doel 18°." eronder. Een radiatorknop noemt het ook al.
-  const doel = a.klimaat?.doelC != null ? `${nl(a.klimaat.doelC, Number.isInteger(a.klimaat.doelC) ? 0 : 1)}°` : null;
+  // Een warmtepomp met een stooklijn of watertemperatuur als doel (testerronde, november 2026): dat zegt hij, geen kamer.
+  const soortDoel = a.klimaat?.ha?.doel ?? 'kamer';
+  const getalDoel = a.klimaat?.doelC != null ? nl(a.klimaat.doelC, Number.isInteger(a.klimaat.doelC) ? 0 : 1) : null;
+  const doel = getalDoel == null ? null : soortDoel === 'stooklijn' ? t('apparaten.stooklijn', { doel: `${a.klimaat.doelC > 0 ? '+' : ''}${getalDoel}` }) : soortDoel === 'water' ? t('apparaten.water', { doel: getalDoel }) : `${getalDoel}°`;
   const standLaag = stand[0].toLowerCase();
   const rest = bew?.tekst?.toLowerCase().startsWith(standLaag) ? bew.tekst.slice(standLaag.length).replace(/^[\s·,.;:–-]+/, '') : bew?.tekst;
   // Twee doelen bij één thermostaat (30 oktober 2026): bovenaan wat het apparaat zelf zegt ("Automatisch naar 18°"),
@@ -281,7 +284,8 @@ function klimaatKaart({ a, r }) {
     <div class="stand"><i style="background: ${stand[1]}"></i>${esc(stand[0])}</div>
     ${metHand ? `<p class="mini zin" style="color: var(--zon-t); font-weight: 600">${esc(huismodel.metHoofdletter(hand.nuZin(metHand)))}</p>` : zin ? `<p class="mini zin">${esc(zin)}</p>` : ''}
     ${labels ? `<p class="mini etiket">${esc(labels)}</p>` : ''}
-    ${dag}`;
+    ${dag}
+    <button type="button" class="meld-app" data-meld-probleem data-apparaat="${esc(a.id)}" data-naam="${esc(a.naam)}">${esc(t('melden.klopt'))}</button>`;
   return el;
 }
 
@@ -464,7 +468,7 @@ function openBlad(kaartEl) {
 }
 document.addEventListener('click', (e) => {
   const k = e.target.closest('.app[data-blad]');
-  if (!k || e.target.closest('[data-hand]')) return;
+  if (!k || e.target.closest('[data-hand], [data-meld-probleem]')) return;
   e.preventDefault();
   openBlad(k);
 });

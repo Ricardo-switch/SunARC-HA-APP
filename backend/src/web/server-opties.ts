@@ -22,6 +22,7 @@ import type { BufferStore } from './warmtebuffers.js';
 import type { Profielen, VoorkeurenStore } from './voorkeuren.js';
 import type { IntegratieStand } from './integratie.js';
 import type { ConnectionStore, ConnectionView, FoundAppliance, FoundPhase, FoundPower } from './aansluiting.js';
+import type { ApparaatGegevens } from './apparaat-gegevens.js';
 import type { EnergySource, EnergyStore } from './energy.js';
 import type { Punt } from './kaart.js';
 import type { UpdateView } from './bijwerken.js';
@@ -345,6 +346,8 @@ export interface WebOptions {
     /** Zoeken naar updates (testerronde, november 2026): de eigen update-entiteit laten verversen. */
     readonly zoek: () => Promise<{ readonly ok: boolean; readonly reden?: string }>;
   };
+  /** De gegevens van een apparaat om te delen bij een melding (testerronde, november 2026): zonder namen of adressen. */
+  readonly apparaatGegevens?: (entityId: string) => ApparaatGegevens | null;
   /** SunArc opnieuw starten (testerronde, november 2026); `run.sh` en Docker starten hem weer. Weg: kan niet. */
   readonly herstart?: () => void;
   /**

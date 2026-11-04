@@ -18,6 +18,7 @@
     opbrengst: iconen.binnen('opbrengst'),
     assistent: iconen.binnen('assistent'),
     meldingen: iconen.binnen('meldingen'),
+    melden: iconen.binnen('melden'),
     instellingen: iconen.binnen('instellingen'),
   };
   /** De zes plekken; hun namen staan in teksten.*.js (besluit 185). */
@@ -42,7 +43,9 @@
     // De bel boven het tandwiel (besluit 136): op elke pagina, met een getal als er iets is.
     const bel = `<button type="button" class="meldbel" data-meldbel aria-label="${t('nav.meldingen')}" aria-haspopup="dialog">${svg('meldingen')}<b data-meldaantal hidden></b></button>`;
     // Het logo brengt je bij Over deze app.
-    el.innerHTML = `<a class="logo" href="over.html" aria-label="${t('over.kop')}"></a>${NAMEN.map((id) => `<a href="${href(id)}" data-tab="${id}" ${id === actief ? 'aria-current="page"' : ''}>${svg(id)}${naam(id)}</a>`).join('')}${bel}<a href="${href('instellingen')}" class="onder" ${actief === 'instellingen' ? 'aria-current="page"' : ''} aria-label="${t('nav.instellingen')}">${svg('instellingen')}</a>`;
+    // Meld een probleem (testerronde, november 2026): altijd binnen één tik, boven de bel.
+    const melden = `<button type="button" class="meldprobleem" data-meld-probleem aria-label="${t('melden.kop')}" title="${t('melden.kop')}">${svg('melden')}</button>`;
+    el.innerHTML = `<a class="logo" href="over.html" aria-label="${t('over.kop')}"></a>${NAMEN.map((id) => `<a href="${href(id)}" data-tab="${id}" ${id === actief ? 'aria-current="page"' : ''}>${svg(id)}${naam(id)}</a>`).join('')}${melden}${bel}<a href="${href('instellingen')}" class="onder" ${actief === 'instellingen' ? 'aria-current="page"' : ''} aria-label="${t('nav.instellingen')}">${svg('instellingen')}</a>`;
   }
   function tabs(el, actief, links = {}) {
     // Alleen het icoon; de naam staat er wel, voor wie voorleest, en is te zien bij de gekozen tab.

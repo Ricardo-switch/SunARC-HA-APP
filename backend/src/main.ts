@@ -61,6 +61,7 @@ import { partsIn, zonedMidnight, type PowerRow } from './web/today.js';
 import { WeatherLog, type EntityForecast } from './web/weather.js';
 import { Historie, somPerVak } from './web/historie.js';
 import { zetValuta } from './web/valuta.js';
+import { apparaatGegevens } from './web/apparaat-gegevens.js';
 import { Sluipverbruik, jaarPrijs, sluipVoorBel } from './web/sluipverbruik.js';
 import { verwachtingVan, weerNaamVan } from './web/weerbron.js';
 import { OPEN_METEO, OpenMeteo } from './web/open-meteo.js';
@@ -2110,6 +2111,8 @@ if (webPort != null) {
       : {}),
     // Opnieuw starten (testerronde, november 2026): een keuze bij Energie gaat pas bij de start in.
     herstart,
+    // Deel apparaatgegevens (testerronde, november 2026): alleen het soort apparaat, geen namen.
+    apparaatGegevens: (id) => (houseRegisters ? apparaatGegevens(id, allStates, houseRegisters.entities, houseRegisters.devices) : null),
     // De camera's bekijken (besluit 106): alleen lezen, alleen met inlog.
     camera: {
       base: httpBase(url!),

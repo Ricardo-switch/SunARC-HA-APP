@@ -1,5 +1,29 @@
 # Wat is er nieuw · What is new
 
+## 0.118.0
+
+*4 november 2026*
+
+**Nieuw**
+
+- Meld een probleem: in het menu, bij Versie, Over deze app en bij elk apparaat. Na een update zegt de app wat er met je melding gebeurde
+- Bij een apparaat dat niet klopt, gaan zijn gegevens mee in de melding, zonder namen of adressen
+
+**Beter**
+
+- Een warmtepomp met een stooklijn of watertemperatuur als doel (zoals Luxtronik of Midea) toont dat ook, en telt niet meer als kamertemperatuur
+
+*English*
+
+**New**
+
+- Report a problem: in the menu, under Version, About this app and on every device. After an update the app tells you what happened with your report
+- For a device that is not right, its data goes with the report, without names or addresses
+
+**Improved**
+
+- A heat pump with a heating curve or water temperature as its target (such as Luxtronik or Midea) shows that, and no longer counts as a room temperature
+
 ## 0.117.1
 
 *4 november 2026*

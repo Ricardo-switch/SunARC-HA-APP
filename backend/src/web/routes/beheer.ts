@@ -85,6 +85,18 @@ export async function beheerRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
     return true;
   }
 
+  // De gegevens van een apparaat om te delen bij een melding (testerronde, november 2026). Alleen lezen.
+  if (path === '/api/apparaat-gegevens') {
+    const id = url.searchParams.get('id') ?? '';
+    const g = /^[a-z_]+\.[a-z0-9_]{1,160}$/.test(id) ? (d.options.apparaatGegevens?.(id) ?? null) : null;
+    if (g == null) {
+      sendJson(res, 404, { fout: 'dat apparaat ken ik niet' });
+      return true;
+    }
+    sendJson(res, 200, g);
+    return true;
+  }
+
   // SunArc opnieuw starten (testerronde, november 2026): voor een keuze die pas bij de start ingaat. Pas als het antwoord weg is.
   if (path === '/api/herstart') {
     const herstart = d.options.herstart;

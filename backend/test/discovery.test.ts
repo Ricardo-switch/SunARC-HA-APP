@@ -546,3 +546,13 @@ describe('een kamer waar het apparaat de enige thermometer is', () => {
     ).toBe(true);
   });
 });
+
+describe('een warmtepomp met een stooklijn of water als doel (testerronde, november 2026)', () => {
+  it('regelt er geen kamer mee, en zegt waarom', () => {
+    const r = base();
+    r.states = r.states.map((s) => (s.entity_id === 'climate.airco' ? state('climate.airco', 'heat', { hvac_modes: ['off', 'heat'], min_temp: -5, max_temp: 5, temperature: 1 }) : s));
+    const proposal = discover(r);
+    expect((proposal.config['actuators'] as unknown[]).length).toBe(0);
+    expect(proposal.bevindingen.find((b) => b.pad === 'actuators.climate.airco')?.tekst).toContain('stooklijn');
+  });
+});

@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.117.1';
+export const VERSIE = '0.118.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -27,11 +27,33 @@ export interface Nieuw {
    * niet, en daar toont de app het Nederlands.
    */
   readonly en?: Pick<Nieuw, 'nieuw' | 'beter' | 'opgelost'>;
+  /**
+   * Wat er met meldingen uit de app gebeurde (testerronde, november 2026): per
+   * meldcode de uitkomst. De app vergelijkt het met de codes op het toestel en
+   * zegt het alleen tegen wie meldde; er gaat niets het huis uit.
+   */
+  readonly meldingen?: readonly MeldingUitkomst[];
+}
+
+export interface MeldingUitkomst {
+  /** De meldcode uit het issue, zoals SA-7F3K. */
+  readonly code: string;
+  readonly uitkomst: 'opgelost' | 'instelling' | 'later' | 'dubbel' | 'afgewezen' | 'geenreactie';
+  /** Een korte uitleg, in het Nederlands en het Engels. */
+  readonly tekst?: string;
+  readonly tekstEn?: string;
+  /** Een plek in de app, zoals energie.html#meters, bij een instelling. */
+  readonly href?: string;
 }
 
 /** Wat er nieuw is, in de taal van de app: de Engelse regels als die er zijn. */
 export function nieuwInTaal(lijst: readonly Nieuw[], lang: 'nl' | 'en'): Omit<Nieuw, 'en'>[] {
-  return lijst.map(({ en, ...n }) => (lang === 'en' && en ? { versie: n.versie, datum: n.datum, ...en } : n));
+  return lijst.map(({ en, meldingen, ...n }) => {
+    // De uitkomsten van meldingen in de taal van de app, met de Engelse uitleg als die er is.
+    const m = meldingen?.map(({ tekstEn, ...u }) => ({ ...u, ...(lang === 'en' && tekstEn ? { tekst: tekstEn } : {}) }));
+    const basis = lang === 'en' && en ? { versie: n.versie, datum: n.datum, ...en } : n;
+    return m?.length ? { ...basis, meldingen: m } : basis;
+  });
 }
 
 /** De eerste regel van een versie: wat nieuw is, anders wat beter is, anders wat opgelost is. */
@@ -44,6 +66,22 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.118.0',
+    datum: '2026-11-04',
+    nieuw: [
+      'Meld een probleem: in het menu, bij Versie, Over deze app en bij elk apparaat. Na een update zegt de app wat er met je melding gebeurde',
+      'Bij een apparaat dat niet klopt, gaan zijn gegevens mee in de melding, zonder namen of adressen',
+    ],
+    beter: ['Een warmtepomp met een stooklijn of watertemperatuur als doel (zoals Luxtronik of Midea) toont dat ook, en telt niet meer als kamertemperatuur'],
+    en: {
+      nieuw: [
+        'Report a problem: in the menu, under Version, About this app and on every device. After an update the app tells you what happened with your report',
+        'For a device that is not right, its data goes with the report, without names or addresses',
+      ],
+      beter: ['A heat pump with a heating curve or water temperature as its target (such as Luxtronik or Midea) shows that, and no longer counts as a room temperature'],
+    },
+  },
   {
     versie: '0.117.1',
     datum: '2026-11-04',

@@ -4419,6 +4419,59 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
   }, 30_000);
 
   /*
+   * Meld een probleem (testerronde, november 2026): vanuit het menu een blad,
+   * een vooraf ingevuld issue op GitHub met een meldcode, en na een update de
+   * uitkomst van je eigen melding.
+   */
+  it('meldt een probleem met een meldcode, en zegt na een update wat ermee gebeurde', async () => {
+    const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    // Het adres naar GitHub opvangen in plaats van een venster te openen.
+    await context.addInitScript("localStorage.setItem('sc-rondleiding-gezien', '1'); window.geopend = []; window.open = (url) => { window.geopend.push(url); return null; };");
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    try {
+      if (process.env.HEMS_PAGE_SHOT) {
+        await p.goto(`${baseUrl}/apparaten.html`);
+        await p.locator('#wand .meld-app').first().waitFor();
+        await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-apparaten.png') });
+      }
+      await p.goto(`${baseUrl}/vandaag.html`);
+      await p.locator('#wand .balk [data-meld-probleem]').click();
+      const blad = p.locator('[data-meldpop]');
+      await blad.locator('h2', { hasText: 'Meld een probleem' }).waitFor();
+      await blad.locator('[data-meldwat]').fill('De airco zegt koelen terwijl hij uit staat');
+      await blad.locator('[data-meldpop-stuur]').click();
+      await blad.locator('h2', { hasText: 'Dank je wel' }).waitFor();
+      const [url] = await p.evaluate<string[]>('window.geopend');
+      expect(url).toMatch(/^https:\/\/github\.com\/Ricardo-switch\/SunArc\/issues\/new\?template=melding\.yml&title=/);
+      const velden = new URL(url!).searchParams;
+      expect(velden.get('wat')).toBe('De airco zegt koelen terwijl hij uit staat');
+      expect(velden.get('meldcode')).toMatch(/^SA-[A-Z2-9]{4}$/);
+      const code = velden.get('meldcode');
+      expect(await p.evaluate<string>("JSON.parse(localStorage.getItem('sc-meldingen'))[0].code")).toBe(code);
+      await blad.locator('[data-meldpop-dicht]').click();
+
+      // Na een update: de nieuwe versie noemt de code, en de app zegt het één keer.
+      await p.evaluate("localStorage.setItem('sc-versie-gezien', '0.0.1')");
+      await context.route(`${baseUrl}/api/versie*`, async (route) => {
+        const res = await route.fetch();
+        const v = (await res.json()) as { nieuw: Record<string, unknown>[] };
+        v.nieuw[0] = { ...v.nieuw[0], meldingen: [{ code, uitkomst: 'opgelost' }] };
+        await route.fulfill({ response: res, json: v });
+      });
+      await p.reload();
+      await p.locator('[data-nieuwpop]', { hasText: `Je melding ${code} is opgelost in` }).waitFor({ timeout: 8000 });
+      expect(await p.evaluate<string>("JSON.parse(localStorage.getItem('sc-meldingen'))[0].uitkomst")).toBe('opgelost');
+      expect(fouten).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  }, 40_000);
+
+  /*
    * De valuta van het huis (testerronde, november 2026): zegt Home Assistant
    * dollar, dan staan de bedragen en de prijsvelden in dollar.
    */

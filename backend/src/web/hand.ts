@@ -25,6 +25,7 @@ import type { SiteConfig } from '../core/model.js';
 import type { BrugVraag } from './assistant.js';
 import { metLidwoord } from './kamerwoorden.js';
 import { KNOPPEN, KOELSTRATEGIE, MODUS, MODUS_ACTIEF, klok, totWanneer } from './klimaatbrug.js';
+import { doelSoort } from './doelsoort.js';
 
 export type HandModus = 'verwarmen' | 'koelen';
 
@@ -200,6 +201,8 @@ export class Handbediening {
       const k = this.#d.state(id);
       const doel = Number(k?.attributes['temperature']);
       if (!k || !Number.isFinite(doel)) continue;
+      // Een stooklijn of watertemperatuur is niets om met de hand een kamer mee te verwarmen (testerronde, november 2026).
+      if (doelSoort(Number(k.attributes['min_temp']), Number(k.attributes['max_temp'])) !== 'kamer') continue;
       const t = this.#terug.find((x) => x.id === id);
       uit.push({
         id,

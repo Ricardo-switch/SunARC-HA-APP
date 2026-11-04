@@ -21,6 +21,7 @@
  */
 
 import { vindOpslag, type Opslag } from './opslag.js';
+import { doelSoort, type DoelSoort } from './doelsoort.js';
 import type { Warmtebron } from './warmte.js';
 import { STANDAARD_DAGDELEN } from '../config/standaard.js';
 import { findCameras } from './camera.js';
@@ -123,6 +124,8 @@ export interface HouseClimateHa {
   readonly standen: readonly string[];
   readonly zegtActie: boolean;
   readonly tweede?: { readonly id: string; readonly koppeling: string | null; readonly minC: number | null; readonly maxC: number | null };
+  /** Wat het doel is (testerronde, november 2026): een kamer, een correctie op de stooklijn, of een watertemperatuur. */
+  readonly doel: DoelSoort;
 }
 
 export interface HouseDevice {
@@ -1288,6 +1291,7 @@ function collect(
       maxC: num(st?.attributes['max_temp']),
       standen: Array.isArray(st?.attributes['hvac_modes']) ? (st!.attributes['hvac_modes'] as unknown[]).map(String) : [],
       zegtActie: typeof st?.attributes['hvac_action'] === 'string',
+      doel: doelSoort(num(st?.attributes['min_temp']), num(st?.attributes['max_temp'])),
       ...(twin ? { tweede: { id: twin.entity_id, koppeling: twin.platform ?? null, minC: num(tst?.attributes['min_temp']), maxC: num(tst?.attributes['max_temp']) } } : {}),
     };
   };
