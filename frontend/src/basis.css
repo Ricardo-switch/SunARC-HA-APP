@@ -138,6 +138,9 @@ body.offline #wand main, body.offline #tel .inhoud { filter: grayscale(0.85); op
 .vastregel select.invoer { width: auto; padding: 0 8px; }
 .vastregel .knop { height: 44px; padding: 0 14px; }
 .meterchip { display: inline-flex; gap: 2px; }
+/* Een omvormer zonder weghaalknop, en een die nu niets geeft (vermogens.js). */
+.meterchip-tekst { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px; background: rgb(var(--wit) / 0.08); font-size: 13px; font-weight: 600; }
+.meterchip.leeg button, .meterchip.leeg .meterchip-tekst { color: var(--gedempt); }
 .tariefknop { height: 32px; padding: 0 10px; border-radius: 999px; border: 1px dashed rgba(111, 211, 255, 0.6) !important; background: transparent !important; color: var(--ijs-t) !important; font-size: 12px !important; font-weight: 700; }
 
 

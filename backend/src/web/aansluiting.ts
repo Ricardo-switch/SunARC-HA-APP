@@ -120,6 +120,29 @@ export interface ConnectionAnswers {
    * starten niet meer op zon. Eerst stond daar alleen "Aan".
    */
   readonly opZonUit?: readonly string[];
+  /**
+   * De netmeter die de bewoner koos (testerronde, november 2026): het vermogen
+   * van nu in W of kW, negatief bij teruglevering; of twee sensoren, afname en
+   * teruglevering, zoals DSMR ze geeft. Weg of null: wat de configuratie zegt.
+   */
+  readonly netmeter?: Netmeter | null;
+  /** De omvormers die de bewoner koos, opgeteld tot de opbrengst van nu. Weg of leeg: de configuratie. */
+  readonly omvormers?: readonly string[];
+}
+
+export interface Netmeter {
+  readonly afname: string;
+  readonly terug: string | null;
+}
+
+/** Een sensor met een vermogen van nu, om als netmeter of omvormer te kiezen. */
+export interface FoundPower {
+  readonly id: string;
+  readonly naam: string;
+  /** Wat hij nu zegt, in W (ook als de sensor kW geeft); null als hij niets geeft. */
+  readonly w: number | null;
+  /** Waar hij op lijkt: het net, teruglevering of de panelen. */
+  readonly rol: 'net' | 'terug' | 'zon' | null;
 }
 
 /** De andere daken met panelen (besluit 187). */
@@ -168,6 +191,34 @@ export function findPhases(states: Iterable<HaEntityState>): FoundPhase[] {
     out.push({ id: `L${n}`, current, ...(voltage ? { voltage } : {}) });
   }
   return out;
+}
+
+/*
+ * De sensoren met een vermogen van nu (testerronde, november 2026): alles in W
+ * of kW, ook een template of een Homey-dongle zonder device_class. Wat op het
+ * net, teruglevering of de panelen lijkt, staat voorop; de bewoner kiest.
+ */
+const TERUG = /production|teruglever|levering|export|return|injectie|injection|delivered|geleverd/i;
+const NET_OOK = /electricity[ _-]?meter|elektriciteitsmeter|homey|energy[ _-]?dongle|power[ _-]?consumption|stroommeter/i;
+const ZON = /solar|zonne|(?:^|[^a-z0-9])pv(?:[^a-z0-9]|$)|photovolta|omvormer|inverter|opbrengst/i;
+const STROOMDING = /phase|fase|(?:^|[^a-z0-9])l[123](?:[^a-z0-9]|$)|max|min|gemiddeld|average|peak|piek/i;
+
+export function findPowers(states: Iterable<HaEntityState>): FoundPower[] {
+  const uit: FoundPower[] = [];
+  for (const s of states) {
+    if (!s.entity_id.startsWith('sensor.')) continue;
+    const unit = String(s.attributes['unit_of_measurement'] ?? '').toLowerCase();
+    if (unit !== 'w' && unit !== 'kw') continue;
+    const tekst = label(s);
+    const n = Number(s.state);
+    const w = Number.isFinite(n) && s.state !== '' ? Math.round(unit === 'kw' ? n * 1000 : n) : null;
+    const netAchtig = GRID_METER.test(tekst) || NET_OOK.test(tekst);
+    const rol = STROOMDING.test(s.entity_id) ? null : netAchtig && TERUG.test(tekst) ? 'terug' : netAchtig ? 'net' : ZON.test(tekst) ? 'zon' : null;
+    const naam = s.attributes['friendly_name'];
+    uit.push({ id: s.entity_id, naam: typeof naam === 'string' && naam.trim() ? naam.trim() : s.entity_id, w, rol });
+  }
+  const volgorde = { net: 0, terug: 1, zon: 2 } as const;
+  return uit.sort((a, b) => (a.rol ? volgorde[a.rol] : 3) - (b.rol ? volgorde[b.rol] : 3) || a.naam.localeCompare(b.naam, 'nl'));
 }
 
 /*
@@ -298,6 +349,13 @@ const WEG: Readonly<Record<Lang, { readonly kwh: string; readonly solaredge: str
 
 /* --------------------------------------------------------- de regeling */
 
+/** Het id van een verwijzing in de configuratie: een tekst, of een object met `id`. */
+function idVan(v: unknown): string | null {
+  if (typeof v === 'string') return v;
+  const id = typeof v === 'object' && v != null ? (v as Record<string, unknown>)['id'] : null;
+  return typeof id === 'string' ? id : null;
+}
+
 export interface Applied {
   /** De configuratie zoals de regeling hem leest. */
   readonly raw: Record<string, unknown>;
@@ -336,6 +394,28 @@ export function withConnection(raw: Record<string, unknown>, answers: Connection
       toegevoegd.push(`het stroombudget: ${fuse.fasen} × ${fuse.ampere} A`);
     } else {
       overgeslagen.push(`${fuse.fasen} × ${fuse.ampere} A, maar ${answers.fasen.length === 1 ? 'één stroommeter' : `${answers.fasen.length} stroommeters`} per fase gevonden`);
+    }
+  }
+
+  // De netmeter en de omvormers uit de app (testerronde, november 2026): de keuze van de bewoner gaat voor.
+  const net = answers.netmeter;
+  if (net) {
+    const power = typeof raw['power'] === 'object' && raw['power'] != null ? (raw['power'] as Record<string, unknown>) : {};
+    if (idVan(power['gridPower']) !== net.afname || idVan(power['gridExport']) !== net.terug) {
+      const rest = { ...power };
+      delete rest['gridExport'];
+      out['power'] = { ...rest, gridPower: net.afname, ...(net.terug ? { gridExport: net.terug } : {}) };
+      toegevoegd.push(net.terug ? `de netmeter: ${net.afname} min ${net.terug}` : `de netmeter: ${net.afname}`);
+    }
+  }
+  const omvormers = answers.omvormers ?? [];
+  if (omvormers.length) {
+    const nu = [idVan(raw['solarProduction']), ...(Array.isArray(raw['solarExtra']) ? (raw['solarExtra'] as unknown[]).map(idVan) : [])].filter((x) => x != null);
+    if (nu.join(',') !== omvormers.join(',')) {
+      delete out['solarExtra'];
+      out['solarProduction'] = omvormers[0];
+      if (omvormers.length > 1) out['solarExtra'] = omvormers.slice(1);
+      toegevoegd.push(omvormers.length > 1 ? `${omvormers.length} omvormers, opgeteld` : `de omvormer: ${omvormers[0]}`);
     }
   }
 
@@ -395,7 +475,9 @@ export type ConnectionCheck = { ok: true; answers: ConnectionAnswers } | { ok: f
  */
 export function validateConnection(
   body: unknown,
-  found: { fasen: readonly FoundPhase[]; apparaten: readonly FoundAppliance[]; buffers?: readonly FoundHeatStore[]; meting?: Meting | null; omvormerGevonden?: number | null },
+  found: { fasen: readonly FoundPhase[]; apparaten: readonly FoundAppliance[]; buffers?: readonly FoundHeatStore[]; meting?: Meting | null; omvormerGevonden?: number | null; vermogens?: readonly FoundPower[] },
+  /** De antwoorden van nu: wat de pagina niet meestuurt, blijft zoals het was. */
+  vorige: ConnectionAnswers | null = null,
 ): ConnectionCheck {
   if (typeof body !== 'object' || body == null || Array.isArray(body)) return { ok: false, reden: 'verwacht een object' };
   const b = body as Record<string, unknown>;
@@ -474,6 +556,21 @@ export function validateConnection(
   const thermostaat = vw['thermostaat'] ?? null;
   if (thermostaat !== null && (typeof thermostaat !== 'string' || !/^[a-z0-9_.:-]{1,160}$/i.test(thermostaat))) return { ok: false, reden: 'de thermostaat is een apparaat uit Home Assistant' };
 
+  // De netmeter en de omvormers (testerronde, november 2026): sensoren die er zijn, of wat er al stond.
+  const bekend = (id: unknown) => typeof id === 'string' && /^sensor\.[a-z0-9_]{1,160}$/.test(id) && (found.vermogens == null || found.vermogens.some((v) => v.id === id));
+  const netRaw = b['netmeter'] === undefined ? (vorige?.netmeter ?? null) : b['netmeter'];
+  let netmeter: Netmeter | null = null;
+  if (netRaw !== null) {
+    const n = (typeof netRaw === 'object' && !Array.isArray(netRaw) ? netRaw : {}) as Record<string, unknown>;
+    const terug = n['terug'] ?? null;
+    if (!bekend(n['afname']) || (terug !== null && (!bekend(terug) || terug === n['afname']))) return { ok: false, reden: 'de netmeter is een sensor met een vermogen in W of kW' };
+    netmeter = { afname: n['afname'] as string, terug: terug as string | null };
+  }
+  const omvRaw = b['omvormers'] === undefined ? (vorige?.omvormers ?? []) : b['omvormers'];
+  if (!Array.isArray(omvRaw) || omvRaw.length > 8 || omvRaw.some((x) => !bekend(x)) || new Set(omvRaw).size !== omvRaw.length) {
+    return { ok: false, reden: 'de omvormers zijn tot acht verschillende sensoren met een vermogen' };
+  }
+
   return {
     ok: true,
     answers: {
@@ -489,6 +586,8 @@ export function validateConnection(
       apparaten: found.apparaten.map((a) => ({ ...a, opZon: opZonRaw[a.id] === true })),
       ...((found.buffers ?? []).length ? { buffers: found.buffers!.map((b) => ({ ...b, opZon: opZonRaw[b.id] === true })) } : {}),
       ...(uitRaw.length ? { opZonUit: [...new Set(uitRaw as string[])] } : {}),
+      ...(netmeter ? { netmeter } : {}),
+      ...(omvRaw.length ? { omvormers: [...(omvRaw as string[])] } : {}),
     },
   };
 }
@@ -628,7 +727,16 @@ export interface ConnectionView {
     readonly elders: Elders;
     readonly opZon: Readonly<Record<string, boolean>>;
     readonly opZonUit: readonly string[];
+    /** De netmeter en de omvormers die de bewoner koos (testerronde, november 2026). */
+    readonly netmeter: Netmeter | null;
+    readonly omvormers: readonly string[];
   } | null;
+  /**
+   * De sensoren met een vermogen van nu, om uit te kiezen, met wat ze nu zeggen;
+   * en welke de regeling bij de laatste start gebruikte.
+   */
+  readonly vermogens: readonly FoundPower[];
+  readonly inGebruik: { readonly netmeter: Netmeter | null; readonly omvormers: readonly string[] };
   /** Hoe de panelen liggen (besluit 157): wat geldt, het voorstel uit de meting, en de dag erbij. */
   readonly ligging: LiggingView;
   readonly gevonden: { readonly fasen: readonly FoundPhase['id'][]; readonly apparaten: readonly { id: string; naam: string; soort: ApplianceKind | FoundHeatStore['soort'] }[] };
@@ -654,8 +762,10 @@ export interface ConnectionView {
 export interface ConnectionContext {
   /** De configuratie zoals in het bestand, zonder de antwoorden. */
   readonly base: SiteConfig;
-  readonly found: { readonly fasen: readonly FoundPhase[]; readonly apparaten: readonly FoundAppliance[]; readonly buffers?: readonly FoundHeatStore[] };
+  readonly found: { readonly fasen: readonly FoundPhase[]; readonly apparaten: readonly FoundAppliance[]; readonly buffers?: readonly FoundHeatStore[]; readonly vermogens?: readonly FoundPower[] };
   readonly applied: Pick<Applied, 'toegevoegd' | 'overgeslagen'>;
+  /** De netmeter en de omvormers in de configuratie waarmee de regeling draait. */
+  readonly inGebruik?: { readonly netmeter: Netmeter | null; readonly omvormers: readonly string[] };
   /** De antwoorden bij de start, om te zien of er iets veranderde. */
   readonly answersAtStart: ConnectionAnswers | null;
   readonly answers: ConnectionAnswers | null;
@@ -671,7 +781,7 @@ export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): Connect
   const planes = c.base.geometry?.solarPlanes ?? [];
   const brand = c.solar ? solarBrand(c.solar.platform, lang) : null;
   const relevant = (a: ConnectionAnswers | null) =>
-    JSON.stringify(a ? [a.zekering, a.fasen, a.apparaten.filter((x) => x.opZon).map((x) => x.id), (a.buffers ?? []).filter((x) => x.opZon).map((x) => x.id), [...(a.opZonUit ?? [])].sort()] : null);
+    JSON.stringify(a ? [a.zekering, a.fasen, a.apparaten.filter((x) => x.opZon).map((x) => x.id), (a.buffers ?? []).filter((x) => x.opZon).map((x) => x.id), [...(a.opZonUit ?? [])].sort(), a.netmeter ?? null, a.omvormers ?? []] : null);
   return {
     antwoorden: c.answers
       ? {
@@ -684,8 +794,12 @@ export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): Connect
           elders: c.answers.elders ?? {},
           opZon: Object.fromEntries([...c.answers.apparaten, ...(c.answers.buffers ?? [])].map((a) => [a.id, a.opZon])),
           opZonUit: c.answers.opZonUit ?? [],
+          netmeter: c.answers.netmeter ?? null,
+          omvormers: c.answers.omvormers ?? [],
         }
       : null,
+    vermogens: c.found.vermogens ?? [],
+    inGebruik: c.inGebruik ?? { netmeter: null, omvormers: [] },
     ligging: liggingView({
       configuratie: c.base.geometry,
       dak: c.answers?.dak ?? null,

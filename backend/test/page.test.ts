@@ -51,7 +51,7 @@ import type { Opslag } from '../src/web/opslag.js';
 import { WeatherLog } from '../src/web/weather.js';
 import { EnergyStore, importFromPrefs, type EnergySource } from '../src/web/energy.js';
 import { THERMISCH_FILE, type ThermischRapport } from '../src/web/thermisch.js';
-import { ConnectionStore, connectionView, type FoundAppliance, type FoundPhase } from '../src/web/aansluiting.js';
+import { ConnectionStore, connectionView, type FoundAppliance, type FoundPhase, type FoundPower } from '../src/web/aansluiting.js';
 
 /** Wat het thermisch model zou hebben geleerd (besluit 231): twee kamers, de woonkamer zekerder dan de zolder. */
 const THERMISCH_VOORBEELD = (nu: number): ThermischRapport => ({
@@ -309,6 +309,11 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
         { id: 'droger', naam: 'Droger', soort: 'droger', remoteStart: 'binary_sensor.droger_remote', estimatedW: 700 },
         { id: 'vaatwasser', naam: 'Vaatwasser', soort: 'vaatwasser', remoteStart: 'binary_sensor.vaatwasser_remote', estimatedW: 1800 },
       ] as FoundAppliance[],
+      // De netmeter en de omvormers om uit te kiezen (testerronde, november 2026).
+      vermogens: [
+        { id: 'sensor.p1_meter_power', naam: 'P1-meter vermogen', w: -800, rol: 'net' },
+        { id: 'sensor.solaredge_ac_power', naam: 'SolarEdge vermogen', w: 2400, rol: 'zon' },
+      ] as FoundPower[],
     };
 
     // Een nagemaakte Home Assistant voor het camerabeeld: een klein grijs plaatje,
@@ -1893,7 +1898,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await p.waitForTimeout(800);
     // Acht hoofdstukken met hun stappen (besluit 190).
     expect(await p.locator('#wand [data-stappen] .stap').count()).toBe(8);
-    expect(await p.locator('#wand [data-stappen] .stipjes i').count()).toBe(21);
+    expect(await p.locator('#wand [data-stappen] .stipjes i').count()).toBe(22);
     expect(await p.locator('#wand #balk').count()).toBe(0);
     await shot('welkom');
     // De getallen tikken open tot een lijst, en weer terug (besluit 158).
@@ -1992,12 +1997,21 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await shot('afwezig');
     await kaart.locator('[data-volgende]').click();
     await kaart.locator('h1', { hasText: 'Hoe zwaar is je aansluiting?' }).waitFor();
+    // "Weet ik niet" (een tester, november 2026): geen uitgeschakelde lijst, wel een zin; daarna kan een fase gewoon.
+    await kaart.locator('[data-zekering="weetniet"]').click();
+    await kaart.locator('.tip', { hasText: 'hoofdschakelaar' }).waitFor({ timeout: 5000 });
+    expect(await kaart.locator('[data-ampere]').count()).toBe(0);
     // Eerst de fasen, dan de ampère in een vak.
     await kaart.locator('[data-fasen="3"]').click();
     await kaart.locator('[data-fasen="3"][aria-pressed="true"]').waitFor({ timeout: 5000 });
     await kaart.locator('[data-ampere]').selectOption('40');
     await expect.poll(async () => ((await (await fetch(`${baseUrl}/api/aansluiting`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json()) as { antwoorden?: { zekering?: unknown } }).antwoorden?.zekering, { timeout: 5000 }).toEqual({ fasen: 3, ampere: 40 });
     await shot('zekering');
+    await kaart.locator('[data-volgende]').click();
+    // De netmeter en de omvormers (testerronde, november 2026): een keuzelijst met wat elke sensor nu zegt.
+    await kaart.locator('h1', { hasText: 'Wat meet het vermogen van nu?' }).waitFor();
+    await kaart.locator('[data-netmeter="afname"]').waitFor();
+    await shot('vermogen');
     await kaart.locator('[data-volgende]').click();
     await kaart.locator('h1', { hasText: 'Je zonnepanelen' }).waitFor();
     await kaart.locator('[data-panelen="ja"]').click();

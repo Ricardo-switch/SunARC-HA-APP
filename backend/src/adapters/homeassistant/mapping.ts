@@ -264,12 +264,11 @@ export function buildSystemState(
     inputHealth[ref.id] = source.state(ref.id) != null;
   }
 
-  const grid =
-    config.power.gridPower == null ? null : source.number(config.power.gridPower.id);
+  const grid = netOf(source, config.power);
   const sun = config.sun == null ? null : source.bool(config.sun.id);
   const outdoor =
     config.outdoorTemperature == null ? null : source.number(config.outdoorTemperature.id);
-  const solarW = config.solarProduction == null ? null : readPoint(source, config.solarProduction);
+  const solarW = config.solarProduction == null ? null : solarOf(source, [config.solarProduction, ...(config.solarExtra ?? [])]);
 
   /*
    * De modus komt uit twee soorten knoppen, en de volgorde is niet vrijblijvend.
@@ -382,6 +381,31 @@ export function buildSystemState(
         }
       : {}),
   };
+}
+
+/**
+ * Het netvermogen in W, negatief bij teruglevering (testerronde, november
+ * 2026). Ook in kW, zoals DSMR het geeft, en met een aparte sensor voor
+ * teruglevering: dan afname min teruglevering. Mist er een, dan is het onbekend.
+ */
+function netOf(source: EntitySource, power: SiteConfig['power']): number | null {
+  if (power.gridPower == null) return null;
+  const afname = wattOf(source, power.gridPower.id);
+  if (power.gridExport == null || afname == null) return afname;
+  const terug = wattOf(source, power.gridExport.id);
+  return terug == null ? null : afname - terug;
+}
+
+/**
+ * De opbrengst van nu in W: de som van de omvormers (testerronde, november
+ * 2026), ook in kW. Een omvormer die even niets geeft, telt niet mee; geeft
+ * geen enkele iets, dan is het onbekend.
+ */
+function solarOf(source: EntitySource, points: readonly MeasurementPoint[]): number | null {
+  const values = points
+    .map((p) => (p.attribute == null ? wattOf(source, p.id) : source.attrNumber(p.id, p.attribute)))
+    .filter((v): v is number => v != null && Number.isFinite(v));
+  return values.length ? values.reduce((a, b) => a + b, 0) : null;
 }
 
 /** Een vermogen in W, ook als de meter kW zegt. */
@@ -522,6 +546,7 @@ export function relevantEntities(config: SiteConfig): ReadonlySet<string> {
   const ids = new Set<string>();
 
   if (config.power.gridPower) ids.add(config.power.gridPower.id);
+  if (config.power.gridExport) ids.add(config.power.gridExport.id);
   if (config.sun) ids.add(config.sun.id);
   // Modus en timers hoeven niet uit Home Assistant te komen. Wat de dienst
   // zelf bijhoudt heeft geen entiteit om op te wachten.
@@ -533,6 +558,7 @@ export function relevantEntities(config: SiteConfig): ReadonlySet<string> {
   if (config.timers?.manualOverride) ids.add(config.timers.manualOverride.id);
   if (config.outdoorTemperature) ids.add(config.outdoorTemperature.id);
   if (config.solarProduction) ids.add(config.solarProduction.id);
+  for (const p of config.solarExtra ?? []) ids.add(p.id);
   for (const phase of config.grid?.phases ?? []) {
     ids.add(phase.current.id);
     if (phase.voltage) ids.add(phase.voltage.id);

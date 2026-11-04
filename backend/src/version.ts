@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.115.2';
+export const VERSIE = '0.116.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,30 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.116.0',
+    datum: '2026-11-04',
+    nieuw: [
+      'De netmeter kies je zelf bij Energie › Meters en in Inrichten: elke sensor in W of kW, met wat hij nu zegt; ook afname en teruglevering apart, zoals DSMR',
+      'Meer omvormers kies je bij Energie › Panelen; SunArc telt ze op tot de opbrengst van nu',
+    ],
+    beter: ['Bij het begin vindt SunArc ook DSMR, HomeWizard, Homey en een sensor zonder soort, aan de eenheid W of kW'],
+    opgelost: [
+      'Een meter of omvormer in kW telde als watt: 0,45 kW werd 0,45 W',
+      'Inrichten, zekering "Weet ik niet": geen lijst meer met "kies eerst de fasen"',
+    ],
+    en: {
+      nieuw: [
+        'Choose the grid meter yourself under Energy › Meters and in Set up: every sensor in W or kW, with what it reports now; also import and export as two sensors, like DSMR',
+        'Choose more inverters under Energy › Solar panels; SunArc adds them up to the output right now',
+      ],
+      beter: ['At the start SunArc also finds DSMR, HomeWizard, Homey and a sensor without a class, by the unit W or kW'],
+      opgelost: [
+        'A meter or inverter in kW counted as watts: 0.45 kW became 0.45 W',
+        'Set up, main fuse "Not sure": no longer a list saying "choose the phases first"',
+      ],
+    },
+  },
   {
     versie: '0.115.2',
     datum: '2026-11-04',

@@ -239,6 +239,12 @@ export interface PowerSources {
    * Comfort en heat-assist vragen `budgetW: 0` en merken er niets van.
    */
   readonly gridPower?: DeviceRef;
+  /**
+   * Wat er naar het net gaat, als de meter dat apart geeft (zoals DSMR: een
+   * sensor voor afname en een voor teruglevering, allebei positief). Dan is het
+   * netvermogen `gridPower` min dit (testerronde, november 2026).
+   */
+  readonly gridExport?: DeviceRef;
   /** Overschot waarboven een apparaat mag starten, in W. */
   readonly startSurplusW: number;
   /**
@@ -567,6 +573,12 @@ export interface SiteConfig {
    * instralingsmeter die een woning met panelen al in huis heeft.
    */
   readonly solarProduction?: MeasurementPoint;
+  /**
+   * Meer omvormers naast `solarProduction` (testerronde, november 2026): de
+   * opbrengst van nu is de som. Een omvormer die even niets geeft, telt niet
+   * mee; de rest wel.
+   */
+  readonly solarExtra?: readonly MeasurementPoint[];
   /**
    * De aansluiting: stroom per fase tegen de hoofdzekering (besluit 78).
    * Optioneel; zonder blijft het alleen een vermogensbudget, zoals het was.

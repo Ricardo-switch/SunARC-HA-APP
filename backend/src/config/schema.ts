@@ -1048,6 +1048,10 @@ export function parseSiteConfig(
     const gridRaw = powerRaw['gridPower'];
     const gridPower =
       gridRaw === undefined ? null : ref(p, gridRaw, 'power.gridPower', defaultAdapter);
+    const exportRaw = powerRaw['gridExport'];
+    const gridExport =
+      exportRaw === undefined ? null : ref(p, exportRaw, 'power.gridExport', defaultAdapter);
+    if (gridExport && !gridPower) p.error('power.gridExport', 'teruglevering zonder afname; noem eerst gridPower');
     const startSurplusW = numOr(p, powerRaw, 'power', 'startSurplusW', 1000, { min: 0, max: 50_000 });
     const stopImportW = numOr(p, powerRaw, 'power', 'stopImportW', 50, { min: 0, max: 50_000 });
     const resumeSurplusW = numOr(p, powerRaw, 'power', 'resumeSurplusW', 600, { min: 0, max: 50_000 });
@@ -1065,6 +1069,7 @@ export function parseSiteConfig(
       } else {
         power = {
           ...(gridPower ? { gridPower } : {}),
+          ...(gridPower && gridExport ? { gridExport } : {}),
           startSurplusW,
           stopImportW,
           resumeSurplusW,
@@ -1574,6 +1579,17 @@ export function parseSiteConfig(
   const solarRaw = input['solarProduction'];
   const solarProduction =
     solarRaw === undefined ? null : measurementPoint(p, solarRaw, 'solarProduction', defaultAdapter);
+  // Meer omvormers (testerronde, november 2026): een lijst meetpunten, opgeteld.
+  const extraRaw = input['solarExtra'];
+  const solarExtra: MeasurementPoint[] = [];
+  if (extraRaw !== undefined) {
+    if (!Array.isArray(extraRaw)) p.error('solarExtra', 'moet een lijst zijn');
+    else if (solarProduction == null) p.error('solarExtra', 'meer omvormers zonder de eerste; noem eerst solarProduction');
+    else extraRaw.forEach((x, i) => {
+      const point = measurementPoint(p, x, `solarExtra.${i}`, defaultAdapter);
+      if (point) solarExtra.push(point);
+    });
+  }
   if (solarRaw === undefined) {
     p.warn(
       'solarProduction',
@@ -1750,6 +1766,7 @@ export function parseSiteConfig(
       ...(sun ? { sun } : {}),
       ...(outdoorTemperature ? { outdoorTemperature } : {}),
       ...(solarProduction ? { solarProduction } : {}),
+      ...(solarProduction && solarExtra.length ? { solarExtra } : {}),
       ...(geometry ? { geometry } : {}),
       ...(grid ? { grid } : {}),
       ...(deferrables.length > 0 ? { deferrables } : {}),

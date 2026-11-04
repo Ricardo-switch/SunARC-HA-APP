@@ -1,5 +1,39 @@
 # Wat is er nieuw · What is new
 
+## 0.116.0
+
+*4 november 2026*
+
+**Nieuw**
+
+- De netmeter kies je zelf bij Energie › Meters en in Inrichten: elke sensor in W of kW, met wat hij nu zegt; ook afname en teruglevering apart, zoals DSMR
+- Meer omvormers kies je bij Energie › Panelen; SunArc telt ze op tot de opbrengst van nu
+
+**Beter**
+
+- Bij het begin vindt SunArc ook DSMR, HomeWizard, Homey en een sensor zonder soort, aan de eenheid W of kW
+
+**Opgelost**
+
+- Een meter of omvormer in kW telde als watt: 0,45 kW werd 0,45 W
+- Inrichten, zekering "Weet ik niet": geen lijst meer met "kies eerst de fasen"
+
+*English*
+
+**New**
+
+- Choose the grid meter yourself under Energy › Meters and in Set up: every sensor in W or kW, with what it reports now; also import and export as two sensors, like DSMR
+- Choose more inverters under Energy › Solar panels; SunArc adds them up to the output right now
+
+**Improved**
+
+- At the start SunArc also finds DSMR, HomeWizard, Homey and a sensor without a class, by the unit W or kW
+
+**Fixed**
+
+- A meter or inverter in kW counted as watts: 0.45 kW became 0.45 W
+- Set up, main fuse "Not sure": no longer a list saying "choose the phases first"
+
 ## 0.115.2
 
 *4 november 2026*

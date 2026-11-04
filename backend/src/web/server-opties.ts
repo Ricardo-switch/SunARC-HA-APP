@@ -21,7 +21,7 @@ import type { UitstelStore } from './uitstel.js';
 import type { BufferStore } from './warmtebuffers.js';
 import type { Profielen, VoorkeurenStore } from './voorkeuren.js';
 import type { IntegratieStand } from './integratie.js';
-import type { ConnectionStore, ConnectionView, FoundAppliance, FoundPhase } from './aansluiting.js';
+import type { ConnectionStore, ConnectionView, FoundAppliance, FoundPhase, FoundPower } from './aansluiting.js';
 import type { EnergySource, EnergyStore } from './energy.js';
 import type { Punt } from './kaart.js';
 import type { UpdateView } from './bijwerken.js';
@@ -261,7 +261,7 @@ export interface WebOptions {
     readonly store: ConnectionStore;
     /** In de taal van de app (besluit 185): de ligging van de panelen staat erin in woorden. */
     readonly view: (lang?: Lang) => ConnectionView;
-    readonly found: () => { readonly fasen: readonly FoundPhase[]; readonly apparaten: readonly FoundAppliance[] };
+    readonly found: () => { readonly fasen: readonly FoundPhase[]; readonly apparaten: readonly FoundAppliance[]; readonly vermogens?: readonly FoundPower[] };
   };
   /**
    * Het weer van de komende dagen (besluit 105): de verwachting van Buienradar
