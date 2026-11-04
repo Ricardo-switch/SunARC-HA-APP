@@ -4389,6 +4389,8 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     await p.goto(`${baseUrl}/functies.html?groep=assistent#stem`);
     await p.locator('#wand [data-delen] .deel .nog', { hasText: 'nog 3 stappen' }).first().waitFor();
     expect(await p.locator('#wand .kz-nog').count()).toBe(0);
+    // Alleen bij Stem en luisteren (4 november 2026): bij Praten leek het anders dezelfde pagina.
+    expect(await p.locator('#wand [data-delen] .deel .nog').count()).toBe(1);
     // Op de telefoon de lijst, en de stappen in een blad van onderen.
     await p.setViewportSize({ width: 390, height: 844 });
     await p.goto(`${baseUrl}/klaarzetten.html`);
@@ -4399,9 +4401,12 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     // Op de telefoon staan de stappen zelf bij het deel.
     await p.goto(`${baseUrl}/functies.html?groep=assistent#stem`);
     await p.locator('#tel .kz-nog header', { hasText: 'Nog 3 stappen voor "Hé huis"' }).waitFor();
+    await p.goto(`${baseUrl}/functies.html?groep=assistent#praten`);
+    await p.locator('#tel h2', { hasText: 'Het brein' }).waitFor();
+    expect(await p.locator('#tel .kz-nog').count()).toBe(0);
     expect(fouten).toEqual([]);
     await context.close();
-  }, 20_000);
+  }, 25_000);
 
   /*
    * Hoe ver je huis is (schets Wand-Voortgang): de zonnewaaier met een straal

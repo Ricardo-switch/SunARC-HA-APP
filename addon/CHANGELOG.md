@@ -12,6 +12,7 @@
 
 **Opgelost**
 
+- Op de telefoon begonnen Praten met je huis en Stem en luisteren met hetzelfde blok, alsof het één pagina was; de stappen voor "Hé huis" staan nu alleen bij Stem en luisteren
 - Bij de eerste start staat onder "De configuratie is zo niet bruikbaar" nu wat er precies mis is, en het logboek van de add-on schrijft het ook op
 
 *English*
@@ -24,6 +25,7 @@
 
 **Fixed**
 
+- On the phone, Talk to your house and Voice and listening started with the same block, as if they were one page; the steps for "Hey house" are now only under Voice and listening
 - At the first start, "The configuration cannot be used like this" now shows what exactly is wrong, and the add-on log writes it down too
 
 ## 0.120.0
