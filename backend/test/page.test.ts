@@ -1088,6 +1088,84 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
   }, 120_000);
 
   /*
+   * De eerste start (4 november 2026): kwam het voorstel niet door de toets,
+   * dan zag een tester alleen "zo niet bruikbaar". Nu staat erbij wat er mis is.
+   */
+  it('zegt bij de eerste start wat er mis is als het voorstel niet bruikbaar is', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const huis = await (await fetch(`${baseUrl}/api/huis`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json();
+    // Het adres naar GitHub opvangen, en een logboek met één regel.
+    await context.addInitScript("window.geopend = []; window.open = (url) => { window.geopend.push(url); return null; };");
+    await context.route(`${baseUrl}/api/logboek*`, (route) => route.fulfill({ json: { regels: [{ ms: Date.UTC(2026, 10, 4, 12), niveau: 'waarschuwing', tekst: 'Eerste start niet opgeslagen: zones.0.climate.0: onbekende adapter' }] } }));
+    await context.route(`${baseUrl}/api/onboarding*`, (route) =>
+      route.request().method() === 'POST'
+        ? route.fulfill({ status: 422, json: { ok: false, reden: 'De configuratie is zo niet bruikbaar.', problemen: ['zones.0.climate.0: onbekende adapter', 'outdoorTemperature: geen sensor'] } })
+        : route.fulfill({ json: { huis, keuzes: [], bestaande: [] } }),
+    );
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/begin.html`);
+    await p.locator('[data-inrichten]').first().click({ timeout: 15_000 });
+    const lijst = p.locator('.fout-lijst').first();
+    await lijst.waitFor({ timeout: 10_000 });
+    expect(await lijst.innerText()).toContain('zones.0.climate.0: onbekende adapter');
+    expect(await p.locator('.fout').first().innerText()).toBe('De configuratie is zo niet bruikbaar.');
+
+    // Meld dit: het meldblad met de fout erin, en het logboek mee naar GitHub.
+    await p.locator('.meld-dit').first().click();
+    const blad = p.locator('[data-meldpop]');
+    await blad.locator('[data-meldlog]').waitFor({ timeout: 10_000 });
+    expect(await blad.locator('[data-meldwat]').inputValue()).toContain('zones.0.climate.0: onbekende adapter');
+    expect(await blad.locator('[data-meldlog]').isChecked()).toBe(true);
+    await blad.locator('[data-meldpop-stuur]').click();
+    await expect.poll(() => p.evaluate<number>('window.geopend.length')).toBe(1);
+    const url = new URL((await p.evaluate<string[]>('window.geopend'))[0]!);
+    expect(url.searchParams.get('logboek')).toBe('2026-11-04 12:00:00 LET OP Eerste start niet opgeslagen: zones.0.climate.0: onbekende adapter');
+
+    // Bij Versie: het logboek zelf lezen.
+    await p.goto(`${baseUrl}/toegang.html#versie`);
+    await p.locator('#wand [data-logboek] summary').click();
+    await expect.poll(() => p.locator('#wand [data-logboek-tekst]').innerText(), { timeout: 8000 }).toContain('onbekende adapter');
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 50_000);
+
+  /*
+   * Een oude pagina uit de opslag (4 november 2026): een geïnstalleerde app
+   * die Android terugzet, draaide de oude code door tot je de cache wiste.
+   * Nu ziet hij aan de stempel van basis.js dat hij oud is, en laadt één keer.
+   */
+  it('laadt een oude pagina uit de opslag één keer opnieuw', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    // De pagina zelf gewoon; de pagina zoals de server hem nu geeft, met een nieuwere stempel.
+    let geladen = 0;
+    await context.route(`${baseUrl}/vandaag.html`, async (route) => {
+      const res = await route.fetch();
+      if (route.request().resourceType() === 'document') {
+        geladen += 1;
+        return route.fulfill({ response: res });
+      }
+      return route.fulfill({ response: res, body: (await res.text()).replace(/basis\.js\?v=[0-9a-f]+/, 'basis.js?v=deadbeef') });
+    });
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/vandaag.html`);
+    await expect.poll(() => geladen, { timeout: 10_000 }).toBe(2);
+    // En daarna niet nog eens, ook al blijft de stempel anders.
+    await p.waitForTimeout(3000);
+    expect(geladen).toBe(2);
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 30_000);
+
+  /*
    * Dag of nacht zonder zonnestand (4 november 2026): gaf de dienst geen zon,
    * dan toonde Thuis nacht, ook om twee uur 's middags. Nu de klok.
    */
@@ -4343,6 +4421,8 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     await p.goto(`${baseUrl}/functies.html?groep=assistent#stem`);
     await p.locator('#wand [data-delen] .deel .nog', { hasText: 'nog 3 stappen' }).first().waitFor();
     expect(await p.locator('#wand .kz-nog').count()).toBe(0);
+    // Alleen bij Stem en luisteren (4 november 2026): bij Praten leek het anders dezelfde pagina.
+    expect(await p.locator('#wand [data-delen] .deel .nog').count()).toBe(1);
     // Op de telefoon de lijst, en de stappen in een blad van onderen.
     await p.setViewportSize({ width: 390, height: 844 });
     await p.goto(`${baseUrl}/klaarzetten.html`);
@@ -4353,9 +4433,12 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     // Op de telefoon staan de stappen zelf bij het deel.
     await p.goto(`${baseUrl}/functies.html?groep=assistent#stem`);
     await p.locator('#tel .kz-nog header', { hasText: 'Nog 3 stappen voor "Hé huis"' }).waitFor();
+    await p.goto(`${baseUrl}/functies.html?groep=assistent#praten`);
+    await p.locator('#tel h2', { hasText: 'Het brein' }).waitFor();
+    expect(await p.locator('#tel .kz-nog').count()).toBe(0);
     expect(fouten).toEqual([]);
     await context.close();
-  }, 20_000);
+  }, 25_000);
 
   /*
    * Hoe ver je huis is (schets Wand-Voortgang): de zonnewaaier met een straal

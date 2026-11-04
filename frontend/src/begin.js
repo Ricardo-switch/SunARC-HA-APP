@@ -20,6 +20,10 @@ let voorstel = null;
 let stap = 'welkom';
 const antwoorden = {};
 let fout = '';
+/** Wat de toets van de dienst noemde (4 november 2026): eerst zag je alleen "zo niet bruikbaar". */
+let foutLijst = [];
+// Met Meld dit (4 november 2026): het meldblad met de fout en de lijst al ingevuld, en het logboek erbij.
+const foutHtml = () => `<span class="fout" role="alert">${esc(fout)}</span>${fout && foutLijst.length ? `<ul class="fout-lijst">${foutLijst.slice(0, 8).map((p) => `<li>${esc(p)}</li>`).join('')}</ul><button type="button" class="knop meld-dit" data-meld-probleem data-meld-wat="${esc([fout, ...foutLijst.slice(0, 20)].join('\n'))}">${esc(t('melden.meldDit'))}</button>` : ''}`;
 let bezigTekst = '';
 
 const ICOON = {
@@ -51,7 +55,7 @@ function welkom() {
       <li><span class="ik" style="color: var(--zon-t)">${ICOON.zon}</span><div><b>${esc(t('begin.zon'))}</b><span>${esc(t('begin.zonZin'))}</span></div></li>
       <li><span class="ik" style="color: var(--ijs-t)">${ICOON.licht}</span><div><b>${esc(t('begin.bedienen'))}</b><span>${esc(t('begin.bedienenZin'))}</span></div></li>
     </ul>
-    <span class="fout" role="alert">${esc(fout)}</span>
+    ${foutHtml()}
     <div class="doen">
       <button type="button" class="knop knop-licht" data-inrichten${voorstel ? '' : ' disabled'}>${esc(t('begin.inrichten'))}</button>
       <button type="button" class="zacht onderlijn" data-backup>${esc(t('begin.backup'))}</button>
@@ -78,7 +82,7 @@ function vraag(i) {
     <div class="opties" role="group" aria-label="${esc(v.vraag)}">
       ${opties.map(([waarde, label]) => `<button type="button" class="optie" data-optie="${esc(waarde ?? '')}" aria-pressed="${String(gekozen === waarde)}"><i aria-hidden="true"></i>${esc(label)}</button>`).join('')}
     </div>
-    <span class="fout" role="alert">${esc(fout)}</span>
+    ${foutHtml()}
     <div class="doen">
       <button type="button" class="knop knop-licht" data-verder>${esc(t(i === vragen().length - 1 ? 'algemeen.klaar' : 'begin.verder'))}</button>
       <button type="button" class="zacht" data-terug>${esc(t('panelen.terug'))}</button>
@@ -89,7 +93,7 @@ function bezig() {
   return `<div class="draait" aria-hidden="true"></div>
     <h1 class="vraagkop">${esc(bezigTekst)}</h1>
     <p class="lead">${esc(t('begin.tellen'))}</p>
-    <span class="fout" role="alert">${esc(fout)}</span>`;
+    ${foutHtml()}`;
 }
 
 function tekenLinks() {
@@ -226,7 +230,7 @@ async function wachtOpHerstart(naar) {
 async function stuur(pad, body) {
   const r = await fetch(pad, { method: 'POST', headers: { 'content-type': 'application/json', 'x-taal': taal.code }, body: JSON.stringify(body) });
   const uit = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(uit.reden || uit.fout || t('toegang.lukteNiet'));
+  if (!r.ok) throw Object.assign(new Error(uit.reden || uit.fout || t('toegang.lukteNiet')), { problemen: Array.isArray(uit.problemen) ? uit.problemen.filter((p) => typeof p === 'string' && p) : [] });
   return uit;
 }
 
@@ -241,6 +245,7 @@ async function bewaar() {
     void wachtOpHerstart('inrichten.html#woning');
   } catch (err) {
     fout = err.message;
+    foutLijst = err.problemen ?? [];
     stap = vragen().length ? vragen().length - 1 : 'welkom';
     tekenLinks();
   }

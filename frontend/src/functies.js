@@ -64,9 +64,14 @@ async function laadKlaar() {
   klaar = await klaarstappen.laad().catch(() => klaar);
   teken();
 }
-/** De functie van Klaarzetten bij dit deel (besluit 246): de assistent bij Praten en Stem, de wand bij Scherm uit. */
+/*
+ * De functie van Klaarzetten bij dit deel (besluit 246): de assistent bij Stem
+ * en luisteren, de wand bij Scherm uit. Niet meer bij Praten (4 november 2026):
+ * die stappen gaan over "Hé huis", en op de telefoon begonnen Praten en Stem
+ * daardoor met hetzelfde blok, alsof het één pagina was.
+ */
 function klaarVan(deel) {
-  const id = { praten: 'assistent', stem: 'assistent', uit: 'wand' }[deel];
+  const id = { stem: 'assistent', uit: 'wand' }[deel];
   return id ? ((klaar?.functies ?? []).find((x) => x.id === id) ?? null) : null;
 }
 /** Hoeveel stappen er nog open zijn, voor rechts in de lijst; leeg als niets. */

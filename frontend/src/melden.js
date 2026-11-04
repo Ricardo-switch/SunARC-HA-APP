@@ -19,6 +19,13 @@
   /** Langer dan dit wordt een adres te lang voor GitHub; dan gaan de gegevens via het klembord. */
   const MAX_URL = 7500;
   const SOORTEN = ['fout', 'apparaat', 'idee'];
+  /** Zoveel regels van het logboek gaan hooguit mee: de nieuwste. */
+  const LOG_REGELS = 40;
+
+  /** Het logboek als tekst (4 november 2026): tijd, soort en wat de dienst schreef. */
+  function logTekst(regels) {
+    return (regels ?? []).slice(-LOG_REGELS).map((r) => `${new Date(r.ms).toISOString().slice(0, 19).replace('T', ' ')} ${r.niveau === 'fout' ? 'FOUT' : 'LET OP'} ${r.tekst}`).join('\n');
+  }
 
   function meldingen() {
     try {
@@ -44,8 +51,8 @@
 
   let s = null;
 
-  async function open({ apparaat = null, naam = null } = {}) {
-    s = { apparaat, naam, soort: apparaat ? 'apparaat' : 'fout', wat: '', mee: !!apparaat, gegevens: null, code: nieuweCode(), klaar: false, klembord: false };
+  async function open({ apparaat = null, naam = null, wat = '' } = {}) {
+    s = { apparaat, naam, soort: apparaat ? 'apparaat' : 'fout', wat: wat ?? '', mee: !!apparaat, gegevens: null, log: [], metLog: true, code: nieuweCode(), klaar: false, klembord: false };
     await laadErbij();
   }
 
@@ -57,17 +64,18 @@
   async function vervolg(code) {
     const m = meldingen().find((x) => x.code === code);
     if (!m) return;
-    s = { vervolg: m, apparaat: m.apparaat ?? null, naam: m.naam ?? null, soort: m.soort ?? 'fout', wat: '', mee: !!m.apparaat, gegevens: null, code, klaar: false, klembord: false, tekst: '' };
+    s = { vervolg: m, apparaat: m.apparaat ?? null, naam: m.naam ?? null, soort: m.soort ?? 'fout', wat: '', mee: !!m.apparaat, gegevens: null, log: [], metLog: true, code, klaar: false, klembord: false, tekst: '' };
     await laadErbij();
   }
 
   async function laadErbij() {
     const { apparaat } = s;
     teken();
-    const [g, v] = await Promise.all([apparaat ? haal(`api/apparaat-gegevens?id=${encodeURIComponent(apparaat)}`).catch(() => null) : null, haal('api/versie').catch(() => null)]);
+    const [g, v, l] = await Promise.all([apparaat ? haal(`api/apparaat-gegevens?id=${encodeURIComponent(apparaat)}`).catch(() => null) : null, haal('api/versie').catch(() => null), haal('api/logboek').catch(() => null)]);
     if (!s) return;
     s.gegevens = g;
     s.versie = v;
+    s.log = Array.isArray(l?.regels) ? l.regels : [];
     teken();
   }
 
@@ -83,6 +91,9 @@
     if (!s) return;
     const meeVak = s.apparaat ? `<label class="klein" style="display: flex; gap: 8px; align-items: center"><input type="checkbox" data-meldmee ${s.mee ? 'checked' : ''}>${esc(t('melden.mee', { naam: s.naam ?? '' }))}</label>
           ${s.mee && s.gegevens ? `<details class="klein"><summary>${esc(t('melden.bekijk'))}</summary><pre style="white-space: pre-wrap; font-size: 11.5px; max-height: 180px; overflow: auto; margin: 6px 0 0">${esc(JSON.stringify(s.gegevens, null, 1))}</pre></details>` : ''}` : '';
+    // Het logboek meesturen (4 november 2026): wat er meegaat, staat eronder te lezen.
+    const logVak = s.log.length ? `<label class="klein" style="display: flex; gap: 8px; align-items: center"><input type="checkbox" data-meldlog ${s.metLog ? 'checked' : ''}>${esc(t('melden.logMee', { n: Math.min(s.log.length, LOG_REGELS) }))}</label>
+          ${s.metLog ? `<details class="klein"><summary>${esc(t('melden.bekijk'))}</summary><pre style="white-space: pre-wrap; font-size: 11.5px; max-height: 180px; overflow: auto; margin: 6px 0 0">${esc(logTekst(s.log))}</pre></details>` : ''}` : '';
     const inhoud = s.vervolg && s.klaar
       ? `<h2 class="kop-2" id="meldkop" style="margin: 0">${esc(t('melden.vervolgKlaar'))}</h2>
         <p class="klein" style="margin: 0">${esc(t(s.klembord ? 'melden.vervolgKlembord' : 'melden.vervolgZelf'))}</p>
@@ -93,6 +104,7 @@
         <p class="klein" style="margin: 0">${esc(t('melden.vervolgOver', { code: s.code, titel: s.vervolg.titel ?? '' }))}</p>
         <label class="veldnaam">${esc(t('melden.vervolgWat'))}<textarea class="invoer" data-meldwat rows="4" maxlength="2000" style="height: auto; padding: 10px 12px">${esc(s.wat)}</textarea></label>
         ${meeVak}
+        ${logVak}
         <p class="mini" style="margin: 0">${esc(t('melden.vervolgGithub'))}</p>
         <div class="knoppen"><button type="button" class="knop" data-meldpop-dicht>${esc(t('basis.versie.later'))}</button><button type="button" class="knop knop-licht" data-meldpop-stuur>${esc(t('melden.verder'))}</button></div>`
       : s.klaar
@@ -104,6 +116,7 @@
         <div class="keuzes" role="group" aria-label="${esc(t('melden.soort'))}">${SOORTEN.filter((k) => k !== 'apparaat' || s.apparaat).map((k) => `<button type="button" data-meldsoort="${k}" aria-pressed="${s.soort === k}">${esc(t(`melden.soort.${k}`))}</button>`).join('')}</div>
         <label class="veldnaam">${esc(t(s.soort === 'idee' ? 'melden.watIdee' : 'melden.wat'))}<textarea class="invoer" data-meldwat rows="4" maxlength="2000" style="height: auto; padding: 10px 12px">${esc(s.wat)}</textarea></label>
         ${meeVak}
+        ${logVak}
         <p class="mini" style="margin: 0">${esc(t('melden.github', { code: s.code }))}</p>
         <div class="knoppen"><button type="button" class="knop" data-meldpop-dicht>${esc(t('basis.versie.later'))}</button><button type="button" class="knop knop-licht" data-meldpop-stuur>${esc(t('melden.verder'))}</button></div>`;
     document.body.insertAdjacentHTML('beforeend', `<div class="meldachter" data-meldpop-achter></div><div class="glas nieuwpop" role="dialog" aria-modal="true" aria-labelledby="meldkop" data-meldpop>${inhoud}</div>`);
@@ -129,17 +142,19 @@
       waar: `${global.location.pathname.split('/').pop() || 'thuis.html'} · ${global.app.telStand() ? t('melden.telefoon') : t('melden.wand')} · ${global.taal.code}`,
       meldcode: s.code,
     };
+    const log = s.metLog && s.log.length ? logTekst(s.log) : '';
     const adres = (extra) => `${REPO}/issues/new?${new URLSearchParams({ ...velden, ...extra })}`;
-    let url = adres(gegevens ? { gegevens } : {});
-    if (gegevens && url.length > MAX_URL) {
-      // Te lang voor een adres: de gegevens op het klembord, en een zin in het vak om ze te plakken.
+    let url = adres({ ...(gegevens ? { gegevens } : {}), ...(log ? { logboek: log } : {}) });
+    if ((gegevens || log) && url.length > MAX_URL) {
+      // Te lang voor een adres: de gegevens en het logboek op het klembord, en een zin in de vakken om ze te plakken.
+      const samen = [gegevens ? `${t('melden.kopGegevens')}\n${gegevens}` : '', log ? `${t('melden.kopLogboek')}\n${log}` : ''].filter(Boolean).join('\n\n');
       try {
-        await global.navigator.clipboard.writeText(gegevens);
+        await global.navigator.clipboard.writeText(samen);
         s.klembord = true;
       } catch {
         s.klembord = false;
       }
-      url = adres({ gegevens: t('melden.plakHier') });
+      url = adres({ ...(gegevens ? { gegevens: t('melden.plakHier') } : {}), ...(log ? { logboek: t('melden.plakHier') } : {}) });
     }
     global.open(url, '_blank', 'noopener');
     // Het apparaat erbij, zodat Werkt nog niet later verse gegevens kan meegeven.
@@ -151,7 +166,8 @@
   async function stuurVervolg() {
     const v = s.versie;
     const gegevens = s.mee && s.gegevens ? `\n\n\`\`\`json\n${JSON.stringify(s.gegevens, null, 1)}\n\`\`\`` : '';
-    s.tekst = `${t('melden.vervolgRegel', { versie: v?.nummer ?? '?', code: s.code })}\n\n${s.wat}${gegevens}`;
+    const log = s.metLog && s.log.length ? `\n\n${t('melden.kopLogboek')}\n\`\`\`\n${logTekst(s.log)}\n\`\`\`` : '';
+    s.tekst = `${t('melden.vervolgRegel', { versie: v?.nummer ?? '?', code: s.code })}\n\n${s.wat}${gegevens}${log}`;
     try {
       await global.navigator.clipboard.writeText(s.tekst);
       s.klembord = true;
@@ -170,13 +186,16 @@
   }
 
   document.addEventListener('click', (e) => {
-    const el = e.target.closest('[data-meldsoort], [data-meldpop-dicht], [data-meldpop-achter], [data-meldpop-stuur], [data-meldmee]');
+    const el = e.target.closest('[data-meldsoort], [data-meldpop-dicht], [data-meldpop-achter], [data-meldpop-stuur], [data-meldmee], [data-meldlog]');
     if (!el || !s) return;
     if (el.dataset.meldsoort) {
       s.soort = el.dataset.meldsoort;
       teken();
     } else if (el.matches('[data-meldmee]')) {
       s.mee = el.checked;
+      teken();
+    } else if (el.matches('[data-meldlog]')) {
+      s.metLog = el.checked;
       teken();
     } else if (el.matches('[data-meldpop-stuur]')) void stuur();
     else sluit();

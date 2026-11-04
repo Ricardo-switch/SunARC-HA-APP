@@ -308,6 +308,7 @@ function versieVorm() {
     <p class="klein" style="margin: 0">${esc(t('over.steun'))}</p>
     <div style="display: flex; gap: 8px; flex-wrap: wrap">${app.koffieKnop()}<button type="button" class="knop" data-meld-probleem>${esc(t('melden.kop'))}</button></div>
     ${app.jouwMeldingen()}
+    <details class="logboek" data-logboek><summary>${esc(t('toegang.logboek'))}</summary><p class="mini" style="margin: 6px 0">${esc(t('toegang.logboekZin'))}</p><pre data-logboek-tekst></pre></details>
     ${nieuw ? `<h3 class="kop-3" style="margin: 6px 0 0">${esc(t('toegang.watNieuw'))}</h3>${nieuw}` : ''}
     <p class="mini" style="margin: 0">${esc(t('toegang.bouw', { commit: v.commit }))}</p>`;
 }
@@ -331,6 +332,20 @@ addEventListener('standwissel', teken);
 addEventListener('hashchange', teken);
 
 app.start('instellingen');
+/* Het logboek bij Versie (4 november 2026): pas bij openen opgehaald. */
+document.addEventListener('toggle', async (e) => {
+  const d = e.target;
+  if (!(d instanceof HTMLDetailsElement) || !d.matches('[data-logboek]') || !d.open) return;
+  const pre = d.querySelector('[data-logboek-tekst]');
+  let regels = [];
+  try {
+    regels = (await haal('api/logboek')).regels ?? [];
+  } catch {
+    regels = [];
+  }
+  pre.textContent = regels.length ? regels.map((r) => `${taal.datum(new Date(r.ms), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}  ${r.niveau === 'fout' ? '✕' : '!'}  ${r.tekst}`).join('\n') : t('toegang.logboekLeeg');
+}, true);
+
 document.addEventListener('click', async (e) => {
   const knop = e.target.closest('button');
   if (!knop) return;

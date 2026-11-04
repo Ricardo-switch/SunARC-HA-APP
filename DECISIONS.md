@@ -303,6 +303,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [180. De twee grootste bestanden opgeknipt, zonder dat er iets verandert](#180-de-twee-grootste-bestanden-opgeknipt-zonder-dat-er-iets-verandert)
 - [250. Meld een probleem, apparaatgegevens en warmtepompen](#250-meld-een-probleem-apparaatgegevens-en-warmtepompen)
 - [252. Terugzeggen na een opgeloste melding](#252-terugzeggen-na-een-opgeloste-melding)
+- [253. Het logboek delen bij een melding](#253-het-logboek-delen-bij-een-melding)
 
 Wat nog open staat: [Wat nog een besluit wacht](#wat-nog-een-besluit-wacht).
 
@@ -11708,6 +11709,33 @@ een melding deed, kon na de update niet zeggen of het nu werkte.
   kostensensor (zoals Tibber) telt ook, aanvulling op [251].
 - **Versie 0.120.0**, met de reparaties van die dag (Inrichten schuift op de
   wand, overdag dag zonder zonnestand).
+
+---
+
+## 253. Het logboek delen bij een melding
+
+*Onderwerp: kwaliteitsbewaking · Status: geldig*
+
+4 november 2026. Een tester zag bij de eerste start alleen "De configuratie
+is zo niet bruikbaar." De reden ging wel mee in het antwoord, maar kwam niet
+in beeld en niet in het logboek, en een tester zoekt het logboek van een
+add-on niet op.
+
+*Besluit:*
+
+- **SunArc houdt zelf een logboek bij:** de laatste honderd waarschuwingen en
+  fouten (console.warn en console.error), ook op de NAS en zonder add-on.
+  `api/logboek` geeft ze, alleen lezen. Wat de dienst afwijst en de
+  gebruiker raakt, schrijft hij erin, zoals een mislukte eerste start.
+- **Opgeschoond:** IP-adressen, tokens, wachtwoorden en e-mail gaan er altijd
+  uit. Namen van entiteiten blijven staan, anders is een fout niet te vinden;
+  daarom ziet de melder vooraf wat er meegaat en kan hij het uitvinken.
+- **Delen:** bij Meld een probleem (en bij Werkt nog niet) een vinkje voor de
+  laatste veertig regels, in het vak Logboek van het issueformulier of via
+  het klembord als de link te lang wordt. Bij de fout van de eerste start
+  een knop Meld dit, met de fout en de lijst al ingevuld. Bij Versie kun je
+  het logboek zelf lezen.
+- **Versie 0.121.0**, met de lijst onder "zo niet bruikbaar" (eerst 0.120.1).
 
 ---
 

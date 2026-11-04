@@ -10,6 +10,7 @@ import type { SiteConfig } from '../../core/model.js';
 import { exportInfo, writeExport } from '../export.js';
 import { MAX_BACKUP, backupNaam } from '../gegevens.js';
 import { keuzesInTaal } from '../onboarding.js';
+import { logboek } from '../logboek.js';
 import { controleer as controleerFuncties, functiesVoorstel, volledig } from '../functies.js';
 import { NIEUW, TERUGKIJKEN, VERSIE, nieuwInTaal } from '../../version.js';
 import { UNKNOWN_VERSION } from '../server-opties.js';
@@ -82,6 +83,12 @@ export async function beheerRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
       return true;
     }
     sendJson(res, 200, await b.view(true, taalVan(url.searchParams.get('taal') ?? req.headers['x-taal'])));
+    return true;
+  }
+
+  // De laatste waarschuwingen en fouten, opgeschoond, om te delen bij een melding (4 november 2026). Alleen lezen.
+  if (path === '/api/logboek') {
+    sendJson(res, 200, { regels: logboek() });
     return true;
   }
 
@@ -436,6 +443,8 @@ export async function onboardingRoute(
 
   const result = await onboarding.save(clean, taalVan(new URL(req.url ?? '/', 'http://localhost').searchParams.get('taal') ?? req.headers['x-taal']));
   sendJson(res, result.ok ? 200 : 422, result);
+  // In het logboek van de add-on (4 november 2026): wat de toets noemde, om bij een melding te kunnen meesturen.
+  if (!result.ok) console.warn(`Eerste start niet opgeslagen: ${result.reden}${result.problemen.map((p) => `\n  ${p}`).join('')}`);
   // Eerst het antwoord, dan opnieuw starten: de pagina wacht tot de dienst terug is.
   if (result.ok) d.options.naOnboarding?.();
 }
