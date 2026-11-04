@@ -90,6 +90,14 @@
   'basis.versie.bijgewerkt': 'Updated',
   'basis.versie.watNieuw': 'What is new in {versie}',
   'basis.versie.alle': 'All versions',
+  'basis.versie.zoek': 'Check for updates',
+  'basis.versie.zoekt': 'Checking…',
+  'basis.herstart': 'Restart SunArc',
+  'basis.herstart.kop': 'SunArc is restarting',
+  'basis.herstart.zin': 'One moment, this takes about half a minute. This page reloads by itself.',
+  'basis.herstart.lang': 'This is taking longer than usual. Check in Home Assistant under Settings › Add-ons › SunArc whether it is running.',
+  'toegang.zoekZin': 'SunArc checks for a new version by itself every three hours; the button checks now. A choice under Energy takes effect after a new start.',
+  'toegang.herstartZin': 'A choice under Energy takes effect after a new start.',
 
   // The menu
   'nav.hoofdmenu': 'Main menu',

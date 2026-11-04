@@ -1787,6 +1787,28 @@ function stilzetten(): void {
   runner?.stop();
   analyse?.stop();
 }
+/*
+ * Zoeken naar updates (testerronde, november 2026). Home Assistant ziet een
+ * nieuwe versie pas als de Supervisor de add-on-winkel opnieuw leest; anders
+ * moest de bewoner bij Instellingen › Updates zelf zoeken. De eigen
+ * update-entiteit laten verversen doet dat: een verversing die niet uit de
+ * eigen planning komt, laat Home Assistant de winkel opnieuw lezen. Op een tik
+ * van de beheerder, en vanzelf elke drie uur. Alleen in de add-on.
+ */
+async function zoekUpdates(): Promise<{ ok: boolean; reden?: string }> {
+  const s = eigenUpdate(allStates.values());
+  if (!s) return { ok: false, reden: 'Home Assistant kent de update van SunArc nog niet' };
+  try {
+    await client.callService('homeassistant', 'update_entity', {}, { entity_id: s.entity_id });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reden: (e as Error).message };
+  }
+}
+if (version.installatie === 'add-on') {
+  setInterval(() => void zoekUpdates().then((u) => u.ok || console.warn(`Zoeken naar updates: ${u.reden}`)), 3 * 3_600_000).unref();
+}
+
 /** Stopt de dienst; `run.sh` en Docker starten hem opnieuw. */
 function herstart(): void {
   console.log('SunArc start opnieuw (besluit 151).');
@@ -2079,9 +2101,12 @@ if (webPort != null) {
               void client.callService('update', 'install', {}, { entity_id: s.entity_id }).catch((e: unknown) => console.warn(`Bijwerken: ${(e as Error).message}`));
               return { ok: true };
             },
+            zoek: zoekUpdates,
           },
         }
       : {}),
+    // Opnieuw starten (testerronde, november 2026): een keuze bij Energie gaat pas bij de start in.
+    herstart,
     // De camera's bekijken (besluit 106): alleen lezen, alleen met inlog.
     camera: {
       base: httpBase(url!),

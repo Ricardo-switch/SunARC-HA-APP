@@ -1632,6 +1632,72 @@
     }
   }
 
+  /*
+   * Zoeken naar updates (testerronde, november 2026): de dienst laat Home
+   * Assistant de add-on-winkel opnieuw lezen. Daarna hetzelfde venster als bij
+   * de melding: een nieuwe versie met Bijwerken, of "Je hebt de nieuwste".
+   */
+  async function zoekUpdates(knop) {
+    const tekst = knop.textContent;
+    knop.disabled = true;
+    knop.textContent = global.t('basis.versie.zoekt');
+    const res = await deur('api/update/zoek', {}).catch(() => null);
+    knop.disabled = false;
+    knop.textContent = tekst;
+    if (!res?.ok) {
+      const f = res ? await res.json().catch(() => ({})) : {};
+      zegBijKnop(knop, global.t('basis.versie.mislukt', { fout: String(f.fout ?? global.t('basis.versie.geenVerbinding')).replace(/\.$/, '') }));
+      return;
+    }
+    // Home Assistant zet de nieuwe versie een tel later op de update-entiteit.
+    await new Promise((ok) => setTimeout(ok, 1500));
+    await bijwerkVenster();
+  }
+
+  /*
+   * SunArc opnieuw starten (testerronde, november 2026), voor een keuze die pas
+   * bij de start ingaat. Een venster met even geduld, en de pagina laadt vanzelf
+   * als de dienst weer antwoordt.
+   */
+  async function herstart(knop) {
+    knop.disabled = true;
+    const res = await deur('api/herstart', {}).catch(() => null);
+    if (!res?.ok) {
+      knop.disabled = false;
+      const f = res ? await res.json().catch(() => ({})) : {};
+      zegBijKnop(knop, global.t('basis.versie.mislukt', { fout: String(f.fout ?? global.t('basis.versie.geenVerbinding')).replace(/\.$/, '') }));
+      return;
+    }
+    $$('[data-nieuwpop], [data-nieuw-achter]').forEach((el) => el.remove());
+    document.body.insertAdjacentHTML('beforeend', `<div class="meldachter" data-nieuw-achter></div><div class="glas nieuwpop" role="dialog" aria-modal="true" aria-labelledby="herstartkop" data-nieuwpop data-herstart-pop><h2 class="kop-2" id="herstartkop" style="margin: 0">${esc(global.t('basis.herstart.kop'))}</h2><p class="klein" data-herstart-zin style="margin: 0">${esc(global.t('basis.herstart.zin'))}</p></div>`);
+    // Eerst weg, dan weer terug: pas dan draait de nieuwe start.
+    let weg = false;
+    for (let i = 0; i < 90; i++) {
+      await new Promise((ok) => setTimeout(ok, 2000));
+      try {
+        const r = await fetch('api/health', { cache: 'no-store' });
+        if (!r.ok) weg = true;
+        else if (weg || i >= 5) {
+          await houToegang();
+          location.reload();
+          return;
+        }
+      } catch {
+        weg = true;
+      }
+      if (i === 45) $$('[data-herstart-zin]').forEach((el) => (el.textContent = global.t('basis.herstart.lang')));
+    }
+  }
+  /** Een korte zin onder een knop, voor wat niet lukte. */
+  function zegBijKnop(knop, tekst) {
+    let zin = knop.parentElement?.querySelector('[data-knop-zin]');
+    if (!zin) {
+      knop.insertAdjacentHTML('afterend', '<p class="mini" data-knop-zin style="margin: 4px 0 0"></p>');
+      zin = knop.parentElement.querySelector('[data-knop-zin]');
+    }
+    zin.textContent = tekst;
+  }
+
   async function watIsErNieuw(welke = null) {
     let v;
     try {
@@ -1674,7 +1740,7 @@
     document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void meldLaad());
     setTimeout(() => void watIsErNieuw(), 1200);
     document.addEventListener('click', async (e) => {
-      const t = e.target.closest('[data-meldbel], [data-meld-sluit], [data-meld-achter], [data-meld-onderhoud], [data-meld-terug], [data-meld-weg], [data-meld-alles], [data-nieuw-dicht], [data-nieuw-achter], a, [data-meld-versie], [data-meld-update], [data-meld-href], [data-bijwerken]');
+      const t = e.target.closest('[data-meldbel], [data-meld-sluit], [data-meld-achter], [data-meld-onderhoud], [data-meld-terug], [data-meld-weg], [data-meld-alles], [data-nieuw-dicht], [data-nieuw-achter], a, [data-meld-versie], [data-meld-update], [data-meld-href], [data-bijwerken], [data-zoek-update], [data-herstart]');
       if (!t || (t.matches('a') && !t.closest('[data-meldblad]'))) return;
       if (t.matches('a')) return meldDicht();
       if (t.matches('[data-nieuw-dicht], [data-nieuw-achter]')) {
@@ -1700,6 +1766,10 @@
       } else if (t.matches('[data-meld-update]')) {
         meldDicht();
         await bijwerkVenster();
+      } else if (t.matches('[data-zoek-update]')) {
+        void zoekUpdates(t);
+      } else if (t.matches('[data-herstart]')) {
+        void herstart(t);
       } else if (t.matches('[data-bijwerken]')) {
         await bijwerken(t);
       } else if (t.dataset.meldVersie) {

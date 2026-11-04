@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.116.0';
+export const VERSIE = '0.117.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,20 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.117.0',
+    datum: '2026-11-04',
+    nieuw: [
+      'SunArc zoekt elke drie uur zelf naar een nieuwe versie, en bij Versie staat een knop Zoek naar updates: niet meer zelf zoeken in Home Assistant',
+      'Een knop Herstart SunArc bij Versie, en meteen waar een keuze pas na een nieuwe start ingaat; de app laadt vanzelf als SunArc terug is',
+    ],
+    en: {
+      nieuw: [
+        'SunArc checks for a new version by itself every three hours, and Version has a Check for updates button: no more checking in Home Assistant yourself',
+        'A Restart SunArc button under Version, and right where a choice only takes effect after a new start; the app reloads by itself once SunArc is back',
+      ],
+    },
+  },
   {
     versie: '0.116.0',
     datum: '2026-11-04',

@@ -289,6 +289,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [236. Klaar om te delen: AppArmor, één ondertekend image, experimenteel, en een verzorgde repository](#236-klaar-om-te-delen-apparmor-één-ondertekend-image-experimenteel-en-een-verzorgde-repository)
 - [241. De integratie heet sunarc, en gaat naar de standaardlijst van HACS](#241-de-integratie-heet-sunarc-en-gaat-naar-de-standaardlijst-van-hacs)
 - [242. Uit de leerstand, één image, en Vandaag van vóór het openen](#242-uit-de-leerstand-één-image-en-vandaag-van-vóór-het-openen)
+- [249. Zoeken naar updates en opnieuw starten vanuit de app](#249-zoeken-naar-updates-en-opnieuw-starten-vanuit-de-app)
 
 **Kwaliteitsbewaking**
 
@@ -11544,6 +11545,41 @@ dacht het rapport van de testers ten onrechte.
 - **Inrichten, zekering "Weet ik niet":** geen uitgeschakelde lijst meer, maar
   een zin waar het staat en dat het later kan.
 - **Versie 0.116.0.**
+
+---
+
+## 249. Zoeken naar updates en opnieuw starten vanuit de app
+
+*Onderwerp: uitrol en beheer · Status: geldig*
+
+4 november 2026. De bewoner: bijwerken kan de app al (21 oktober), maar een
+nieuwe versie verscheen pas als hij in Home Assistant bij Instellingen ›
+Updates zelf ging zoeken. En een keuze bij Energie gaat pas in na een nieuwe
+start ([248]), terwijl opnieuw starten alleen op de add-on-pagina kon.
+
+Nagelopen: zelf de Supervisor vragen (`/store/reload`, `/refresh_updates`)
+vraagt de rol manager, en dat verlaagt het beveiligingscijfer (besluit 246).
+Maar een verversing van een update-entiteit die niet uit de eigen planning
+komt, laat Home Assistant de add-on-winkel opnieuw lezen
+(`HassioAddOnDataUpdateCoordinator`); dat gaat met de rechten van Home
+Assistant zelf.
+
+*Besluit:*
+
+- **Een smalle schrijfdeur erbij:** `homeassistant.update_entity` op precies
+  de eigen update-entiteit, zonder velden, naast `update.install` op dezelfde
+  entiteit. Een andere entiteit, een veld of een andere dienst van
+  `homeassistant` blijft werpen; een test bewijst het.
+- **Zoeken:** vanzelf elke drie uur, en met de knop "Zoek naar updates" bij
+  Instellingen › Bewoners en toegang › Versie, voor de beheerder. Daarna
+  hetzelfde venster als bij de melding: Bijwerken, of "Je hebt de nieuwste
+  versie". Alleen in de add-on.
+- **Opnieuw starten:** de knop "Herstart SunArc" bij Versie, en bij "Wanneer
+  het ingaat" op Energie, Regeling en in Inrichten. De dienst stopt zoals bij
+  terugzetten (besluit 151), pas als het antwoord weg is; `run.sh` of Docker
+  start hem weer. De app toont even geduld en laadt vanzelf als hij terug is.
+  Voor de beheerder; ook op de server.
+- **Versie 0.117.0.**
 
 ---
 

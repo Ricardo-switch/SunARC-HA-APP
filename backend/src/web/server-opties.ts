@@ -339,7 +339,14 @@ export interface WebOptions {
    * Bijwerken vanuit de app (21 oktober 2026): wat er klaarstaat en wat er nieuw
    * is, en de add-on bijwerken. Alleen in de add-on.
    */
-  readonly bijwerken?: { readonly view: (magBijwerken: boolean, lang?: Lang) => Promise<UpdateView>; readonly installeer: () => Promise<{ readonly ok: boolean; readonly reden?: string }> };
+  readonly bijwerken?: {
+    readonly view: (magBijwerken: boolean, lang?: Lang) => Promise<UpdateView>;
+    readonly installeer: () => Promise<{ readonly ok: boolean; readonly reden?: string }>;
+    /** Zoeken naar updates (testerronde, november 2026): de eigen update-entiteit laten verversen. */
+    readonly zoek: () => Promise<{ readonly ok: boolean; readonly reden?: string }>;
+  };
+  /** SunArc opnieuw starten (testerronde, november 2026); `run.sh` en Docker starten hem weer. Weg: kan niet. */
+  readonly herstart?: () => void;
   /**
    * Het huis als navigatie: etages, ruimtes en de apparaten erin (ONTWERP §4),
    * of null zolang de registers van Home Assistant nog niet gelezen zijn.

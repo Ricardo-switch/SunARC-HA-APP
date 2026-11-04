@@ -95,6 +95,14 @@
   'basis.versie.bijgewerkt': 'Bijgewerkt',
   'basis.versie.watNieuw': 'Wat is er nieuw in {versie}',
   'basis.versie.alle': 'Alle versies',
+  'basis.versie.zoek': 'Zoek naar updates',
+  'basis.versie.zoekt': 'Zoeken…',
+  'basis.herstart': 'Herstart SunArc',
+  'basis.herstart.kop': 'SunArc start opnieuw',
+  'basis.herstart.zin': 'Even geduld, dat duurt ongeveer een halve minuut. Deze pagina laadt vanzelf.',
+  'basis.herstart.lang': 'Het duurt langer dan gewoonlijk. Kijk in Home Assistant bij Instellingen › Add-ons › SunArc of hij draait.',
+  'toegang.zoekZin': 'SunArc zoekt elke drie uur zelf naar een nieuwe versie; met de knop meteen. Een keuze bij Energie gaat pas in na een nieuwe start.',
+  'toegang.herstartZin': 'Een keuze bij Energie gaat pas in na een nieuwe start.',
 
   // Het menu
   'nav.hoofdmenu': 'Hoofdmenu',

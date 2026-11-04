@@ -413,7 +413,9 @@ verwijzing bestaat.
 - **Bijwerken vanuit de app:** in de add-on zegt Meldingen dat er een nieuwe
   versie klaarstaat; een tik geeft wat er nieuw is (uit `addon/CHANGELOG.md`,
   via Home Assistant) en voor de beheerder een knop Bijwerken ([171]). Ook op
-  het always-on display van de wand, met een tik naar Bijwerken.
+  het always-on display van de wand, met een tik naar Bijwerken. Sinds [249]
+  zoekt SunArc elke drie uur zelf (en met een knop bij Versie), en staat er een
+  knop Herstart SunArc bij Versie en waar een keuze pas na een start ingaat.
 - **Een groep instellingen** toont zijn delen als lijst met een icoon, wat
   mist bovenaan. Op de telefoon opent een deel als eigen scherm met terug naar
   de lijst, en onderaan Vorige en Volgende; op de wand past elk deel zonder
@@ -524,7 +526,8 @@ verwijzing bestaat.
   Ingress ([42]), gevoel ([84]), indeling ([96]) en "klaar voor" bij de droger
   ([101]) naar eigen bestanden, lampen aan en uit ([97]) en de scènes van de
   eigen ruimtes ([100]). De eigen add-on bijwerken mag alleen met
-  `update.install` op zijn eigen update ([171]). Klimaat en screens blijven
+  `update.install` op zijn eigen update ([171]), en zoeken met
+  `homeassistant.update_entity` op diezelfde update ([249]). Klimaat en screens blijven
   dicht tot B.
 - **De weergave luistert,** maar alleen om te lezen ([23]). De hele app vraagt
   een inlog met je Home Assistant-account, ook kijken ([147]); de dienst
@@ -818,4 +821,5 @@ verwijzing bestaat.
 [246]: DECISIONS.md#246-klaarzetten-per-niveau
 [247]: DECISIONS.md#247-eén-iconenset-duotoon
 [248]: DECISIONS.md#248-de-netmeter-en-de-omvormers-kies-je-in-de-app
+[249]: DECISIONS.md#249-zoeken-naar-updates-en-opnieuw-starten-vanuit-de-app
 <!-- links:einde -->

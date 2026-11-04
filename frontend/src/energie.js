@@ -387,7 +387,8 @@ function naast(id) {
   const lijst = Array.from({ length: NAAST[deel] }, (_, i) => t(`energie.naast.${deel}.${i + 1}`));
   // De ligging van de panelen gaat meteen in (besluit 157); de zekering, de netmeter en de omvormers na een start.
   const laterZin = { aansluiting: 'energie.zekeringLater', meters: 'energie.later', panelen: 'energie.later' }[id];
-  const later = aInfo?.volgendeStart && laterZin ? `<div class="glas"><h3>${esc(t('regeling.ingaat'))}</h3><p style="margin: 0">${esc(t(laterZin))}</p></div>` : '';
+  // Met een knop om meteen opnieuw te starten (testerronde, november 2026).
+  const later = aInfo?.volgendeStart && laterZin ? `<div class="glas"><h3>${esc(t('regeling.ingaat'))}</h3><p style="margin: 0">${esc(t(laterZin))}</p><button type="button" class="knop" data-herstart style="align-self: start; margin-top: 8px">${esc(t('basis.herstart'))}</button></div>` : '';
   return `<div class="glas"><h3>${esc(t('energie.waarvoor'))}</h3><ul>${lijst.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
     <div class="glas"><h3>${esc(t('energie.waarVind'))}</h3><p style="margin: 0">${esc(t(`energie.naast.${deel}.waar`))}</p></div>${later}`;
 }

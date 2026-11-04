@@ -301,6 +301,9 @@ export class WebServer {
       (this.#d.options.location != null && path === '/api/gevel-kaart') ||
       // De add-on bijwerken (21 oktober 2026): update.install op de eigen add-on, en niets anders.
       (this.#d.options.bijwerken != null && path === '/api/update') ||
+      // Zoeken naar updates en opnieuw starten (testerronde, november 2026), voor de beheerder.
+      (this.#d.options.bijwerken != null && path === '/api/update/zoek') ||
+      (this.#d.options.herstart != null && path === '/api/herstart') ||
       (this.#d.options.layout != null && path === '/api/indeling') ||
       // Camera's en de deurbel (besluit 109): alleen de keuzes, naar een eigen bestand.
       (this.#d.options.functies != null && path === '/api/functies') ||

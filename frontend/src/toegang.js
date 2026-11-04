@@ -296,8 +296,15 @@ function versieVorm() {
   const kort = (n) => SOORTEN.filter(([k]) => (n[k] ?? []).length).map(([k, naam]) => t('toegang.telt', { n: n[k].length, soort: naam.toLowerCase() })).join(', ');
   const nieuw = (v.nieuw ?? []).slice(0, 10).map((n, i) => `<details class="nieuw"${i === 0 ? ' open' : ''}><summary><b>${esc(t('toegang.versieNummer', { nummer: n.versie }))}</b><span class="mini">${esc(dag(n.datum))}${i === 0 || !kort(n) ? '' : ` · ${esc(kort(n))}`}</span></summary>${inhoud(n)}</details>`).join('');
   const komt = t(v.installatie === 'add-on' ? 'toegang.addon' : 'toegang.server');
+  // Zoeken naar updates en opnieuw starten (testerronde, november 2026): voor de beheerder.
+  const addOn = v.installatie === 'add-on';
+  const knoppen = sessie?.rol === 'beheerder'
+    ? `<div style="display: flex; gap: 8px; flex-wrap: wrap">${addOn ? `<button type="button" class="knop" data-zoek-update>${esc(t('basis.versie.zoek'))}</button>` : ''}<button type="button" class="knop" data-herstart>${esc(t('basis.herstart'))}</button></div>
+      <p class="mini" style="margin: 0">${esc(t(addOn ? 'toegang.zoekZin' : 'toegang.herstartZin'))}</p>`
+    : '';
   return `<h2 class="kop-2">${esc(t('toegang.versieNummer', { nummer: v.nummer }))}</h2>
     <p class="klein" style="margin: 0">${gebouwd ? `${esc(t('toegang.gebouwd', { datum: gebouwd }))} ` : ''}${esc(komt)}</p>
+    ${knoppen}
     ${nieuw ? `<h3 class="kop-3" style="margin: 6px 0 0">${esc(t('toegang.watNieuw'))}</h3>${nieuw}` : ''}
     <p class="mini" style="margin: 0">${esc(t('toegang.bouw', { commit: v.commit }))}</p>`;
 }

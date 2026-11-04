@@ -1331,7 +1331,7 @@ function vermogenStap() {
     uitleg: t('inr.verZin'),
     inhoud: `<div class="kolom"><div class="etagekop">${esc(t('energie.vermogenKop'))}</div>${vermogens.netBlok(d.aans, a)}</div>
       ${panelen ? `<div class="kolom"><div class="etagekop">${esc(t('energie.omvormersKop'))}</div>${vermogens.zonBlok(d.aans, a)}</div>` : ''}
-      ${d.aans?.volgendeStart ? `<p class="mini">${esc(t('energie.later'))}</p>` : ''}`,
+      ${d.aans?.volgendeStart ? `<p class="mini">${esc(t('energie.later'))} <button type="button" class="chip" data-herstart>${esc(t('basis.herstart'))}</button></p>` : ''}`,
   };
 }
 

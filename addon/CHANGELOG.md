@@ -1,5 +1,21 @@
 # Wat is er nieuw · What is new
 
+## 0.117.0
+
+*4 november 2026*
+
+**Nieuw**
+
+- SunArc zoekt elke drie uur zelf naar een nieuwe versie, en bij Versie staat een knop Zoek naar updates: niet meer zelf zoeken in Home Assistant
+- Een knop Herstart SunArc bij Versie, en meteen waar een keuze pas na een nieuwe start ingaat; de app laadt vanzelf als SunArc terug is
+
+*English*
+
+**New**
+
+- SunArc checks for a new version by itself every three hours, and Version has a Check for updates button: no more checking in Home Assistant yourself
+- A Restart SunArc button under Version, and right where a choice only takes effect after a new start; the app reloads by itself once SunArc is back
+
 ## 0.116.0
 
 *4 november 2026*

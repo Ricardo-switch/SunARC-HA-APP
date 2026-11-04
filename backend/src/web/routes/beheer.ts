@@ -65,6 +65,36 @@ export async function beheerRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
     return true;
   }
 
+  // Zoeken naar updates (testerronde, november 2026): Home Assistant laat de Supervisor de add-on-winkel opnieuw lezen.
+  if (path === '/api/update/zoek') {
+    const b = d.options.bijwerken;
+    const wie = await d.wie(req);
+    if (b == null || !wie.beheerder) {
+      sendJson(res, b == null ? 404 : 403, { fout: b == null ? 'dat kan alleen in de add-on' : 'dit mag alleen de beheerder' });
+      return true;
+    }
+    const uit = await b.zoek();
+    if (!uit.ok) {
+      sendJson(res, 409, { fout: uit.reden ?? 'zoeken lukte niet' });
+      return true;
+    }
+    sendJson(res, 200, await b.view(true, taalVan(url.searchParams.get('taal') ?? req.headers['x-taal'])));
+    return true;
+  }
+
+  // SunArc opnieuw starten (testerronde, november 2026): voor een keuze die pas bij de start ingaat. Pas als het antwoord weg is.
+  if (path === '/api/herstart') {
+    const herstart = d.options.herstart;
+    const wie = await d.wie(req);
+    if (herstart == null || !wie.beheerder) {
+      sendJson(res, herstart == null ? 404 : 403, { fout: herstart == null ? 'opnieuw starten kan hier niet' : 'dit mag alleen de beheerder' });
+      return true;
+    }
+    res.once('finish', () => herstart());
+    sendJson(res, 200, { ok: true, herstart: true });
+    return true;
+  }
+
   if (path === '/api/update') {
     const b = d.options.bijwerken;
     if (b == null) {
