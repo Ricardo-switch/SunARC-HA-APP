@@ -487,7 +487,7 @@ const WORDS = {
     wish: { koelen: 'cool', verwarmen: 'heat', drogen: 'dry', uit: 'off', aan: 'on' } satisfies Record<Wish, string>,
     doing: { cool: 'is cooling', heat: 'is heating' },
     infinitive: { cool: 'cool', heat: 'heat' },
-    alleenZon: { cool: 'it only cools here with spare sun', heat: 'it only heats here with spare sun' },
+    alleenZon: { cool: 'it only cools here with surplus solar', heat: 'it only heats here with surplus solar' },
     observed: {
       cool: 'cooling',
       heat: 'heating',
@@ -986,7 +986,7 @@ export function ask(question: Question, ctx: AskContext): Answer {
         out.push(
           nl
             ? `De stand staat met de hand op ${WORDS.nl.mode[e.mode]}; die verandert niet vanzelf.`
-            : `The mode was set to ${WORDS.en.mode[e.mode]} by hand; it does not change by itself.`,
+            : `The mode was set to ${WORDS.en.mode[e.mode]} manually; it does not change by itself.`,
         );
       } else {
         const next = nextScheduleChange(config, ctx.nowMs);

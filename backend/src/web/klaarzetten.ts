@@ -169,7 +169,7 @@ const WOORDEN = {
       mist: 'Connect your inverter, preferably locally, for the output right now.',
     },
     energiedashboard: ['The Energy dashboard', 'Filled in; Energy takes over the meters.', 'Fill it in; then Energy takes over your meters and prices.'],
-    opzon: { titel: 'Appliances on sun', klaar: (n: number) => `${telling(n, 'appliance can', 'appliances can')} run on sun.`, mist: 'A dryer, washing machine or dishwasher with "remote start", for example through Home Connect, LG ThinQ, SmartThings or Miele. Or a water heater or hot tub that Home Assistant can switch on, such as an Intex through the Intex Spa integration.' },
+    opzon: { titel: 'Appliances on solar', klaar: (n: number) => `${telling(n, 'appliance can', 'appliances can')} run on solar.`, mist: 'A dryer, washing machine or dishwasher with "remote start", for example through Home Connect, LG ThinQ, SmartThings or Miele. Or a water heater or hot tub that Home Assistant can switch on, such as an Intex through the Intex Spa integration.' },
     lampen: { titel: 'Lights and scenes', klaar: (n: number) => `${telling(n, 'light', 'lights')}.`, mist: 'Lights in Home Assistant; with Philips Hue also the colours of your scenes.' },
     schermen: { titel: 'Screens and awnings', klaar: (n: number) => `${telling(n, 'screen', 'screens')}.`, mist: 'Screens and awnings as a cover in Home Assistant.' },
     cameras: { titel: 'Cameras and the doorbell', klaar: (n: number, deurbel: boolean) => `${telling(n, 'camera', 'cameras')}${deurbel ? ', with a doorbell' : ''}.`, mist: 'Cameras, and a doorbell with a sensor, for example from Reolink, Ring, Nest or UniFi.' },

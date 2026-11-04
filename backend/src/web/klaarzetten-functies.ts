@@ -145,7 +145,7 @@ const WOORDEN = {
     klimaat: ['Climate', 'What heats and cools, and the temperature in every room.', 'Devices and thermometers'],
     energie: ['Sun and energy', 'What goes to and from the grid, and what your panels produce.', 'Grid meter, panels and meters'],
     licht: ['Lights and screens', 'Control lights, scenes and screens from the app.', 'Lights and screens'],
-    witgoed: ['Appliances on sun', 'Start the dryer, washing machine or dishwasher when the sun shines.', 'Remote start'],
+    witgoed: ['Appliances on solar', 'Start the dryer, washing machine or dishwasher when the sun shines.', 'Remote start'],
     weer: ['The weather', 'Rain and wind for the screens, and tomorrow\'s sun.', 'A weather service'],
     assistent: ['The assistant at home', 'Talk to your house without anything leaving it: understanding, answering and the wake word "Hey house", all on your own Home Assistant.', 'Understanding, voice and wake word'],
     wand: ['The wall screen', 'The screen goes off when nobody is there, and wakes when someone walks past. That works with Fully Kiosk Browser on the tablet; the wall screen tells SunArc itself how it is set up.', 'Fully Kiosk and screen off'],

@@ -288,7 +288,11 @@
     const screens = alles.filter((x) => x.soort === 'screen');
     const leegB = (d.huis?.batterijen ?? []).filter((b) => app.bijnaOp(b.pct, 'batterij', d.huis)).length;
     const volF = (d.huis?.filters ?? []).length;
-    const z = d.aansluiting?.antwoorden?.zekering ?? d.aansluiting?.configuratie?.zekering;
+    // "Weet ik niet" is geen zekering: dan die uit de configuratie, of niets.
+    const zAntwoord = d.aansluiting?.antwoorden?.zekering;
+    const z = (zAntwoord && zAntwoord !== 'weetniet' ? zAntwoord : null) ?? d.aansluiting?.configuratie?.zekering ?? null;
+    // Een thuisbatterij die het huis al heeft (besluit 182): SunArc kijkt mee, sturen kan nog niet.
+    const thuisAccu = d.huis?.opslag?.batterij ?? null;
     const opZon = Object.values(d.aansluiting?.antwoorden?.opZon ?? {}).filter(Boolean).length + (d.aansluiting?.configuratie?.apparaten?.length ?? 0);
     const kanOpZon = (d.aansluiting?.gevonden?.apparaten ?? []).length;
     const accu = batterijSom(d);
@@ -359,7 +363,9 @@
         return x ? [{ ...teksten(soort), groep: 'zon', stand: opZonAan(x) ? meekijk : 'uit', nu: warmteNu(x), href: 'apparaten.html' }] : [];
       }),
       // Kosten
-      { ...teksten('batterij'), groep: 'kosten', stand: 'nodig', label: t('kan.batterij.nodig'), nu: accu ? t('kan.batterij.som', { euro: accu.euro, kwh: global.taal.getal(accu.kwh, accu.kwh % 1 ? 1 : 0) }) : t('kan.idee.batterijZin'), href: 'opbrengst.html', som: accu },
+      thuisAccu
+        ? { ...teksten('batterij'), groep: 'kosten', stand: meekijk, nu: thuisAccu.pct != null ? t('kan.batterij.heeft', { pct: Math.round(thuisAccu.pct) }) : t('kan.batterij.gevonden'), href: 'apparaten.html#batterij' }
+        : { ...teksten('batterij'), groep: 'kosten', stand: 'nodig', label: t('kan.batterij.nodig'), nu: accu ? t('kan.batterij.som', { euro: accu.euro, kwh: global.taal.getal(accu.kwh, accu.kwh % 1 ? 1 : 0) }) : t('kan.idee.batterijZin'), href: 'opbrengst.html', som: accu },
       ...(d.aansluiting?.antwoorden?.tarief !== 'dynamisch' ? [{ ...teksten('goedkoop'), groep: 'kosten', stand: 'nodig', label: t('kan.goedkoop.nodig'), nu: t('kan.goedkoop.nu'), href: 'energie.html#prijzen' }] : []),
       { ...teksten('auto'), groep: 'kosten', stand: 'nodig', label: t('kan.auto.nodig'), nu: t('kan.auto.nu'), href: 'opbrengst.html' },
       // Het sluipverbruik (besluit 192): elke nacht gemeten uit de slimme meter.

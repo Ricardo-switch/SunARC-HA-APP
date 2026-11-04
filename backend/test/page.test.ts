@@ -1339,13 +1339,13 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
         ['instellingen.html', /Settings[\s\S]*What your house can do/],
         ['jij.html', /How the app looks[\s\S]*Theme and colour/],
         ['comfort.html', /Comfort[\s\S]*What is this for\?/],
-        ['regeling.html', /Control[\s\S]*Climate[\s\S]*Appliances on sun/],
+        ['regeling.html', /Control[\s\S]*Climate[\s\S]*Appliances on solar/],
         ['energie.html', /Energy setup[\s\S]*Solar panels[\s\S]*Connection[\s\S]*Meters/],
         ['functies.html', /Features[\s\S]*Cameras[\s\S]*Doorbell[\s\S]*Lights and screens/],
         ['toegang.html', /Residents and access[\s\S]*Version/],
         ['bewoners.html', /Who lives here, in order/],
         // Deel 4: Wat je huis kan, Indeling, Inrichten en het begin.
-        ['huis-kan.html', /What your house can do[\s\S]*Comfort[\s\S]*What the house learns first[\s\S]*On sun/],
+        ['huis-kan.html', /What your house can do[\s\S]*Comfort[\s\S]*What the house learns first[\s\S]*On solar/],
         ['voortgang.html', /How far your house is[\s\S]*Fully working/],
         ['indeling.html', /Rooms and layout[\s\S]*(Add a floor|Name of the floor)/],
         ['inrichten.html', /Welcome[\s\S]*home\.[\s\S]*Always says why/],
@@ -4343,6 +4343,31 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-batterij.png') });
     expect(fouten).toEqual([]);
     await context.close();
+  }, 30_000);
+
+  /*
+   * Een betatester (november 2026): de thuisbatterij stond op Thuis, maar Wat
+   * je huis kan zei "Batterij nodig". Nu kijkt SunArc er zichtbaar mee.
+   */
+  it('noemt een thuisbatterij die er al is niet meer "Batterij nodig"', async () => {
+    const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    extraOpslag = { batterij: { id: 'sessy', naam: 'De batterij', pct: 21, vermogenW: null, stand: 'rust' }, auto: null };
+    try {
+      await p.goto(`${baseUrl}/huis-kan.html`);
+      await p.getByText('21% vol; SunArc kijkt mee en stuurt hem niet').first().waitFor();
+      expect(await p.getByText('Batterij nodig').count()).toBe(0);
+      expect(await p.locator('body').textContent()).not.toContain('undefined');
+      expect(fouten).toEqual([]);
+    } finally {
+      extraOpslag = null;
+      await context.close();
+    }
   }, 30_000);
 
   /*

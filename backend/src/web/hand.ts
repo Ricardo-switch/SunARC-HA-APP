@@ -437,9 +437,9 @@ export function handVraag(hand: Handbediening, config: SiteConfig, tekst: string
     if (!p.ok) {
       const reden = {
         koelstrategie: nl ? 'Koelen staat in je regeling uit. Zet de koelstrategie aan in Home Assistant, dan kan het.' : 'Cooling is off in your controller. Turn on the cooling strategy in Home Assistant.',
-        vakantie: nl ? 'Je regeling staat op vakantie of koelen; dan verwarm ik niet met de hand.' : 'Your controller is on holiday or cooling; then I do not heat by hand.',
+        vakantie: nl ? 'Je regeling staat op vakantie of koelen; dan verwarm ik niet met de hand.' : 'Your controller is on holiday or cooling; then I do not heat manually.',
         bereik: nl ? 'Zo ver kan de knop van je regeling niet.' : 'The knob of your controller does not go that far.',
-        knop: nl ? 'Dat kan hier niet met de hand.' : 'That cannot be done by hand here.',
+        knop: nl ? 'Dat kan hier niet met de hand.' : 'That cannot be done manually here.',
       }[p.reden];
       return { ok: false, antwoord: reden };
     }

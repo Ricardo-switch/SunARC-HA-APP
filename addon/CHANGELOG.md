@@ -1,5 +1,31 @@
 # Wat is er nieuw · What is new
 
+## 0.115.2
+
+*4 november 2026*
+
+**Beter**
+
+- Bij Inrichten kun je de hoofdzekering ook op 32 A zetten, of zelf een waarde invullen
+- De Engelse teksten zijn natuurlijker: "on solar" en "manually" in plaats van letterlijk vertaald
+
+**Opgelost**
+
+- Wat je huis kan toonde "undefined × undefined A" bij de zekering als je "Weet ik niet" koos; Instellingen ook
+- Een thuisbatterij die het huis al heeft, staat bij Wat je huis kan niet meer als "Batterij nodig"
+
+*English*
+
+**Improved**
+
+- In Set up the main fuse can now be 32 A, or a value you enter yourself
+- More natural English: "on solar", "surplus solar" and "manually" instead of "on sun", "spare sun" and "by hand"
+
+**Fixed**
+
+- What your house can do showed "undefined × undefined A" for the fuse after choosing "I don't know"; Settings too
+- A home battery the house already has no longer shows as "Battery needed" under What your house can do
+
 ## 0.115.1
 
 *2 november 2026*

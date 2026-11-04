@@ -94,7 +94,7 @@ voorkeur lokaal afhandelen** aan.
   Assistant in de goede ruimte, of pas het aan bij **Richt je huis in › Je
   huis**.
 - **Een vraag of een fout:** meld hem op
-  [GitHub](https://github.com/Ricardo-switch/SunARC-HA-APP/issues), het
+  [GitHub](https://github.com/Ricardo-switch/SunArc/issues), het
   liefst met wat er in het logboek staat.
 
 Een nieuwe versie zie je bij de add-ons van Home Assistant. In de app staat
@@ -141,6 +141,6 @@ heating or air conditioning (you can set them by hand, with an end time).
 
 The app speaks Dutch and English; **Automatic** follows your phone or
 browser. Questions or bugs:
-[GitHub](https://github.com/Ricardo-switch/SunARC-HA-APP/issues).
+[GitHub](https://github.com/Ricardo-switch/SunArc/issues).
 
-Meer: [github.com/Ricardo-switch/SunARC-HA-APP](https://github.com/Ricardo-switch/SunARC-HA-APP).
+Meer: [github.com/Ricardo-switch/SunArc](https://github.com/Ricardo-switch/SunArc).

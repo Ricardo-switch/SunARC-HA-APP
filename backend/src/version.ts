@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.115.1';
+export const VERSIE = '0.115.2';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,28 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.115.2',
+    datum: '2026-11-04',
+    beter: [
+      'Bij Inrichten kun je de hoofdzekering ook op 32 A zetten, of zelf een waarde invullen',
+      'De Engelse teksten zijn natuurlijker: "on solar" en "manually" in plaats van letterlijk vertaald',
+    ],
+    opgelost: [
+      'Wat je huis kan toonde "undefined × undefined A" bij de zekering als je "Weet ik niet" koos; Instellingen ook',
+      'Een thuisbatterij die het huis al heeft, staat bij Wat je huis kan niet meer als "Batterij nodig"',
+    ],
+    en: {
+      beter: [
+        'In Set up the main fuse can now be 32 A, or a value you enter yourself',
+        'More natural English: "on solar", "surplus solar" and "manually" instead of "on sun", "spare sun" and "by hand"',
+      ],
+      opgelost: [
+        'What your house can do showed "undefined × undefined A" for the fuse after choosing "I don\'t know"; Settings too',
+        'A home battery the house already has no longer shows as "Battery needed" under What your house can do',
+      ],
+    },
+  },
   {
     versie: '0.115.1',
     datum: '2026-11-02',

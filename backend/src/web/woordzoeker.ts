@@ -115,7 +115,7 @@ const ONDERWERPEN: readonly Onderwerp[] = [
     },
     en: {
       antwoord:
-        'You set up your connection under Settings, Energy setup: where your panels are, your main fuse and your heating. Which devices may start on sun is under Control.',
+        'You set up your connection under Settings, Energy setup: where your panels are, your main fuse and your heating. Which devices may start on solar is under Control.',
       label: 'Go to Energy setup',
     },
   },

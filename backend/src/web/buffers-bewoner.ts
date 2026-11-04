@@ -72,7 +72,7 @@ const WOORDEN = {
   },
   en: {
     kop: {
-      zon: 'Would heat on sun now',
+      zon: 'Would heat on solar now',
       onder: 'Would top up now',
       klaarOm: 'Would start now for ready at',
       goedkoop: 'Would start now, cheap hours',
