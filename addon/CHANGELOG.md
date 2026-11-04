@@ -13,6 +13,7 @@
 **Beter**
 
 - Elke etage uit Home Assistant wordt een eigen etage met zijn naam, ook een derde verdieping of een etage zonder niveau; eerst viel alles vanaf de tweede samen
+- De koppeling voor Assist (2.0.1) haalt bij verwijderen alleen haar eigen zinnenbestand weg, en ruimt geen bestand met de oude naam meer op
 
 *English*
 
@@ -25,6 +26,7 @@
 **Improved**
 
 - Every floor from Home Assistant becomes its own floor with its name, including a third floor or a floor without a level; before, everything from the second floor up merged
+- The Assist integration (2.0.1) only removes its own sentences file when removed, and no longer cleans up a file with the old name
 
 ## 0.116.0
 

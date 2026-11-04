@@ -11,10 +11,10 @@
   "dependencies": [
     "conversation"
   ],
-  "documentation": "https://github.com/Ricardo-switch/SunARC-HA-APP#ask-sunarc-through-assist",
+  "documentation": "https://github.com/Ricardo-switch/SunArc#optional-ask-sunarc-through-assist",
   "integration_type": "service",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/Ricardo-switch/SunARC-HA-APP/issues",
+  "issue_tracker": "https://github.com/Ricardo-switch/SunArc/issues",
   "requirements": [],
-  "version": "2.0.0"
+  "version": "2.0.1"
 }

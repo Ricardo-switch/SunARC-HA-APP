@@ -157,7 +157,9 @@ De app heeft een eigen assistent, dus dit hoeft niet. Alleen als je SunArc ook w
 - **Zonder HACS:** open SunArc → **Instellingen → Bewoners en toegang → Sleutel voor de assistent** en tik op **Zet de integratie in Home Assistant**. Herstart daarna Home Assistant.
 - **Met HACS:** kies in HACS de drie puntjes → **Eigen repositories**, voeg `https://github.com/Ricardo-switch/SunArc` toe als **Integratie**, installeer **SunArc** en herstart Home Assistant. HACS installeert alleen deze integratie; de add-on komt altijd uit de add-on-winkel.
 
-Home Assistant toont dan **Nieuw apparaat gevonden: SunArc**; klik op **Toevoegen**. Dat doe je één keer. De integratie heeft een eigen versie (2.0.0), die alleen omhoog gaat als de integratie zelf verandert; een update van SunArc vraagt geen herstart, want de zinnen en de antwoorden komen uit de add-on.
+Home Assistant toont dan **Nieuw apparaat gevonden: SunArc**; klik op **Toevoegen**. Dat doe je één keer. De integratie heeft een eigen versie (2.0.1), die alleen omhoog gaat als de integratie zelf verandert; een update van SunArc vraagt geen herstart, want de zinnen en de antwoorden komen uit de add-on.
+
+**Wat hij schrijft:** de integratie maakt per taal één bestand in je configuratiemap van Home Assistant, `custom_sentences/<taal>/sunarc.yaml`, met de zinnen voor Assist en de kamers van je huis. Dat bestand werkt hij elke 30 minuten bij vanuit de add-on, en hij haalt het weg als je de integratie verwijdert. Aan andere bestanden komt hij niet.
 
 ## Veilig
 

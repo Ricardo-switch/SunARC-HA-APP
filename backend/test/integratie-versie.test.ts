@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-const VINGER = { versie: '2.0.0', afdruk: '063a5bf05b74fc97' };
+const VINGER = { versie: '2.0.1', afdruk: '294bd96dd744ec9c' };
 
 const MAP = fileURLToPath(new URL('../../custom_components/sunarc/', import.meta.url));
 

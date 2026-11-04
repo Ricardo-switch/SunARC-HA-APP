@@ -52,14 +52,20 @@ export const NIEUW: readonly Nieuw[] = [
       'Een knop Herstart SunArc bij Versie, en meteen waar een keuze pas na een nieuwe start ingaat; de app laadt vanzelf als SunArc terug is',
       'Bij Inrichten › Kamers kun je een etage toevoegen',
     ],
-    beter: ['Elke etage uit Home Assistant wordt een eigen etage met zijn naam, ook een derde verdieping of een etage zonder niveau; eerst viel alles vanaf de tweede samen'],
+    beter: [
+      'Elke etage uit Home Assistant wordt een eigen etage met zijn naam, ook een derde verdieping of een etage zonder niveau; eerst viel alles vanaf de tweede samen',
+      'De koppeling voor Assist (2.0.1) haalt bij verwijderen alleen haar eigen zinnenbestand weg, en ruimt geen bestand met de oude naam meer op',
+    ],
     en: {
       nieuw: [
         'SunArc checks for a new version by itself every three hours, and Version has a Check for updates button: no more checking in Home Assistant yourself',
         'A Restart SunArc button under Version, and right where a choice only takes effect after a new start; the app reloads by itself once SunArc is back',
         'Under Set up › Rooms you can add a floor',
       ],
-      beter: ['Every floor from Home Assistant becomes its own floor with its name, including a third floor or a floor without a level; before, everything from the second floor up merged'],
+      beter: [
+        'Every floor from Home Assistant becomes its own floor with its name, including a third floor or a floor without a level; before, everything from the second floor up merged',
+        'The Assist integration (2.0.1) only removes its own sentences file when removed, and no longer cleans up a file with the old name',
+      ],
     },
   },
   {

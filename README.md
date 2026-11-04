@@ -159,7 +159,9 @@ The app has its own assistant, so this is not needed. Only if you also want to a
 - **Without HACS:** open SunArc → **Settings → Residents and access → Key for the assistant** and tap **Put the integration in Home Assistant**. Then restart Home Assistant.
 - **With HACS:** in HACS choose the three dots → **Custom repositories**, add `https://github.com/Ricardo-switch/SunArc` as an **Integration**, install **SunArc** and restart Home Assistant. HACS installs only this integration; the add-on always comes from the add-on store.
 
-Home Assistant then shows **New device discovered: SunArc**; click **Add**. You do this once. The integration has its own version (2.0.0), which only goes up when the integration itself changes; SunArc updates need no restart, because the sentences and answers come from the add-on.
+Home Assistant then shows **New device discovered: SunArc**; click **Add**. You do this once. The integration has its own version (2.0.1), which only goes up when the integration itself changes; SunArc updates need no restart, because the sentences and answers come from the add-on.
+
+**What it writes:** the integration creates one file per language in your Home Assistant configuration folder, `custom_sentences/<language>/sunarc.yaml`, with the Assist sentences for your rooms. It refreshes that file from the add-on every 30 minutes, and removes it when you remove the integration. It touches no other file.
 
 ## Safe
 

@@ -32,7 +32,7 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from .api import SmartClimateApi, SmartClimateFout
 from .const import CONF_ADRES, CONF_SLEUTEL, DOMAIN, GEEN_ANTWOORD, KAMERS_ELKE_MINUTEN
-from .zinnen import BESTAND, INTENTIE, OUD_BESTAND, talen
+from .zinnen import BESTAND, INTENTIE, KOP, talen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,10 +41,13 @@ def _zinnenpad(hass: HomeAssistant, taal: str) -> Path:
     return Path(hass.config.path("custom_sentences", taal, BESTAND))
 
 
-def _weg_oud(hass: HomeAssistant) -> None:
-    """De zinnen van de integratie onder haar oude naam weghalen (2 november 2026)."""
-    for pad in Path(hass.config.path("custom_sentences")).glob(f"*/{OUD_BESTAND}"):
-        pad.unlink()
+def _van_sunarc(pad: Path) -> bool:
+    """Is dit bestand van SunArc? Alleen als het met onze kopregel begint (tip van de HACS-beoordeling, 4 november 2026)."""
+    try:
+        with pad.open(encoding="utf-8") as f:
+            return f.readline() == KOP.splitlines(keepends=True)[0]
+    except OSError:
+        return False
 
 
 def _schrijf(pad: Path, inhoud: str) -> bool:
@@ -114,8 +117,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady(str(fout)) from fout
     hass.data[DOMAIN] = api
     intent.async_register(hass, VraagHandler())
-    # Onder de oude naam (smart_climate) schreef de integratie een eigen bestand; dat is nu van niemand meer.
-    await hass.async_add_executor_job(_weg_oud, hass)
     await _zinnen_bij(hass, api)
 
     async def elke_keer(_: Any) -> None:
@@ -138,8 +139,10 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     def weg() -> bool:
         weggehaald = False
         for pad in Path(hass.config.path("custom_sentences")).glob(f"*/{BESTAND}"):
-            pad.unlink()
-            weggehaald = True
+            # Alleen ons eigen bestand: een bestand met dezelfde naam van iemand anders blijft staan.
+            if _van_sunarc(pad):
+                pad.unlink()
+                weggehaald = True
         return weggehaald
 
     if await hass.async_add_executor_job(weg):
