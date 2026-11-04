@@ -302,7 +302,7 @@ verwijzing bestaat.
   vooruit, en naar `main` gaat het alleen met een pull request dat de bewoner
   samenvoegt. De repository is openbaar en opgeschoond: geen export van Home
   Assistant en geen configuratie van een echte woning in git ([152]).
-  Sinds 1 november 2026 heet de repository `SunARC-HA-APP`; GitHub stuurt het
+  Sinds 1 november 2026 heet de repository `SunArc`; GitHub stuurt het
   oude adres `hems-climate` door, en de Pi houdt dat oude adres (anders ziet
   Home Assistant een andere add-on). De images houden hun naam.
 - **De add-on** komt kant-en-klaar van GitHub, voor de Pi en voor amd64; zijn

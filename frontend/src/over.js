@@ -5,7 +5,7 @@
 'use strict';
 
 const { esc, haal } = app;
-const BRON = 'https://github.com/Ricardo-switch/SunARC-HA-APP';
+const BRON = 'https://github.com/Ricardo-switch/SunArc';
 
 function teken(versie) {
   const laatste = versie?.nieuw?.[0] ?? null;
