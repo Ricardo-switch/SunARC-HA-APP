@@ -250,7 +250,12 @@
   /** Dag, ochtend, avond of nacht, uit de zon van de dienst (`api/zon`). */
   function tijdVanDeDag(zon) {
     const d = zon?.dag;
-    if (!zon?.zon?.boven) {
+    // Geen zonnestand van de dienst (4 november 2026): dan de klok, in plaats van altijd nacht.
+    if (!zon?.zon) {
+      const u = new Date().getHours();
+      return u >= 7 && u < 9 ? 'ochtend' : u >= 9 && u < 18 ? 'dag' : u >= 18 && u < 21 ? 'avond' : 'nacht';
+    }
+    if (!zon.zon.boven) {
       const na = d?.onderMs != null ? Date.now() - d.onderMs : Infinity;
       const voor = d?.opMs != null ? d.opMs - Date.now() : Infinity;
       if ((na > 0 && na < 60 * 60_000) || (voor > 0 && voor < 45 * 60_000)) return na < Infinity && na > 0 ? 'avond' : 'ochtend';

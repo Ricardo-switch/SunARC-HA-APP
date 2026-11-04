@@ -1088,6 +1088,30 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
   }, 120_000);
 
   /*
+   * Dag of nacht zonder zonnestand (4 november 2026): gaf de dienst geen zon,
+   * dan toonde Thuis nacht, ook om twee uur 's middags. Nu de klok.
+   */
+  it('toont overdag dag, ook als de dienst geen zonnestand geeft', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'Europe/Amsterdam', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    await context.route(`${baseUrl}/api/zon*`, (route) => route.fulfill({ status: 503, json: { wachten: 'de ligging van het huis komt van Home Assistant zodra die verbonden is' } }));
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.clock.setFixedTime(new Date('2026-11-04T13:00:00Z'));
+    await p.goto(`${baseUrl}/thuis.html`);
+    const luchtNu = "[...document.body.classList].find((c) => c.startsWith('lucht-')) ?? null";
+    await expect.poll(() => p.evaluate<string | null>(luchtNu), { timeout: 10_000 }).not.toBeNull();
+    const lucht = await p.evaluate<string | null>(luchtNu);
+    expect(lucht).not.toBe('lucht-nacht');
+    expect(await p.evaluate<string>('app.tijdVanDeDag(null)')).toBe('dag');
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 30_000);
+
+  /*
    * Etages op de telefoon (28 oktober 2026): vanuit elke etage naar elke andere.
    * Vanaf Buiten kon het naar de eerste verdieping, vanuit de rest niet.
    */

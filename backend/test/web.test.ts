@@ -1358,6 +1358,20 @@ describe('de zoninval (besluit 93)', () => {
     expect(((await res.json()) as { wachten: string }).wachten).toContain('Home Assistant');
   });
 
+  // Zonder gevels en panelen toch de stand van de zon: anders was het in de app nacht, ook overdag.
+  it('zegt zonder gevels en panelen toch waar de zon staat', async () => {
+    const { base } = await start({ latest: () => snapshot(), withoutConfig: true, location: { latDeg: 52.1, lonDeg: 5.1 } });
+    const res = await fetch(`${base}/api/zon`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { zon: { boven: boolean }; dag: { opMs: number | null; onderMs: number | null }; gevels: unknown[]; panelen: unknown[]; heldereLuchtW: number; zonderLigging: boolean };
+    expect(typeof body.zon.boven).toBe('boolean');
+    expect(body.dag.opMs).not.toBeNull();
+    expect(body.gevels).toEqual([]);
+    expect(body.panelen).toEqual([]);
+    expect(body.heldereLuchtW).toBe(0);
+    expect(body.zonderLigging).toBe(true);
+  });
+
   it('zegt waar de zon staat, op welke gevel hij valt en wat de panelen bij een heldere lucht leveren', async () => {
     const { base } = await start({ latest: () => snapshot(), location: { latDeg: 52.1, lonDeg: 5.1 } });
     const res = await fetch(`${base}/api/zon`);

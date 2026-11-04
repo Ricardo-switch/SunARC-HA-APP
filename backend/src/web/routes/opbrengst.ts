@@ -156,13 +156,16 @@ export async function opbrengstRoutes(d: Diensten, v: Verzoek): Promise<boolean>
   if (path === '/api/zon') {
     const config = d.config();
     const location = d.options.location?.() ?? null;
-    if (config?.geometry == null || location == null) {
-      sendJson(res, 503, {
-        wachten:
-          config?.geometry == null
-            ? 'de ligging van het huis en de panelen is nog niet bekend'
-            : 'de ligging van het huis komt van Home Assistant zodra die verbonden is',
-      });
+    if (location == null) {
+      sendJson(res, 503, { wachten: 'de ligging van het huis komt van Home Assistant zodra die verbonden is' });
+      return true;
+    }
+    // Zonder gevels en panelen nog wel de stand van de zon (4 november 2026): anders
+    // toonde de app nacht midden op de dag, zoals bij Inrichten vóór de stap Zon.
+    if (config?.geometry == null) {
+      const now = Date.now();
+      const zone = config?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+      sendJson(res, 200, { ...sunReport({ facades: [], solarPlanes: [] }, location, now, startOfLocalDay(now, zone)), zonderLigging: true });
       return true;
     }
     // Wat de panelen werkelijk halen, geleerd uit de afgesloten dagen van het
