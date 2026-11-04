@@ -30,6 +30,17 @@ async function laad() {
   teken();
 }
 
+/*
+ * De zon elke tien minuten opnieuw (4 november 2026): eerst alleen bij het
+ * openen, en ging dat net mis (na een herstart), dan bleef het hier nacht.
+ */
+setInterval(() => {
+  haal('api/zon').then((z) => {
+    d.zon = z;
+    teken();
+  }, () => {});
+}, 10 * 60_000);
+
 /* ------------------------------------------------------------ de stappen */
 
 /** Acht hoofdstukken, elk met kleine stappen (besluit 144 en 190, schets Wand-Inrichten-3). */
