@@ -150,6 +150,8 @@ The app has a page **What your house can do** that lists all of this for your ow
 
 That is all you need. Updates come through Home Assistant; turn on **Auto update** on the add-on page if you want them to arrive by themselves. What is new in each version is in the [releases](https://github.com/Ricardo-switch/SunARC-HA-APP/releases) and in the add-on itself.
 
+<a id="ask-sunarc-through-assist"></a>
+
 ## Optional: ask SunArc through Assist
 
 The app has its own assistant, so this is not needed. Only if you also want to ask SunArc through Home Assistant's **Assist** ("why is the attic running?", "what are you doing?"), add the small **SunArc** integration. No YAML: the add-on announces itself.
