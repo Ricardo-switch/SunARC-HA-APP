@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.120.1
+
+*4 november 2026*
+
+**Opgelost**
+
+- Bij de eerste start staat onder "De configuratie is zo niet bruikbaar" nu wat er precies mis is, en het logboek van de add-on schrijft het ook op
+
+*English*
+
+**Fixed**
+
+- At the first start, "The configuration cannot be used like this" now shows what exactly is wrong, and the add-on log writes it down too
+
 ## 0.120.0
 
 *4 november 2026*

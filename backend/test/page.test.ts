@@ -1088,6 +1088,33 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
   }, 120_000);
 
   /*
+   * De eerste start (4 november 2026): kwam het voorstel niet door de toets,
+   * dan zag een tester alleen "zo niet bruikbaar". Nu staat erbij wat er mis is.
+   */
+  it('zegt bij de eerste start wat er mis is als het voorstel niet bruikbaar is', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const huis = await (await fetch(`${baseUrl}/api/huis`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json();
+    await context.route(`${baseUrl}/api/onboarding*`, (route) =>
+      route.request().method() === 'POST'
+        ? route.fulfill({ status: 422, json: { ok: false, reden: 'De configuratie is zo niet bruikbaar.', problemen: ['zones.0.climate.0: onbekende adapter', 'outdoorTemperature: geen sensor'] } })
+        : route.fulfill({ json: { huis, keuzes: [], bestaande: [] } }),
+    );
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/begin.html`);
+    await p.locator('[data-inrichten]').first().click({ timeout: 15_000 });
+    const lijst = p.locator('.fout-lijst').first();
+    await lijst.waitFor({ timeout: 10_000 });
+    expect(await lijst.innerText()).toContain('zones.0.climate.0: onbekende adapter');
+    expect(await p.locator('.fout').first().innerText()).toBe('De configuratie is zo niet bruikbaar.');
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 40_000);
+
+  /*
    * Dag of nacht zonder zonnestand (4 november 2026): gaf de dienst geen zon,
    * dan toonde Thuis nacht, ook om twee uur 's middags. Nu de klok.
    */
