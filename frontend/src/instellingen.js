@@ -60,7 +60,7 @@ const ICOON = {
   toegang: iconen.svg('inloggen'),
 };
 
-const euro = (v) => (v == null ? null : `€ ${nl(v, 2)}`);
+const euro = (v) => (v == null ? null : `${taal.valuta()} ${nl(v, 2)}`);
 const getal = (c) => nl(c, Number.isInteger(c) ? 0 : 1);
 const graden = (c) => `${getal(c)}°`;
 

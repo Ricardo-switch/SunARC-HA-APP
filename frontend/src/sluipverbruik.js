@@ -26,7 +26,7 @@ let gekozen = null;
 const VENSTER = 30;
 const GRENS = 50;
 const W = (w) => `${Math.round(w)}`;
-const euro = (n) => `€ ${nl(n, 0)}`;
+const euro = (n) => `${taal.valuta()} ${nl(n, 0)}`;
 const kwh = (n) => nl(n, 0);
 const datum = (dag, jaar = false) => new Date(`${dag}T12:00:00Z`).toLocaleDateString(taal.locale, { day: 'numeric', month: 'long', ...(jaar ? { year: 'numeric' } : {}), timeZone: 'UTC' });
 const maandNaam = (m, jaar = true) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(taal.locale, { month: 'long', ...(jaar ? { year: 'numeric' } : {}), timeZone: 'UTC' });

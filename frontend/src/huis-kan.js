@@ -52,7 +52,7 @@ function vakken(lijst) {
 function meer() {
   const lijst = stand.ideeen(d).slice(0, 3);
   if (!lijst.length) return '';
-  const regel = (x) => `<a class="idee" href="${x.id === 'batterij' ? '#batterij' : x.href}"${x.id === 'batterij' ? ' data-open="batterij"' : ''}><div><b>${esc(x.titel)}</b><span>${esc(x.zin)}</span></div><div class="wint${x.euro != null ? '' : ' zacht'}">${x.euro != null ? `± € ${x.euro}<small>${esc(x.wint)}</small>` : esc(x.wint)}</div></a>`;
+  const regel = (x) => `<a class="idee" href="${x.id === 'batterij' ? '#batterij' : x.href}"${x.id === 'batterij' ? ' data-open="batterij"' : ''}><div><b>${esc(x.titel)}</b><span>${esc(x.zin)}</span></div><div class="wint${x.euro != null ? '' : ' zacht'}">${x.euro != null ? `± ${taal.valuta()} ${x.euro}<small>${esc(x.wint)}</small>` : esc(x.wint)}</div></a>`;
   return `<div class="glas meer"><span class="wanneer">${esc(t('kan.meer'))}</span>${lijst.map(regel).join('')}</div>`;
 }
 
@@ -127,7 +127,7 @@ function blad(x) {
       ].filter(Boolean).join(' ')
     : '';
   const som = a
-    ? `<div class="som"><div class="somtop"><div><h4>${esc(t('kan.accu.past'))}</h4><div class="getal">${maat(a.kwh)} <small>kWh</small></div></div><div><h4>${esc(t('kan.opleveren'))}</h4><div class="getal">± € ${a.euro} <small>${esc(t('kan.perMaand'))}</small></div></div></div>
+    ? `<div class="som"><div class="somtop"><div><h4>${esc(t('kan.accu.past'))}</h4><div class="getal">${maat(a.kwh)} <small>kWh</small></div></div><div><h4>${esc(t('kan.opleveren'))}</h4><div class="getal">± ${taal.valuta()} ${a.euro} <small>${esc(t('kan.perMaand'))}</small></div></div></div>
         <p class="mini" style="margin: 8px 0 0">${esc(zin)}</p>
         <h4 style="margin-top: 12px">${esc(t('kan.accu.wanneer'))}</h4>${bijspringen(a.uren)}</div>`
     : '';

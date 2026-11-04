@@ -22,7 +22,7 @@ let zon = null;
 const getal = (n) => nl(n, Math.abs(n) >= 100 ? 0 : 1);
 /** Een meternaam zoals de bewoner hem zegt: "Airco woonkamer", niet "Airconditioning woonkamer". */
 const kort = (naam) => String(naam).replace(/^airconditioning\b/i, t('vandaag.airco')).replace(/\s+(energie|energy|verbruik|kwh)$/i, '');
-const euro = (n) => `€ ${nl(n, 2)}`;
+const euro = (n) => `${taal.valuta()} ${nl(n, 2)}`;
 const ZON = '#F7B548';
 const NET = '#9AAABB';
 const TERUG = '#6EE7B7';
@@ -87,7 +87,7 @@ function cijfersGeschat(r, klein) {
   const gas = r.gas ? `<div class="cijfer"><div class="mini">${esc(t('opbrengst.gas'))}</div><div class="getal">${getal(r.gas.m3)}<small>m³</small></div></div>` : '';
   if (klein) {
     const blok = (naam, waarde, onder) => `<div class="glas-klein"><span class="mini">${naam}</span><span class="getal">${waarde}</span><span class="mini">${onder}</span></div>`;
-    return `<div class="drie">${blok(esc(t('opbrengst.opgewekt')), getal(z.opgewektKwh), 'kWh')}${blok(esc(t('opbrengst.zelfGebruikt')), `± ${getal(z.zelfKwh)}`, `kWh, ${esc(t('opbrengst.geschat'))}`)}${bespaard ? blok(esc(t('opbrengst.bespaard')), `± € ${nl(z.bespaardEuro, 0)}`, esc(t('opbrengst.geschat'))) : ''}</div>`;
+    return `<div class="drie">${blok(esc(t('opbrengst.opgewekt')), getal(z.opgewektKwh), 'kWh')}${blok(esc(t('opbrengst.zelfGebruikt')), `± ${getal(z.zelfKwh)}`, `kWh, ${esc(t('opbrengst.geschat'))}`)}${bespaard ? blok(esc(t('opbrengst.bespaard')), `± ${taal.valuta()} ${nl(z.bespaardEuro, 0)}`, esc(t('opbrengst.geschat'))) : ''}</div>`;
   }
   return `<div class="cijfer"><div class="mini">${esc(t('opbrengst.opgewekt'))}</div><div class="getal">${getal(z.opgewektKwh)}<small>kWh</small></div><div class="klein">${esc(t('opbrengst.gemetenOmvormer'))}</div></div>
     <div class="cijfer"><div class="mini">${esc(t('opbrengst.zelfGebruikt'))}</div><div class="getal">± ${getal(z.zelfKwh)}<small>kWh</small></div><div class="klein">${geschatLabel()}</div></div>
@@ -112,7 +112,7 @@ function cijfers(r, klein = false) {
   const gas = r.gas ? `<div class="cijfer"><div class="mini">${esc(t('opbrengst.gas'))}</div><div class="getal">${getal(r.gas.m3)}<small>m³</small></div><div class="klein">${r.gas.vorigeM3 != null ? `${esc(r.periode.vorigeNaam)} ${getal(r.gas.vorigeM3)} m³` : ''}</div></div>` : '';
   if (klein) {
     const blok = (naam, waarde, onder) => `<div class="glas-klein"><span class="mini">${naam}</span><span class="getal">${waarde}</span><span class="mini">${onder}</span></div>`;
-    return `<div class="drie">${blok(esc(t('opbrengst.stroom')), getal(s.verbruikKwh), 'kWh')}${k.totaal == null ? '' : blok(esc(t('opbrengst.kosten')), `€ ${nl(k.totaal, 0)}`, k.vorige != null ? `${esc(/^\d/.test(r.periode.vorigeNaam) ? r.periode.vorigeNaam : `${r.periode.vorigeNaam.slice(0, 4)}.`)} € ${nl(k.vorige, 0)}` : '')}${r.gas ? blok(esc(t('opbrengst.gas')), getal(r.gas.m3), 'm³') : ''}</div>`;
+    return `<div class="drie">${blok(esc(t('opbrengst.stroom')), getal(s.verbruikKwh), 'kWh')}${k.totaal == null ? '' : blok(esc(t('opbrengst.kosten')), `${taal.valuta()} ${nl(k.totaal, 0)}`, k.vorige != null ? `${esc(/^\d/.test(r.periode.vorigeNaam) ? r.periode.vorigeNaam : `${r.periode.vorigeNaam.slice(0, 4)}.`)} ${taal.valuta()} ${nl(k.vorige, 0)}` : '')}${r.gas ? blok(esc(t('opbrengst.gas')), getal(r.gas.m3), 'm³') : ''}</div>`;
   }
   return `${stroom}${kosten}${gas}`;
 }

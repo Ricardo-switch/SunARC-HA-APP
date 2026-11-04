@@ -4419,6 +4419,35 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
   }, 30_000);
 
   /*
+   * De valuta van het huis (testerronde, november 2026): zegt Home Assistant
+   * dollar, dan staan de bedragen en de prijsvelden in dollar.
+   */
+  it('toont de valuta uit Home Assistant in plaats van de euro', async () => {
+    const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'en-GB' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => {
+      localStorage.setItem('sc-rondleiding-gezien', '1');
+      localStorage.setItem('sc-taal', 'en');
+    });
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    await context.route(`${baseUrl}/api/site`, async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({ response: res, json: { ...((await res.json()) as object), valuta: 'USD' } });
+    });
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    try {
+      await p.goto(`${baseUrl}/energie.html#prijzen`);
+      await p.locator('#wand', { hasText: '$ per kWh' }).first().waitFor({ timeout: 10_000 });
+      expect(await p.locator('#wand [data-vorm]').first().textContent()).not.toContain('€');
+      expect(fouten).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  }, 30_000);
+
+  /*
    * Een betatester (november 2026): de thuisbatterij stond op Thuis, maar Wat
    * je huis kan zei "Batterij nodig". Nu kijkt SunArc er zichtbaar mee.
    */

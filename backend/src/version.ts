@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.117.0';
+export const VERSIE = '0.117.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -44,6 +44,12 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.117.1',
+    datum: '2026-11-04',
+    beter: ['Bedragen staan in de valuta die in Home Assistant is ingesteld; de euro blijft de standaard'],
+    en: { beter: ['Amounts are shown in the currency set in Home Assistant; the euro stays the default'] },
+  },
   {
     versie: '0.117.0',
     datum: '2026-11-04',

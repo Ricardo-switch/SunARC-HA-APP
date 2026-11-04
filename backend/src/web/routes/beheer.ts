@@ -15,6 +15,7 @@ import { NIEUW, TERUGKIJKEN, VERSIE, nieuwInTaal } from '../../version.js';
 import { UNKNOWN_VERSION } from '../server-opties.js';
 import { MAX_BODY, readJson, sendJson } from '../http.js';
 import { taalVan, type Diensten, type Verzoek } from '../diensten.js';
+import { valuta } from '../valuta.js';
 
 /**
  * Wat de weergave over de installatie moet weten om namen te tonen.
@@ -41,6 +42,8 @@ function siteInfo(config: SiteConfig): unknown {
     zonMeter: config.solarProduction != null,
     /** Zolang dit er staat, draait de vergelijking met het oude systeem nog. */
     migrating: config.migration?.legacyExplanation != null,
+    /** De valuta uit Home Assistant (testerronde, november 2026), zoals EUR. */
+    valuta: valuta(),
   };
 }
 

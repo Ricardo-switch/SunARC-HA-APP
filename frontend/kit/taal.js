@@ -80,8 +80,43 @@
       return sleutel;
     }
     const s = typeof w === 'function' ? w(p) : typeof w === 'object' ? vorm(w, Number(p.n ?? 0)) : w;
-    return String(s).replace(/\{(\w+)\}/g, (m, k) => (p[k] == null ? m : String(p[k])));
+    // `{valuta}` vult zichzelf in met het teken van het huis (testerronde, november 2026).
+    return String(s).replace(/\{(\w+)\}/g, (m, k) => (p[k] != null ? String(p[k]) : k === 'valuta' ? valuta() : m));
   }
+
+  /*
+   * De valuta van het huis (testerronde, november 2026): uit Home Assistant, via
+   * `api/site`; basis.js bewaart hem. Euro tot de dienst iets anders zegt.
+   */
+  const VALUTA = 'sc-valuta';
+  let valutaCode = 'EUR';
+  try {
+    const v = global.localStorage?.getItem(VALUTA);
+    if (v && /^[A-Z]{3}$/.test(v)) valutaCode = v;
+  } catch {
+    // Zonder opslag euro.
+  }
+  /** Het teken van de valuta in de taal van de app: €, $ of CHF. */
+  function valuta() {
+    try {
+      return new Intl.NumberFormat(locale, { style: 'currency', currency: valutaCode, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((d) => d.type === 'currency')?.value ?? valutaCode;
+    } catch {
+      return valutaCode;
+    }
+  }
+  /** Een andere valuta onthouden; true als hij anders was. */
+  function zetValuta(c) {
+    if (typeof c !== 'string' || !/^[A-Z]{3}$/.test(c) || c === valutaCode) return false;
+    valutaCode = c;
+    try {
+      global.localStorage?.setItem(VALUTA, c);
+    } catch {
+      // Dan alleen op deze pagina.
+    }
+    return true;
+  }
+  /** Een bedrag met het teken ervoor, zoals op een bon: "€ 1,25". */
+  const geld = (n, d = 2) => `${valuta()} ${getal(n, d)}`;
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   /** Dezelfde tekst als HTML: ontsnapt, en `**zo**` vet. Voor een zin met een vet getal erin. */
@@ -124,7 +159,7 @@
     if (wordt !== code) global.location.reload();
   }
 
-  global.taal = { code, locale, talen: KAN, t, html, getal, klok, datum, opmaak, vul, zetKeuze };
+  global.taal = { code, locale, talen: KAN, t, html, getal, geld, valuta, zetValuta, klok, datum, opmaak, vul, zetKeuze };
   global.t = t;
   // Het script staat onderaan de pagina: wat erboven staat, is er al.
   vul();

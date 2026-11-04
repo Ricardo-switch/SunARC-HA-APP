@@ -258,10 +258,10 @@ function tekenVerbruikVandaag() {
   // Op de klok, niet geteld: een dag met de klokwissel heeft 23 of 25 uur.
   const uur = (h) => app.klokVan(goedkoop.dagStartMs + h * 3_600_000);
   const blok = blokken.find((b) => b.tot > nuUur) ?? blokken[0];
-  const prijzen = { dal: goedkoop?.dalPrijs != null ? `€ ${getal(goedkoop.dalPrijs, 2)}` : '', normaal: goedkoop?.normaal != null ? `€ ${getal(goedkoop.normaal, 2)}` : '' };
+  const prijzen = { dal: goedkoop?.dalPrijs != null ? `${taal.valuta()} ${getal(goedkoop.dalPrijs, 2)}` : '', normaal: goedkoop?.normaal != null ? `${taal.valuta()} ${getal(goedkoop.normaal, 2)}` : '' };
   const zin = !dal.length ? t('thuis.goedkoop.geen') : !blokken.length ? t('thuis.goedkoop.vandaagNiet') : t(blok.van <= nuUur ? 'thuis.goedkoop.nu' : 'thuis.goedkoop.vanaf', { van: uur(blok.van), tot: uur(blok.tot), ...prijzen });
   const cijfer = (naam, waarde) => `<div class="dagcijfer"><span class="mini">${esc(naam)}</span><b class="getal">${waarde}</b></div>`;
-  $$('[data-dag]').forEach((box) => (box.innerHTML = `<div class="dagcijfers">${cijfer(t('thuis.verbruik.gebruikt'), s ? `${getal(s.verbruikKwh)} <small>kWh</small>` : '–')}${euroNu != null ? cijfer(t('thuis.verbruik.kosten'), `€ ${getal(euroNu, 2)}`) : ''}</div>${strook}`));
+  $$('[data-dag]').forEach((box) => (box.innerHTML = `<div class="dagcijfers">${cijfer(t('thuis.verbruik.gebruikt'), s ? `${getal(s.verbruikKwh)} <small>kWh</small>` : '–')}${euroNu != null ? cijfer(t('thuis.verbruik.kosten'), `${taal.valuta()} ${getal(euroNu, 2)}`) : ''}</div>${strook}`));
   zet('[data-opgewekt]', '');
   zet('[data-dag-zin]', zin);
   $$('[data-vandaag-tegel]').forEach((el) => (el.outerHTML = tegel({ id: 'vandaag', naam: t('thuis.kaart.vandaag'), waarde: s ? `${getal(s.verbruikKwh)} <small>kWh</small>` : '–', zin: euroNu != null ? t('thuis.verbruik.tegel', { euro: getal(euroNu, 2) }) : '' }).replace('class="ktegel', 'data-vandaag-tegel class="ktegel')));
@@ -734,7 +734,7 @@ function tekenMaand() {
     const tweede = m.zon?.zelfPct != null ? `<div><b>${getal(m.zon.zelfPct, 0)}%</b><span>${esc(t('thuis.maand.zelf'))}</span></div>` : `<div><b>${getal(m.stroom.vanNetKwh, 0)}</b><span>${esc(t('thuis.maand.vanNet'))}</span></div>`;
     const kosten = m.kosten?.totaal;
     const derde = kosten != null
-      ? `<div><b>€ ${getal(kosten, 0)}</b><span>${esc(m.kosten.vorige != null ? t('thuis.maand.gekostVorige', { vorige: m.periode?.vorigeNaam ?? t('thuis.maand.ervoor'), euro: getal(m.kosten.vorige, 0) }) : t('thuis.maand.gekost'))}</span></div>`
+      ? `<div><b>${taal.valuta()} ${getal(kosten, 0)}</b><span>${esc(m.kosten.vorige != null ? t('thuis.maand.gekostVorige', { vorige: m.periode?.vorigeNaam ?? t('thuis.maand.ervoor'), euro: getal(m.kosten.vorige, 0) }) : t('thuis.maand.gekost'))}</span></div>`
       : `<div><b>–</b><span>${esc(t('thuis.maand.prijzen'))}</span></div>`;
     html = vol(`${kaartKop('maand', titel)}<div class="maanddrie">${eerste}${tweede}${derde}</div>`);
     // De tegel: wat er deze maand opgewekt (of gebruikt) is, met de laatste dagen als balkjes.
@@ -743,7 +743,7 @@ function tekenMaand() {
       id: 'maand',
       naam: `${naam.charAt(0).toUpperCase()}${naam.slice(1)}`,
       waarde: `${getal(m.zon ? m.zon.opgewektKwh : m.stroom.verbruikKwh, 0)} <small>kWh</small>`,
-      zin: m.zon?.zelfPct != null ? t('thuis.tegel.zelf', { pct: getal(m.zon.zelfPct, 0) }) : kosten != null ? `€ ${getal(kosten, 0)}` : t(m.zon ? 'thuis.maand.opgewekt' : 'thuis.maand.gebruikt'),
+      zin: m.zon?.zelfPct != null ? t('thuis.tegel.zelf', { pct: getal(m.zon.zelfPct, 0) }) : kosten != null ? `${taal.valuta()} ${getal(kosten, 0)}` : t(m.zon ? 'thuis.maand.opgewekt' : 'thuis.maand.gebruikt'),
       beeld: dagen.length > 1 ? balkjes(dagen) : '',
     });
   }

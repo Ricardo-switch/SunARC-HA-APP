@@ -23,6 +23,7 @@ import type { Actuator, Mode, SiteConfig, Zone } from '../core/model.js';
 import type { TodayReport } from './today.js';
 import { startOfLocalDay } from './today.js';
 import { KAMERWOORDEN, lidwoordVan, metLidwoord } from './kamerwoorden.js';
+import { valutaTeken } from './valuta.js';
 
 /** Wat de assistent van een besluit nodig heeft; `LiveSnapshot` voldoet. */
 export interface DecisionView {
@@ -395,10 +396,10 @@ class Facts {
     return this.#add(bron, `${Math.round(p)}%`);
   }
 
-  /** Een bedrag: "€ 0,45". */
+  /** Een bedrag: "€ 0,45", in de valuta van het huis. */
   euro(bron: string, n: number): string {
     const s = (Math.round(n * 100) / 100).toFixed(2);
-    return this.#add(bron, `€ ${this.#lang === 'nl' ? s.replace('.', ',') : s}`);
+    return this.#add(bron, `${valutaTeken(this.#lang)} ${this.#lang === 'nl' ? s.replace('.', ',') : s}`);
   }
 
   /** Een duur in gewone woorden: "25 minuten", "1,5 uur". */
