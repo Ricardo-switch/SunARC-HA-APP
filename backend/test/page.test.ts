@@ -4400,6 +4400,8 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     });
     try {
       await p.goto(`${baseUrl}/toegang.html#versie`);
+      // Steunen (4 november 2026): een kop koffie bij Versie en op Over deze app, nooit als melding.
+      expect(await p.locator('#wand a.knop-koffie[href="https://paypal.me/sunarc"]').count()).toBe(1);
       await p.locator('#wand [data-zoek-update]').click();
       await p.locator('[data-nieuwpop]', { hasText: 'Je hebt de nieuwste versie' }).waitFor({ timeout: 8000 });
       expect(updateNu.zoek).toBe(was.zoek + 1);
@@ -4407,6 +4409,9 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
       await p.locator('#wand [data-herstart]').click();
       await p.locator('[data-herstart-pop]', { hasText: 'SunArc start opnieuw' }).waitFor({ timeout: 5000 });
       await expect.poll(() => updateNu.herstart, { timeout: 5000 }).toBe(was.herstart + 1);
+      await p.goto(`${baseUrl}/over.html`);
+      await p.locator('a.knop-koffie', { hasText: 'Trakteer op een kop koffie' }).first().waitFor();
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-over.png'), fullPage: true });
       expect(fouten).toEqual([]);
     } finally {
       await context.close();

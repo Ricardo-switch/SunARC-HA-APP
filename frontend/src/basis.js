@@ -1688,6 +1688,10 @@
       if (i === 45) $$('[data-herstart-zin]').forEach((el) => (el.textContent = global.t('basis.herstart.lang')));
     }
   }
+  /** Steunen (4 november 2026): een kop koffie via PayPal, bij Over deze app en Versie. Nooit als melding. */
+  function koffieKnop() {
+    return `<a class="knop knop-koffie" href="https://paypal.me/sunarc" target="_blank" rel="noopener">${global.iconen ? global.iconen.svg('koffie') : ''}${esc(global.t('over.koffie'))}</a>`;
+  }
   /** Een korte zin onder een knop, voor wat niet lukte. */
   function zegBijKnop(knop, tekst) {
     let zin = knop.parentElement?.querySelector('[data-knop-zin]');
@@ -1930,5 +1934,5 @@
     return Promise.resolve(false);
   }
 
-  global.app = { kanApparaatSpreken, zegMetApparaat, huisSoort, persoonlijk, $$, metLidwoord, nl, zet, esc, bijnaOp, klokVan, wanneer, LINKS, telStand, schaal, haal, deur, tijdVanDeDag, lucht, luchtVan, klok, live, start, verwachting, gebundeld, zicht, aanbellen, offline, online, inHA, volledigGekozen, zetVolledig, naarHA, zetWeergave, weergave: () => weergaveNu, zetThema, kleurVan, tekstKleur, houToegang, updateKlaar, bijwerkVenster, bijVerandering, kanInstalleren, geinstalleerd, installeer, naarHAScherm, terugknop, onthoudInrichten, vergeetInrichten, segmenten };
+  global.app = { kanApparaatSpreken, zegMetApparaat, huisSoort, persoonlijk, $$, metLidwoord, nl, zet, esc, bijnaOp, klokVan, wanneer, LINKS, telStand, schaal, haal, deur, tijdVanDeDag, lucht, luchtVan, klok, live, start, verwachting, gebundeld, zicht, aanbellen, offline, online, inHA, volledigGekozen, zetVolledig, naarHA, zetWeergave, weergave: () => weergaveNu, zetThema, kleurVan, tekstKleur, houToegang, updateKlaar, bijwerkVenster, bijVerandering, kanInstalleren, geinstalleerd, installeer, naarHAScherm, terugknop, onthoudInrichten, vergeetInrichten, segmenten, koffieKnop };
 })(window);

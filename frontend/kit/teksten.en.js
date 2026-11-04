@@ -150,6 +150,9 @@
   'voorbeeld.ingang': 'Look around an example home first',
   'voorbeeld.ingangZin': 'Everything in it and everything works: play with the buttons and slide through the day.',
   'over.bron': 'The source code is on GitHub',
+  'over.steunKop': 'Support',
+  'over.steun': 'SunArc is free. Like it? You can buy me a coffee.',
+  'over.koffie': 'Buy me a coffee',
 
   // You: the language (decision 185). Language names are in their own language.
   'jij.taal.kop': 'Language',

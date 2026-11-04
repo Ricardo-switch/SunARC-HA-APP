@@ -155,6 +155,9 @@
   'voorbeeld.ingang': 'Eerst rondkijken in een voorbeeldhuis',
   'voorbeeld.ingangZin': 'Alles erin en alles werkt: speel met de knoppen en schuif door de dag.',
   'over.bron': 'De broncode staat op GitHub',
+  'over.steunKop': 'Steunen',
+  'over.steun': 'SunArc is gratis. Blij mee? Dan kun je trakteren op een kop koffie.',
+  'over.koffie': 'Trakteer op een kop koffie',
 
   // Jij: de taal (besluit 185). De namen van de talen staan in hun eigen taal.
   'jij.taal.kop': 'Taal',

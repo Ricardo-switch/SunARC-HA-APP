@@ -13,11 +13,14 @@ en zegt bij elk besluit waarom.</p>
 </p>
 
 <p align="center">
+<a href="https://paypal.me/sunarc"><img alt="Trakteer op een kop koffie" src="https://img.shields.io/badge/Trakteer_op_een_kop_koffie-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" height="44"></a>
+</p>
+
+<p align="center">
 <img alt="Versie" src="https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FRicardo-switch%2FSunArc%2Fmain%2Faddon%2Fconfig.yaml&query=%24.version&label=add-on&color=f7b548">
 <img alt="Stadium: experimenteel" src="https://img.shields.io/badge/stadium-experimenteel-e58a3a">
 <img alt="aarch64 en amd64" src="https://img.shields.io/badge/soorten-aarch64%20%7C%20amd64-6fd3ff">
 <img alt="Licentie AGPL-3.0" src="https://img.shields.io/badge/licentie-AGPL--3.0-8f86ff">
-<a href="https://paypal.me/sunarc"><img alt="Trakteer op een kop koffie via PayPal" src="https://img.shields.io/badge/kop%20koffie-PayPal-0070ba?logo=paypal"></a>
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>Nederlands</b></p>

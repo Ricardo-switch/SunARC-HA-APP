@@ -305,6 +305,8 @@ function versieVorm() {
   return `<h2 class="kop-2">${esc(t('toegang.versieNummer', { nummer: v.nummer }))}</h2>
     <p class="klein" style="margin: 0">${gebouwd ? `${esc(t('toegang.gebouwd', { datum: gebouwd }))} ` : ''}${esc(komt)}</p>
     ${knoppen}
+    <p class="klein" style="margin: 0">${esc(t('over.steun'))}</p>
+    <div>${app.koffieKnop()}</div>
     ${nieuw ? `<h3 class="kop-3" style="margin: 6px 0 0">${esc(t('toegang.watNieuw'))}</h3>${nieuw}` : ''}
     <p class="mini" style="margin: 0">${esc(t('toegang.bouw', { commit: v.commit }))}</p>`;
 }
