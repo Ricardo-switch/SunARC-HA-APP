@@ -1134,6 +1134,38 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
   }, 50_000);
 
   /*
+   * Een oude pagina uit de opslag (4 november 2026): een geïnstalleerde app
+   * die Android terugzet, draaide de oude code door tot je de cache wiste.
+   * Nu ziet hij aan de stempel van basis.js dat hij oud is, en laadt één keer.
+   */
+  it('laadt een oude pagina uit de opslag één keer opnieuw', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    // De pagina zelf gewoon; de pagina zoals de server hem nu geeft, met een nieuwere stempel.
+    let geladen = 0;
+    await context.route(`${baseUrl}/vandaag.html`, async (route) => {
+      const res = await route.fetch();
+      if (route.request().resourceType() === 'document') {
+        geladen += 1;
+        return route.fulfill({ response: res });
+      }
+      return route.fulfill({ response: res, body: (await res.text()).replace(/basis\.js\?v=[0-9a-f]+/, 'basis.js?v=deadbeef') });
+    });
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/vandaag.html`);
+    await expect.poll(() => geladen, { timeout: 10_000 }).toBe(2);
+    // En daarna niet nog eens, ook al blijft de stempel anders.
+    await p.waitForTimeout(3000);
+    expect(geladen).toBe(2);
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 30_000);
+
+  /*
    * Dag of nacht zonder zonnestand (4 november 2026): gaf de dienst geen zon,
    * dan toonde Thuis nacht, ook om twee uur 's middags. Nu de klok.
    */

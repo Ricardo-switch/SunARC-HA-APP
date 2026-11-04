@@ -1814,7 +1814,9 @@
   /*
    * Meld een probleem (testerronde, november 2026): elke knop met
    * `data-meld-probleem`, ook in een link of kaart. melden.js laadt pas bij de
-   * eerste tik, met dezelfde stempel als dit bestand.
+   * eerste tik, zonder stempel (4 november 2026): met de stempel van dit
+   * bestand bleef een oude melden.js een jaar bewaard als alleen die veranderde.
+   * Zonder stempel vraagt de browser altijd na; ongewijzigd is dat een leeg 304.
    */
   let meldenLaden = null;
   document.addEventListener('click', (e) => {
@@ -1834,10 +1836,9 @@
     if (document.querySelector('[data-meldblad]:not([hidden])')) meldDicht();
     // Werkt nog niet vanuit Wat is er nieuw: dat blad eerst dicht.
     if (k.dataset.meldnietgoed) document.querySelectorAll('[data-nieuwpop], [data-nieuw-achter]').forEach((el) => el.remove());
-    const stempel = document.querySelector('script[src*="basis.js"]')?.getAttribute('src')?.split('?')[1];
     meldenLaden ??= new Promise((ok, fout) => {
       const s = document.createElement('script');
-      s.src = `melden.js${stempel ? `?${stempel}` : ''}`;
+      s.src = 'melden.js';
       s.onload = ok;
       s.onerror = fout;
       document.head.append(s);
@@ -1914,7 +1915,37 @@
       return null;
     }
   }
+  /*
+   * Kwam deze pagina uit de opslag van de browser (4 november 2026), zoals een
+   * geïnstalleerde app die Android terugzet, dan wist hij niet dat hij oud was:
+   * de eerste versie die hij zag, was al de nieuwe. Nu vergelijkt hij de
+   * stempel van basis.js met die in de pagina op de server; één keer per
+   * stempel, zodat hij nooit blijft herladen.
+   */
+  async function paginaOud() {
+    const eigen = document.querySelector('script[src*="basis.js"]')?.getAttribute('src')?.match(/[?&]v=([0-9a-f]+)/)?.[1];
+    if (!eigen) return false;
+    try {
+      const html = await (await fetch(location.pathname + location.search, { cache: 'no-store' })).text();
+      const daar = html.match(/basis\.js\?v=([0-9a-f]+)/)?.[1];
+      if (!daar || daar === eigen || sessionStorage.getItem('sc-herladen') === daar) return false;
+      sessionStorage.setItem('sc-herladen', daar);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  let pageNagekeken = false;
   async function kijkVersie() {
+    // Eerst of deze pagina zelf al oud is; dat hangt niet af van de commit, die soms onbekend is.
+    if (!pageNagekeken && !typt()) {
+      pageNagekeken = true;
+      if (await paginaOud()) {
+        await houToegang();
+        location.reload();
+        return;
+      }
+    }
     const v = await versieNu();
     if (!v) return;
     if (draaitNu == null) draaitNu = v;
