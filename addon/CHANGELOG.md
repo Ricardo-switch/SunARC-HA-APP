@@ -14,6 +14,7 @@
 - Energie › Prijzen: Per uur kiezen neemt de uurprijs van Home Assistant over; kent Home Assistant die nog niet, dan staat er wat er mist en welke sensor de prijs al geeft
 - Een eigen kostensensor in Home Assistant, zoals die van Tibber, telt nu ook als prijs per uur
 - Thuis en Inrichten tonen overdag dag, ook als de dienst de stand van de zon niet geeft of de panelen nog niet kent; eerst was het dan altijd nacht
+- De browsers van Browser Mod staan niet meer als lamp tussen je apparaten, ook niet bij Inrichten
 
 *English*
 
@@ -27,6 +28,7 @@
 - Energy › Prices: choosing Per hour takes over the hourly price from Home Assistant; if Home Assistant does not know it yet, it says what is missing and which sensor already gives the price
 - An own cost sensor in Home Assistant, such as the one from Tibber, now also counts as an hourly price
 - Home and Setup show day in daytime, even when the service gives no sun position or does not know the panels yet; before, it was always night then
+- Browsers from Browser Mod no longer show up as lights among your devices, also not in Setup
 
 ## 0.119.0
 

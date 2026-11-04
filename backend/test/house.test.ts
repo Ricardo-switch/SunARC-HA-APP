@@ -353,6 +353,30 @@ describe('het voorstel uit Home Assistant', () => {
     expect(house.lampenAan).toBe(4);
   });
 
+  // 4 november 2026: Browser Mod maakt per browser een lamp "Screen"; dat is geen apparaat in huis.
+  it('laat de browsers van Browser Mod weg: geen lamp, batterij of bewegingsmelder', () => {
+    const basis = states.get('cover.screen')!;
+    const metBrowser = {
+      ...registers,
+      devices: [...registers.devices, { id: 'd-browser', area_id: null, name: 'browser_mod_bc328007_57bfdab9', name_by_user: null }],
+      entities: [
+        ...registers.entities,
+        { entity_id: 'light.browser_mod_bc328007_57bfdab9_screen', device_id: 'd-browser', platform: 'browser_mod' },
+        { entity_id: 'sensor.browser_mod_bc328007_57bfdab9_browser_battery', device_id: 'd-browser', original_device_class: 'battery', platform: 'browser_mod' },
+        { entity_id: 'binary_sensor.browser_mod_bc328007_57bfdab9', device_id: 'd-browser', original_device_class: 'motion', platform: 'browser_mod' },
+      ],
+    };
+    const metStand = new Map(states);
+    metStand.set('light.browser_mod_bc328007_57bfdab9_screen', { ...basis, entity_id: 'light.browser_mod_bc328007_57bfdab9_screen', state: 'on', attributes: { friendly_name: 'browser_mod_bc328007_57bfdab9 Screen' } });
+    metStand.set('sensor.browser_mod_bc328007_57bfdab9_browser_battery', { ...basis, entity_id: 'sensor.browser_mod_bc328007_57bfdab9_browser_battery', state: '4', attributes: { unit_of_measurement: '%', device_class: 'battery' } });
+    metStand.set('binary_sensor.browser_mod_bc328007_57bfdab9', { ...basis, entity_id: 'binary_sensor.browser_mod_bc328007_57bfdab9', state: 'on', attributes: { device_class: 'motion' } });
+    const h = buildHouse(config, metBrowser, metStand, snapshot);
+    const alles = [...h.etages.flatMap((e) => e.ruimtes.flatMap((r) => r.apparaten)), ...h.zonderRuimte];
+    expect(alles.some((d) => /browser_mod/.test(`${d.id} ${d.naam}`))).toBe(false);
+    expect(h.batterijen.some((b) => /browser/.test(b.naam))).toBe(false);
+    expect(h.lampenAan).toBe(house.lampenAan);
+  });
+
   it('toont een meter in een kamer zonder regeling, met temperatuur en luchtvochtigheid', () => {
     const hal = house.etages.find((e) => e.id === 'bg')!.ruimtes.find((r) => r.naam === 'Hal')!;
     expect(hal.apparaten.map((d) => [d.soort, d.naam, d.stand])).toEqual([['meter', 'Bewegingssensor hal', '19,5° · 61%']]);

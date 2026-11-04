@@ -421,7 +421,13 @@ export const onderDrempel = (pct: number, drempel: number | null): boolean => dr
  * Koppelingen van telefoons en tablets: die laden zichzelf op, en zijn geen
  * apparaat in huis (besluit 127).
  */
-const ZELF_LADEN = new Set(['mobile_app', 'fully_kiosk']);
+const ZELF_LADEN = new Set(['mobile_app', 'fully_kiosk', 'browser_mod']);
+/**
+ * Koppelingen die een telefoon of een browser zijn, geen apparaat in huis (4
+ * november 2026): Browser Mod maakt per browser een lamp "Screen" voor de
+ * schermverlichting, en een bewegingsmelder voor wie de pagina gebruikt.
+ */
+const GEEN_HUIS = new Set(['mobile_app', 'browser_mod']);
 /**
  * Een apparaat met een van deze klassen is een thuisbatterij, een omvormer of
  * een auto: het bewaart energie, laadt, of heeft een actieradius (besluit 127).
@@ -1215,7 +1221,7 @@ function collect(
   const devices = new Map(registers.devices.map((d) => [d.id, d]));
   const sensorsOf = new Map<string, { temp?: string; hum?: string; motion?: string }>();
   for (const e of registers.entities) {
-    if (!e.device_id || e.entity_category || e.disabled_by || e.hidden_by || e.platform === 'mobile_app') continue;
+    if (!e.device_id || e.entity_category || e.disabled_by || e.hidden_by || GEEN_HUIS.has(e.platform ?? '')) continue;
     const dc = e.device_class ?? e.original_device_class ?? states.get(e.entity_id)?.attributes['device_class'];
     // Een bewegingsmelder: bij hetzelfde apparaat als de meter, of een eigen meter.
     if (e.entity_id.startsWith('binary_sensor.') && (dc === 'motion' || dc === 'occupancy' || dc === 'presence')) {
@@ -1524,7 +1530,7 @@ function collect(
 
   // Losse lampen: niet verborgen, en zelf geen groep (een groep somt lampen op die er al in staan).
   for (const e of registers.entities) {
-    if (!e.entity_id.startsWith('light.') || e.disabled_by || e.hidden_by) continue;
+    if (!e.entity_id.startsWith('light.') || e.disabled_by || e.hidden_by || GEEN_HUIS.has(e.platform ?? '')) continue;
     if (groupIds.has(e.entity_id) || zigbeeLeden.has(e.entity_id)) continue;
     const s = states.get(e.entity_id);
     const { naam: _n, haNaam: _h, zone: _z, groepen: _g, ...device } = lightOf(e.entity_id, s, '', lang);
