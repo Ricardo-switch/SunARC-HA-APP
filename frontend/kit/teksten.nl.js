@@ -2471,6 +2471,8 @@
   'kan.apparaten.wanneer.2': 'Het apparaat staat bij Regeling op zon',
   'kan.batterij': 'Thuisbatterij',
   'kan.batterij.nodig': 'Batterij nodig',
+  'kan.batterij.heeft': '{pct}% vol; SunArc kijkt mee en stuurt hem niet',
+  'kan.batterij.gevonden': 'SunArc kijkt mee en stuurt hem niet',
   'kan.batterij.som': '{kwh} kWh past, vanaf 2027 ± € {euro} per maand',
   'kan.batterij.wat': 'Zon van de middag bewaren voor de avond, in plaats van hem voor weinig aan het net te geven.',
   'kan.batterij.zo.1': 'Laden met wat de airco’s overlaten',

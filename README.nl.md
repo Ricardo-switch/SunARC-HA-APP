@@ -13,7 +13,7 @@ en zegt bij elk besluit waarom.</p>
 </p>
 
 <p align="center">
-<img alt="Versie" src="https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FRicardo-switch%2FSunARC-HA-APP%2Fmain%2Faddon%2Fconfig.yaml&query=%24.version&label=versie&color=f7b548">
+<img alt="Versie" src="https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FRicardo-switch%2FSunARC-HA-APP%2Fmain%2Faddon%2Fconfig.yaml&query=%24.version&label=add-on&color=f7b548">
 <img alt="Stadium: experimenteel" src="https://img.shields.io/badge/stadium-experimenteel-e58a3a">
 <img alt="aarch64 en amd64" src="https://img.shields.io/badge/soorten-aarch64%20%7C%20amd64-6fd3ff">
 <img alt="Licentie AGPL-3.0" src="https://img.shields.io/badge/licentie-AGPL--3.0-8f86ff">
@@ -24,50 +24,88 @@ en zegt bij elk besluit waarom.</p>
 
 <p align="center"><img src="design/app2/screens/github/nl-wand-thuis.png" alt="Thuis op een tablet aan de muur: het huis in 3D, met de zon, de panelen en per kamer de temperatuur" width="900"></p>
 
-<p align="center"><sub>Beelden uit de app, in het voorbeeldhuis. Wat de app vandaag al doet en wat nog komt, staat hieronder.</sub></p>
+<p align="center"><sub>Beelden uit de app, in het voorbeeldhuis.</sub></p>
+
+> **Je installeert één ding: de add-on.** Daarin zit de hele app en de regeling.
+> De **integratie SunArc** (de release *Assist-integratie 2.0.0 (optioneel)*) is **niet nodig**: die is er alleen om SunArc vragen te stellen via Assist van Home Assistant. De versies van de add-on zijn de releases met `0.x`.
 
 ---
 
-## Wat is het?
+## In het kort
 
-SunArc is een add-on voor Home Assistant met een eigen app voor de tablet aan de muur en voor je telefoon. Het haalt je huis uit Home Assistant (etages, kamers, apparaten, sensoren) en tekent het als een opengewerkt poppenhuis. Daarin zie je in één oogopslag wat er gebeurt: waar het warm is, wat er draait en hoeveel zon je panelen leveren.
+- **Wat het is:** een add-on voor Home Assistant met een eigen app voor de tablet aan de muur en je telefoon. Het tekent je huis als een opengewerkt poppenhuis, uit wat Home Assistant al weet.
+- **Wat het doet:** comfort per kamer, je eigen zonnestroom eerst in je eigen huis, en een helder beeld van energie en kosten. Bij elk besluit staat waarom, in gewone taal.
+- **Waar het staat:** SunArc **kijkt mee**. Het beslist en legt alles vast, maar zet je verwarming en airco's nog niet zelf aan of uit. Echt regelen komt pas na een volledige winter meekijken, met een rapport dat bewijst dat het beter doet dan je huidige regeling. Lampen, scènes, schermen en het klimaat met de hand (altijd met een eindtijd) werken al vanuit de app.
+- **Je gegevens blijven thuis.** Alles draait op je eigen Home Assistant; alleen het weerbericht wordt opgehaald.
 
-Achter de app zit een regeling die elke ronde beslist wat het huis zou moeten doen. Comfort eerst, en zon die over is, gaat naar je eigen huis voordat hij het net op gaat. Bij elk besluit staat waarom, in gewone taal.
+## Inhoud
 
-**Eerlijk over de stand van nu:** SunArc kijkt mee. Het beslist en legt alles vast, maar regelt je verwarming en airco's nog niet zelf. Echt regelen komt pas na een volledige winter meekijken, met een bewijsrapport dat het beter doet dan je huidige regeling. Daarom staat de add-on als *experimenteel*. Lampen, scènes en schermen bedien je wel al vanuit de app, en het klimaat met de hand, altijd met een eindtijd.
+- [Wat het kan](#wat-het-kan)
+- [Wat er nog niet is](#wat-er-nog-niet-is)
+- [Wat je nodig hebt](#wat-je-nodig-hebt)
+- [Installeren](#installeren)
+- [Niet nodig: SunArc vragen via Assist](#niet-nodig-sunarc-vragen-via-assist)
+- [Veilig](#veilig)
+- [Hoe het werkt](#hoe-het-werkt)
+- [Meebouwen](#meebouwen) · [Steunen](#steunen) · [Licentie](#licentie)
 
 ## Wat het kan
 
-**Je huis in één beeld**
-- Het huis in 3D, uit wat Home Assistant al weet. Je deelt het in per etage, kamer en zone.
-- Per kamer de temperatuur, wat er verwarmt of koelt, en welke sensoren meetellen.
-- Batterijen van sensoren en het filter van je airco, met een melding als het tijd is.
+In de app staat dit alles voor je eigen huis op de pagina **Wat je huis kan**: wat werkt, wat nog leert, en wat je opstelling mist voor de rest.
 
-**Comfort en zon**
-- Comfort per kamer en per dagdeel, en per bewoner: de eerste op volgorde die thuis is, bepaalt het comfort.
-- Een stroombudget per fase, zodat je hoofdzekering het houdt.
-- Wanneer de droger op zon zou starten, met een eindtijd die je zelf kiest.
-- Het weer voor vandaag en vijf dagen, met wat je panelen dan leveren. Het huis leert hoeveel zon je dak bij heldere lucht vangt.
-- **Leren:** hoe snel je huis afkoelt en verwarmt, en wat de zon erbij doet.
+### Je huis in één beeld
+- **Het huis in 3D**, uit de etages, kamers en apparaten in Home Assistant. Je deelt het in per etage, kamer en zone, voegt eigen etages toe, en zet buiten de panelen, de garage of het tuinhuis neer.
+- **Per kamer** de temperatuur, wat er verwarmt of koelt, en welke sensor telt.
+- **Batterijen en filters:** een bijna lege batterij van een sensor of een vol airco-filter staat op Thuis, met een tik naar het apparaat.
+- **Deuren en poorten** om te bekijken; open of dicht doet de app nooit.
 
-**Terugkijken**
-- **Vandaag:** de dag in de tijd, met wat het huis deed en waarom.
-- **Opbrengst** per dag, week, maand of jaar, met de prijzen van je eigen contract (normaal en dal, salderen en daarna).
-- De zonverwachting naast wat er echt kwam.
-- Geen thuisbatterij? Dan rekent de app het afgelopen jaar per uur na, met de maat die bij je huis past.
+### Comfort
+- **Comfort per kamer en per dagdeel**, zoals jij het instelt.
+- **Per bewoner:** de eerste op volgorde die thuis is, bepaalt het comfort. Iedereen logt in met een eigen account van Home Assistant.
+- **Afwezig en vakantie:** zuiniger als niemand thuis is; vakantie zet je zelf.
+- **Leert wat je fijn vindt:** tik op Thuis "te koud, goed, te warm", en het huis legt het naast de temperatuur van dat moment.
+- **Hoe je huis warmte vasthoudt:** per kamer hoe snel hij afkoelt, en wat de zon en elk apparaat doen.
+- **Verwarmen per kamer** met een thermostaat, slimme radiatorknoppen of een elektrische kachel, ook met één cv-ketel.
 
-**Bedienen en vragen**
-- Lampen, Hue-scènes en schermen, met een tik.
-- **Klimaat met de hand:** de thermostaat of een airco tot een tijd, daarna terug naar je regeling.
+### Zon
+- **Koelen en verwarmen op zon:** de airco's draaien op de stroom van je eigen panelen, als een kamer het nodig heeft.
+- **Witgoed op zon:** een droger, wasmachine of vaatwasser met starten op afstand wacht op zon, en is toch klaar op de tijd die jij kiest.
+- **Boiler en jacuzzi op zon:** ze verwarmen met wat er over is en houden een ondergrens vast, zodat er altijd warm water is.
+- **Het weer en de zon van morgen:** per uur en per dag, met wat je panelen dan naar verwachting leveren.
+- **Hoe je panelen liggen:** het huis zoekt zelf uit naar welke kant ze liggen en hoe schuin. Panelen op een garage, carport of tuinhuis tellen mee.
+- **Nooit meer dan je zekering:** een stroombudget per fase, zodat de hoofdzekering het houdt. Elke zekering van 6 tot 250 A, op één of drie fasen.
+
+### Energie en kosten
+- **Vandaag:** de dag in de tijd, met wat elk apparaat deed en waarom.
+- **Energie** per dag, week, maand of contractjaar: wat je gebruikt, wat je panelen leveren en wat het kost, met de prijzen van je eigen contract (normaal en dal, salderen en daarna). De meters komen zo uit het Energie-dashboard van Home Assistant.
+- **De zonverwachting** naast wat er echt kwam.
+- **Sluipverbruik:** elke nacht kijkt het huis wat het gebruikt als er niets draait, en zegt het als dat opvalt.
+- **Een thuisbatterij, nagerekend:** nog geen batterij? De app rekent je afgelopen jaar per uur na en laat zien welke maat past. Heb je er een? Dan zie je hoe vol hij is en wat hij doet.
+- **De auto:** hoe vol hij is en of hij laadt.
+
+### Bedienen
+- **Lampen en Hue-scènes**, per kamer, met een tik.
+- **Screens en zonneschermen:** open, dicht, of naar elke stand gesleept.
+- **Klimaat met de hand:** de thermostaat of een airco tot een tijd die jij kiest, daarna terug naar je regeling.
 - **Vast en gepland:** "elke werkdag een kwartier voor zonsondergang de screens dicht", en het huis doet het steeds.
-- Camera's per kamer, en het beeld van de deurbel als er wordt aangebeld.
-- **De assistent:** stel een vraag in je eigen woorden ("waarom wacht de zolder?"), en het huis antwoordt, hardop met de stem uit Home Assistant. Op de wand met "Hé huis", op de telefoon met de microfoon.
+- **Camera's** in de kamer waar ze hangen, en **de deurbel** met het beeld op elk scherm als er wordt aangebeld.
 
-**Van jou**
-- Alles draait in je eigen huis. Je gegevens gaan nergens heen; alleen het weerbericht wordt opgehaald.
-- Inloggen gaat met je account van Home Assistant. Elke bewoner heeft een eigen plek, en een tablet aan de muur is gewoon een scherm.
-- Een back-up van je instellingen in één klein bestand, en weer terugzetten.
-- De app spreekt Nederlands en Engels.
+### De assistent en Te doen
+- **Vraag het je huis** in je eigen woorden ("waarom wacht de zolder?"), en het antwoordt hardop met de stem uit Home Assistant.
+- **Helemaal in huis:** verstaan, de stem en het wekwoord **"Hé huis"** kunnen allemaal op je eigen Home Assistant draaien. Op de telefoon gebruik je de microfoon.
+- **Te doen:** herinneringen, het afval, je agenda's en de boodschappen bij elkaar, in een eigen tab.
+
+### Tablet aan de muur en telefoon
+- **Eén app** voor de muur en de telefoon. Elke bewoner deelt zijn Thuis één keer in, voor de telefoon en de muur tegelijk.
+- **Scherm uit als er niemand is:** met Fully Kiosk Browser op de tablet gaat het scherm uit, en weer aan als er iemand langsloopt.
+
+### Inrichten
+- **Een welkom en een inrichting van ongeveer tien minuten:** je huis groeit uit wat Home Assistant kent, en jij bevestigt wat het voorstelt.
+- **Klaarzetten in Home Assistant:** per functie een lijstje van wat Home Assistant nodig heeft, zoals een slimme meter, spraak of Fully Kiosk.
+- **Hoe ver je huis is:** één beeld van alles wat werkt, leert of nog ontbreekt.
+- **Een voorbeeldhuis** om eerst rond te kijken, waarin elke knop werkt.
+- **Een back-up** van je instellingen in één klein bestand, en weer terugzetten.
+- **Nederlands en Engels.**
 
 <table>
 <tr>
@@ -88,39 +126,38 @@ Achter de app zit een regeling die elke ronde beslist wat het huis zou moeten do
 </tr>
 </table>
 
-## Wat er nog komt
+## Wat er nog niet is
 
 - **Echt regelen** van verwarming en airco's, na een winter meekijken met dertig winterdagen bewijs.
 - Wat het huis deze winter leert over je cv en ventilatie, in de regeling zelf.
+- **Een thuisbatterij of laadpaal sturen.** SunArc laat ze zien, maar stuurt ze niet.
+- **Goedkope uren** met een dynamisch contract: koelen, verwarmen en wassen naar de goedkoopste uren schuiven.
 
-Een thuisbatterij en een laadpaal laat SunArc zien, maar stuurt het niet zelf.
+## Wat je nodig hebt
+
+- **Home Assistant met add-ons:** Home Assistant OS of Supervised, op een Raspberry Pi of een gewone pc (aarch64 of amd64).
+- **Je eigen apparaten, van elk merk.** SunArc werkt met wat je huis heeft: een airco, een thermostaat, radiatorknoppen, een slimme meter, zonnepanelen, lampen, screens. Het doet wat jouw opstelling toelaat, en **Wat je huis kan** zegt wat er voor de rest mist.
+- Voor het beste resultaat: een **slimme meter** die het vermogen van nu geeft (P1, liefst lokaal), en **ruimtes (gebieden)** in Home Assistant.
 
 ## Installeren
-
-Je hebt Home Assistant met add-ons nodig (Home Assistant OS of Supervised), op een Raspberry Pi of een gewone pc (aarch64 of amd64).
 
 1. Tik op de knop **Voeg de repository toe** hierboven. Of ga naar **Instellingen → Add-ons → Add-on store**, kies rechtsboven de drie puntjes → **Repositories**, en voeg toe:
    ```
    https://github.com/Ricardo-switch/SunARC-HA-APP
    ```
-   Voegde je hem vóór 1 november 2026 toe met de oude naam `hems-climate`? Laat hem dan staan: GitHub stuurt het oude adres door, en opnieuw toevoegen maakt er voor Home Assistant een andere add-on van.
 2. Kies **SunArc** → **Installeren**, en daarna **Starten**. Zet **In zijbalk tonen** aan.
-3. Open SunArc in de zijbalk. Een nieuw huis begint met een welkom: je huis groeit uit wat Home Assistant kent, en met één knop ga je inrichten. Dat duurt ongeveer tien minuten.
+3. Open SunArc in de zijbalk. Een nieuw huis begint met een welkom, en met één knop ga je inrichten.
 
-Updates komen via Home Assistant. Zet op de add-on-pagina **Automatisch bijwerken** aan als dat vanzelf moet. Wat er in elke versie nieuw is, staat bij de [releases](https://github.com/Ricardo-switch/SunARC-HA-APP/releases) en in de add-on zelf.
+Meer heb je niet nodig. Updates komen via Home Assistant; zet op de add-on-pagina **Automatisch bijwerken** aan als dat vanzelf moet. Wat er in elke versie nieuw is, staat bij de [releases](https://github.com/Ricardo-switch/SunARC-HA-APP/releases) en in de add-on zelf.
 
-### Assist vraagt SunArc
+## Niet nodig: SunArc vragen via Assist
 
-Wil je SunArc ook vragen via Assist van Home Assistant ("waarom draait de zolder?", "wat doe je nu?"), dan heb je de integratie **SunArc** nodig. Geen YAML: de add-on meldt zich vanzelf aan.
+De app heeft een eigen assistent, dus dit hoeft niet. Alleen als je SunArc ook wilt vragen via **Assist** van Home Assistant ("waarom draait de zolder?", "wat doe je nu?"), zet je de kleine integratie **SunArc** erbij. Geen YAML: de add-on meldt zich vanzelf aan.
 
 - **Zonder HACS:** open SunArc → **Instellingen → Bewoners en toegang → Sleutel voor de assistent** en tik op **Zet de integratie in Home Assistant**. Herstart daarna Home Assistant.
-- **Met HACS:** kies in HACS de drie puntjes → **Eigen repositories**, voeg `https://github.com/Ricardo-switch/SunARC-HA-APP` toe als **Integratie**, installeer **SunArc** en herstart Home Assistant.
+- **Met HACS:** kies in HACS de drie puntjes → **Eigen repositories**, voeg `https://github.com/Ricardo-switch/SunARC-HA-APP` toe als **Integratie**, installeer **SunArc** en herstart Home Assistant. HACS installeert alleen deze integratie; de add-on komt altijd uit de add-on-winkel.
 
-HACS installeert alleen deze kleine koppeling voor Assist. De add-on zelf komt altijd uit de add-on-winkel, zoals in de stappen hierboven.
-
-Home Assistant toont dan **Nieuw apparaat gevonden: SunArc**; klik op **Toevoegen**. Dat doe je één keer: een update van SunArc vraagt daarna geen herstart, want de zinnen en de antwoorden komen uit de add-on. De integratie heeft een eigen versie, die alleen omhoog gaat als hij zelf verandert.
-
-Werkt het met jouw apparaten? SunArc werkt met wat je huis heeft. Een airco, een thermostaat, een slimme meter, panelen van elk merk: het doet wat jouw opstelling toelaat, en zegt bij **Wat je huis kan** wat het daardoor (nog) niet kan.
+Home Assistant toont dan **Nieuw apparaat gevonden: SunArc**; klik op **Toevoegen**. Dat doe je één keer. De integratie heeft een eigen versie (2.0.0), die alleen omhoog gaat als de integratie zelf verandert; een update van SunArc vraagt geen herstart, want de zinnen en de antwoorden komen uit de add-on.
 
 ## Veilig
 

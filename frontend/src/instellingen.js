@@ -93,7 +93,9 @@ function feitenVan(id) {
       // Een ligging die je bij Inrichten bevestigde, telt ook (30 oktober 2026: "Klopt" gaf hier toch "nog kiezen").
       const lig = ['bevestigd', 'configuratie'].includes(a?.ligging?.stand) ? a.ligging.nu : null;
       const panelen = aantal ? (a.antwoorden.panelen.ligging === 'beide' ? t('instellingen.tweeKanten', { n: aantal }) : `${aantal}`) : (a?.configuratie?.panelen ?? []).length ? t('instellingen.vlakken', { n: a.configuratie.panelen.length }) : lig ? (lig.vermogenKort ?? lig.vermogen ?? lig.richting ?? null) : null;
-      const z = a?.antwoorden?.zekering ?? a?.configuratie?.zekering;
+      // "Weet ik niet" is geen zekering: dan die uit de configuratie, of nog kiezen.
+      const zAntwoord = a?.antwoorden?.zekering;
+      const z = (zAntwoord && zAntwoord !== 'weetniet' ? zAntwoord : null) ?? a?.configuratie?.zekering ?? null;
       return [
         [t('instellingen.panelen'), panelen, !a ? '…' : t('instellingen.nogKiezen')],
         [t('instellingen.zekering'), z ? `${z.fasen} × ${z.ampere} A` : null, !a ? '…' : t('instellingen.nogKiezen')],

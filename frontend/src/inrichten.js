@@ -1317,13 +1317,16 @@ function liggingStap() {
 }
 
 /* De zekering zoals de schets: eerst de fasen, dan de ampère in een vak (besluit 146). */
-const AMPERES = [16, 20, 25, 35, 40, 50, 63, 80];
+// 32 A is in België gewoon; een andere waarde vul je zelf in, net als bij Energie.
+const AMPERES = [16, 20, 25, 32, 35, 40, 50, 63, 80];
+let zekeringZelf = false;
 function zekeringStap() {
   const a = antwoorden();
   const zek = a.zekering && a.zekering !== 'weetniet' ? a.zekering : null;
   const ampere = zek?.ampere ?? null;
   const lijst = ampere != null && !AMPERES.includes(ampere) ? [...AMPERES, ampere].sort((x, y) => x - y) : AMPERES;
-  const keuze = `<select class="veld" data-ampere aria-label="${esc(t('inr.zekAmpere'))}" ${zek ? '' : 'disabled'}>${zek ? '' : `<option value="">${esc(t('inr.eerstFasen'))}</option>`}${lijst.map((x) => `<option value="${x}" ${x === ampere ? 'selected' : ''}>${x} A</option>`).join('')}</select>`;
+  const zelf = zek && zekeringZelf;
+  const keuze = `<select class="veld" data-ampere aria-label="${esc(t('inr.zekAmpere'))}" ${zek ? '' : 'disabled'}>${zek ? '' : `<option value="">${esc(t('inr.eerstFasen'))}</option>`}${lijst.map((x) => `<option value="${x}" ${x === ampere && !zelf ? 'selected' : ''}>${x} A</option>`).join('')}<option value="anders" ${zelf ? 'selected' : ''}>${esc(t('energie.anders'))}</option></select>${zelf ? `<input class="veld" type="number" inputmode="numeric" min="6" max="250" step="1" data-ampere-zelf value="${ampere ?? ''}" aria-label="${esc(t('inr.zekAmpere'))}">` : ''}`;
   return {
     waar: waarVan('zekering'),
     kop: t('inr.zekKop'),
@@ -2469,10 +2472,21 @@ document.addEventListener('change', async (e) => {
     if (el.value === '-') next.verborgen = [...new Set([...(next.verborgen ?? []), el.dataset.plek])];
     else next.apparaten[el.dataset.plek] = { ...(next.apparaten[el.dataset.plek] ?? {}), kamer: el.value, zone: null };
     await bewaarIndeling(next);
+  } else if (el.hasAttribute('data-ampere') && el.value === 'anders') {
+    zekeringZelf = true;
+    teken();
   } else if (el.hasAttribute('data-ampere') && el.value) {
     const a = antwoorden();
     if (!a.zekering || a.zekering === 'weetniet') return;
+    zekeringZelf = false;
     a.zekering = { ...a.zekering, ampere: Number(el.value) };
+    await bewaarAansluiting(a);
+  } else if (el.hasAttribute('data-ampere-zelf')) {
+    const a = antwoorden();
+    const ampere = Number(el.value);
+    if (!a.zekering || a.zekering === 'weetniet' || !Number.isInteger(ampere) || ampere < 6 || ampere > 250) return;
+    zekeringZelf = false;
+    a.zekering = { ...a.zekering, ampere };
     await bewaarAansluiting(a);
   } else if (el.hasAttribute('data-inr-thermostaat')) {
     const a = antwoorden();
