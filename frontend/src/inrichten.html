@@ -370,6 +370,9 @@
   #wand { position: relative; }
   #wand .welkom-groot { position: absolute; inset: 0; overflow: hidden; }
   /* Het logo voluit (1 november 2026), zoals bij Over deze app. */
+  .welkom-groot .wk-sluit { position: absolute; top: 22px; right: 26px; z-index: 5; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgb(var(--wit) / 0.08); color: var(--zacht); font-size: 20px; text-decoration: none; }
+  .welkom-groot .wk-sluit:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
+  #tel .welkom-groot .wk-sluit { top: calc(14px + env(safe-area-inset-top)); right: 16px; }
   .welkom-groot .wk-merk { display: flex; align-items: center; gap: 18px; color: var(--tekst); }
   .welkom-groot .wk-merk img { width: 112px; height: auto; display: block; }
   .welkom-groot .wk-woord { display: block; font-family: var(--kop); font-weight: 700; font-size: 46px; letter-spacing: -0.04em; line-height: 1; }

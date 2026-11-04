@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.121.1
+
+*4 november 2026*
+
+**Opgelost**
+
+- Het grote welkom van Inrichten heeft weer een kruisje rechtsboven, naar Thuis
+
+*English*
+
+**Fixed**
+
+- The big welcome of Setup has a close button at the top right again, back to Home
+
 ## 0.121.0
 
 *4 november 2026*

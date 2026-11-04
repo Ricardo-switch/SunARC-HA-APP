@@ -360,12 +360,14 @@ function welkomSkelet(tel) {
   const terug = `<a class="wk-terug" href="toegang.html">${esc(t('inr.wk.backup'))}</a>`;
   // Het logo voluit (1 november 2026): het teken, de naam en wat ARC betekent.
   const merk = `<span class="wk-merk"><img src="kit/merk.svg" alt=""><span><span class="wk-woord">SunArc</span><span class="wk-arc">${t('over.arc')}</span></span></span>`;
+  // Ook bij het welkom een kruisje (4 november 2026): de balk met het kruisje staat hier niet.
+  const sluit = `<a class="wk-sluit" href="thuis.html" aria-label="${esc(t('inr.sluiten'))}"><span aria-hidden="true">×</span></a>`;
   if (tel) {
-    return `${merk}<div class="wk-podium" data-wk-podium aria-hidden="true"></div><div class="wk-getallen" data-wk-getallen></div>
+    return `${sluit}${merk}<div class="wk-podium" data-wk-podium aria-hidden="true"></div><div class="wk-getallen" data-wk-getallen></div>
       <div class="wk-tekst">${woorden}</div>
       <div class="wk-doen">${begin}${voorbeeldRegel()}<div class="wk-onder"><span>${esc(t('inr.telStappen', { n: STAPPEN.length }))}</span>${terug}</div></div>`;
   }
-  return `<div class="wk-podium" data-wk-podium aria-hidden="true"></div><svg class="wk-lijn" data-wk-lijn aria-hidden="true"></svg><div class="wk-labels" data-wk-labels></div>
+  return `${sluit}<div class="wk-podium" data-wk-podium aria-hidden="true"></div><svg class="wk-lijn" data-wk-lijn aria-hidden="true"></svg><div class="wk-labels" data-wk-labels></div>
     <div class="wk-links">${merk}<div class="wk-midden">${woorden}<div class="wk-doen">${begin}${terug}</div>${voorbeeldRegel()}</div><span class="wk-voet">${esc(t('inr.wk.voet', { n: STAPPEN.length }))}</span></div>
     <div class="glas wk-zoekt" data-wk-zoekt aria-live="polite"><i aria-hidden="true"></i><span></span></div>`;
 }

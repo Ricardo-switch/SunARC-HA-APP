@@ -2049,6 +2049,9 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await welkom.locator('h1', { hasText: 'Welkom' }).waitFor({ timeout: 10_000 });
     await welkom.locator('.wk-label[data-lijst="apparaten"]').waitFor({ timeout: 10_000 });
     expect(await p.locator('#wand .bovenbalk').isVisible()).toBe(false);
+    // Ook hier een kruisje naar Thuis (4 november 2026): de balk met het kruisje staat er niet.
+    expect(await welkom.locator('.wk-sluit').isVisible()).toBe(true);
+    expect(await welkom.locator('.wk-sluit').getAttribute('href')).toBe('thuis.html');
     await p.waitForTimeout(800);
     // Acht hoofdstukken met hun stappen (besluit 190).
     expect(await p.locator('#wand [data-stappen] .stap').count()).toBe(8);
