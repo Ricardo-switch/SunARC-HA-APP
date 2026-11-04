@@ -13,11 +13,14 @@ and explains every decision it makes.</p>
 </p>
 
 <p align="center">
+<a href="https://paypal.me/sunarc"><img alt="Buy me a coffee" src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" height="44"></a>
+</p>
+
+<p align="center">
 <img alt="Version" src="https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FRicardo-switch%2FSunArc%2Fmain%2Faddon%2Fconfig.yaml&query=%24.version&label=add-on&color=f7b548">
 <img alt="Stage: experimental" src="https://img.shields.io/badge/stage-experimental-e58a3a">
 <img alt="aarch64 and amd64" src="https://img.shields.io/badge/arch-aarch64%20%7C%20amd64-6fd3ff">
 <img alt="License AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-8f86ff">
-<a href="https://paypal.me/sunarc"><img alt="Buy me a coffee via PayPal" src="https://img.shields.io/badge/buy%20me%20a%20coffee-PayPal-0070ba?logo=paypal"></a>
 </p>
 
 <p align="center"><b>English</b> · <a href="README.nl.md">Nederlands</a></p>
@@ -159,7 +162,9 @@ The app has its own assistant, so this is not needed. Only if you also want to a
 - **Without HACS:** open SunArc → **Settings → Residents and access → Key for the assistant** and tap **Put the integration in Home Assistant**. Then restart Home Assistant.
 - **With HACS:** in HACS choose the three dots → **Custom repositories**, add `https://github.com/Ricardo-switch/SunArc` as an **Integration**, install **SunArc** and restart Home Assistant. HACS installs only this integration; the add-on always comes from the add-on store.
 
-Home Assistant then shows **New device discovered: SunArc**; click **Add**. You do this once. The integration has its own version (2.0.0), which only goes up when the integration itself changes; SunArc updates need no restart, because the sentences and answers come from the add-on.
+Home Assistant then shows **New device discovered: SunArc**; click **Add**. You do this once. The integration has its own version (2.0.1), which only goes up when the integration itself changes; SunArc updates need no restart, because the sentences and answers come from the add-on.
+
+**What it writes:** the integration creates one file per language in your Home Assistant configuration folder, `custom_sentences/<language>/sunarc.yaml`, with the Assist sentences for your rooms. It refreshes that file from the add-on every 30 minutes, and removes it when you remove the integration. It touches no other file.
 
 ## Safe
 

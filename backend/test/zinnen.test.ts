@@ -8,7 +8,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 import { describe, expect, it } from 'vitest';
 
-import { INTENTIE, kamerlijst, zinnenNl, zinnenVoor } from '../src/web/zinnen.js';
+import { INTENTIE, INTENTIE_OUD, intentieVoor, kamerlijst, zinnenNl, zinnenVoor } from '../src/web/zinnen.js';
 
 const KAMERS = [
   { id: 'woonkamer', naam: 'Woonkamer', woorden: ['keuken', 'zithoek'] },
@@ -62,5 +62,14 @@ describe('de zinnen voor Assist (besluit 184)', () => {
       // Op Windows kan git CRLF neerzetten; de inhoud telt.
       expect((await readFile(pad, 'utf-8')).replace(/\r\n/g, '\n')).toBe(tekst);
     }
+  });
+});
+
+describe('de naam van de intentie (4 november 2026)', () => {
+  it('geeft de nieuwe naam aan een integratie vanaf 2.0.1, en de oude aan een oudere', () => {
+    expect(INTENTIE).toBe('SunArcVraag');
+    expect([null, '', '2.0.0', '1.9.9', 'onzin'].map(intentieVoor)).toEqual(Array(5).fill(INTENTIE_OUD));
+    expect(['2.0.1', '2.0.10', '2.1.0', '3.0.0'].map(intentieVoor)).toEqual(Array(4).fill(INTENTIE));
+    expect(Object.keys((zinnenVoor('nl', KAMERS, INTENTIE_OUD) as { intents: object }).intents)).toEqual([INTENTIE_OUD]);
   });
 });

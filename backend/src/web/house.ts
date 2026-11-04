@@ -34,6 +34,7 @@ import { roomStatus, withArticle, type DecisionView, type Lang, type RoomKind } 
 import {
   OUTSIDE_FLOOR,
   ROOM_TYPES,
+  STANDARD_FLOORS,
   carryOver,
   floorName,
   floorOrder,
@@ -1711,23 +1712,32 @@ export function proposeLayout(
 ): Layout {
   const { found, areaOf } = collect(config, registers, states, null);
   const floorById = new Map(registers.floors.map((f) => [f.floor_id, f]));
+  /*
+   * Elk niveau zijn eigen etage (testerronde, november 2026): eerst werd alles
+   * vanaf niveau 2 de tweede verdieping, en zag een huis met een zolder op
+   * niveau 3 er een etage te weinig. Onder de begane grond is de kelder
+   * (besluit 187). Een etage zonder niveau krijgt een eigen id met zijn naam.
+   */
+  const ownIds = new Set<string>();
+  const floorId = (f: HaFloor): FloorId => {
+    if (f.level != null) return f.level < 0 ? 'kelder' : (['bg', 'e1', 'e2', 'e3'][f.level] ?? `e${Math.min(f.level, 99)}`);
+    const id = slug(`etage-${f.floor_id || f.name}`, ownIds);
+    ownIds.add(id);
+    return id;
+  };
+  const idPerFloor = new Map(registers.floors.map((f) => [f.floor_id, floorId(f)]));
   const floorOf = (area: HaArea): FloorId => {
     // Een tuin of oprit is buiten, ook als Home Assistant hem op de begane grond zet.
     if (OUTSIDE.test(area.name)) return 'buiten';
     const f = area.floor_id ? floorById.get(area.floor_id) : undefined;
-    // Onder de begane grond is de kelder (besluit 187): de tekening gaat nu onder
-    // de grond (eerst bleef een kelder bij de begane grond, besluit 119). Hoger
-    // dan de eerste verdieping is de tweede.
-    if (f && f.level != null) return f.level < 0 ? 'kelder' : f.level === 0 ? 'bg' : f.level === 1 ? 'e1' : 'e2';
-    return 'bg';
+    return f ? idPerFloor.get(f.floor_id)! : 'bg';
   };
 
-  // De naam van een etage komt van de etage op precies dat niveau; een "Dak" op
-  // niveau 3 geeft de tweede verdieping geen naam.
+  // De naam van een etage komt van de etage in Home Assistant; de eerste op een niveau telt.
   const etages: Partial<Record<FloorId, string>> = {};
-  for (const [id, level] of [['bg', 0], ['e1', 1], ['e2', 2]] as const) {
-    const f = registers.floors.find((x) => x.level === level && x.name.trim() !== '');
-    if (f) etages[id] = f.name.trim();
+  for (const f of registers.floors) {
+    const id = idPerFloor.get(f.floor_id)!;
+    if (f.name.trim() !== '' && etages[id] == null) etages[id] = f.name.trim().slice(0, 40);
   }
 
   const zoneArea = new Map<string, string>();
@@ -1754,7 +1764,33 @@ export function proposeLayout(
     if (zone) claimed.add(zone.id);
     kamers.push({ id, naam: area.name.trim(), etage: floorOf(area), zones: [], regelzone: zone?.id ?? null, haGebied: area.area_id });
   }
-  return { versie: 1, etages, kamers, apparaten: {} };
+  // Een etage buiten de vaste vijf (een derde verdieping en hoger, of zonder niveau): dan een eigen volgorde.
+  const volgorde = floorOrderFrom(kamers, registers.floors, idPerFloor);
+  // Alleen namen van etages die er echt in staan: een naam bij een lege etage maakt de indeling ongeldig zodra er een volgorde komt.
+  const inHuis = new Set(floorOrder({ ...(volgorde ? { volgorde } : {}), kamers }));
+  const eigenNamen = Object.fromEntries(Object.entries(etages).filter(([id]) => inHuis.has(id)));
+  return { versie: 1, ...(volgorde ? { volgorde } : {}), etages: eigenNamen, kamers, apparaten: {} };
+}
+
+/**
+ * De volgorde van boven naar beneden als een kamer op een etage buiten de vaste
+ * vijf staat, of null. Op niveau; een etage zonder niveau bovenaan als hij op
+ * een zolder lijkt, onderaan als hij op een kelder lijkt, en anders boven de
+ * begane grond.
+ */
+function floorOrderFrom(kamers: readonly LayoutRoom[], floors: readonly HaFloor[], idPerFloor: ReadonlyMap<string, FloorId>): FloorId[] | null {
+  const used = new Set(kamers.map((k) => k.etage).filter((e) => e !== 'buiten'));
+  if ([...used].every((id) => STANDARD_FLOORS.some((s) => s.id === id))) return null;
+  const rang = (id: FloorId): number => {
+    if (id === 'kelder') return -1;
+    if (id === 'bg') return 0;
+    const n = /^e(\d+)$/.exec(id);
+    if (n) return Number(n[1]);
+    const f = floors.find((x) => idPerFloor.get(x.floor_id) === id);
+    const naam = f?.name ?? id;
+    return /zolder|vliering|attic|loft|dak|roof/i.test(naam) ? 1000 : /kelder|souterrain|basement|cellar/i.test(naam) ? -2 : 0.5;
+  };
+  return [...new Set(['e2', 'e1', 'bg', ...used])].sort((a, b) => rang(b) - rang(a)).slice(0, 10);
 }
 
 /**

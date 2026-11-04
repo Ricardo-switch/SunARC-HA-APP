@@ -130,7 +130,7 @@ import type { HouseBattery, HouseReport } from '../src/web/house.js';
 /** Schermopdrachten die de nagemaakte Home Assistant kreeg (besluit 121). */
 const coverCalls: string[] = [];
 /** Bijwerken vanuit de app (21 oktober 2026): of er een versie klaarstaat, en hoe vaak er op Bijwerken getikt is. */
-const updateNu = { klaar: false, installeer: 0 };
+const updateNu = { klaar: false, installeer: 0, zoek: 0, herstart: 0 };
 let meldingenStore: MeldingenStore;
 /** Batterijen die een test erbij zet (besluit 122); leeg is: wat het huis zegt. */
 let extraBatterijen: HouseBattery[] = [];
@@ -384,6 +384,15 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
               updateNu.installeer += 1;
               return { ok: true };
             },
+            // Zoeken naar updates (testerronde, november 2026): telt alleen.
+            zoek: async () => {
+              updateNu.zoek += 1;
+              return { ok: true };
+            },
+          },
+          // Opnieuw starten (testerronde, november 2026): telt alleen.
+          herstart: () => {
+            updateNu.herstart += 1;
           },
           // Thuis naar eigen smaak (besluit 162): kaarten en favorieten, in de tijdelijke map.
           voorkeuren: new VoorkeurenStore(dir),
@@ -1929,6 +1938,17 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     expect(await kaart.locator('[data-schuifkamer]').count()).toBe(2);
     expect(await p.locator('#wand [data-podium="wand"] .sc-tik').count()).toBeGreaterThan(0);
     await shot('huis');
+    // Een etage erbij (testerronde, november 2026): eerst kon dat pas later bij Indeling.
+    await kaart.locator('[data-inr-etage-open]').click();
+    await kaart.locator('[data-inr-etage="e3"]').click();
+    await kaart.locator('.etagekop', { hasText: '3e verdieping' }).waitFor({ timeout: 5000 });
+    expect(await kaart.locator('.zacht', { hasText: 'Nog geen kamers' }).count()).toBe(1);
+    // Weer zonder eigen volgorde, zodat de tests hierna het gewone huis zien.
+    const metDak = (await (await fetch(`${baseUrl}/api/indeling`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json()) as { indeling: Record<string, unknown> };
+    const { volgorde: _v, ...zonderDak } = metDak.indeling;
+    await fetch(`${baseUrl}/api/indeling`, { method: 'POST', headers: { cookie: `hems_sessie=${sessionId}`, origin: baseUrl, 'content-type': 'application/json' }, body: JSON.stringify(zonderDak) });
+    await p.reload();
+    await kaart.locator('h1', { hasText: 'Klopt de indeling?' }).waitFor();
     // Onderaan overal Terug, Later en Volgende; Volgende bewaart het voorstel als eigen indeling.
     expect(await kaart.locator('[data-terug]').count()).toBe(1);
     expect(await kaart.locator('[data-later]').count()).toBe(1);
@@ -4357,6 +4377,45 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-batterij.png') });
     expect(fouten).toEqual([]);
     await context.close();
+  }, 30_000);
+
+  /*
+   * Zoeken naar updates en opnieuw starten (testerronde, november 2026): bij
+   * Versie, voor de beheerder. Zoeken geeft daarna hetzelfde venster als de
+   * melding; opnieuw starten een venster met even geduld.
+   */
+  it('zoekt naar updates en start opnieuw vanuit Versie', async () => {
+    const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    const was = { zoek: updateNu.zoek, herstart: updateNu.herstart };
+    // Zoeken staat er alleen in de add-on; deze dienst draait als server.
+    await context.route(`${baseUrl}/api/versie`, async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({ response: res, json: { ...((await res.json()) as object), installatie: 'add-on' } });
+    });
+    try {
+      await p.goto(`${baseUrl}/toegang.html#versie`);
+      // Steunen (4 november 2026): een kop koffie bij Versie en op Over deze app, nooit als melding.
+      await p.locator('#wand a.knop-koffie[href="https://paypal.me/sunarc"]').waitFor({ timeout: 8000 });
+      await p.locator('#wand [data-zoek-update]').click();
+      await p.locator('[data-nieuwpop]', { hasText: 'Je hebt de nieuwste versie' }).waitFor({ timeout: 8000 });
+      expect(updateNu.zoek).toBe(was.zoek + 1);
+      await p.locator('[data-nieuw-dicht]').click();
+      await p.locator('#wand [data-herstart]').click();
+      await p.locator('[data-herstart-pop]', { hasText: 'SunArc start opnieuw' }).waitFor({ timeout: 5000 });
+      await expect.poll(() => updateNu.herstart, { timeout: 5000 }).toBe(was.herstart + 1);
+      await p.goto(`${baseUrl}/over.html`);
+      await p.locator('a.knop-koffie', { hasText: 'Trakteer op een kop koffie' }).first().waitFor();
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-over.png'), fullPage: true });
+      expect(fouten).toEqual([]);
+    } finally {
+      await context.close();
+    }
   }, 30_000);
 
   /*

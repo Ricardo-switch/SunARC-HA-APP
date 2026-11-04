@@ -351,6 +351,13 @@ a.knop {
 a.knop:not(.knop-licht) {
   color: inherit;
 }
+/* Een kop koffie (4 november 2026): warm, maar geen hoofdknop. */
+.knop-koffie {
+  gap: 8px;
+  background: rgba(247, 181, 72, 0.14);
+  border-color: rgba(247, 181, 72, 0.45);
+}
+.knop-koffie svg { width: 20px; height: 20px; flex: none; }
 /* De hoofdknop, in je eigen kleur (besluit 181). */
 .knop-licht {
   background: var(--accent);

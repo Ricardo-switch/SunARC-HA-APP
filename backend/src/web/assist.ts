@@ -7,7 +7,7 @@
  * erin. Geen entiteiten: alleen woorden.
  */
 
-import { zinnenVoor } from './zinnen.js';
+import { INTENTIE, zinnenVoor } from './zinnen.js';
 import type { SiteConfig } from '../core/model.js';
 import type { HouseReport } from './house.js';
 
@@ -37,7 +37,7 @@ export const alsWoord = (s: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
-export function assistKamers(config: SiteConfig, huis: HouseReport | null, versie: string | null): AssistInfo {
+export function assistKamers(config: SiteConfig, huis: HouseReport | null, versie: string | null, intentie: string = INTENTIE): AssistInfo {
   const ruimtes = (huis?.etages ?? []).flatMap((e) => e.ruimtes);
   const kamers = config.zones.map((z) => {
     const naam = alsWoord(z.name);
@@ -51,5 +51,5 @@ export function assistKamers(config: SiteConfig, huis: HouseReport | null, versi
     return { id: z.id, naam: z.name, woorden: [...woorden].sort() };
   });
   // Een bestand per taal (besluit 185): Assist in het Engels herkent dan ook Engelse zinnen.
-  return { naam: 'SunArc', versie, talen: ['nl', 'en'], kamers, zinnen: { nl: zinnenVoor('nl', kamers), en: zinnenVoor('en', kamers) } };
+  return { naam: 'SunArc', versie, talen: ['nl', 'en'], kamers, zinnen: { nl: zinnenVoor('nl', kamers, intentie), en: zinnenVoor('en', kamers, intentie) } };
 }

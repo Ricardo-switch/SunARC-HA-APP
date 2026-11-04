@@ -95,6 +95,14 @@
   'basis.versie.bijgewerkt': 'Bijgewerkt',
   'basis.versie.watNieuw': 'Wat is er nieuw in {versie}',
   'basis.versie.alle': 'Alle versies',
+  'basis.versie.zoek': 'Zoek naar updates',
+  'basis.versie.zoekt': 'Zoeken…',
+  'basis.herstart': 'Herstart SunArc',
+  'basis.herstart.kop': 'SunArc start opnieuw',
+  'basis.herstart.zin': 'Even geduld, dat duurt ongeveer een halve minuut. Deze pagina laadt vanzelf.',
+  'basis.herstart.lang': 'Het duurt langer dan gewoonlijk. Kijk in Home Assistant bij Instellingen › Add-ons › SunArc of hij draait.',
+  'toegang.zoekZin': 'SunArc zoekt elke drie uur zelf naar een nieuwe versie; met de knop meteen. Een keuze bij Energie gaat pas in na een nieuwe start.',
+  'toegang.herstartZin': 'Een keuze bij Energie gaat pas in na een nieuwe start.',
 
   // Het menu
   'nav.hoofdmenu': 'Hoofdmenu',
@@ -147,6 +155,9 @@
   'voorbeeld.ingang': 'Eerst rondkijken in een voorbeeldhuis',
   'voorbeeld.ingangZin': 'Alles erin en alles werkt: speel met de knoppen en schuif door de dag.',
   'over.bron': 'De broncode staat op GitHub',
+  'over.steunKop': 'Steunen',
+  'over.steun': 'SunArc is gratis. Blij mee? Dan kun je trakteren op een kop koffie.',
+  'over.koffie': 'Trakteer op een kop koffie',
 
   // Jij: de taal (besluit 185). De namen van de talen staan in hun eigen taal.
   'jij.taal.kop': 'Taal',
@@ -3330,6 +3341,9 @@
   'inr.samenvoegen': 'Samenvoegen met…',
   'inr.nogEens': 'Tik nog eens om weg te halen',
   'inr.plusKamer': '+ Kamer',
+  'inr.plusEtage': '+ Etage',
+  'inr.etageLeeg': 'Nog geen kamers; kies deze etage bij + Kamer.',
+  'inr.etageBovenaan': 'Bovenaan erbij',
   'inr.kantoor': 'Naam, bijvoorbeeld Kantoor',
   'inr.nieuweNaam': 'Naam van de nieuwe kamer',
   'inr.huisKop': 'Klopt de indeling?',

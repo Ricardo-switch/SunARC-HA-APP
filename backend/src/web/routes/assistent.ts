@@ -32,6 +32,7 @@ import { functiesVoorstel, volledig } from '../functies.js';
 import { sendJson } from '../http.js';
 import { taalVan, type Diensten, type Verzoek } from '../diensten.js';
 import { kostenDezeMaand } from './opbrengst.js';
+import { intentieVoor } from '../zinnen.js';
 
 /** De routes van dit onderwerp; waar als het verzoek hier is afgehandeld. */
 export async function assistentRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
@@ -117,7 +118,8 @@ export async function assistentRoutes(d: Diensten, v: Verzoek): Promise<boolean>
       sendJson(res, 503, { wachten: 'nog geen installatie ingesteld' });
       return true;
     }
-    sendJson(res, 200, assistKamers(config, d.options.house?.() ?? null, d.options.version?.nummer ?? null));
+    // De integratie zegt haar versie (sinds 2.0.1); een oudere krijgt de zinnen onder de oude intentienaam.
+    sendJson(res, 200, assistKamers(config, d.options.house?.() ?? null, d.options.version?.nummer ?? null, intentieVoor(url.searchParams.get('integratie'))));
     return true;
   }
 

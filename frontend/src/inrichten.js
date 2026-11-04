@@ -156,7 +156,10 @@ async function bewaarIndeling(next, tekst = '') {
   const uit = await stuur('api/indeling', next);
   if (!uit) return false;
   d.ind = { ...d.ind, indeling: uit };
-  d.huis = await haal('api/huis').catch(() => d.huis);
+  // Opnieuw de indeling erbij: een nieuwe etage staat pas in de lijst als de dienst hem kent.
+  const [huisNu, indNu] = await Promise.all([haal('api/huis').catch(() => d.huis), haal('api/indeling').catch(() => null)]);
+  d.huis = huisNu;
+  if (indNu) d.ind = indNu;
   if (tekst) zeg(tekst);
   teken();
   return true;
@@ -599,7 +602,8 @@ function huisStap() {
   const soortNaam = (w) => huismodel.KAMER_SOORTEN.find(([x]) => x === w)?.[1] ?? '';
   const delen = etages.map((e) => {
     const kamers = (c?.kamers ?? []).filter((k) => k.etage === e.id);
-    if (!kamers.length) return '';
+    // Een etage zonder kamers alleen als de bewoner hem zelf toevoegde (testerronde, november 2026).
+    if (!kamers.length) return c?.volgorde?.includes(e.id) ? `<div class="etagekop">${esc(naamVan(e))}</div><p class="zacht" style="padding: 2px 2px 6px">${esc(t('inr.etageLeeg'))}</p>` : '';
     return `<div class="etagekop">${esc(naamVan(e))}</div>${kamers.map((k) => {
       const r = binnen().find((x) => x.id === k.id);
       const n = (r?.apparaten ?? []).length;
@@ -611,7 +615,9 @@ function huisStap() {
   }).join('');
   const nieuw = open === 'nieuw'
     ? `<div class="bewerk"><input class="veld" data-nieuwnaam placeholder="${esc(t('inr.kantoor'))}" aria-label="${esc(t('inr.nieuweNaam'))}" maxlength="40"><select class="veld" data-nieuwetage aria-label="${esc(t('indeling.etageLabel'))}">${etages.map((e) => `<option value="${esc(e.id)}" ${e.id === 'bg' ? 'selected' : ''}>${esc(naamVan(e))}</option>`).join('')}</select><button type="button" class="chip aan" data-voegtoe>${esc(t('indeling.toevoegen'))}</button></div>`
-    : `<div class="chips">${knop('data-nieuw', t('inr.plusKamer'), false, 'plus')}</div>`;
+    : open === 'etage'
+      ? etageErbijBlok(etages)
+      : `<div class="chips" data-meer>${knop('data-nieuw', t('inr.plusKamer'), false, 'plus')}${knop('data-inr-etage-open', t('inr.plusEtage'), false, 'plus')}</div>`;
   return {
     waar: waarVan('huis'),
     kop: t('inr.huisKop'),
@@ -620,6 +626,32 @@ function huisStap() {
     inhoud: `<div class="rijen lijst">${delen}${nieuw}</div>${open ? '' : tip(t('inr.huisNoot'))}`,
   };
 }
+/*
+ * Een etage erbij (testerronde, november 2026): een tester zag er maar twee en
+ * kon pas later bij Indeling een derde maken. De vaste etages die er nog niet
+ * zijn, of een eigen naam bovenaan; daarna kies je hem bij + Kamer.
+ */
+function etageErbijBlok(etages) {
+  const nu = new Set(etages.map((e) => e.id));
+  const vast = (d.ind?.standaard ?? []).filter((s) => !nu.has(s.id));
+  return `<div class="bewerk">
+    ${vast.length ? `<div class="chips" data-meer>${vast.map((s) => knop(`data-inr-etage="${esc(s.id)}"`, s.naam, false, 'plus')).join('')}</div>` : ''}
+    <input class="veld" data-inr-etage-naam placeholder="${esc(t('indeling.vliering'))}" aria-label="${esc(t('indeling.eigenNaam'))}" maxlength="40">
+    <div class="chips" data-meer>${knop('data-inr-etage-eigen', t('inr.etageBovenaan'), true)}${knop('data-inr-etage-dicht', t('algemeen.sluiten'))}</div>
+  </div>`;
+}
+/** De etages van boven naar beneden, met een nieuwe op zijn plek (zoals Indeling). */
+function metEtage(next, id, bovenaan) {
+  // Zonder eigen volgorde: de etages met kamers, zodat er geen lege etage bij komt die niemand koos.
+  const metKamers = new Set(next.kamers.map((k) => k.etage));
+  const volgorde = next.volgorde?.length ? [...next.volgorde] : (d.ind?.etages ?? []).map((e) => e.id).filter((x) => x !== 'buiten' && metKamers.has(x));
+  if (bovenaan) return [id, ...volgorde];
+  const plek = (x) => (d.ind?.standaard ?? []).findIndex((s) => s.id === x);
+  const voor = volgorde.findIndex((x) => plek(x) > plek(id) && plek(x) !== -1);
+  volgorde.splice(voor === -1 ? volgorde.length : voor, 0, id);
+  return volgorde;
+}
+
 /*
  * Twee kamers worden één ruimte (besluit 158): de tweede wordt een zone van de
  * eerste, met zijn apparaten. Een eigen regeling kan maar één kamer hebben.
@@ -1331,7 +1363,7 @@ function vermogenStap() {
     uitleg: t('inr.verZin'),
     inhoud: `<div class="kolom"><div class="etagekop">${esc(t('energie.vermogenKop'))}</div>${vermogens.netBlok(d.aans, a)}</div>
       ${panelen ? `<div class="kolom"><div class="etagekop">${esc(t('energie.omvormersKop'))}</div>${vermogens.zonBlok(d.aans, a)}</div>` : ''}
-      ${d.aans?.volgendeStart ? `<p class="mini">${esc(t('energie.later'))}</p>` : ''}`,
+      ${d.aans?.volgendeStart ? `<p class="mini">${esc(t('energie.later'))} <button type="button" class="chip" data-herstart>${esc(t('basis.herstart'))}</button></p>` : ''}`,
   };
 }
 
@@ -2144,6 +2176,28 @@ document.addEventListener('click', async (e) => {
     open = 'nieuw';
     teken();
     setTimeout(() => document.querySelector(`${app.zicht()} [data-nieuwnaam]`)?.focus(), 50);
+    return;
+  }
+  // Een etage erbij (testerronde, november 2026).
+  if (el.hasAttribute('data-inr-etage-open') || el.hasAttribute('data-inr-etage-dicht')) {
+    open = el.hasAttribute('data-inr-etage-open') ? 'etage' : null;
+    teken();
+    return;
+  }
+  if (el.dataset.inrEtage || el.hasAttribute('data-inr-etage-eigen')) {
+    const next = concept();
+    if (!next) return;
+    let id = el.dataset.inrEtage;
+    const naam = id ? null : document.querySelector(`${app.zicht()} [data-inr-etage-naam]`)?.value.trim();
+    if (!id) {
+      if (!naam) return;
+      const bezet = new Set([...(d.ind?.etages ?? []).map((e) => e.id), ...(d.ind?.standaard ?? []).map((s) => s.id), 'buiten']);
+      id = idVan(naam, bezet);
+    }
+    next.volgorde = metEtage(next, id, !el.dataset.inrEtage);
+    if (naam) next.etages = { ...(next.etages ?? {}), [id]: naam };
+    open = 'nieuw';
+    await bewaarIndeling(next, t('indeling.toegevoegd', { naam: naam ?? el.textContent.trim() }));
     return;
   }
   if (el.hasAttribute('data-voegtoe')) {

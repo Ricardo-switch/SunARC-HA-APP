@@ -13,11 +13,14 @@ en zegt bij elk besluit waarom.</p>
 </p>
 
 <p align="center">
+<a href="https://paypal.me/sunarc"><img alt="Trakteer op een kop koffie" src="https://img.shields.io/badge/Trakteer_op_een_kop_koffie-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" height="44"></a>
+</p>
+
+<p align="center">
 <img alt="Versie" src="https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FRicardo-switch%2FSunArc%2Fmain%2Faddon%2Fconfig.yaml&query=%24.version&label=add-on&color=f7b548">
 <img alt="Stadium: experimenteel" src="https://img.shields.io/badge/stadium-experimenteel-e58a3a">
 <img alt="aarch64 en amd64" src="https://img.shields.io/badge/soorten-aarch64%20%7C%20amd64-6fd3ff">
 <img alt="Licentie AGPL-3.0" src="https://img.shields.io/badge/licentie-AGPL--3.0-8f86ff">
-<a href="https://paypal.me/sunarc"><img alt="Trakteer op een kop koffie via PayPal" src="https://img.shields.io/badge/kop%20koffie-PayPal-0070ba?logo=paypal"></a>
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>Nederlands</b></p>
@@ -157,7 +160,9 @@ De app heeft een eigen assistent, dus dit hoeft niet. Alleen als je SunArc ook w
 - **Zonder HACS:** open SunArc → **Instellingen → Bewoners en toegang → Sleutel voor de assistent** en tik op **Zet de integratie in Home Assistant**. Herstart daarna Home Assistant.
 - **Met HACS:** kies in HACS de drie puntjes → **Eigen repositories**, voeg `https://github.com/Ricardo-switch/SunArc` toe als **Integratie**, installeer **SunArc** en herstart Home Assistant. HACS installeert alleen deze integratie; de add-on komt altijd uit de add-on-winkel.
 
-Home Assistant toont dan **Nieuw apparaat gevonden: SunArc**; klik op **Toevoegen**. Dat doe je één keer. De integratie heeft een eigen versie (2.0.0), die alleen omhoog gaat als de integratie zelf verandert; een update van SunArc vraagt geen herstart, want de zinnen en de antwoorden komen uit de add-on.
+Home Assistant toont dan **Nieuw apparaat gevonden: SunArc**; klik op **Toevoegen**. Dat doe je één keer. De integratie heeft een eigen versie (2.0.1), die alleen omhoog gaat als de integratie zelf verandert; een update van SunArc vraagt geen herstart, want de zinnen en de antwoorden komen uit de add-on.
+
+**Wat hij schrijft:** de integratie maakt per taal één bestand in je configuratiemap van Home Assistant, `custom_sentences/<taal>/sunarc.yaml`, met de zinnen voor Assist en de kamers van je huis. Dat bestand werkt hij elke 30 minuten bij vanuit de add-on, en hij haalt het weg als je de integratie verwijdert. Aan andere bestanden komt hij niet.
 
 ## Veilig
 

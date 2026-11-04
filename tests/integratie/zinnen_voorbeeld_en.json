@@ -8,7 +8,7 @@
     "panelen": "[the] [solar] panels"
   },
   "intents": {
-    "SmartClimateVraag": {
+    "SunArcVraag": {
       "data": [
         {
           "sentences": [

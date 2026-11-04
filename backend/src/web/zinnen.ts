@@ -7,7 +7,7 @@
  * Zo komt een nieuwe zin, of een betere herkenning, met een gewone update van
  * de add-on, en hoeft de integratie zelf bijna nooit bij.
  *
- * Alles gaat naar één intentie, `SmartClimateVraag`, met de soort vraag als
+ * Alles gaat naar één intentie, `SunArcVraag`, met de soort vraag als
  * vaste waarde: `nu`, `waarom`, `straks`, `zon` of `doe`. Bewust niet: zinnen
  * die Home Assistant zelf ook kent en dan uitvoert, zoals "zet de zolder uit";
  * dan schakelt Assist echt, buiten de regeling om (ONTWERP §7).
@@ -16,7 +16,25 @@
 import type { AssistKamer } from './assist.js';
 import { alsWoord } from './assist.js';
 
-export const INTENTIE = 'SmartClimateVraag';
+export const INTENTIE = 'SunArcVraag';
+/**
+ * De naam van voor de integratie 2.0.1 (4 november 2026). Een oudere integratie
+ * luistert alleen naar deze; die krijgt de zinnen dus nog onder de oude naam.
+ */
+export const INTENTIE_OUD = 'SmartClimateVraag';
+/** Vanaf deze versie van de integratie de nieuwe naam. */
+const NIEUWE_NAAM_VANAF = [2, 0, 1] as const;
+
+/** De intentie voor de integratie die vraagt: de nieuwe naam vanaf 2.0.1, anders de oude. */
+export function intentieVoor(integratie: string | null): string {
+  const v = /^(\d+)\.(\d+)\.(\d+)$/.exec(integratie ?? '');
+  if (!v) return INTENTIE_OUD;
+  for (let i = 0; i < 3; i++) {
+    const n = Number(v[i + 1]);
+    if (n !== NIEUWE_NAAM_VANAF[i]) return n > NIEUWE_NAAM_VANAF[i]! ? INTENTIE : INTENTIE_OUD;
+  }
+  return INTENTIE;
+}
 
 const NU = [
   'wat (doe|doet) <sc> <nu>',
@@ -165,14 +183,14 @@ export function kamerlijst(kamers: readonly AssistKamer[]): { in: string; out: s
 }
 
 /** Het zinnenbestand in een taal, als gegevens; de integratie schrijft het weg. */
-export function zinnenVoor(lang: keyof typeof TAAL, kamers: readonly AssistKamer[]): Record<string, unknown> {
+export function zinnenVoor(lang: keyof typeof TAAL, kamers: readonly AssistKamer[], intentie: string = INTENTIE): Record<string, unknown> {
   const t = TAAL[lang];
   const lijst = kamerlijst(kamers);
   return {
     language: lang,
     expansion_rules: t.regels,
     intents: {
-      [INTENTIE]: {
+      [intentie]: {
         data: [
           { sentences: t.zinnen.nu, slots: { vraag: 'nu' } },
           { sentences: t.zinnen.waarom, slots: { vraag: 'waarom' } },

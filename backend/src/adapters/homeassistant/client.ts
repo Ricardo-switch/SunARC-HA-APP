@@ -112,6 +112,9 @@ export interface HaClientOptions {
   /**
    * Bijwerken vanuit de app (21 oktober 2026): `update.install` op precies deze
    * entiteit, de update van de eigen add-on, zonder velden. Null of weg: dicht.
+   * Sinds de testerronde (november 2026) ook zoeken naar updates:
+   * `homeassistant.update_entity` op dezelfde entiteit; Home Assistant laat de
+   * Supervisor dan de add-on-winkel opnieuw lezen.
    */
   readonly allowUpdate?: () => string | null;
   /**
@@ -213,9 +216,15 @@ function isCoverCall(domain: string, service: string, data: Record<string, unkno
   return keys.length === 1 && keys[0] === 'position' && typeof pos === 'number' && Number.isInteger(pos) && pos >= 0 && pos <= 100;
 }
 
-/** De eigen add-on bijwerken (21 oktober 2026): `update.install` op die ene entiteit, zonder velden. */
+/**
+ * De eigen add-on bijwerken (21 oktober 2026): `update.install` op die ene
+ * entiteit, zonder velden; of zoeken naar updates, `homeassistant.update_entity`
+ * op dezelfde entiteit (testerronde, november 2026).
+ */
 function isUpdateCall(domain: string, service: string, data: Record<string, unknown>, target: Record<string, unknown>, eigen: string | null): boolean {
-  if (eigen == null || domain !== 'update' || service !== 'install') return false;
+  const installeer = domain === 'update' && service === 'install';
+  const zoek = domain === 'homeassistant' && service === 'update_entity';
+  if (eigen == null || (!installeer && !zoek)) return false;
   if (Object.keys(data).length > 0 || Object.keys(target).some((k) => k !== 'entity_id')) return false;
   return target['entity_id'] === eigen && /^update\.[a-z0-9_]+$/.test(eigen);
 }

@@ -95,6 +95,12 @@ describe('bijwerken (21 oktober 2026)', () => {
     await geweigerd('update', 'skip', {}, { entity_id: eigen });
     await geweigerd('climate', 'set_temperature', {}, { entity_id: eigen });
     await geweigerd('update', 'install', {}, { entity_id: eigen, area_id: 'woonkamer' });
+    // Zoeken naar updates (testerronde, november 2026): alleen update_entity op de eigen update.
+    await geweigerd('homeassistant', 'update_entity', {}, { entity_id: 'update.iets_anders' });
+    await geweigerd('homeassistant', 'update_entity', {}, { entity_id: 'climate.woonkamer' });
+    await geweigerd('homeassistant', 'update_entity', { force: true }, { entity_id: eigen });
+    await geweigerd('homeassistant', 'restart', {}, { entity_id: eigen });
+    await geweigerd('homeassistant', 'reload_all', {}, {});
     // Zonder eigen update is de deur dicht.
     const dicht = new HaClient({ url: 'http://127.0.0.1:1', token: 'x', allowUpdate: () => null });
     await expect(dicht.callService('update', 'install', {}, { entity_id: eigen })).rejects.toThrow(/Schrijven staat uit/);

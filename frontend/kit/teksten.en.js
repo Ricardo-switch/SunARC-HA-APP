@@ -90,6 +90,14 @@
   'basis.versie.bijgewerkt': 'Updated',
   'basis.versie.watNieuw': 'What is new in {versie}',
   'basis.versie.alle': 'All versions',
+  'basis.versie.zoek': 'Check for updates',
+  'basis.versie.zoekt': 'Checking…',
+  'basis.herstart': 'Restart SunArc',
+  'basis.herstart.kop': 'SunArc is restarting',
+  'basis.herstart.zin': 'One moment, this takes about half a minute. This page reloads by itself.',
+  'basis.herstart.lang': 'This is taking longer than usual. Check in Home Assistant under Settings › Add-ons › SunArc whether it is running.',
+  'toegang.zoekZin': 'SunArc checks for a new version by itself every three hours; the button checks now. A choice under Energy takes effect after a new start.',
+  'toegang.herstartZin': 'A choice under Energy takes effect after a new start.',
 
   // The menu
   'nav.hoofdmenu': 'Main menu',
@@ -142,6 +150,9 @@
   'voorbeeld.ingang': 'Look around an example home first',
   'voorbeeld.ingangZin': 'Everything in it and everything works: play with the buttons and slide through the day.',
   'over.bron': 'The source code is on GitHub',
+  'over.steunKop': 'Support',
+  'over.steun': 'SunArc is free. Like it? You can buy me a coffee.',
+  'over.koffie': 'Buy me a coffee',
 
   // You: the language (decision 185). Language names are in their own language.
   'jij.taal.kop': 'Language',
@@ -3325,6 +3336,9 @@
   'inr.samenvoegen': 'Merge with…',
   'inr.nogEens': 'Tap again to remove',
   'inr.plusKamer': '+ Room',
+  'inr.plusEtage': '+ Floor',
+  'inr.etageLeeg': 'No rooms yet; choose this floor under + Room.',
+  'inr.etageBovenaan': 'Add at the top',
   'inr.kantoor': 'Name, for example Office',
   'inr.nieuweNaam': 'Name of the new room',
   'inr.huisKop': 'Is the layout right?',

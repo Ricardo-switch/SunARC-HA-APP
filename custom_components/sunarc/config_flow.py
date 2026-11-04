@@ -15,7 +15,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import SmartClimateApi, SmartClimateFout
+from .api import SunArcApi, SunArcFout
 from .const import CONF_ADRES, CONF_SLEUTEL, DOMAIN
 
 try:
@@ -31,7 +31,7 @@ def _netjes(adres: str) -> str:
     return adres if adres.startswith(("http://", "https://")) else f"http://{adres}"
 
 
-class SmartClimateFlow(ConfigFlow, domain=DOMAIN):
+class SunArcFlow(ConfigFlow, domain=DOMAIN):
     """Eén SunArc per Home Assistant."""
 
     VERSION = 1
@@ -41,8 +41,8 @@ class SmartClimateFlow(ConfigFlow, domain=DOMAIN):
 
     async def _probeer(self, adres: str, sleutel: str) -> str | None:
         try:
-            await SmartClimateApi(async_get_clientsession(self.hass), adres, sleutel).info()
-        except SmartClimateFout as fout:
+            await SunArcApi(async_get_clientsession(self.hass), adres, sleutel).info()
+        except SunArcFout as fout:
             return "sleutel" if "sleutel" in str(fout) else "niet_bereikbaar"
         return None
 
