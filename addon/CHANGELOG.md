@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.117.1
+
+*4 november 2026*
+
+**Beter**
+
+- Bedragen staan in de valuta die in Home Assistant is ingesteld; de euro blijft de standaard
+
+*English*
+
+**Improved**
+
+- Amounts are shown in the currency set in Home Assistant; the euro stays the default
+
 ## 0.117.0
 
 *4 november 2026*

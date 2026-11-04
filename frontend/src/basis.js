@@ -1067,6 +1067,11 @@
     } catch {
       return;
     }
+    // De valuta van het huis (testerronde, november 2026): een andere dan onthouden, dan de pagina opnieuw met het goede teken.
+    if (global.taal?.zetValuta?.(s.valuta)) {
+      location.reload();
+      return;
+    }
     const nieuw = { meter: s.meter !== false, zon: s.zonMeter !== false };
     if (JSON.stringify(nieuw) === JSON.stringify(soort)) return;
     soort = nieuw;

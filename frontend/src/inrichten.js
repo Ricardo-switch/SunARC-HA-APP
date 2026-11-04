@@ -1408,7 +1408,7 @@ function prijzenStap() {
   const meters = [e?.net?.afname?.length ? t('inr.meter.net') : null, e?.zon?.length ? t('inr.meter.panelen') : null, e?.gas ? t('energie.gas') : null].filter(Boolean);
   const p = e?.prijzen ?? {};
   const contract = contractNu();
-  const veld = (sleutel, label, waarde, eenheid = 'kWh') => `<label class="invul"><span>${esc(label)}</span><span class="waarde">€<input inputmode="decimal" data-prijs="${sleutel}" data-eenheid="${eenheid}" value="${waarde != null ? nl(waarde, String(waarde).split('.')[1]?.length ?? 0) : ''}" placeholder="${esc(t('inr.invullen'))}" aria-label="${esc(t('inr.perEenheid', { label, eenheid }))}"></span></label>`;
+  const veld = (sleutel, label, waarde, eenheid = 'kWh') => `<label class="invul"><span>${esc(label)}</span><span class="waarde">${taal.valuta()}<input inputmode="decimal" data-prijs="${sleutel}" data-eenheid="${eenheid}" value="${waarde != null ? nl(waarde, String(waarde).split('.')[1]?.length ?? 0) : ''}" placeholder="${esc(t('inr.invullen'))}" aria-label="${esc(t('inr.perEenheid', { label, eenheid }))}"></span></label>`;
   // Twee vakken naast elkaar, zodat alles op de kaart past: stroom (en dal), dan gas.
   const gas = e?.gas ? veld('gas', t('inr.gasM3'), p.gas, 'm³') : '';
   const stroom = contract === 'dagnacht'

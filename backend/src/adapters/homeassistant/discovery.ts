@@ -82,6 +82,8 @@ export interface HaCoreConfig {
   /** De ligging van het huis. De dienst rondt af op één decimaal (besluit 90). */
   readonly latitude?: number;
   readonly longitude?: number;
+  /** De valuta, zoals EUR (testerronde, november 2026). */
+  readonly currency?: string;
 }
 
 /** Alles wat de ontdekking nodig heeft, zodat de functie zelf niets ophaalt. */

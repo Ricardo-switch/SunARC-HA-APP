@@ -60,6 +60,7 @@ import { EnergyStore } from './web/energy.js';
 import { partsIn, zonedMidnight, type PowerRow } from './web/today.js';
 import { WeatherLog, type EntityForecast } from './web/weather.js';
 import { Historie, somPerVak } from './web/historie.js';
+import { zetValuta } from './web/valuta.js';
 import { Sluipverbruik, jaarPrijs, sluipVoorBel } from './web/sluipverbruik.js';
 import { verwachtingVan, weerNaamVan } from './web/weerbron.js';
 import { OPEN_METEO, OpenMeteo } from './web/open-meteo.js';
@@ -823,11 +824,13 @@ client.on('ready', (states: HaEntityState[]) => {
     .catch(() => {
       // Zonder registers is er geen huis te tonen; de volgende verbinding opnieuw.
     });
-  if (location == null) {
+  // De ligging en, sinds de testerronde (november 2026), de valuta: bij elke verbinding.
+  {
     client
       .query<HaCoreConfig>('get_config')
       .then((c) => {
-        if (typeof c.latitude === 'number' && typeof c.longitude === 'number') {
+        zetValuta(c.currency);
+        if (location == null && typeof c.latitude === 'number' && typeof c.longitude === 'number') {
           location = { latDeg: round1(c.latitude), lonDeg: round1(c.longitude) };
         }
       })
