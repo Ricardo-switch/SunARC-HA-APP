@@ -284,7 +284,8 @@ function klimaatKaart({ a, r }) {
     <div class="stand"><i style="background: ${stand[1]}"></i>${esc(stand[0])}</div>
     ${metHand ? `<p class="mini zin" style="color: var(--zon-t); font-weight: 600">${esc(huismodel.metHoofdletter(hand.nuZin(metHand)))}</p>` : zin ? `<p class="mini zin">${esc(zin)}</p>` : ''}
     ${labels ? `<p class="mini etiket">${esc(labels)}</p>` : ''}
-    ${dag}`;
+    ${dag}
+    <button type="button" class="meld-app" data-meld-probleem data-apparaat="${esc(a.id)}" data-naam="${esc(a.naam)}">${esc(t('melden.klopt'))}</button>`;
   return el;
 }
 
@@ -467,7 +468,7 @@ function openBlad(kaartEl) {
 }
 document.addEventListener('click', (e) => {
   const k = e.target.closest('.app[data-blad]');
-  if (!k || e.target.closest('[data-hand]')) return;
+  if (!k || e.target.closest('[data-hand], [data-meld-probleem]')) return;
   e.preventDefault();
   openBlad(k);
 });

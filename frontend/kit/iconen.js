@@ -47,6 +47,8 @@
     batterij: { k: 'mint', l: '<rect x="3" y="7" width="16" height="10" rx="2.6"/><path d="M21 10.4v3.2"/><path d="m11.6 9.2-2.1 3.1h3l-2.1 2.9"/>', v: '<rect x="3" y="7" width="16" height="10" rx="2.6"/>' },
     accu: { k: 'mint', l: '<rect x="6" y="5" width="12" height="16" rx="2.6"/><path d="M10 2.8h4"/><path d="m12.8 9.4-2.3 3.4h3l-2.3 3.2"/>', v: '<rect x="6" y="5" width="12" height="16" rx="2.6"/>' },
     meter: { k: 'zon', l: '<path d="M4.2 17.5a8.5 8.5 0 1 1 15.6 0"/><path d="m12 15 3.6-4.6"/><circle cx="12" cy="15.2" r="1.3"/>', v: '<path d="M4.2 17.5a8.5 8.5 0 1 1 15.6 0z"/>' },
+    // Meld een probleem (testerronde, november 2026): een tekstballon met een uitroepteken.
+    melden: { k: 'gloed', l: '<path d="M20 11.5c0 4.1-3.6 7.5-8 7.5-1.2 0-2.3-.2-3.3-.6L4.2 20l1.2-3.6A7.2 7.2 0 0 1 4 11.5C4 7.4 7.6 4 12 4s8 3.4 8 7.5z"/><path d="M12 8.2v3.8M12 14.6v.1"/>', v: '<path d="M20 11.5c0 4.1-3.6 7.5-8 7.5-1.2 0-2.3-.2-3.3-.6L4.2 20l1.2-3.6A7.2 7.2 0 0 1 4 11.5C4 7.4 7.6 4 12 4s8 3.4 8 7.5z"/>' },
     // Steunen (4 november 2026): een kop koffie, bij Over deze app en Versie.
     koffie: { k: 'zon', l: '<path d="M4.5 10h12v4.3a5.2 5.2 0 0 1-5.2 5.2h-1.6a5.2 5.2 0 0 1-5.2-5.2z"/><path d="M16.5 11.4h1.3a2.3 2.3 0 0 1 0 4.6h-1.7"/><path d="M8.6 3.6c-.9 1.1.9 1.9 0 3M12.4 3.6c-.9 1.1.9 1.9 0 3"/>', v: '<path d="M4.5 10h12v4.3a5.2 5.2 0 0 1-5.2 5.2h-1.6a5.2 5.2 0 0 1-5.2-5.2z"/>' },
     stekker: { k: 'zon', l: '<path d="M9 3.5v4M15 3.5v4"/><path d="M6.5 7.5h11V11a5.5 5.5 0 0 1-11 0z"/><path d="M12 16.5v4"/>', v: '<path d="M6.5 7.5h11V11a5.5 5.5 0 0 1-11 0z"/>' },

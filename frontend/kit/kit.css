@@ -443,6 +443,53 @@ a.knop:not(.knop-licht) {
   width: 22px;
   height: 22px;
 }
+.balk .meldprobleem {
+  margin-top: auto;
+  width: 50px;
+  height: 40px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--gedempt);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.balk .meldprobleem svg {
+  width: 20px;
+  height: 20px;
+}
+.balk .meldprobleem + .meldbel {
+  margin-top: 0;
+}
+/* Op een apparaatkaart: klein en rustig, rechtsonder (testerronde, november 2026). */
+.meld-app {
+  align-self: flex-end;
+  margin-top: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--gedempt);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+/* Onderaan het blad Meldingen, altijd (testerronde, november 2026). */
+.meld-probleem-regel {
+  margin-top: 10px;
+  width: 100%;
+  min-height: 40px;
+  border: 1px dashed var(--glas-rand);
+  border-radius: 12px;
+  background: none;
+  color: var(--zacht);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
 .balk .meldbel + a.onder {
   margin-top: 0;
 }

@@ -300,6 +300,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [59. Namen in het Engels, de rest in het Nederlands](#59-namen-in-het-engels-de-rest-in-het-nederlands)
 - [69. Ook de pagina en deploy.sh worden getest](#69-ook-de-pagina-en-deploysh-worden-getest)
 - [180. De twee grootste bestanden opgeknipt, zonder dat er iets verandert](#180-de-twee-grootste-bestanden-opgeknipt-zonder-dat-er-iets-verandert)
+- [250. Meld een probleem, apparaatgegevens en warmtepompen](#250-meld-een-probleem-apparaatgegevens-en-warmtepompen)
 
 Wat nog open staat: [Wat nog een besluit wacht](#wat-nog-een-besluit-wacht).
 
@@ -11604,6 +11605,47 @@ vanaf 2.0.1 krijgt ze de zinnen onder de nieuwe naam, een oudere houdt
 `SmartClimateVraag`, en 2.0.1 luistert naar allebei. Zo werkt Assist ook als de
 add-on en de integratie niet tegelijk bijgewerkt zijn. Na het samenvoegen een
 GitHub-release 2.0.1 voor HACS.
+
+---
+
+## 250. Meld een probleem, apparaatgegevens en warmtepompen
+
+*Onderwerp: kwaliteitsbewaking · Status: geldig*
+
+4 november 2026, stap 4 van de testerronde. Betatesters meldden via Facebook,
+de bewoner zette het met Gemini in tickets, en het nalopen kostte veel: wat
+precies, welke versie, welk apparaat. Twee testers hadden een warmtepomp die
+niet goed werd begrepen (Luxtronik, Clivet/Midea).
+
+*Besluit:*
+
+- **Meld een probleem** staat in het menu (boven de bel), onderaan het blad
+  Meldingen, bij Versie, bij Over deze app en op elk klimaatapparaat ("Klopt
+  iets niet? Meld het"). Een klein blad (`melden.js`, pas geladen bij de eerste
+  tik): wat voor melding, wat er gebeurde, en bij een apparaat zijn gegevens.
+  "Verder op GitHub" opent het formulier `melding.yml` vooraf ingevuld, met de
+  versie, de pagina en het scherm. Een GitHub-account is nodig; zijn de
+  gegevens te lang voor de link, dan gaan ze via het klembord.
+- **Een meldcode** (zoals SA-7F3K) per melding, alleen bewaard op het toestel
+  (`sc-meldingen`) en in het issue. Bij een versie staat in `NIEUW` per code de
+  uitkomst: opgelost, instelling (met een plek in de app), later, dubbel,
+  afgewezen of geen reactie. Na een update zegt het venster "Wat is er nieuw"
+  het tegen wie meldde, één keer. Er gaat niets het huis uit. Meer informatie
+  vragen gebeurt op GitHub zelf.
+- **Apparaatgegevens** (`api/apparaat-gegevens`, alleen lezen): de integratie,
+  het merk en model, de stand en de eigenschappen, en de andere entiteiten van
+  het apparaat naar soort en eenheid. Geen namen, entiteiten, adressen,
+  serienummers of ruimtes; tekst alleen bij eigenschappen die een stand of
+  eenheid noemen. De bewoner ziet eerst wat er meegaat.
+- **Warmtepompen:** een doel van −5 tot +5 is een correctie op de stooklijn
+  (Luxtronik zonder slimme kamerunit), een doel van 20 tot 45 of hoger is water
+  (Midea-zones in watertemperatuur). Zo'n apparaat regelt geen kamer: de
+  ontdekking slaat het over met de reden, Apparaten toont "Stooklijn +1" of
+  "Water 35°", Inrichten vraagt niets over het bereik, en klimaat met de hand
+  doet er niets mee.
+- **Labels op GitHub:** melding, fout, idee, apparaat, en per uitkomst
+  meer-info, instelling, later, dubbel, afgewezen, opgelost, geen-reactie.
+- **Versie 0.118.0.**
 
 ---
 
