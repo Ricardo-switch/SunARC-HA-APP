@@ -111,8 +111,11 @@ async def test_zinnen_vraag_en_weer_weg(hass: HomeAssistant, aioclient_mock) -> 
     assert inhoud.startswith("# SunArc: de zinnen voor Assist.")
     assert '"in": "(zolder|hobbykamer boven)"' in inhoud
 
+    # De integratie zegt haar versie, zodat SunArc de zinnen onder de nieuwe intentienaam geeft.
+    assert "integratie=2.0.1" in str(aioclient_mock.mock_calls[0][1])
+
     # Een vraag van Assist: door naar SunArc, met de kamer als zone en de sleutel.
-    antwoord = await intent.async_handle(hass, "test", "SmartClimateVraag", {"vraag": {"value": "waarom"}, "kamer": {"value": "zolder"}}, language="nl")
+    antwoord = await intent.async_handle(hass, "test", "SunArcVraag", {"vraag": {"value": "waarom"}, "kamer": {"value": "zolder"}}, language="nl")
     assert antwoord.speech["plain"]["speech"] == "De zolder wacht op meer zon."
     vraag = aioclient_mock.mock_calls[-1]
     assert str(vraag[1]).startswith(f"{ADRES}/api/vraag")
@@ -121,6 +124,9 @@ async def test_zinnen_vraag_en_weer_weg(hass: HomeAssistant, aioclient_mock) -> 
     # Antwoordt SunArc niet, dan zegt Assist dat.
     aioclient_mock.clear_requests()
     aioclient_mock.get(f"{ADRES}/api/vraag", status=500)
+    antwoord = await intent.async_handle(hass, "test", "SunArcVraag", {"vraag": {"value": "nu"}}, language="nl")
+    assert antwoord.speech["plain"]["speech"] == "SunArc geeft nu geen antwoord."
+    # Onder de oude naam ook: een add-on van voor 2.0.1 maakt de zinnen nog zo.
     antwoord = await intent.async_handle(hass, "test", "SmartClimateVraag", {"vraag": {"value": "nu"}}, language="nl")
     assert antwoord.speech["plain"]["speech"] == "SunArc geeft nu geen antwoord."
 
@@ -177,14 +183,30 @@ async def test_assist_herkent_een_engelse_zin(hass: HomeAssistant, aioclient_moc
     assert "v=nu" in str(aioclient_mock.mock_calls[-1][1])
 
 
-async def test_ruimt_de_zinnen_onder_de_oude_naam_op(hass: HomeAssistant, aioclient_mock) -> None:
-    """Tot 2 november 2026 heette de integratie smart_climate; haar zinnenbestand gaat weg bij het opzetten."""
+async def test_komt_niet_aan_bestanden_van_een_ander(hass: HomeAssistant, aioclient_mock) -> None:
+    """Tip uit de HACS-beoordeling (4 november 2026): een bestand met een algemene naam kan van een ander zijn.
+
+    Een smart_climate.yaml blijft staan (dat opruimen is weg), en bij verwijderen
+    gaat alleen een sunarc.yaml met onze kopregel weg.
+    """
     oud = Path(hass.config.path("custom_sentences", "nl", "smart_climate.yaml"))
-    await hass.async_add_executor_job(lambda: (oud.parent.mkdir(parents=True, exist_ok=True), oud.write_text("# oud", "utf-8")))
+    vreemd = Path(hass.config.path("custom_sentences", "de", "sunarc.yaml"))
+
+    def neerzetten() -> None:
+        for pad, tekst in ((oud, "# van iemand anders"), (vreemd, "# ook van iemand anders\nlanguage: de\n")):
+            pad.parent.mkdir(parents=True, exist_ok=True)
+            pad.write_text(tekst, "utf-8")
+
+    await hass.async_add_executor_job(neerzetten)
     aioclient_mock.get(f"{ADRES}/api/assist", json=INFO)
     entry = MockConfigEntry(domain=DOMAIN, data={"adres": ADRES, "sleutel": SLEUTEL}, unique_id=DOMAIN)
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    assert not await hass.async_add_executor_job(oud.exists)
+    assert await hass.async_add_executor_job(oud.exists)
     assert await hass.async_add_executor_job(_zinnen(hass).exists)
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert not await hass.async_add_executor_job(_zinnen(hass).exists)
+    assert await hass.async_add_executor_job(vreemd.exists)
+    assert await hass.async_add_executor_job(oud.exists)

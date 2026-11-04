@@ -1,8 +1,8 @@
 """Vaste waarden van de integratie SunArc (besluit 184)."""
 
 DOMAIN = "sunarc"
-#: De naam van voor 2 november 2026; de add-on zet een oude installatie over.
-OUD_DOMEIN = "smart_climate"
+#: De versie uit manifest.json; een test houdt ze gelijk. SunArc kiest er de naam van de intentie mee.
+VERSIE = "2.0.1"
 
 #: Het adres van SunArc, zoals ``http://abcd1234-hems-climate:8099``.
 CONF_ADRES = "adres"

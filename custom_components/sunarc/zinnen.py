@@ -14,7 +14,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-INTENTIE = "SmartClimateVraag"
+INTENTIE = "SunArcVraag"
+#: De naam van voor 2.0.1. Een add-on die deze versie nog niet kent, maakt de zinnen onder deze naam.
+INTENTIE_OUD = "SmartClimateVraag"
 BESTAND = "sunarc.yaml"
 
 KOP = """# SunArc: de zinnen voor Assist.

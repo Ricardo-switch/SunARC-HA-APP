@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-const VINGER = { versie: '2.0.1', afdruk: '294bd96dd744ec9c' };
+const VINGER = { versie: '2.0.1', afdruk: 'c5ff2542e24677fd' };
 
 const MAP = fileURLToPath(new URL('../../custom_components/sunarc/', import.meta.url));
 
@@ -48,5 +48,11 @@ describe('de versie van de integratie (besluit 184)', () => {
     const afdruk = hash.digest('hex').slice(0, 16);
     expect(versie, 'zet de versie uit manifest.json in VINGER').toBe(VINGER.versie);
     expect(afdruk, `de integratie veranderde: verhoog de versie in manifest.json, en zet hier versie en afdruk ${afdruk}`).toBe(VINGER.afdruk);
+  });
+
+  it('zegt dezelfde versie aan SunArc als de manifest (4 november 2026)', async () => {
+    // Met die versie kiest SunArc de naam van de intentie; een vergeten const geeft de oude naam.
+    const constanten = await readFile(join(MAP, 'const.py'), 'utf-8');
+    expect(/^VERSIE = "([^"]+)"$/m.exec(constanten)?.[1]).toBe(VINGER.versie);
   });
 });

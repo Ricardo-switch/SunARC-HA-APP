@@ -11,12 +11,14 @@ from typing import Any
 
 import aiohttp
 
+from .const import VERSIE
 
-class SmartClimateFout(Exception):
+
+class SunArcFout(Exception):
     """SunArc antwoordt niet, of weigert de sleutel."""
 
 
-class SmartClimateApi:
+class SunArcApi:
     """Een klein loket naar ``/api/assist`` en ``/api/vraag``, met de sleutel."""
 
     def __init__(self, sessie: aiohttp.ClientSession, adres: str, sleutel: str) -> None:
@@ -33,16 +35,16 @@ class SmartClimateApi:
             async with asyncio.timeout(10):
                 async with self._sessie.get(f"{self._adres}{pad}", params=vraag, headers={"Authorization": f"Bearer {self._sleutel}"}) as antwoord:
                     if antwoord.status == 401:
-                        raise SmartClimateFout("de sleutel klopt niet")
+                        raise SunArcFout("de sleutel klopt niet")
                     if antwoord.status != 200:
-                        raise SmartClimateFout(f"SunArc gaf {antwoord.status}")
+                        raise SunArcFout(f"SunArc gaf {antwoord.status}")
                     return await antwoord.json()
         except (aiohttp.ClientError, TimeoutError) as fout:
-            raise SmartClimateFout(f"SunArc is niet te bereiken: {fout}") from fout
+            raise SunArcFout(f"SunArc is niet te bereiken: {fout}") from fout
 
     async def info(self) -> dict[str, Any]:
-        """De naam, de versie en de kamers met hun woorden."""
-        return await self._haal("/api/assist", {})
+        """De naam, de versie en de kamers met hun woorden; met onze versie, voor de naam van de intentie."""
+        return await self._haal("/api/assist", {"integratie": VERSIE})
 
     async def vraag(self, soort: str, taal: str, kamer: str | None = None, wens: str | None = None, temperatuur: int | None = None) -> str:
         """Een vraag van Assist; het antwoord om uit te spreken."""

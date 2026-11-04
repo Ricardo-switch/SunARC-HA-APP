@@ -3,7 +3,7 @@
 De add-on meldt zich aan ("Nieuw apparaat gevonden: SunArc"); met één
 klik staat de integratie erin. Dan:
 
-- registreert hij de vraag voor Assist in code (``SmartClimateVraag``), in
+- registreert hij de vraag voor Assist in code (``SunArcVraag``), in
   plaats van een ``intent_script`` en ``rest_command`` in de configuratie;
 - schrijft hij één eigen bestand met de zinnen in ``custom_sentences/<taal>/``,
   zoals SunArc het maakt (met de kamers van dit huis), en werkt het bij
@@ -30,9 +30,9 @@ from homeassistant.helpers import intent
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 
-from .api import SmartClimateApi, SmartClimateFout
+from .api import SunArcApi, SunArcFout
 from .const import CONF_ADRES, CONF_SLEUTEL, DOMAIN, GEEN_ANTWOORD, KAMERS_ELKE_MINUTEN
-from .zinnen import BESTAND, INTENTIE, KOP, talen
+from .zinnen import BESTAND, INTENTIE, INTENTIE_OUD, KOP, talen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,11 +59,11 @@ def _schrijf(pad: Path, inhoud: str) -> bool:
     return True
 
 
-async def _zinnen_bij(hass: HomeAssistant, api: SmartClimateApi) -> None:
+async def _zinnen_bij(hass: HomeAssistant, api: SunArcApi) -> None:
     """De zinnen zoals SunArc ze nu maakt; Assist leest ze opnieuw als er iets veranderde."""
     try:
         info = await api.info()
-    except SmartClimateFout as fout:
+    except SunArcFout as fout:
         _LOGGER.debug("De zinnen ophalen lukte niet: %s", fout)
         return
     veranderd = False
@@ -84,7 +84,10 @@ async def _herlaad(hass: HomeAssistant) -> None:
 class VraagHandler(intent.IntentHandler):
     """Een vraag van Assist aan SunArc; het antwoord om uit te spreken."""
 
-    intent_type = INTENTIE
+    def __init__(self, intent_type: str = INTENTIE) -> None:
+        # Ook onder de oude naam: een add-on van voor 2.0.1 maakt de zinnen nog zo.
+        self.intent_type = intent_type
+
     description = "Vraagt SunArc wat het huis doet, waarom, wat straks komt, of wat het zou doen."
     slot_schema = {
         vol.Required("vraag"): cv.string,
@@ -97,12 +100,12 @@ class VraagHandler(intent.IntentHandler):
         slots = self.async_validate_slots(intent_obj.slots)
         waarde = lambda naam: slots.get(naam, {}).get("value")  # noqa: E731
         taal = "en" if (intent_obj.language or "nl").startswith("en") else "nl"
-        api: SmartClimateApi | None = intent_obj.hass.data.get(DOMAIN)
+        api: SunArcApi | None = intent_obj.hass.data.get(DOMAIN)
         zin = GEEN_ANTWOORD[taal]
         if api is not None:
             try:
                 zin = await api.vraag(str(waarde("vraag")), taal, waarde("kamer") or None, waarde("wens") or None, waarde("temperatuur"))
-            except SmartClimateFout as fout:
+            except SunArcFout as fout:
                 _LOGGER.warning("SunArc antwoordde niet: %s", fout)
         antwoord = intent_obj.create_response()
         antwoord.async_set_speech(zin or GEEN_ANTWOORD[taal])
@@ -110,13 +113,14 @@ class VraagHandler(intent.IntentHandler):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    api = SmartClimateApi(async_get_clientsession(hass), entry.data[CONF_ADRES], entry.data[CONF_SLEUTEL])
+    api = SunArcApi(async_get_clientsession(hass), entry.data[CONF_ADRES], entry.data[CONF_SLEUTEL])
     try:
         await api.info()
-    except SmartClimateFout as fout:
+    except SunArcFout as fout:
         raise ConfigEntryNotReady(str(fout)) from fout
     hass.data[DOMAIN] = api
-    intent.async_register(hass, VraagHandler())
+    for naam in (INTENTIE, INTENTIE_OUD):
+        intent.async_register(hass, VraagHandler(naam))
     await _zinnen_bij(hass, api)
 
     async def elke_keer(_: Any) -> None:
@@ -129,7 +133,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.pop(DOMAIN, None)
     if hasattr(intent, "async_remove"):
-        intent.async_remove(hass, INTENTIE)
+        for naam in (INTENTIE, INTENTIE_OUD):
+            intent.async_remove(hass, naam)
     return True
 
 

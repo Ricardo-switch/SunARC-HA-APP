@@ -8,7 +8,7 @@
     "panelen": "[de] (zonnepanelen|panelen)"
   },
   "intents": {
-    "SmartClimateVraag": {
+    "SunArcVraag": {
       "data": [
         {
           "sentences": [

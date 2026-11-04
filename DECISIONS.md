@@ -11592,6 +11592,19 @@ zodra er een volgorde komt. Bij Inrichten › Kamers staat "+ Etage": de vaste
 etages die er nog niet zijn, of een eigen naam bovenaan; een etage zonder
 kamers staat er dan met "nog geen kamers".
 
+*Ook in 0.117.0, de integratie 2.0.1 (HACS nam haar 4 november op in de
+standaardlijst; frenck gaf twee tips):* de README zegt welk bestand ze schrijft
+(`custom_sentences/<taal>/sunarc.yaml`), dat ze het elke 30 minuten bijwerkt
+en bij verwijderen weghaalt. Het opruimen van `smart_climate.yaml` is weg (een
+algemene naam, misschien van een ander), en bij verwijderen gaat alleen een
+`sunarc.yaml` met onze kopregel weg. De oude naam ging er meteen uit: de
+intentie heet `SunArcVraag` (de klassen `SunArcApi`, `SunArcFout`,
+`SunArcFlow`). De integratie stuurt haar versie mee naar `/api/assist`; alleen
+vanaf 2.0.1 krijgt ze de zinnen onder de nieuwe naam, een oudere houdt
+`SmartClimateVraag`, en 2.0.1 luistert naar allebei. Zo werkt Assist ook als de
+add-on en de integratie niet tegelijk bijgewerkt zijn. Na het samenvoegen een
+GitHub-release 2.0.1 voor HACS.
+
 ---
 
 ## Wat nog een besluit wacht
