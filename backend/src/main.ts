@@ -1094,6 +1094,9 @@ function metLigging(c: SiteConfig): SiteConfig {
     panelen: a?.panelen ?? null,
     voorkantZon: a?.voorkantZon ?? null,
     omvormerGevonden: omvormerGevonden(),
+    // Daken en panelen (besluit 254): elk vlak apart, en de andere daken tellen mee.
+    daken: a?.daken ?? null,
+    elders: a?.elders ?? null,
   };
   // Hetzelfde object zolang er niets verandert: de weercache kijkt ernaar.
   const sleutel = JSON.stringify(input);

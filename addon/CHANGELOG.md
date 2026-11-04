@@ -1,5 +1,21 @@
 # Wat is er nieuw · What is new
 
+## 0.122.0
+
+*4 november 2026*
+
+**Nieuw**
+
+- Energie › Daken en panelen: elk dakvlak apart, met een letter. Een uitbouw met panelen oost-west, een garage, panelen op de grond of aan de gevel: elk vlak met zijn eigen richting, helling, aantal en omvormer
+- Panelen op de garage, de carport en het tuinhuis tellen nu mee in de verwachting van de zon
+
+*English*
+
+**New**
+
+- Energy › Roofs and panels: every roof plane on its own, with a letter. An extension with east-west panels, a garage, panels on the ground or on a wall: each plane with its own direction, tilt, number and inverter
+- Panels on the garage, carport and shed now count in the solar forecast
+
 ## 0.121.1
 
 *4 november 2026*

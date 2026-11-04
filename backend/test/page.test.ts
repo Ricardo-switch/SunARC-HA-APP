@@ -640,18 +640,25 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     // Rechtstreeks naar het deel van Energie; de oude doorverwijzing is weg sinds besluit 142.
     await p.goto(`${baseUrl}/energie.html#panelen`);
     const wand = p.locator('#wand');
-    await wand.locator('h3', { hasText: 'Op welke kant van het dak' }).waitFor();
-    expect(await wand.textContent()).toContain('Snel genoeg');
-    expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
-    await wand.locator('button', { hasText: 'Beide kanten' }).click();
-    await wand.getByLabel('Aantal aan de voorkant').fill('6');
-    await wand.getByLabel('Aantal aan de voorkant').press('Tab');
-    await wand.getByLabel('Aantal aan de achterkant').fill('6');
-    await wand.getByLabel('Aantal aan de achterkant').press('Tab');
-    // Klaar: het overzicht van Zonnepanelen 3.0, met het huis en de daken (besluit 187).
-    await wand.locator('[data-pan-klaar]').click();
-    await wand.locator('.pan3 h3', { hasText: 'Waar liggen ze?' }).waitFor();
+    // Daken en panelen (besluit 254): de vlakken als kaartjes, met het huis ernaast.
+    await wand.locator('.dk h3', { hasText: 'Waar de panelen liggen' }).waitFor();
     await wand.locator('[data-pan-podium] svg.sc-huis').waitFor();
+    expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
+    // Een vlak erbij: eerst wat voor dak, dan hoe ze liggen.
+    await wand.locator('[data-dak-scherm="erbij"]').click();
+    await wand.locator('[data-dak-plek="uitbouw"]').click();
+    await wand.locator('[data-dak-opstel="oostwest"][aria-pressed="true"]').waitFor();
+    await wand.locator('[data-dak-stap="aantal"][data-d="1"]').click();
+    await wand.locator('[data-dak-stap="aantal2"][data-d="1"]').click();
+    expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
+    await wand.locator('[data-dak-bewaar]').click();
+    await wand.locator('.dk-vlak', { hasText: 'Uitbouw' }).waitFor();
+    await expect.poll(() => connStore.current?.daken?.vlakken.find((v) => v.plek === 'uitbouw'), { timeout: 5_000 }).toMatchObject({ opstelling: 'oostwest', azimuthDeg: 90, aantal: 5, aantal2: 5, bron: 'bewoner' });
+    // Wat bij welke meter hoort, en terug.
+    await wand.locator('[data-dak-scherm="meters"]').click();
+    await wand.locator('.dk h3', { hasText: 'Wat bij welke meter hoort' }).waitFor();
+    expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
+    await wand.locator('[data-dak-scherm="alle"]').click();
     // De zekering uit de configuratie staat voorgekozen, en is te wijzigen (besluit 117).
     await wand.locator('[data-delen] .deel', { hasText: 'Aansluiting' }).click();
     await wand.locator('[data-vorm] h2', { hasText: 'Aansluiting' }).waitFor();
@@ -664,7 +671,9 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await wand.locator('[aria-label="Verwarming"] button', { hasText: 'Cv-ketel' }).click();
     await wand.locator('[data-aanvoer]').fill('60');
     await wand.locator('[data-aanvoer]').press('Tab');
-    await expect.poll(() => connStore.current, { timeout: 5_000 }).toMatchObject({ verwarming: { soort: 'cv', aanvoerC: 60 }, zekering: { fasen: 1, ampere: 35 }, panelen: { ligging: 'beide', aantal: 12, voorkant: 6, achterkant: 6 } });
+    await expect.poll(() => connStore.current, { timeout: 5_000 }).toMatchObject({ verwarming: { soort: 'cv', aanvoerC: 60 }, zekering: { fasen: 1, ampere: 35 } });
+    // De daken bleven staan toen de aansluiting en de verwarming bewaarden.
+    expect(connStore.current?.daken?.vlakken.some((v) => v.plek === 'uitbouw')).toBe(true);
     await wand.locator('[data-bewaard]', { hasText: 'Bewaard' }).waitFor();
     // Apparaten op zon staan bij Regeling.
     await p.goto(`${baseUrl}/regeling.html#opzon`);
@@ -1333,19 +1342,8 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     try {
       const wand = p.locator('#wand');
       const svg = wand.locator('[data-pan-podium] svg.sc-huis');
-      // Naar het huis bij Zonnepanelen; zonder antwoorden over het dak (los gedraaid) eerst die, zoals de test van Energie.
-      const naarHuis = async () => {
-        await wand.locator('[data-pan-podium] svg.sc-huis, h3:has-text("Op welke kant van het dak")').first().waitFor({ timeout: 10_000 });
-        if (await wand.locator('h3', { hasText: 'Op welke kant van het dak' }).count()) {
-          await wand.locator('button', { hasText: 'Beide kanten' }).click();
-          await wand.getByLabel('Aantal aan de voorkant').fill('6');
-          await wand.getByLabel('Aantal aan de voorkant').press('Tab');
-          await wand.getByLabel('Aantal aan de achterkant').fill('6');
-          await wand.getByLabel('Aantal aan de achterkant').press('Tab');
-          await wand.locator('[data-pan-klaar]').click();
-        }
-        await svg.waitFor({ timeout: 10_000 });
-      };
+      // Naar het huis bij Daken en panelen (besluit 254): dat staat er altijd.
+      const naarHuis = () => svg.waitFor({ timeout: 10_000 });
       await p.goto(`${baseUrl}/energie.html#panelen`);
       await naarHuis();
       // De opkomst met een pijl omhoog, bij het begin van de ring.
@@ -1521,7 +1519,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
         ['jij.html', /How the app looks[\s\S]*Theme and colour/],
         ['comfort.html', /Comfort[\s\S]*What is this for\?/],
         ['regeling.html', /Control[\s\S]*Climate[\s\S]*Appliances on solar/],
-        ['energie.html', /Energy setup[\s\S]*Solar panels[\s\S]*Connection[\s\S]*Meters/],
+        ['energie.html', /Energy setup[\s\S]*Roofs and panels[\s\S]*Connection[\s\S]*Meters/],
         ['functies.html', /Features[\s\S]*Cameras[\s\S]*Doorbell[\s\S]*Lights and screens/],
         ['toegang.html', /Residents and access[\s\S]*Version/],
         ['bewoners.html', /Who lives here, in order/],

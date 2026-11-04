@@ -11753,7 +11753,7 @@ al met elk aantal `solarPlanes`; de app kent alleen voorkant, achterkant,
 beide of plat met één helling, garage, carport en tuinhuis tellen niet mee in
 de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 
-*Besluit (ontwerp, nog niet gebouwd):*
+*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, de rest nog niet):*
 
 - **Elk dakvlak apart,** met een letter, een plek (hoofddak, dwarskap,
   uitbouw, garage, carport, tuinhuis of schuur, de grond, gevel of balkon), een
@@ -11785,6 +11785,33 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 - **Schetsen:** `design/app2/Wand-Daken.html` (`#vlak`, `#erbij`, `#meters`,
   `#klopt`, `#huis`), `Tel-Daken.html`, `Wand-Inrichten-Daken.html`,
   `Wand-Daken-Elders.html`; de tekening van boven staat in `daken.js`.
+
+*Stap 1 gebouwd (0.122.0, 4 november 2026):*
+
+- **Het datamodel** staat in `backend/src/web/daken.ts`: per vlak een
+  letter, een plek, een opstelling (`schuin`, `rek`, `oostwest`, `plat`), de
+  richting, de helling, het aantal (bij oost-west per kant), de Wp per
+  paneel, de meter en de bron. Het staat bij de antwoorden als `daken`; een
+  pagina die het niet meestuurt (Inrichten) laat het staan. Oost-west wordt
+  voor de berekening twee vlakken tegenover elkaar.
+- **Vanzelf vlakken:** zonder bewaarde daken volgen de vlakken uit wat er al
+  was (`dakenNu`, `dakenUitOud`): het hoofddak uit de ligging die gold (twee
+  bijna platte vlakken tegenover elkaar worden één vlak oost-west), en de
+  garage, carport en het tuinhuis een eigen vlak, gericht als het zonnigste
+  vlak, op een geschatte helling. Die tellen sindsdien mee. Komt de wattpiek
+  van het hoofddak uit de meting, dan zat de garage daar al in: dat deel gaat
+  eraf, zodat niets dubbel telt. Zonder andere daken blijft de ligging precies
+  zoals hij was. De pagina en de berekening gebruiken dezelfde vlakken.
+- **De pagina** (`frontend/src/dakvlakken.js`): de lijst met kaartjes, een
+  vlak openen (opstelling, richting met kompas, helling, aantal, Wp, meter),
+  erbij in twee stappen (wat voor dak, hoe liggen ze) en wat bij welke meter
+  hoort, met de omvormers die SunArc optelt. Links het huis zoals het nu
+  tekent, met de letters; wat het nog niet kan tekenen, staat eronder. Bij
+  het hoofddak staat wat de meting zegt, met Neem over. Bewaren zet ook de
+  oude antwoorden (`panelen`, `elders`) gelijk, voor Thuis en Inrichten.
+- **Nog niet:** de meter verdeelt nog niets (stap 4 en 5), en de omvormer
+  kapt alle vlakken samen af op één vermogen, ook als een garage een eigen
+  omvormer heeft.
 
 ---
 

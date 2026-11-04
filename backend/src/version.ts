@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.121.1';
+export const VERSIE = '0.122.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,20 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.122.0',
+    datum: '2026-11-04',
+    nieuw: [
+      'Energie › Daken en panelen: elk dakvlak apart, met een letter. Een uitbouw met panelen oost-west, een garage, panelen op de grond of aan de gevel: elk vlak met zijn eigen richting, helling, aantal en omvormer',
+      'Panelen op de garage, de carport en het tuinhuis tellen nu mee in de verwachting van de zon',
+    ],
+    en: {
+      nieuw: [
+        'Energy › Roofs and panels: every roof plane on its own, with a letter. An extension with east-west panels, a garage, panels on the ground or on a wall: each plane with its own direction, tilt, number and inverter',
+        'Panels on the garage, carport and shed now count in the solar forecast',
+      ],
+    },
+  },
   {
     versie: '0.121.1',
     datum: '2026-11-04',

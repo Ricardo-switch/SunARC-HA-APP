@@ -33,6 +33,7 @@ import type { Facade, Geometry, GeometrySource, SolarPlane } from '../core/model
 import { clearSkyOnPlaneWm2, sunPosition, type SunPosition } from '../core/sun.js';
 import type { Lang } from './assistant.js';
 import type { Location } from './sun.js';
+import { dakenUitOud, heeftElders, zonnevlakken, type Daken, type EldersAantal } from './daken.js';
 import { partsIn, type PowerRow } from './today.js';
 
 /** De kant van het dak, zoals Inrichten hem vraagt (`aansluiting.ts`). */
@@ -452,6 +453,10 @@ export interface LiggingInput {
   readonly voorkantZon: VoorkantZon | null;
   /** De omvormer uit zijn typenummer in Home Assistant. */
   readonly omvormerGevonden: number | null;
+  /** Daken en panelen (besluit 254): elk vlak apart, zoals de bewoner ze bewaarde. */
+  readonly daken?: Daken | null;
+  /** Panelen op de garage, carport of het tuinhuis (besluit 187); tellen mee sinds besluit 254. */
+  readonly elders?: EldersAantal | null;
 }
 
 const KOMPAS: Readonly<Record<Lang, readonly string[]>> = {
@@ -481,10 +486,45 @@ function vlakkenVan(vlakken: readonly { azimuthDeg: number; tiltDeg: number; pea
 }
 
 /**
- * Welke ligging geldt, en waarvandaan: wat de bewoner bevestigde, anders de
- * configuratie, anders de meting, anders de schatting.
+ * Welke ligging geldt, en waarvandaan (besluit 254): de daken die de bewoner
+ * bewaarde. Anders zoals het hoofddak al gold (wat de bewoner bevestigde, de
+ * configuratie, de meting, de schatting), met de panelen op de garage,
+ * carport of het tuinhuis erbij.
  */
 export function kiesLigging(i: LiggingInput): { geometry: Geometry; bron: LiggingBron } | null {
+  const oud = hoofddak(i);
+  if (i.daken && i.daken.vlakken.length > 0) {
+    const facades = i.daken.voorgevelDeg != null ? gevels(i.daken.voorgevelDeg, 'bewoner') : (oud?.geometry.facades ?? []);
+    const omvormerW = i.daken.omvormerW ?? i.omvormerGevonden;
+    return { bron: 'app', geometry: { facades, solarPlanes: zonnevlakken(i.daken), ...(omvormerW != null ? { inverterMaxW: omvormerW } : {}) } };
+  }
+  // Zonder andere daken precies zoals het was.
+  if (!heeftElders(i.elders)) return oud;
+  const d = dakenUitOud(oudeDaken(i, oud));
+  const omvormerW = oud?.geometry.inverterMaxW ?? i.omvormerGevonden;
+  return { bron: oud?.bron ?? 'schatting', geometry: { facades: oud?.geometry.facades ?? [], solarPlanes: zonnevlakken(d), ...(omvormerW != null ? { inverterMaxW: omvormerW } : {}) } };
+}
+
+/** Wat er al was, voor de vlakken zonder bewaarde daken. */
+function oudeDaken(i: LiggingInput, oud: { geometry: Geometry; bron: LiggingBron } | null) {
+  const aantal = i.panelen ? (aantalVan(i.panelen)?.totaal ?? null) : null;
+  // De meting ziet alle panelen samen; een bevestigde meting ook.
+  const gemetenTotaal = oud?.bron === 'gemeten' || (oud?.bron === 'app' && i.dak?.bron === 'gemeten');
+  return { geometry: oud?.geometry ?? null, aantal, plat: i.panelen?.ligging === 'plat', elders: i.elders ?? null, gemetenTotaal };
+}
+
+/**
+ * De daken voor Energie › Daken en panelen (besluit 254): wat de bewoner
+ * bewaarde, of de vlakken uit wat er al was. Zo laat de pagina precies zien
+ * waar de berekening mee rekent.
+ */
+export function dakenNu(i: LiggingInput): { daken: Daken; bewaard: boolean } {
+  if (i.daken && i.daken.vlakken.length > 0) return { daken: i.daken, bewaard: true };
+  return { daken: dakenUitOud(oudeDaken(i, hoofddak(i))), bewaard: false };
+}
+
+/** Het hoofddak zoals vóór besluit 254: bevestigd, de configuratie, de meting, de schatting. */
+function hoofddak(i: LiggingInput): { geometry: Geometry; bron: LiggingBron } | null {
   const omvormer = (w: number | null | undefined) => (w != null ? { inverterMaxW: w } : {});
   if (i.dak) {
     const source: GeometrySource = i.dak.bron === 'gemeten' ? 'gemeten' : 'bewoner';
@@ -631,7 +671,7 @@ const momentVan = (az: number): Exclude<VoorkantZon, 'weetniet'> | null => {
 };
 
 function vraagVoorkant(i: LiggingInput, panelen: PanelenAntwoord): readonly VoorkantZon[] | null {
-  if (i.dak || panelen.ligging === 'geen') return null;
+  if (i.dak || (i.daken?.vlakken.length ?? 0) > 0 || panelen.ligging === 'geen') return null;
   const vlakken = i.meting?.vlakken ?? [];
   // De meting weet het al: de panelen liggen aan een bekende kant.
   if (vlakken.some((v) => v.kant != null)) return null;
@@ -653,7 +693,7 @@ export function liggingView(i: LiggingInput, lang: Lang = 'nl'): LiggingView {
   const gekozen = kiesLigging(i);
   const geo = gekozen?.geometry;
   const voorgevel = geo?.facades.find((f) => f.id === 'voorgevel')?.azimuthDeg ?? null;
-  const zeker = gekozen?.bron === 'app' && i.dak?.bron === 'bewoner';
+  const zeker = gekozen?.bron === 'app' && (i.dak?.bron === 'bewoner' || (i.daken?.vlakken.length ?? 0) > 0);
   const nu = geo && geo.solarPlanes.length > 0 ? { ...woorden(geo.solarPlanes, voorgevel, geo.inverterMaxW ?? null, aantal, zeker || gekozen?.bron === 'configuratie', lang), bron: gekozen!.bron } : null;
   const voorstel = i.meting ? woorden(i.meting.vlakken, voorgevelVan(i.meting.vlakken, panelen, i.voorkantZon), i.omvormerGevonden, aantal, false, lang) : null;
   const d = i.meting?.dag;
@@ -667,7 +707,7 @@ export function liggingView(i: LiggingInput, lang: Lang = 'nl'): LiggingView {
         ? w.panelen(aantal)
         : null;
   return {
-    stand: i.dak ? 'bevestigd' : i.meting ? 'voorstel' : i.configuratie ? 'configuratie' : 'wachten',
+    stand: i.dak || (i.daken?.vlakken.length ?? 0) > 0 ? 'bevestigd' : i.meting ? 'voorstel' : i.configuratie ? 'configuratie' : 'wachten',
     aantal,
     vraagVoorkant: vraagVoorkant(i, panelen),
     nu,

@@ -79,6 +79,67 @@
   #tel .pan-rechts { overflow: visible; }
   #tel .pan-kop { flex-wrap: wrap; }
   #tel .pan-knoppen { margin-left: 0; }
+
+  /* Daken en panelen (besluit 254, schets Wand-Daken): elk vlak een kaartje met een letter. */
+  .dk-letter { flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font: 800 14px var(--kop); color: #0b1424; }
+  .dk-lijst { display: flex; flex-direction: column; gap: 6px; }
+  .dk-vlak { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 0 10px; align-items: center; width: 100%; padding: 8px 10px; border-radius: 14px; border: 0; background: rgb(var(--wit) / 0.045); color: var(--tekst); font: inherit; text-align: left; cursor: pointer; }
+  button.dk-vlak:hover { background: rgb(var(--wit) / 0.08); }
+  .dk-vlak.open { outline: 1.5px solid rgb(var(--wit) / 0.25); background: rgb(var(--wit) / 0.08); cursor: default; }
+  .dk-vlak b { display: block; font-size: 14px; }
+  .dk-vlak small { display: block; font-size: 12px; color: var(--gedempt); }
+  .dk-stand { font-style: normal; font-weight: 700; white-space: nowrap; }
+  .dk-stand.gemeten { color: var(--mint-t); }
+  .dk-stand.bewoner { color: var(--ijs-t); }
+  .dk-stand.schatting { color: var(--zon-t); }
+  .dk-rechts { text-align: right; font-size: 12px; color: var(--zacht); line-height: 1.3; white-space: nowrap; }
+  .dk-rechts b { display: inline; font: 600 15px var(--kop); color: var(--tekst); }
+  .dk-som { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .dk-voet { margin-top: auto; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .dk-voet .mini { flex: 1; }
+  .dk-voet .dk-weg { margin-left: auto; color: var(--gloed-t); }
+  .dk-leeg { padding: 14px; border-radius: 14px; border: 1px dashed rgb(var(--wit) / 0.2); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .dk-leeg p { margin: 0; font-size: 13.5px; color: var(--zacht); line-height: 1.45; }
+  .dk-veld { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .dk-veld > small { font-size: 12px; font-weight: 700; color: var(--gedempt); }
+  .dk-veld .klein { font-size: 11.5px; color: var(--gedempt); }
+  .dk-opstel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .dk-opstel button { padding: 6px 4px 6px; border-radius: 12px; background: rgb(var(--wit) / 0.05); border: 1.5px solid transparent; color: var(--zacht); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .dk-opstel button.aan { border-color: var(--zon); color: var(--tekst); background: rgba(247, 181, 72, 0.08); }
+  .dk-opstel svg { width: 100%; height: 32px; display: block; }
+  .dk-richting { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .dk-kompas { width: 88px; height: 88px; }
+  .dk-rij { display: flex; align-items: center; gap: 10px; }
+  .dk-stapper { display: flex; align-items: center; gap: 8px; }
+  .dk-stapper button { width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgb(var(--wit) / 0.08); color: var(--tekst); font: inherit; font-weight: 800; cursor: pointer; }
+  .dk-stapper b { min-width: 34px; text-align: center; font: 600 18px var(--kop); white-space: nowrap; }
+  .dk-seg { display: flex; flex-wrap: wrap; gap: 5px; }
+  .dk-seg button { min-height: 30px; padding: 0 11px; border-radius: 999px; border: 0; background: rgb(var(--wit) / 0.06); color: var(--zacht); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .dk-seg button.aan { background: rgb(var(--wit) / 0.18); color: var(--tekst); }
+  .dk-aantallen { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+  .dk-meting { padding: 8px 12px; border-radius: 12px; background: rgba(110, 231, 183, 0.08); border: 1px solid rgba(110, 231, 183, 0.22); font-size: 12.5px; color: var(--zacht); line-height: 1.45; }
+  .dk-meting b { color: var(--mint-t); }
+  .dk-stappen { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--zacht); }
+  .dk-stappen i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; background: rgb(var(--wit) / 0.1); }
+  .dk-stappen i.nu { background: var(--zon); color: #0b1424; }
+  .dk-tegels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dk-tegel { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 2px 10px; align-items: center; padding: 9px 10px; border-radius: 14px; border: 0; background: rgb(var(--wit) / 0.05); color: var(--tekst); font: inherit; text-align: left; cursor: pointer; }
+  .dk-tegel:hover { outline: 1.5px solid var(--zon); background: rgba(247, 181, 72, 0.07); }
+  .dk-tegel svg { grid-row: 1 / 3; width: 44px; height: 36px; }
+  .dk-tegel b { font-size: 14px; }
+  .dk-tegel span { font-size: 11.5px; color: var(--gedempt); line-height: 1.3; }
+  .dk-meter { padding: 10px 12px; border-radius: 14px; background: rgb(var(--wit) / 0.045); display: grid; grid-template-columns: 12px auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
+  .dk-meter > i { grid-row: 1 / 3; width: 12px; height: 34px; border-radius: 6px; }
+  .dk-meter > b, .dk-meter > small { grid-column: 3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dk-meter > b { font-size: 14px; }
+  .dk-meter > small { font-size: 12px; color: var(--gedempt); }
+  .dk-naar { grid-row: 1 / 3; grid-column: 2; display: flex; gap: 4px; }
+  .dk-naar .dk-letter { width: 24px; height: 24px; border-radius: 7px; font-size: 12px; }
+  .dk .pan-podium { position: relative; }
+  .dk-noot { position: absolute; left: 14px; right: 14px; bottom: 12px; margin: 0; padding: 9px 12px; border-radius: 12px; background: rgb(var(--nacht) / 0.85); color: var(--zacht); font-size: 12.5px; line-height: 1.45; }
+  #tel .dk-opstel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #tel .dk-tegels { grid-template-columns: 1fr; }
+  #tel .dk-noot { display: none; }
 </style>
 </head>
 <body class="lucht lucht-dag">
@@ -124,6 +185,7 @@
   <script src="kit/huis.js"></script>
   <script src="huismodel.js"></script>
   <script src="panelen.js"></script>
+  <script src="dakvlakken.js"></script>
   <script src="vermogens.js"></script>
   <script src="energie.js"></script>
 </body>
