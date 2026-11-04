@@ -302,6 +302,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [69. Ook de pagina en deploy.sh worden getest](#69-ook-de-pagina-en-deploysh-worden-getest)
 - [180. De twee grootste bestanden opgeknipt, zonder dat er iets verandert](#180-de-twee-grootste-bestanden-opgeknipt-zonder-dat-er-iets-verandert)
 - [250. Meld een probleem, apparaatgegevens en warmtepompen](#250-meld-een-probleem-apparaatgegevens-en-warmtepompen)
+- [252. Terugzeggen na een opgeloste melding](#252-terugzeggen-na-een-opgeloste-melding)
 
 Wat nog open staat: [Wat nog een besluit wacht](#wat-nog-een-besluit-wacht).
 
@@ -11678,6 +11679,35 @@ de uren en kwartieren erbij; daar lag het niet aan.
   met de vaste prijs, en Goedkope uren (de prijzen van morgen) is een eigen
   stap.
 - **Versie 0.119.0.**
+
+---
+
+## 252. Terugzeggen na een opgeloste melding
+
+*Onderwerp: kwaliteitsbewaking · Status: geldig*
+
+4 november 2026. Issue 119 (meldcode SA-36UM) liet zien dat "opgelost" niet
+altijd opgelost is: "Per uur" kiezen bewaarde alleen het soort contract. Wie
+een melding deed, kon na de update niet zeggen of het nu werkte.
+
+*Besluit:*
+
+- **Werkt nu of Werkt nog niet** staat bij een melding met de uitkomst
+  opgelost of instelling: in "Wat is er nieuw" na de update, en bij Versie in
+  een lijst Je meldingen met de stand van elke melding (alleen op dit toestel,
+  `sc-meldingen`).
+- **Werkt nu** vinkt alleen in de app af; er gaat niets naar GitHub.
+- **Werkt nog niet** opent een blad: wat er nog misgaat, en bij een apparaat
+  verse apparaatgegevens. GitHub kan een reactie niet vooraf invullen, dus de
+  tekst gaat naar het klembord en het issue zelf opent (`issue` bij de
+  uitkomst in de versie, anders zoeken op de meldcode). Alles blijft in één
+  draad; de beheerder heropent het issue.
+- **Issue 119 zelf:** Per uur neemt de uurprijs van Home Assistant meteen
+  over en Vaste prijs zet hem uit; kent Home Assistant hem nog niet, dan zegt
+  Prijzen wat er mist en welke sensor de prijs al geeft. Een eigen
+  kostensensor (zoals Tibber) telt ook, aanvulling op [251].
+- **Versie 0.120.0**, met de reparaties van die dag (Inrichten schuift op de
+  wand, overdag dag zonder zonnestand).
 
 ---
 

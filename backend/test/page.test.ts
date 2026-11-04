@@ -4494,7 +4494,7 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
     // Het adres naar GitHub opvangen in plaats van een venster te openen.
-    await context.addInitScript("localStorage.setItem('sc-rondleiding-gezien', '1'); window.geopend = []; window.open = (url) => { window.geopend.push(url); return null; };");
+    await context.addInitScript("localStorage.setItem('sc-rondleiding-gezien', '1'); window.geopend = []; window.open = (url) => { window.geopend.push(url); return null; }; window.klembord = null; Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (x) => { window.klembord = x; } } });");
     await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
     const p = await context.newPage();
     const fouten: string[] = [];
@@ -4526,17 +4526,40 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
       await context.route(`${baseUrl}/api/versie*`, async (route) => {
         const res = await route.fetch();
         const v = (await res.json()) as { nieuw: Record<string, unknown>[] };
-        v.nieuw[0] = { ...v.nieuw[0], meldingen: [{ code, uitkomst: 'opgelost' }] };
+        v.nieuw[0] = { ...v.nieuw[0], meldingen: [{ code, uitkomst: 'opgelost', issue: 119 }] };
         await route.fulfill({ response: res, json: v });
       });
       await p.reload();
       await p.locator('[data-nieuwpop]', { hasText: `Je melding ${code} is opgelost in` }).waitFor({ timeout: 8000 });
       expect(await p.evaluate<string>("JSON.parse(localStorage.getItem('sc-meldingen'))[0].uitkomst")).toBe('opgelost');
+
+      // Werkt nog niet (4 november 2026): een blad, dan het issue zelf, met de tekst op het klembord.
+      await p.locator('[data-nieuwpop] [data-meldnietgoed]').click();
+      await blad.locator('h2', { hasText: 'Werkt nog niet' }).waitFor();
+      await blad.locator('[data-meldwat]').fill('Hij zegt nog steeds koelen');
+      await blad.locator('[data-meldpop-stuur]').click();
+      await blad.locator('h2', { hasText: 'Plak je tekst in het issue' }).waitFor();
+      expect((await p.evaluate<string[]>('window.geopend')).at(-1)).toBe('https://github.com/Ricardo-switch/SunArc/issues/119');
+      const klembord = await p.evaluate<string>('window.klembord');
+      expect(klembord).toMatch(/^Werkt nog niet in \d+\.\d+\.\d+ \(meldcode SA-[A-Z2-9]{4}\)\./);
+      expect(klembord).toContain(`(meldcode ${code})`);
+      expect(klembord).toContain('Hij zegt nog steeds koelen');
+      expect(await p.evaluate<string>("JSON.parse(localStorage.getItem('sc-meldingen'))[0].bevestigd")).toBe('nietGoed');
+      await blad.locator('[data-meldpop-dicht]').click();
+
+      // Bij Over › Versie: je meldingen met hun stand, en later alsnog Werkt nu.
+      await p.goto(`${baseUrl}/toegang.html#versie`);
+      const lijst = p.locator('#wand .jouw-meldingen');
+      await lijst.locator('li', { hasText: code! }).locator('text=werkt nog niet, in je issue gezet').waitFor({ timeout: 8000 });
+      await lijst.locator('[data-meldwerkt]').click();
+      await lijst.locator('text=Fijn, bedankt.').waitFor();
+      expect(await p.evaluate<string>("JSON.parse(localStorage.getItem('sc-meldingen'))[0].bevestigd")).toBe('werkt');
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-jouw-meldingen.png') });
       expect(fouten).toEqual([]);
     } finally {
       await context.close();
     }
-  }, 40_000);
+  }, 50_000);
 
   /*
    * Een prijs per uur (testerronde, november 2026): rekent Home Assistant met

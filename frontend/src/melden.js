@@ -46,6 +46,23 @@
 
   async function open({ apparaat = null, naam = null } = {}) {
     s = { apparaat, naam, soort: apparaat ? 'apparaat' : 'fout', wat: '', mee: !!apparaat, gegevens: null, code: nieuweCode(), klaar: false, klembord: false };
+    await laadErbij();
+  }
+
+  /**
+   * Werkt nog niet (4 november 2026): een melding die opgelost heette. De
+   * tekst gaat naar het klembord en het issue opent, om daar te reageren;
+   * GitHub kan een reactie niet vooraf invullen.
+   */
+  async function vervolg(code) {
+    const m = meldingen().find((x) => x.code === code);
+    if (!m) return;
+    s = { vervolg: m, apparaat: m.apparaat ?? null, naam: m.naam ?? null, soort: m.soort ?? 'fout', wat: '', mee: !!m.apparaat, gegevens: null, code, klaar: false, klembord: false, tekst: '' };
+    await laadErbij();
+  }
+
+  async function laadErbij() {
+    const { apparaat } = s;
     teken();
     const [g, v] = await Promise.all([apparaat ? haal(`api/apparaat-gegevens?id=${encodeURIComponent(apparaat)}`).catch(() => null) : null, haal('api/versie').catch(() => null)]);
     if (!s) return;
@@ -64,7 +81,21 @@
     if (was != null && s) s.wat = was;
     document.querySelectorAll('[data-meldpop], [data-meldpop-achter]').forEach((el) => el.remove());
     if (!s) return;
-    const inhoud = s.klaar
+    const meeVak = s.apparaat ? `<label class="klein" style="display: flex; gap: 8px; align-items: center"><input type="checkbox" data-meldmee ${s.mee ? 'checked' : ''}>${esc(t('melden.mee', { naam: s.naam ?? '' }))}</label>
+          ${s.mee && s.gegevens ? `<details class="klein"><summary>${esc(t('melden.bekijk'))}</summary><pre style="white-space: pre-wrap; font-size: 11.5px; max-height: 180px; overflow: auto; margin: 6px 0 0">${esc(JSON.stringify(s.gegevens, null, 1))}</pre></details>` : ''}` : '';
+    const inhoud = s.vervolg && s.klaar
+      ? `<h2 class="kop-2" id="meldkop" style="margin: 0">${esc(t('melden.vervolgKlaar'))}</h2>
+        <p class="klein" style="margin: 0">${esc(t(s.klembord ? 'melden.vervolgKlembord' : 'melden.vervolgZelf'))}</p>
+        ${s.klembord ? '' : `<pre class="klein" data-meldtekst style="white-space: pre-wrap; user-select: all; max-height: 200px; overflow: auto; margin: 0">${esc(s.tekst)}</pre>`}
+        <div class="knoppen"><button type="button" class="knop knop-licht" data-meldpop-dicht>${esc(t('algemeen.oke'))}</button></div>`
+      : s.vervolg
+      ? `<h2 class="kop-2" id="meldkop" style="margin: 0">${esc(t('melden.vervolgKop'))}</h2>
+        <p class="klein" style="margin: 0">${esc(t('melden.vervolgOver', { code: s.code, titel: s.vervolg.titel ?? '' }))}</p>
+        <label class="veldnaam">${esc(t('melden.vervolgWat'))}<textarea class="invoer" data-meldwat rows="4" maxlength="2000" style="height: auto; padding: 10px 12px">${esc(s.wat)}</textarea></label>
+        ${meeVak}
+        <p class="mini" style="margin: 0">${esc(t('melden.vervolgGithub'))}</p>
+        <div class="knoppen"><button type="button" class="knop" data-meldpop-dicht>${esc(t('basis.versie.later'))}</button><button type="button" class="knop knop-licht" data-meldpop-stuur>${esc(t('melden.verder'))}</button></div>`
+      : s.klaar
       ? `<h2 class="kop-2" id="meldkop" style="margin: 0">${esc(t('melden.bedankt'))}</h2>
         <p class="klein" style="margin: 0">${esc(t('melden.bedanktZin', { code: s.code }))}</p>
         ${s.klembord ? `<p class="klein" style="margin: 0">${esc(t('melden.klembord'))}</p>` : ''}
@@ -72,8 +103,7 @@
       : `<h2 class="kop-2" id="meldkop" style="margin: 0">${esc(t('melden.kop'))}</h2>
         <div class="keuzes" role="group" aria-label="${esc(t('melden.soort'))}">${SOORTEN.filter((k) => k !== 'apparaat' || s.apparaat).map((k) => `<button type="button" data-meldsoort="${k}" aria-pressed="${s.soort === k}">${esc(t(`melden.soort.${k}`))}</button>`).join('')}</div>
         <label class="veldnaam">${esc(t(s.soort === 'idee' ? 'melden.watIdee' : 'melden.wat'))}<textarea class="invoer" data-meldwat rows="4" maxlength="2000" style="height: auto; padding: 10px 12px">${esc(s.wat)}</textarea></label>
-        ${s.apparaat ? `<label class="klein" style="display: flex; gap: 8px; align-items: center"><input type="checkbox" data-meldmee ${s.mee ? 'checked' : ''}>${esc(t('melden.mee', { naam: s.naam ?? '' }))}</label>
-          ${s.mee && s.gegevens ? `<details class="klein"><summary>${esc(t('melden.bekijk'))}</summary><pre style="white-space: pre-wrap; font-size: 11.5px; max-height: 180px; overflow: auto; margin: 6px 0 0">${esc(JSON.stringify(s.gegevens, null, 1))}</pre></details>` : ''}` : ''}
+        ${meeVak}
         <p class="mini" style="margin: 0">${esc(t('melden.github', { code: s.code }))}</p>
         <div class="knoppen"><button type="button" class="knop" data-meldpop-dicht>${esc(t('basis.versie.later'))}</button><button type="button" class="knop knop-licht" data-meldpop-stuur>${esc(t('melden.verder'))}</button></div>`;
     document.body.insertAdjacentHTML('beforeend', `<div class="meldachter" data-meldpop-achter></div><div class="glas nieuwpop" role="dialog" aria-modal="true" aria-labelledby="meldkop" data-meldpop>${inhoud}</div>`);
@@ -86,6 +116,7 @@
       document.querySelector('[data-meldwat]')?.focus();
       return;
     }
+    if (s.vervolg) return stuurVervolg();
     const v = s.versie;
     const gegevens = s.mee && s.gegevens ? JSON.stringify(s.gegevens, null, 1) : '';
     const titel = `${t(`melden.soort.${s.soort}`)}${s.naam && s.soort === 'apparaat' ? ` (${s.naam.slice(0, 30)})` : ''}: ${s.wat.split('\n')[0].slice(0, 70)}`;
@@ -111,7 +142,29 @@
       url = adres({ gegevens: t('melden.plakHier') });
     }
     global.open(url, '_blank', 'noopener');
-    onthoud({ code: s.code, titel: titel.slice(0, 120), soort: s.soort, ms: Date.now() });
+    // Het apparaat erbij, zodat Werkt nog niet later verse gegevens kan meegeven.
+    onthoud({ code: s.code, titel: titel.slice(0, 120), soort: s.soort, ms: Date.now(), ...(s.apparaat ? { apparaat: s.apparaat, naam: (s.naam ?? '').slice(0, 60) } : {}) });
+    s.klaar = true;
+    teken();
+  }
+
+  async function stuurVervolg() {
+    const v = s.versie;
+    const gegevens = s.mee && s.gegevens ? `\n\n\`\`\`json\n${JSON.stringify(s.gegevens, null, 1)}\n\`\`\`` : '';
+    s.tekst = `${t('melden.vervolgRegel', { versie: v?.nummer ?? '?', code: s.code })}\n\n${s.wat}${gegevens}`;
+    try {
+      await global.navigator.clipboard.writeText(s.tekst);
+      s.klembord = true;
+    } catch {
+      s.klembord = false;
+    }
+    const m = s.vervolg;
+    global.open(m.issue ? `${REPO}/issues/${m.issue}` : `${REPO}/issues?${new URLSearchParams({ q: `${s.code} is:issue` })}`, '_blank', 'noopener');
+    try {
+      global.localStorage.setItem(OPSLAG, JSON.stringify(meldingen().map((x) => (x.code === s.code ? { ...x, bevestigd: 'nietGoed', bevestigdMs: Date.now() } : x))));
+    } catch {
+      // Dan staat de knop er de volgende keer nog.
+    }
     s.klaar = true;
     teken();
   }
@@ -132,5 +185,5 @@
     if (e.key === 'Escape' && s) sluit();
   });
 
-  global.melden = { open, meldingen };
+  global.melden = { open, vervolg, meldingen };
 })(window);

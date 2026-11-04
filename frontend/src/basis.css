@@ -335,6 +335,11 @@ html.tel-stand .meldblad { top: auto; left: 8px; right: 8px; bottom: 8px; width:
 .nieuwpop .soort.beter .label { color: var(--ijs-t); background: rgba(111, 211, 255, 0.12); }
 .nieuwpop .soort.opgelost .label { color: var(--zon-t); background: rgba(247, 181, 72, 0.12); }
 .nieuwpop ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--zacht); }
+/* Werkt nu of Werkt nog niet, na een opgeloste melding (4 november 2026). */
+.meld-terugzeg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.meld-terugzeg .knop { height: 32px; padding: 0 12px; font-size: 13px; }
+.jouw-meldingen { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.jouw-meldingen li { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 12px; background: rgb(var(--wit) / 0.05); font-size: 14px; }
 .nieuwpop .knoppen { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
 .nieuwpop .knop { display: inline-flex; align-items: center; text-decoration: none; }
 

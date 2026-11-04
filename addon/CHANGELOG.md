@@ -1,8 +1,12 @@
 # Wat is er nieuw · What is new
 
-## 0.119.1
+## 0.120.0
 
 *4 november 2026*
+
+**Nieuw**
+
+- Na een opgeloste melding kun je zeggen of het werkt: Werkt nog niet opent je issue op GitHub om te reageren. Bij Versie staan je meldingen met hun stand
 
 **Opgelost**
 
@@ -12,6 +16,10 @@
 - Thuis en Inrichten tonen overdag dag, ook als de dienst de stand van de zon niet geeft of de panelen nog niet kent; eerst was het dan altijd nacht
 
 *English*
+
+**New**
+
+- After a fixed report you can say whether it works: Still not working opens your issue on GitHub to reply. Under Version your reports are listed with their status
 
 **Fixed**
 

@@ -1718,14 +1718,42 @@
    * meldcodes op dit toestel die bij een versie staan, elk één keer. Er gaat
    * niets het huis uit; de lijst komt met de update mee.
    */
-  function eigenUitkomsten(nieuw) {
-    let mijn;
+  /** Je eigen meldingen op dit toestel (`sc-meldingen`, uit melden.js). */
+  function eigenMeldingen() {
     try {
-      mijn = JSON.parse(localStorage.getItem('sc-meldingen') ?? '[]');
+      const l = JSON.parse(localStorage.getItem('sc-meldingen') ?? '[]');
+      return Array.isArray(l) ? l : [];
     } catch {
-      return '';
+      return [];
     }
-    if (!Array.isArray(mijn) || !mijn.length) return '';
+  }
+  function zetEigen(code, wijzig) {
+    try {
+      localStorage.setItem('sc-meldingen', JSON.stringify(eigenMeldingen().map((m) => (m.code === code ? { ...m, ...wijzig } : m))));
+    } catch {
+      // Zonder opslag zegt de app het de volgende keer nog eens.
+    }
+  }
+  /**
+   * Werkt nu of Werkt nog niet (4 november 2026), na opgelost of een
+   * instelling. Werkt nu blijft in de app; Werkt nog niet opent het issue.
+   */
+  function meldTerugzeg(m) {
+    if (!['opgelost', 'instelling'].includes(m.uitkomst) || m.bevestigd === 'werkt') return '';
+    return `<span class="meld-terugzeg"><button type="button" class="knop" data-meldwerkt="${esc(m.code)}">${esc(global.t('melden.werkt'))}</button><button type="button" class="knop" data-meldnietgoed="${esc(m.code)}">${esc(global.t('melden.werktNiet'))}</button></span>`;
+  }
+  /** Je meldingen bij Over › Versie: de stand van elk, met dezelfde knoppen. */
+  function jouwMeldingen() {
+    const mijn = eigenMeldingen().slice(-10).reverse();
+    if (!mijn.length) return '';
+    const stand = (m) => global.t(`melden.stand.${m.bevestigd ?? m.uitkomst ?? 'open'}`, { versie: m.versie ?? '' });
+    const regel = (m) => `<li><span><b>${esc(m.code)}</b> ${esc(m.titel ?? '')}</span><span class="mini" data-meldstand>${esc(stand(m))}</span>${meldTerugzeg(m)}</li>`;
+    return `<h3 class="kop-3" style="margin: 6px 0 0">${esc(global.t('melden.jouw'))}</h3><ul class="jouw-meldingen">${mijn.map(regel).join('')}</ul>`;
+  }
+
+  function eigenUitkomsten(nieuw) {
+    const mijn = eigenMeldingen();
+    if (!mijn.length) return '';
     const open = new Map(mijn.filter((m) => !m.uitkomst).map((m) => [m.code, m]));
     const uit = [];
     for (const n of nieuw ?? []) {
@@ -1737,11 +1765,14 @@
     }
     if (!uit.length) return '';
     try {
-      localStorage.setItem('sc-meldingen', JSON.stringify(mijn.map((m) => ({ ...m, ...(uit.some((u) => u.code === m.code) ? { uitkomst: uit.find((u) => u.code === m.code).uitkomst } : {}) }))));
+      localStorage.setItem('sc-meldingen', JSON.stringify(mijn.map((m) => {
+        const u = uit.find((x) => x.code === m.code);
+        return u ? { ...m, uitkomst: u.uitkomst, versie: u.versie, ...(u.issue ? { issue: u.issue } : {}) } : m;
+      })));
     } catch {
       // Dan zegt hij het de volgende keer nog eens.
     }
-    const regel = (u) => `<li>${esc(global.t(`melden.uitkomst.${u.uitkomst}`, { code: u.code, versie: u.versie }))}${u.tekst ? ` ${esc(u.tekst)}` : ''}${u.href ? ` <a href="${esc(u.href)}">${esc(global.t('melden.naarPlek'))}</a>` : ''}</li>`;
+    const regel = (u) => `<li>${esc(global.t(`melden.uitkomst.${u.uitkomst}`, { code: u.code, versie: u.versie }))}${u.tekst ? ` ${esc(u.tekst)}` : ''}${u.href ? ` <a href="${esc(u.href)}">${esc(global.t('melden.naarPlek'))}</a>` : ''}${meldTerugzeg(u)}</li>`;
     return `<div class="soort nieuw"><span class="label">${esc(global.t('melden.jouw'))}</span><ul>${uit.map(regel).join('')}</ul></div>`;
   }
 
@@ -1787,11 +1818,22 @@
    */
   let meldenLaden = null;
   document.addEventListener('click', (e) => {
-    const k = e.target.closest('[data-meld-probleem]');
+    // Werkt nu: alleen hier afgevinkt, er gaat niets naar GitHub.
+    const werkt = e.target.closest('[data-meldwerkt]');
+    if (werkt) {
+      zetEigen(werkt.dataset.meldwerkt, { bevestigd: 'werkt', bevestigdMs: Date.now() });
+      const standregel = werkt.closest('li')?.querySelector('[data-meldstand]');
+      if (standregel) standregel.textContent = global.t('melden.stand.werkt');
+      werkt.closest('.meld-terugzeg')?.replaceWith(Object.assign(document.createElement('span'), { className: 'mini meld-terugzeg', textContent: global.t('melden.werktDank') }));
+      return;
+    }
+    const k = e.target.closest('[data-meld-probleem], [data-meldnietgoed]');
     if (!k) return;
     e.preventDefault();
     e.stopPropagation();
     if (document.querySelector('[data-meldblad]:not([hidden])')) meldDicht();
+    // Werkt nog niet vanuit Wat is er nieuw: dat blad eerst dicht.
+    if (k.dataset.meldnietgoed) document.querySelectorAll('[data-nieuwpop], [data-nieuw-achter]').forEach((el) => el.remove());
     const stempel = document.querySelector('script[src*="basis.js"]')?.getAttribute('src')?.split('?')[1];
     meldenLaden ??= new Promise((ok, fout) => {
       const s = document.createElement('script');
@@ -1800,7 +1842,7 @@
       s.onerror = fout;
       document.head.append(s);
     });
-    meldenLaden.then(() => global.melden.open({ apparaat: k.dataset.apparaat ?? null, naam: k.dataset.naam ?? null }), () => (meldenLaden = null));
+    meldenLaden.then(() => (k.dataset.meldnietgoed ? global.melden.vervolg(k.dataset.meldnietgoed) : global.melden.open({ apparaat: k.dataset.apparaat ?? null, naam: k.dataset.naam ?? null })), () => (meldenLaden = null));
   }, true);
 
   function meldingenStart() {
@@ -2000,5 +2042,5 @@
     return Promise.resolve(false);
   }
 
-  global.app = { kanApparaatSpreken, zegMetApparaat, huisSoort, persoonlijk, $$, metLidwoord, nl, zet, esc, bijnaOp, klokVan, wanneer, LINKS, telStand, schaal, haal, deur, tijdVanDeDag, lucht, luchtVan, klok, live, start, verwachting, gebundeld, zicht, aanbellen, offline, online, inHA, volledigGekozen, zetVolledig, naarHA, zetWeergave, weergave: () => weergaveNu, zetThema, kleurVan, tekstKleur, houToegang, updateKlaar, bijwerkVenster, bijVerandering, kanInstalleren, geinstalleerd, installeer, naarHAScherm, terugknop, onthoudInrichten, vergeetInrichten, segmenten, koffieKnop };
+  global.app = { kanApparaatSpreken, zegMetApparaat, huisSoort, persoonlijk, $$, metLidwoord, nl, zet, esc, bijnaOp, klokVan, wanneer, LINKS, telStand, schaal, haal, deur, tijdVanDeDag, lucht, luchtVan, klok, live, start, verwachting, gebundeld, zicht, aanbellen, offline, online, inHA, volledigGekozen, zetVolledig, naarHA, zetWeergave, weergave: () => weergaveNu, zetThema, kleurVan, tekstKleur, houToegang, updateKlaar, bijwerkVenster, bijVerandering, kanInstalleren, geinstalleerd, installeer, naarHAScherm, terugknop, onthoudInrichten, vergeetInrichten, segmenten, koffieKnop, jouwMeldingen };
 })(window);
