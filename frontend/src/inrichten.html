@@ -146,13 +146,16 @@
   .kaart { padding: 26px 28px 22px; display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow: hidden; }
   /* Volgende blijft altijd in beeld; is er te weinig plek, dan wijkt eerst de tip (besluit 166). */
   .kaart > .voet { flex: none; }
-  .kaart > .noot { flex-shrink: 1; min-height: 0; overflow: hidden; }
+  /* De inhoud van elke stap in een eigen vak (4 november 2026): past hij niet, dan schuift dat vak en blijven de knoppen staan. */
+  .kaart > .midden { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 14px; overflow: hidden auto; overscroll-behavior: contain; margin: 0 -6px; padding: 0 6px; }
+  .kaart > .midden.groei { flex-grow: 1; }
+  .midden > .noot { flex-shrink: 1; min-height: 0; overflow: hidden; }
   .kaart .waar { font-size: 13.5px; font-weight: 600; color: var(--gedempt); }
   .kaart h1 { margin: 0; }
   .kaart .uitleg { margin: 0; font-size: 16px; line-height: 1.5; color: var(--zacht); max-width: 46ch; }
   .rijen { display: flex; flex-direction: column; min-height: 0; overflow: auto; overscroll-behavior: contain; margin: 0 -6px; padding: 0 6px; }
   /* Loopt de lijst verder dan de kaart, dan vervaagt de onderkant (besluit 158). */
-  .rijen.meer { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent); }
+  .rijen.meer, .midden.meer { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent); }
   .rij { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid rgb(var(--wit) / 0.06); }
   /* Een apparaat en zijn kamer: de naam krijgt de ruimte, de keuze een vaste breedte. */
   .rij.breed { grid-template-columns: minmax(0, 1fr) 210px; align-items: center; }
@@ -463,6 +466,7 @@
   #tel .toestel { flex-wrap: wrap; }
   #tel .podium { height: 250px; margin: 4px 0 -6px; }
   #tel .kaart { padding: 4px 18px 0; gap: 10px; overflow: visible; background: none; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  #tel .kaart > .midden { overflow: visible; gap: 10px; }
   #tel .kaart h1 { font-size: 27px !important; line-height: 1.1 !important; }
   #tel .kaart .uitleg { font-size: 14.5px; }
   /* Onderaan vast in beeld, over de hele breedte: de knoppen blijven staan terwijl de vraag schuift. */

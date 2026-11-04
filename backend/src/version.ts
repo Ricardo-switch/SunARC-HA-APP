@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.119.0';
+export const VERSIE = '0.119.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -66,6 +66,14 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.119.1',
+    datum: '2026-11-04',
+    opgelost: ['Inrichten op de wand: past een stap niet op de kaart, dan schuift hij, en Volgende blijft in beeld; bij Meter van nu viel de knop eerst weg'],
+    en: {
+      opgelost: ['Setup on the wall: when a step does not fit on the card it scrolls, and Next stays in view; at Live meter the button dropped out of sight before'],
+    },
+  },
   {
     versie: '0.119.0',
     datum: '2026-11-04',

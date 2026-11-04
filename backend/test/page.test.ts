@@ -1045,6 +1045,49 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
   }, 60_000);
 
   /*
+   * Inrichten op de wand (4 november 2026): bij Meter van nu viel Volgende
+   * onder de kaart weg en schoof er niets. Nu schuift de inhoud, en blijven de
+   * knoppen bij elke stap binnen de kaart en aan te tikken.
+   */
+  it('houdt op de wand bij elke stap van Inrichten de knoppen binnen de kaart', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    const stappen = ['woning', 'huis', 'buiten', 'bewoners', 'apparaten', 'meten', 'warmte', 'apparaat', 'comfort', 'afwezig', 'zekering', 'vermogen', 'zon', 'ligging', 'opzon', 'prijzen', 'functies', 'wand', 'ha', 'stem', 'account', 'klaar'];
+    for (const stap of stappen) {
+      await p.goto(`${baseUrl}/inrichten.html#${stap}`);
+      const kaart = p.locator('#wand [data-kaart]');
+      await kaart.locator('h1').waitFor({ timeout: 10_000 });
+      const knop = kaart.locator('.voet .knop, .voet .zachtknop').last();
+      await knop.waitFor();
+      // De gegevens komen na de eerste tekening: even laten opbouwen.
+      await p.waitForTimeout(300);
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', `-inr-${stap}.png`) });
+      // Zoals bij een huis met veel meters: de inhoud langer dan de kaart.
+      const maat = await kaart.evaluate((k) => {
+        const lang = k.ownerDocument.createElement('div');
+        lang.style.cssText = 'flex: none; height: 900px';
+        k.querySelector(':scope > .midden')!.append(lang);
+        const voet = k.querySelector(':scope > .voet')!.getBoundingClientRect();
+        const rand = k.getBoundingClientRect();
+        const knoppen = [...k.querySelectorAll(':scope > .voet .knop, :scope > .voet .zachtknop')].map((b) => {
+          const r = b.getBoundingClientRect();
+          const raak = k.ownerDocument.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return !!raak && (raak === b || b.contains(raak));
+        });
+        return { onder: Math.round(voet.bottom - rand.bottom), knoppen };
+      });
+      expect(maat.onder, stap).toBeLessThanOrEqual(0);
+      expect(maat.knoppen.every(Boolean), stap).toBe(true);
+    }
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 120_000);
+
+  /*
    * Etages op de telefoon (28 oktober 2026): vanuit elke etage naar elke andere.
    * Vanaf Buiten kon het naar de eerste verdieping, vanuit de rest niet.
    */

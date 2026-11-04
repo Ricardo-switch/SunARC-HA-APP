@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.119.1
+
+*4 november 2026*
+
+**Opgelost**
+
+- Inrichten op de wand: past een stap niet op de kaart, dan schuift hij, en Volgende blijft in beeld; bij Meter van nu viel de knop eerst weg
+
+*English*
+
+**Fixed**
+
+- Setup on the wall: when a step does not fit on the card it scrolls, and Next stays in view; at Live meter the button dropped out of sight before
+
 ## 0.119.0
 
 *4 november 2026*

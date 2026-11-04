@@ -1823,7 +1823,7 @@ const BEVESTIG = {
 
 /** Lijsten die verder gaan dan de kaart, lopen zichtbaar uit (besluit 158). */
 function markeerMeer() {
-  $$('[data-kaart] .rijen').forEach((el) => {
+  $$('[data-kaart] .rijen, [data-kaart] > .midden').forEach((el) => {
     const zet = () => el.classList.toggle('meer', el.scrollHeight > el.clientHeight + 2 && el.scrollTop + el.clientHeight < el.scrollHeight - 2);
     el.onscroll = zet;
     zet();
@@ -1874,14 +1874,17 @@ function tekenNu() {
   getekend = nu;
   $$('[data-kaart]').forEach((el) => {
     const was = zelfde ? el.querySelector('.rijen')?.scrollTop ?? 0 : 0;
+    const wasMidden = zelfde ? el.querySelector(':scope > .midden')?.scrollTop ?? 0 : 0;
     el.innerHTML = `<span class="waar">${esc(v.waar)}</span>
       <h1 class="${v.groot ? 'kop-1' : 'kop-2'}" style="${v.groot ? 'font-size: 40px; line-height: 1.05' : ''}">${esc(v.kop)}</h1>
       <p class="uitleg">${esc(v.uitleg)}</p>
-      ${v.inhoud}
+      <div class="midden${nu === 'apparaat' ? ' groei' : ''}">${v.inhoud}</div>
       <span class="melding-inr${melding.fout ? ' fout' : ''}" data-melding>${esc(melding.tekst)}</span>
       <div class="voet">${links || '<span></span>'}${rechts}</div>`;
     const rijen = el.querySelector('.rijen');
     if (rijen && was) rijen.scrollTop = was;
+    const midden = el.querySelector(':scope > .midden');
+    if (midden && wasMidden) midden.scrollTop = wasMidden;
     app.segmenten(el);
   });
   markeerMeer();
