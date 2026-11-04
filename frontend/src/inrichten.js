@@ -1009,6 +1009,8 @@ const kanKeus = (a) => concept()?.apparaten?.[sleutel(a)] ?? {};
 function kanBereik(a) {
   const h = a.klimaat?.ha ?? {};
   const eigen = kanKeus(a).bereik;
+  // Een stooklijn of watertemperatuur (testerronde, november 2026): geen kamerbereik, dus niets te verbeteren.
+  if (h.doel && h.doel !== 'kamer') return { min: h.minC, max: h.maxC, fout: false, eigen: false, ha: [h.minC, h.maxC] };
   if (eigen) return { min: eigen[0], max: eigen[1], fout: false, eigen: true, ha: [h.minC, h.maxC] };
   const fout = (h.minC != null && h.minC < BEREIK[0]) || (h.maxC != null && h.maxC > BEREIK[1]);
   if (!fout) return { min: h.minC, max: h.maxC, fout: false, eigen: false, ha: [h.minC, h.maxC] };
@@ -1035,7 +1037,9 @@ function kanVan(a, r) {
   // Wat hij kan, en van hoe laag tot hoe hoog.
   const wat = airco && k.kanVerwarmen ? t('inr.kan.koelWarm') : airco ? t('inr.kan.koel') : t('inr.kan.warm');
   const bereikZin = b.min != null && b.max != null ? t('inr.kan.vanTot', { min: graden(b.min), max: graden(b.max) }) : t('inr.kan.geenBereik');
-  if (b.fout || b.eigen) {
+  if (h.doel === 'stooklijn' || h.doel === 'water') {
+    punt('ok', `${wat} · ${t(h.doel === 'stooklijn' ? 'inr.kan.stooklijn' : 'inr.kan.water')}`, t(h.doel === 'stooklijn' ? 'inr.kan.stooklijnZin' : 'inr.kan.waterZin', { min: graden(b.min), max: graden(b.max) }));
+  } else if (b.fout || b.eigen) {
     const opties = (w) => Array.from({ length: BEREIK[1] - BEREIK[0] + 1 }, (_, i) => BEREIK[0] + i).map((x) => `<option value="${x}" ${x === w ? 'selected' : ''}>${x}°</option>`).join('');
     const kiezen = `<div class="chips"><select class="veld klein" data-kan-bereik="${esc(sleutel(a))}" data-kant="min" aria-label="${esc(t('inr.kan.laagst'))}">${opties(b.min)}</select><select class="veld klein" data-kan-bereik="${esc(sleutel(a))}" data-kant="max" aria-label="${esc(t('inr.kan.hoogst'))}">${opties(b.max)}</select></div>`;
     // Wat hij kan en het bereik in één regel, zodat de rest in beeld blijft.

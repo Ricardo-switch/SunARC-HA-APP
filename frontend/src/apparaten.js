@@ -237,7 +237,10 @@ function klimaatKaart({ a, r }) {
   const stand = bew?.soort === 'wait' ? [t('apparaten.wachtZon'), 'var(--zon)'] : doet ? [huismodel.metHoofdletter(a.klimaat.actie), code === 'koelt' ? 'var(--ijs)' : 'var(--gloed)'] : [huismodel.metHoofdletter(a.stand ?? t('apparaten.onbekend')), 'var(--mint)'];
   // Niet twee keer hetzelfde (29 oktober 2026): de zin begon met de stand ("Verwarmen naar 20° · onder het doel"),
   // en een stand die het doel al noemt ("Automatisch naar 18°") kreeg "Doel 18°." eronder. Een radiatorknop noemt het ook al.
-  const doel = a.klimaat?.doelC != null ? `${nl(a.klimaat.doelC, Number.isInteger(a.klimaat.doelC) ? 0 : 1)}°` : null;
+  // Een warmtepomp met een stooklijn of watertemperatuur als doel (testerronde, november 2026): dat zegt hij, geen kamer.
+  const soortDoel = a.klimaat?.ha?.doel ?? 'kamer';
+  const getalDoel = a.klimaat?.doelC != null ? nl(a.klimaat.doelC, Number.isInteger(a.klimaat.doelC) ? 0 : 1) : null;
+  const doel = getalDoel == null ? null : soortDoel === 'stooklijn' ? t('apparaten.stooklijn', { doel: `${a.klimaat.doelC > 0 ? '+' : ''}${getalDoel}` }) : soortDoel === 'water' ? t('apparaten.water', { doel: getalDoel }) : `${getalDoel}°`;
   const standLaag = stand[0].toLowerCase();
   const rest = bew?.tekst?.toLowerCase().startsWith(standLaag) ? bew.tekst.slice(standLaag.length).replace(/^[\s·,.;:–-]+/, '') : bew?.tekst;
   // Twee doelen bij één thermostaat (30 oktober 2026): bovenaan wat het apparaat zelf zegt ("Automatisch naar 18°"),

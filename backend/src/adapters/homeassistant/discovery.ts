@@ -27,6 +27,7 @@
  */
 
 import type { HaEntityState } from './client.js';
+import { doelSoort } from '../../web/doelsoort.js';
 
 // --------------------------------------------------------------- vormen ----
 
@@ -505,6 +506,17 @@ export function discover(r: Registers): Proposal {
             modes.length === 0
               ? `${device.entity_id} meldde geen hvac_modes; stond hij aan tijdens het uitlezen?`
               : `${device.entity_id} kan alleen ${modes.join(', ')} en dus niet verwarmen of koelen`,
+        });
+        continue;
+      }
+
+      // Een stooklijn of watertemperatuur is geen kamer (testerronde, november 2026): meekijken, niet regelen.
+      const soort = doelSoort(numberAttr(st, 'min_temp'), numberAttr(st, 'max_temp'));
+      if (soort !== 'kamer') {
+        findings.push({
+          soort: 'overgeslagen',
+          pad: `actuators.${device.entity_id}`,
+          tekst: `${device.entity_id} stelt ${soort === 'stooklijn' ? 'een correctie op de stooklijn' : 'een watertemperatuur'} in, geen kamertemperatuur; SunArc kijkt alleen mee`,
         });
         continue;
       }
