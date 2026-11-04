@@ -71,9 +71,15 @@ export const NIEUW: readonly Nieuw[] = [
   {
     versie: '0.121.1',
     datum: '2026-11-04',
-    opgelost: ['Het grote welkom van Inrichten heeft weer een kruisje rechtsboven, naar Thuis'],
+    opgelost: [
+      'De eerste start loopt niet meer vast op "zo niet bruikbaar": wat SunArc nog niet begrijpt, laat hij weg, en dat staat op het scherm en in het logboek',
+      'Het grote welkom van Inrichten heeft weer een kruisje rechtsboven, naar Thuis',
+    ],
     en: {
-      opgelost: ['The big welcome of Setup has a close button at the top right again, back to Home'],
+      opgelost: [
+        'The first start no longer gets stuck on "cannot be used like this": SunArc leaves out what it does not understand yet, and says so on screen and in the log',
+        'The big welcome of Setup has a close button at the top right again, back to Home',
+      ],
     },
   },
   {

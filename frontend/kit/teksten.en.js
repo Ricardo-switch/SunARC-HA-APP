@@ -3565,6 +3565,7 @@
   'begin.ruimtes': { one: 'space', other: 'spaces' },
   'begin.zoekt': 'Searching Home Assistant',
   'begin.klaarzetten': 'Your house is being prepared.',
+  'begin.weggelaten': 'SunArc left out what it does not understand yet ({n}). It is in the log under Version, and you can send it with Report a problem.',
   'begin.terugzetten': 'Your back-up is being restored.',
 
   // The first sign-in (welkom.js)

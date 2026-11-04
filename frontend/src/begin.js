@@ -25,6 +25,8 @@ let foutLijst = [];
 // Met Meld dit (4 november 2026): het meldblad met de fout en de lijst al ingevuld, en het logboek erbij.
 const foutHtml = () => `<span class="fout" role="alert">${esc(fout)}</span>${fout && foutLijst.length ? `<ul class="fout-lijst">${foutLijst.slice(0, 8).map((p) => `<li>${esc(p)}</li>`).join('')}</ul><button type="button" class="knop meld-dit" data-meld-probleem data-meld-wat="${esc([fout, ...foutLijst.slice(0, 20)].join('\n'))}">${esc(t('melden.meldDit'))}</button>` : ''}`;
 let bezigTekst = '';
+/** Wat SunArc bij het bewaren wegliet omdat hij het nog niet begrijpt (4 november 2026). */
+let weggelaten = [];
 
 const ICOON = {
   comfort: iconen.svg('comfort'),
@@ -93,6 +95,7 @@ function bezig() {
   return `<div class="draait" aria-hidden="true"></div>
     <h1 class="vraagkop">${esc(bezigTekst)}</h1>
     <p class="lead">${esc(t('begin.tellen'))}</p>
+    ${weggelaten.length ? `<p class="lead" data-weggelaten>${esc(t('begin.weggelaten', { n: weggelaten.length }))}</p>` : ''}
     ${foutHtml()}`;
 }
 
@@ -240,7 +243,9 @@ async function bewaar() {
   fout = '';
   tekenLinks();
   try {
-    await stuur('api/onboarding', { antwoorden });
+    const uit = await stuur('api/onboarding', { antwoorden });
+    weggelaten = Array.isArray(uit?.weggelaten) ? uit.weggelaten : [];
+    if (weggelaten.length) tekenLinks();
     // Meteen naar de eerste stap (30 oktober 2026): het welkom van Inrichten zei hetzelfde nog een keer.
     void wachtOpHerstart('inrichten.html#woning');
   } catch (err) {

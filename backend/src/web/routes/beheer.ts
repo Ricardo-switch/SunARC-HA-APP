@@ -445,6 +445,7 @@ export async function onboardingRoute(
   sendJson(res, result.ok ? 200 : 422, result);
   // In het logboek van de add-on (4 november 2026): wat de toets noemde, om bij een melding te kunnen meesturen.
   if (!result.ok) console.warn(`Eerste start niet opgeslagen: ${result.reden}${result.problemen.map((p) => `\n  ${p}`).join('')}`);
+  else if (result.weggelaten?.length) console.warn(`Eerste start opgeslagen zonder wat SunArc nog niet begrijpt:${result.weggelaten.map((p) => `\n  ${p}`).join('')}`);
   // Eerst het antwoord, dan opnieuw starten: de pagina wacht tot de dienst terug is.
   if (result.ok) d.options.naOnboarding?.();
 }

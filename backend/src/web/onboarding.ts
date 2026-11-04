@@ -110,7 +110,7 @@ const MISLUKT = {
 } satisfies Record<Lang, unknown>;
 
 export type SaveResult =
-  | { readonly ok: true; readonly pad: string }
+  | { readonly ok: true; readonly pad: string; readonly weggelaten?: readonly string[] }
   | { readonly ok: false; readonly reden: string; readonly problemen: readonly string[] };
 
 export class Onboarding {
@@ -201,17 +201,31 @@ export class Onboarding {
     // Toetsen vóór schrijven. Een bestand dat de dienst niet kan lezen is
     // erger dan geen bestand: dan start hij niet meer, en de melding komt in
     // een logboek terecht dat niemand openslaat (besluit 33).
-    const checked = parseSiteConfig(config, {
-      knownStrategies: this.#options.knownStrategies,
-    });
+    const toets = (c: Record<string, unknown>) => parseSiteConfig(c, { knownStrategies: this.#options.knownStrategies });
+    const checked = toets(config);
+    let weggelaten: readonly string[] = [];
     if (!checked.ok) {
-      return {
-        ok: false,
-        reden: w.nietBruikbaar,
-        problemen: checked.problems.map((p) =>
-          p.path === '' ? p.message : `${p.path}: ${p.message}`,
-        ),
-      };
+      /*
+       * Een huis dat SunArc niet helemaal begrijpt, mag toch beginnen (4
+       * november 2026): een tester bleef hangen op "zo niet bruikbaar". Wat
+       * de toets afkeurt en weg kan (een apparaat, een zone, een bewoner, een
+       * losse sensor), laat SunArc weg; de rest gaat door, en wat wegbleef
+       * staat in het logboek en op het scherm. Kan het niet zo, dan blijft het
+       * zoals het was.
+       */
+      const gesnoeid = snoeiVoorstel(config, toets);
+      if (!gesnoeid) {
+        return {
+          ok: false,
+          reden: w.nietBruikbaar,
+          problemen: checked.problems.map((p) =>
+            p.path === '' ? p.message : `${p.path}: ${p.message}`,
+          ),
+        };
+      }
+      for (const k of Object.keys(config)) delete config[k];
+      Object.assign(config, gesnoeid.config);
+      weggelaten = gesnoeid.weggelaten;
     }
 
     const name = String(config['id'] ?? 'installatie');
@@ -235,8 +249,74 @@ export class Onboarding {
 
     await mkdir(this.#options.sitesDir, { recursive: true });
     await writeFile(path, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
-    return { ok: true, pad: path };
+    return { ok: true, pad: path, ...(weggelaten.length ? { weggelaten } : {}) };
   }
+}
+
+/** Losse velden van het voorstel die weg mogen: zonder werkt SunArc ook. */
+const LOS = ['power', 'sun', 'outdoorTemperature', 'solarProduction', 'occupancy'] as const;
+const LIJST = /^(actuators|zones|occupancy)\[(\d+)\]/;
+
+/**
+ * Laat weg wat de toets afkeurt, en toetst opnieuw, tot het voorstel door de
+ * toets komt (hooguit tien rondes). Een apparaat gaat ook uit zijn zone, en
+ * een zone zonder apparaten valt mee weg. Null als een bezwaar nergens bij
+ * hoort dat weg kan, of als er na tien rondes nog bezwaren zijn.
+ */
+export function snoeiVoorstel(
+  begin: Record<string, unknown>,
+  toets: (c: Record<string, unknown>) => ReturnType<typeof parseSiteConfig>,
+): { config: Record<string, unknown>; weggelaten: string[] } | null {
+  const config = structuredClone(begin);
+  const weggelaten: string[] = [];
+  const naam = (x: Record<string, unknown> | undefined) => String(x?.['name'] ?? x?.['ref'] ?? x?.['id'] ?? '?');
+  for (let ronde = 0; ronde < 10; ronde++) {
+    const uit = toets(config);
+    if (uit.ok) return { config, weggelaten };
+    const weg = { actuators: new Set<number>(), zones: new Set<number>(), occupancy: new Set<number>() };
+    const velden = new Set<string>();
+    const reden = new Map<string, string>();
+    // Alleen fouten; een waarschuwing houdt niets tegen.
+    for (const p of uit.problems.filter((x) => x.severity === 'error')) {
+      const m = LIJST.exec(p.path);
+      if (m) {
+        weg[m[1] as keyof typeof weg].add(Number(m[2]));
+        reden.set(`${m[1]}[${m[2]}]`, p.message);
+        continue;
+      }
+      const veld = LOS.find((v) => p.path === v || p.path.startsWith(`${v}.`) || p.path.startsWith(`${v}[`));
+      if (!veld) return null;
+      velden.add(veld);
+      reden.set(veld, p.message);
+    }
+    const lijst = (k: 'actuators' | 'zones' | 'occupancy') => (config[k] as Record<string, unknown>[] | undefined) ?? [];
+    // De apparaten, en hun id uit elke zone.
+    const wegIds = new Set<string>();
+    for (const i of weg.actuators) {
+      const a = lijst('actuators')[i];
+      wegIds.add(String(a?.['id']));
+      weggelaten.push(`apparaat ${naam(a)}: ${reden.get(`actuators[${i}]`)}`);
+    }
+    for (const i of weg.zones) weggelaten.push(`zone ${naam(lijst('zones')[i])}: ${reden.get(`zones[${i}]`)}`);
+    for (const i of weg.occupancy) weggelaten.push(`bewoner ${naam(lijst('occupancy')[i])}: ${reden.get(`occupancy[${i}]`)}`);
+    if ('actuators' in config) config['actuators'] = lijst('actuators').filter((_, i) => !weg.actuators.has(i));
+    if ('zones' in config) {
+      config['zones'] = lijst('zones')
+        .filter((_, i) => !weg.zones.has(i))
+        .map((z) => ({ ...z, actuatorIds: ((z['actuatorIds'] as string[] | undefined) ?? []).filter((id) => !wegIds.has(id)) }))
+        .filter((z) => {
+          if ((z['actuatorIds'] as string[]).length > 0) return true;
+          weggelaten.push(`zone ${naam(z)}: zonder apparaat`);
+          return false;
+        });
+    }
+    if ('occupancy' in config && weg.occupancy.size) config['occupancy'] = lijst('occupancy').filter((_, i) => !weg.occupancy.has(i));
+    for (const v of velden) {
+      delete config[v];
+      weggelaten.push(`${v}: ${reden.get(v)}`);
+    }
+  }
+  return toets(config).ok ? { config, weggelaten } : null;
 }
 
 /** Per optie van een keuze de naam zoals Home Assistant hem toont. */

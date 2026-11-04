@@ -1091,6 +1091,28 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
    * De eerste start (4 november 2026): kwam het voorstel niet door de toets,
    * dan zag een tester alleen "zo niet bruikbaar". Nu staat erbij wat er mis is.
    */
+  it('zegt bij de eerste start wat SunArc wegliet', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const huis = await (await fetch(`${baseUrl}/api/huis`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json();
+    await context.route(`${baseUrl}/api/onboarding*`, (route) =>
+      route.request().method() === 'POST'
+        ? route.fulfill({ json: { ok: true, pad: '/config/sites/mijn-huis.json', weggelaten: ['apparaat Kapotte kachel: kan niets', 'zone Zolder: zonder apparaat'] } })
+        : route.fulfill({ json: { huis, keuzes: [], bestaande: [] } }),
+    );
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/begin.html`);
+    await p.locator('[data-inrichten]').first().click({ timeout: 15_000 });
+    const zin = p.locator('[data-weggelaten]').first();
+    await zin.waitFor({ timeout: 10_000 });
+    expect(await zin.innerText()).toContain('Wat SunArc nog niet begrijpt, liet hij weg (2).');
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 30_000);
+
   it('zegt bij de eerste start wat er mis is als het voorstel niet bruikbaar is', async () => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);

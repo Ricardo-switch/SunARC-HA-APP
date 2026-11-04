@@ -3570,6 +3570,7 @@
   'begin.ruimtes': { one: 'ruimte', other: 'ruimtes' },
   'begin.zoekt': 'Home Assistant wordt doorzocht',
   'begin.klaarzetten': 'Je huis wordt klaargezet.',
+  'begin.weggelaten': 'Wat SunArc nog niet begrijpt, liet hij weg ({n}). Het staat in het logboek bij Versie, en met Meld een probleem kun je het sturen.',
   'begin.terugzetten': 'Je back-up wordt teruggezet.',
 
   // De eerste inlog (welkom.js)
