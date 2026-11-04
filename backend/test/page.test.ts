@@ -4541,14 +4541,74 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
       await p.locator('#wand [data-uurprijs]').click();
       await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toEqual(dynamisch);
       await p.locator('#wand', { hasText: 'Prijs per uur uit Home Assistant, nu € 0,23 per kWh' }).first().waitFor({ timeout: 5000 });
+      // Het soort contract gaat mee (issue 119).
+      await expect.poll(() => connStore.current?.tarief ?? null, { timeout: 5000 }).toBe('dynamisch');
       // Toch een vaste prijs: dan weer zonder.
       await p.locator('#wand [data-uurprijs-uit]').click();
       await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toBeNull();
+      await expect.poll(() => connStore.current?.tarief ?? null, { timeout: 5000 }).toBe('vast');
       expect(fouten).toEqual([]);
     } finally {
       await context.close();
     }
   }, 30_000);
+
+  /*
+   * Issue 119: "Per uur" kiezen deed niets. Nu neemt het de uurprijs van Home
+   * Assistant over; kent Home Assistant die nog niet, dan zegt Prijzen wat er
+   * mist en welke sensor de prijs al geeft.
+   */
+  it('neemt bij Per uur de uurprijs over, of zegt wat er mist', async () => {
+    const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    if (energyStore.current == null) await energyStore.save(importFromPrefs(await ENERGY_SOURCE.prefs(), await ENERGY_SOURCE.meters()));
+    const tariefWas = connStore.current?.tarief ?? null;
+    const dynamisch = { prijsEntiteit: 'sensor.zonneplan_current_electricity_tariff', afname: ['sensor.p1_afname_cost'], terug: [] };
+    // Eerst zonder prijs per uur in Home Assistant, wel met een sensor die hem geeft.
+    let kent = false;
+    await context.route(`${baseUrl}/api/energie*`, async (route) => {
+      if (route.request().method() !== 'GET') return route.continue();
+      const res = await route.fetch();
+      const v = (await res.json()) as { voorstel: { prijzen: Record<string, unknown> } | null; instellingen: unknown };
+      const voorstel = v.voorstel ?? (v.instellingen as typeof v.voorstel);
+      const prijzen = { ...voorstel!.prijzen };
+      if (kent) prijzen['dynamisch'] = dynamisch;
+      else delete prijzen['dynamisch'];
+      await route.fulfill({ response: res, json: { ...v, voorstel: { ...voorstel, prijzen }, prijsNu: kent ? 0.2345 : null, prijsSensoren: kent ? [] : [{ id: 'sensor.zonneplan_current_electricity_tariff', naam: 'Zonneplan huidige stroomprijs', prijs: 0.2311 }] } });
+    });
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    const contract = (w: string) => p.locator(`#wand [data-kies="contract"][data-waarde='"${w}"']`);
+    try {
+      await p.goto(`${baseUrl}/energie.html#prijzen`);
+      await contract('vast').click();
+      await contract('dynamisch').click();
+      const mist = p.locator('#wand [data-uurprijs-mist]');
+      await mist.waitFor({ timeout: 5000 });
+      expect(await mist.innerText()).toContain('Zonneplan huidige stroomprijs (nu € 0,23 per kWh)');
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-uurprijs-mist.png') });
+      await expect.poll(() => connStore.current?.tarief ?? null, { timeout: 5000 }).toBe('dynamisch');
+      expect(energyStore.current?.prijzen.dynamisch ?? null).toBeNull();
+      // Daarna in Home Assistant gezet: opnieuw kijken, en dan neemt Per uur hem over.
+      kent = true;
+      await p.locator('#wand [data-uurprijs-opnieuw]').click();
+      await p.locator('#wand [data-uurprijs]').waitFor({ timeout: 5000 });
+      await contract('vast').click();
+      await contract('dynamisch').click();
+      await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toEqual(dynamisch);
+      await p.locator('#wand', { hasText: 'Prijs per uur uit Home Assistant, nu € 0,23 per kWh' }).first().waitFor({ timeout: 5000 });
+      // Een vaste prijs zet hem weer uit.
+      await contract('vast').click();
+      await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toBeNull();
+      expect(fouten).toEqual([]);
+    } finally {
+      await context.close();
+      if (connStore.current) await connStore.save({ ...connStore.current, tarief: tariefWas });
+    }
+  }, 40_000);
 
   /*
    * De valuta van het huis (testerronde, november 2026): zegt Home Assistant

@@ -7,12 +7,16 @@
 **Opgelost**
 
 - Inrichten op de wand: past een stap niet op de kaart, dan schuift hij, en Volgende blijft in beeld; bij Meter van nu viel de knop eerst weg
+- Energie › Prijzen: Per uur kiezen neemt de uurprijs van Home Assistant over; kent Home Assistant die nog niet, dan staat er wat er mist en welke sensor de prijs al geeft
+- Een eigen kostensensor in Home Assistant, zoals die van Tibber, telt nu ook als prijs per uur
 
 *English*
 
 **Fixed**
 
 - Setup on the wall: when a step does not fit on the card it scrolls, and Next stays in view; at Live meter the button dropped out of sight before
+- Energy › Prices: choosing Per hour takes over the hourly price from Home Assistant; if Home Assistant does not know it yet, it says what is missing and which sensor already gives the price
+- An own cost sensor in Home Assistant, such as the one from Tibber, now also counts as an hourly price
 
 ## 0.119.0
 

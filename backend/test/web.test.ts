@@ -515,7 +515,9 @@ describe('welke versie er draait (besluit 54)', () => {
       for (const soort of ['nieuw', 'beter', 'opgelost'] as const) expect([n.versie, soort, n.en?.[soort]?.length ?? 0]).toEqual([n.versie, soort, n[soort]?.length ?? 0]);
     }
     const en = (await (await fetch(`${base}/api/versie`, { headers: { 'x-taal': 'en' } })).json()) as Version & { nieuw: typeof NIEUW };
-    expect(en.nieuw[0]).toEqual({ versie: VERSIE, datum: NIEUW[0]!.datum, ...NIEUW[0]!.en });
+    // Met de uitkomst van meldingen, ook in het Engels.
+    const meld = NIEUW[0]!.meldingen?.map(({ tekstEn, ...u }) => ({ ...u, ...(tekstEn ? { tekst: tekstEn } : {}) }));
+    expect(en.nieuw[0]).toEqual({ versie: VERSIE, datum: NIEUW[0]!.datum, ...NIEUW[0]!.en, ...(meld?.length ? { meldingen: meld } : {}) });
     expect(v.nieuw.some((n) => 'en' in n)).toBe(false);
   });
 });

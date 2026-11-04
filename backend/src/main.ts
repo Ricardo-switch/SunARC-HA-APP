@@ -2177,6 +2177,7 @@ if (webPort != null) {
               client,
               (id) => allStates.get(id),
               (id) => houseRegisters?.entities.find((e) => e.entity_id === id)?.platform ?? null,
+              () => allStates.values(),
             ),
           },
         } : {}),

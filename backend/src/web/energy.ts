@@ -98,6 +98,15 @@ export function meterRole(id: string, naam: string, soort: 'energy' | 'volume', 
   return 'apparaat';
 }
 
+export interface PrijsSensor {
+  readonly id: string;
+  readonly naam: string;
+  readonly prijs: number | null;
+}
+
+/** Een eenheid als €/kWh of EUR/kWh: een prijs in geld per kWh (niet in cent, dat rekent Home Assistant niet om). */
+export const isPrijsPerKwh = (eenheid: unknown): boolean => typeof eenheid === 'string' && /^\s*(€|[a-z]{3}|[$£¥]|kr)\s*\/\s*kwh\s*$/i.test(eenheid);
+
 /** Wat de dienst uit Home Assistant leest; in de tests een nep. */
 export interface EnergySource {
   /** Het Energie-dashboard, of null als het niet is ingericht. */
@@ -106,6 +115,8 @@ export interface EnergySource {
   meters(): Promise<readonly MeterOption[]>;
   /** De stand van een entiteit als getal: voor een prijs die uit een entiteit komt. */
   entityNumber?(entityId: string): number | null;
+  /** Sensoren met een prijs per kWh, zoals van Zonneplan, Tibber of Frank (issue 119). */
+  prijsSensoren?(): readonly PrijsSensor[];
   /** Per meter het verbruik per periode, in kWh en m³. */
   changes(
     ids: readonly string[],
@@ -154,16 +165,23 @@ export function importFromPrefs(
    * alleen als terugval.
    */
   let prijsEntiteit: string | null = null;
+  let eigenKosten = false;
   const kostAf: string[] = [];
   const kostTerug: string[] = [];
   // Home Assistant telt kosten bij elke meter met een prijs, vast of uit een entiteit; dynamisch is het pas met een entiteit.
   const teller = (x: Record<string, unknown>, meter: string | null, eigen: string, achter: '_cost' | '_compensation', suffix = '') => {
+    if (!meter) return null;
+    // Een eigen kostensensor (issue 119), zoals Tibber er een geeft: die telt al met de prijs van elk uur, ook zonder prijs erbij.
+    const eigenTeller = str(x[eigen]);
+    if (eigenTeller && eigenTeller !== meter) {
+      eigenKosten = true;
+      return eigenTeller;
+    }
     const entiteit = x[`entity_energy_price${suffix}`];
     const vastePrijs = typeof x[`number_energy_price${suffix}`] === 'number';
-    if (!meter || (typeof entiteit !== 'string' && !vastePrijs)) return null;
+    if (typeof entiteit !== 'string' && !vastePrijs) return null;
     if (typeof entiteit === 'string') prijsEntiteit ??= entiteit;
-    const eigenTeller = str(x[eigen]);
-    return eigenTeller && eigenTeller !== meter ? eigenTeller : `${meter}${achter}`;
+    return `${meter}${achter}`;
   };
   for (const src of prefs['energy_sources']) {
     if (!isRecord(src)) continue;
@@ -217,7 +235,7 @@ export function importFromPrefs(
       gas: gasPrijs,
       vastPerMaand: null,
       // Alleen als elke afnamemeter een teller heeft; anders telt Opbrengst zelf, zoals eerst.
-      ...(prijsEntiteit && kostAf.length === afname.length && afname.length ? { dynamisch: { prijsEntiteit, afname: kostAf, terug: kostTerug.length === terug.length ? kostTerug : [] } } : {}),
+      ...((prijsEntiteit || eigenKosten) && kostAf.length === afname.length && afname.length ? { dynamisch: { prijsEntiteit, afname: kostAf, terug: kostTerug.length === terug.length ? kostTerug : [] } } : {}),
     },
   };
 }
