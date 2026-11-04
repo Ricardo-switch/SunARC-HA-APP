@@ -1938,6 +1938,17 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     expect(await kaart.locator('[data-schuifkamer]').count()).toBe(2);
     expect(await p.locator('#wand [data-podium="wand"] .sc-tik').count()).toBeGreaterThan(0);
     await shot('huis');
+    // Een etage erbij (testerronde, november 2026): eerst kon dat pas later bij Indeling.
+    await kaart.locator('[data-inr-etage-open]').click();
+    await kaart.locator('[data-inr-etage="e3"]').click();
+    await kaart.locator('.etagekop', { hasText: '3e verdieping' }).waitFor({ timeout: 5000 });
+    expect(await kaart.locator('.zacht', { hasText: 'Nog geen kamers' }).count()).toBe(1);
+    // Weer zonder eigen volgorde, zodat de tests hierna het gewone huis zien.
+    const metDak = (await (await fetch(`${baseUrl}/api/indeling`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json()) as { indeling: Record<string, unknown> };
+    const { volgorde: _v, ...zonderDak } = metDak.indeling;
+    await fetch(`${baseUrl}/api/indeling`, { method: 'POST', headers: { cookie: `hems_sessie=${sessionId}`, origin: baseUrl, 'content-type': 'application/json' }, body: JSON.stringify(zonderDak) });
+    await p.reload();
+    await kaart.locator('h1', { hasText: 'Klopt de indeling?' }).waitFor();
     // Onderaan overal Terug, Later en Volgende; Volgende bewaart het voorstel als eigen indeling.
     expect(await kaart.locator('[data-terug]').count()).toBe(1);
     expect(await kaart.locator('[data-later]').count()).toBe(1);

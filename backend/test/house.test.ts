@@ -30,6 +30,29 @@ describe('het voorstel uit Home Assistant', () => {
     expect(house.etages.at(-1)!.ruimtes.map((r) => r.naam)).toEqual(['Tuin', 'Oprit']);
   });
 
+  it('maakt van elk niveau een eigen etage, ook een derde en een etage zonder niveau (testerronde, november 2026)', () => {
+    // Eerst werd alles vanaf niveau 2 de tweede verdieping: een zolder op niveau 3 viel samen met de tweede.
+    const vier = {
+      ...registers,
+      floors: [
+        { floor_id: 'bg', name: 'Begane grond', level: 0 },
+        { floor_id: 'e1', name: 'Eerste verdieping', level: 1 },
+        { floor_id: 'tweede', name: 'Tweede verdieping', level: 2 },
+        { floor_id: 'zolder', name: 'Zolder', level: 3 },
+      ],
+      areas: registers.areas.map((a) => (a.area_id === 'badkamer' ? { ...a, floor_id: 'tweede' } : a)),
+    };
+    const l = proposeLayout(config, vier, states);
+    expect(floorOrder(l)).toEqual(['e3', 'e2', 'e1', 'bg']);
+    expect([l.etages['e3'], l.etages['e2']]).toEqual(['Zolder', 'Tweede verdieping']);
+    expect(l.kamers.find((k) => k.naam === 'Zolder')?.etage).toBe('e3');
+    // Een zolder zonder niveau staat toch bovenaan, met zijn eigen naam.
+    const zonder = { ...registers, floors: registers.floors.map((f) => (f.floor_id === 'zolder' ? { ...f, level: null } : f)) };
+    const z = proposeLayout(config, zonder, states);
+    expect(floorOrder(z)[0]).toBe('etage-zolder');
+    expect(z.etages['etage-zolder']).toBe('Zolder');
+  });
+
   it('zet een tuin of oprit buiten, ook als Home Assistant hem op de begane grond zet', () => {
     expect(house.etages.find((e) => e.id === 'bg')!.ruimtes.map((r) => r.naam)).not.toContain('Oprit');
   });

@@ -50,12 +50,16 @@ export const NIEUW: readonly Nieuw[] = [
     nieuw: [
       'SunArc zoekt elke drie uur zelf naar een nieuwe versie, en bij Versie staat een knop Zoek naar updates: niet meer zelf zoeken in Home Assistant',
       'Een knop Herstart SunArc bij Versie, en meteen waar een keuze pas na een nieuwe start ingaat; de app laadt vanzelf als SunArc terug is',
+      'Bij Inrichten › Kamers kun je een etage toevoegen',
     ],
+    beter: ['Elke etage uit Home Assistant wordt een eigen etage met zijn naam, ook een derde verdieping of een etage zonder niveau; eerst viel alles vanaf de tweede samen'],
     en: {
       nieuw: [
         'SunArc checks for a new version by itself every three hours, and Version has a Check for updates button: no more checking in Home Assistant yourself',
         'A Restart SunArc button under Version, and right where a choice only takes effect after a new start; the app reloads by itself once SunArc is back',
+        'Under Set up › Rooms you can add a floor',
       ],
+      beter: ['Every floor from Home Assistant becomes its own floor with its name, including a third floor or a floor without a level; before, everything from the second floor up merged'],
     },
   },
   {

@@ -11581,6 +11581,17 @@ Assistant zelf.
   Voor de beheerder; ook op de server.
 - **Versie 0.117.0.**
 
+*Ook in 0.117.0, de etages (een tester zag er bij Inrichten maar twee):* het
+voorstel uit Home Assistant maakte van elk niveau vanaf 2 de tweede
+verdieping, en zette een etage zonder niveau op de begane grond. Nu krijgt elk
+niveau een eigen etage (3 is `e3`, hoger `e4` en verder met een eigen
+volgorde), en een etage zonder niveau een eigen id met zijn naam: bovenaan als
+hij op een zolder lijkt, onderaan bij een kelder, anders boven de begane
+grond. Namen alleen voor etages met kamers, anders is de indeling ongeldig
+zodra er een volgorde komt. Bij Inrichten › Kamers staat "+ Etage": de vaste
+etages die er nog niet zijn, of een eigen naam bovenaan; een etage zonder
+kamers staat er dan met "nog geen kamers".
+
 ---
 
 ## Wat nog een besluit wacht
