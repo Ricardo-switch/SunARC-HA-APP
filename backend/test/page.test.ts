@@ -4401,7 +4401,7 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     try {
       await p.goto(`${baseUrl}/toegang.html#versie`);
       // Steunen (4 november 2026): een kop koffie bij Versie en op Over deze app, nooit als melding.
-      expect(await p.locator('#wand a.knop-koffie[href="https://paypal.me/sunarc"]').count()).toBe(1);
+      await p.locator('#wand a.knop-koffie[href="https://paypal.me/sunarc"]').waitFor({ timeout: 8000 });
       await p.locator('#wand [data-zoek-update]').click();
       await p.locator('[data-nieuwpop]', { hasText: 'Je hebt de nieuwste versie' }).waitFor({ timeout: 8000 });
       expect(updateNu.zoek).toBe(was.zoek + 1);
