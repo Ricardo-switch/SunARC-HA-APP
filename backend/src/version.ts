@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.127.1';
+export const VERSIE = '0.128.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,22 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.128.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'In Nederland komt je huis uit 3D BAG: de omtrek en de vorm van het dak met de nok; OpenStreetMap vult aan wat er niet in staat, zoals een tuinhuis',
+      'Voor je de kaart gebruikt, zegt SunArc dat het experimenteel is, wat het doet en hoe je privacy geregeld is',
+      'Zonder kaart zet je huis altijd terug naar een rechthoek; je dakvlakken blijven staan',
+    ],
+    en: {
+      nieuw: [
+        'In the Netherlands your house comes from 3D BAG: the outline and the roof shape with its ridge; OpenStreetMap adds what is missing, like a garden shed',
+        'Before you use the map, SunArc says it is experimental, what it does and how your privacy is handled',
+        'Without map always puts your house back to a rectangle; your roof planes stay',
+      ],
+    },
+  },
   {
     versie: '0.127.1',
     datum: '2026-11-05',

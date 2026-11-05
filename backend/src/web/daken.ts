@@ -77,6 +77,8 @@ export interface Gebouw {
   readonly omtrek: readonly Xy[];
   readonly dakvorm: Dakvorm;
   readonly nokDeg: number;
+  /** Uit welke kaart de omtrek kwam (5 november 2026): 3D BAG of OpenStreetMap, voor de naamsvermelding. */
+  readonly kaart?: 'bag3d' | 'osm';
 }
 
 export interface Daken {
@@ -160,7 +162,8 @@ function leesGebouwen(x: unknown): Gebouw[] | { fout: string } {
     if (!GEBOUW_SOORTEN.includes(r['soort'] as GebouwSoort) || !DAKVORMEN.includes(r['dakvorm'] as Dakvorm) || (r['bron'] !== 'kaart' && r['bron'] !== 'schatting') || !getal(r['nokDeg'], 0, 360) || !omtrek) {
       return { fout: `gebouw ${id}: een soort, een dakvorm, de nok en een omtrek in meters` };
     }
-    uit.push({ id, soort: r['soort'] as GebouwSoort, bron: r['bron'] as Gebouw['bron'], omtrek, dakvorm: r['dakvorm'] as Dakvorm, nokDeg: r['nokDeg'] as number });
+    const kaart = r['kaart'] === 'bag3d' || r['kaart'] === 'osm' ? r['kaart'] : null;
+    uit.push({ id, soort: r['soort'] as GebouwSoort, bron: r['bron'] as Gebouw['bron'], omtrek, dakvorm: r['dakvorm'] as Dakvorm, nokDeg: r['nokDeg'] as number, ...(kaart && r['bron'] === 'kaart' ? { kaart } : {}) });
   }
   return uit;
 }

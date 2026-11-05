@@ -1,5 +1,23 @@
 # Wat is er nieuw · What is new
 
+## 0.128.0
+
+*5 november 2026*
+
+**Nieuw**
+
+- In Nederland komt je huis uit 3D BAG: de omtrek en de vorm van het dak met de nok; OpenStreetMap vult aan wat er niet in staat, zoals een tuinhuis
+- Voor je de kaart gebruikt, zegt SunArc dat het experimenteel is, wat het doet en hoe je privacy geregeld is
+- Zonder kaart zet je huis altijd terug naar een rechthoek; je dakvlakken blijven staan
+
+*English*
+
+**New**
+
+- In the Netherlands your house comes from 3D BAG: the outline and the roof shape with its ridge; OpenStreetMap adds what is missing, like a garden shed
+- Before you use the map, SunArc says it is experimental, what it does and how your privacy is handled
+- Without map always puts your house back to a rectangle; your roof planes stay
+
 ## 0.127.1
 
 *5 november 2026*

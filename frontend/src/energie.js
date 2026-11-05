@@ -529,6 +529,42 @@ function netDalBij() {
   e.net.dal = (e.net.dal ?? []).filter((id) => net.has(id));
 }
 
+/* ------------------------------------------------------------ de kaart */
+
+/** De omtrek uit de kaart: even wachten, dan bewaren wat erbij kwam. */
+async function haalDeKaart() {
+  dakStaat.kaart = 'bezig';
+  teken();
+  const w = await dakvlakken.vanKaart(aInfo.daken, dakStaat);
+  teken();
+  if (w) bewaarDaken(w);
+}
+
+/** Een venster over de hele pagina: de melding voor de kaart, of de vraag voor Zonder kaart. */
+let venster = null;
+function sluitVenster() {
+  venster?.remove();
+  venster = null;
+  removeEventListener('keydown', venstertoets);
+}
+const venstertoets = (e) => e.key === 'Escape' && sluitVenster();
+function openVenster(html) {
+  sluitVenster();
+  venster = document.createElement('div');
+  venster.className = 'kk-scherm';
+  venster.innerHTML = html;
+  venster.addEventListener('click', async (e) => {
+    const el = e.target.closest('[data-kk-dicht], [data-kk-kaart], [data-kk-zonder]');
+    if (!el) return;
+    sluitVenster();
+    if (el.hasAttribute('data-kk-kaart')) await haalDeKaart();
+    else if (el.hasAttribute('data-kk-zonder') && aInfo?.daken) bewaarDaken(dakvlakken.zonderKaart(aInfo.daken));
+  });
+  document.body.append(venster);
+  addEventListener('keydown', venstertoets);
+  venster.querySelector('[data-kk-kaart], [data-kk-zonder]')?.focus();
+}
+
 document.addEventListener('click', async (ev) => {
   // De dakvlakken en gebouwen in de tekening van boven zijn geen knoppen, maar wel aan te tikken (besluit 254).
   const knop = ev.target.closest('button, [data-dak-dakvlak], [data-dak-kandidaat], [data-dak-gebouw]');
@@ -542,17 +578,15 @@ document.addEventListener('click', async (ev) => {
     window.rondleiding?.eigen('daken', dakvlakken.RONDJE, true);
     return;
   }
+  // De kaart is experimenteel (5 november 2026): eerst de melding, en Zonder kaart vraagt het even.
+  if (a && knop.hasAttribute('data-dak-kaart')) return openVenster(dakvlakken.kaartVenster());
+  if (a && knop.hasAttribute('data-dak-zonderkaart')) return openVenster(dakvlakken.zonderVenster());
   // Daken en panelen (besluit 254).
   if (a && Object.keys(knop.dataset).some((k) => k.startsWith('dak'))) {
     const wat = dakvlakken.klik(knop, aInfo?.daken, dakStaat);
     if (wat === 'teken') teken();
-    else if (wat?.kaart) {
-      // De omtrek uit de kaart: even wachten, dan bewaren wat erbij kwam.
-      teken();
-      const w = await dakvlakken.vanKaart(aInfo.daken, dakStaat);
-      teken();
-      if (w) bewaarDaken(w);
-    } else if (wat) bewaarDaken(wat);
+    else if (wat?.kaart) await haalDeKaart();
+    else if (wat) bewaarDaken(wat);
     return;
   }
   // Het overzicht van de panelen (besluit 187): een paneel erbij of eraf, een ander dak, zelf aanpassen.

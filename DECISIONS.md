@@ -118,6 +118,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [246. Klaarzetten per niveau](#246-klaarzetten-per-niveau)
 - [248. De netmeter en de omvormers kies je in de app](#248-de-netmeter-en-de-omvormers-kies-je-in-de-app)
 - [254. Daken en panelen: elk dakvlak apart (ontwerp)](#254-daken-en-panelen-elk-dakvlak-apart-ontwerp)
+- [256. De kaart is experimenteel, met 3D BAG naast OpenStreetMap](#256-de-kaart-is-experimenteel-met-3d-bag-naast-openstreetmap)
 
 **Meten, data en analyse**
 
@@ -11984,6 +11985,50 @@ telt per uur (of dag) de omvormer waar hij er is, en anders de zonnemeter
 zonnemeter in kWh (`aanvullenUitMeter`), als één meter alle vlakken meet. Ook
 gezien: de zonnemeter van de cloudkoppeling (`sensor.solaredge_produced_energy`)
 telt sinds 2 november niet meer; daar vangt de omvormer het nu op.
+
+---
+
+## 256. De kaart is experimenteel, met 3D BAG naast OpenStreetMap
+
+*Onderwerp: configuratie en onboarding · Status: geldig*
+
+5 november 2026. Ricardo wilde een melding voordat iemand de kaart gebruikt
+(besluit 254, stap 2a): dat het experimenteel is, wat het doet, hoe de privacy
+geregeld is, en dat je altijd terug kunt. En 3D BAG naast OpenStreetMap, als
+dat kon. Een andere sessie ("Huisschets op basis van omtrek") zocht 3D BAG uit
+en haalde het vak van zijn wijk op: de omtrek valt op een halve meter samen met
+OpenStreetMap, het dak gaat naar 93° en 272° zoals zijn vlakken A en B, de
+helling is 43 à 44° (de meting zegt 53°), de garage is in de BAG één gebouw
+met het huis, en het tuinhuis staat er niet in.
+
+*Besluit (schets `design/app2/Wand-Daken-Kaart.html` en `Tel-Daken-Kaart.html`, gebouwd in 0.128.0):*
+
+- **Eerst een melding**, elke keer dat je "Omtrek uit de kaart" tikt: "Je huis
+  uit de kaart", met Experimenteel. Wat het doet (de omtrek, het dak in 3D in
+  Nederland, een voorstel, nog niet af), je privacy (de kaartdiensten zien
+  alleen de wijk; je plek blijft in huis; één keer, alleen vormen in meters),
+  en Altijd terug. Knoppen: Niet nu, en "Ik begrijp het, haal de kaart". Op de
+  telefoon een blad van onderen.
+- **3D BAG in Nederland** (`web/bag3d.ts`): SunArc rekent de plek uit Home
+  Assistant om naar RD, en vraagt de kaartvakken van 3D BAG van fijn (ongeveer
+  500 m) naar grof tot er één bestaat (0,5 tot 2 km, 0,3 tot 2 MB, CityJSON).
+  Daarin zoekt hij zelf het gebouw waar de plek in ligt. Het huis en de buren
+  komen uit LoD 0, het dak uit de dakvlakken in LoD 2.2: zadel, schild,
+  lessenaar of plat, met de richting van de nok. Versie `v20250903`; de link
+  naar de nieuwste versie werkt niet, dus die gaat met de hand mee.
+- **OpenStreetMap ernaast**, zoals het was: daarbuiten alleen OpenStreetMap,
+  en in Nederland vult het aan wat 3D BAG mist, zoals een tuinhuis. Een gebouw
+  dat in allebei staat, telt één keer.
+- **Op de tekening** onder het huis: Experimenteel, "Omtrek uit de kaart", de
+  bronnen met hun link ("© 3DBAG by tudelft3d and 3DGI, vorm aangepast",
+  "© OpenStreetMap-bijdragers"; CC BY 4.0 en ODbL vragen dat), en **Zonder
+  kaart**. Dat vraagt het even, en zet dan de gebouwen en de omgeving weg: het
+  huis is weer een rechthoek langs de voorgevel, de dakvlakken blijven.
+- Elk gebouw onthoudt uit welke kaart het kwam (`kaart: 'bag3d' | 'osm'`).
+
+*Nog niet:* de helling per dakvlak uit 3D BAG naast de meting leggen (bij
+Ricardo 44° tegen 53°), met Neem over. Dat raakt de vlakken zelf, dus eerst
+nagaan hoeveel het in de verwachting scheelt.
 
 ---
 

@@ -25,6 +25,7 @@ import type { IntegratieStand } from './integratie.js';
 import type { ConnectionStore, ConnectionView, FoundAppliance, FoundPhase, FoundPower } from './aansluiting.js';
 import type { ApparaatGegevens } from './apparaat-gegevens.js';
 import type { EnergySource, EnergyStore } from './energy.js';
+import type { CityJson } from './bag3d.js';
 import type { Punt } from './kaart.js';
 import type { UpdateView } from './bijwerken.js';
 import type { KlaarPunt } from './klaarzetten.js';
@@ -347,6 +348,8 @@ export interface WebOptions {
   readonly exacteLocatie?: () => Promise<Location | null>;
   /** Het antwoord van OpenStreetMap voor een vak van het raster; anders Overpass. Voor de tests. */
   readonly kaartAntwoord?: (latDeg: number, lonDeg: number) => Promise<unknown>;
+  /** Het kaartvak van 3D BAG (5 november 2026); anders het echte. Null: geen vak. Voor de tests. */
+  readonly bagVak?: (latDeg: number, lonDeg: number) => Promise<CityJson | null>;
   /**
    * Bijwerken vanuit de app (21 oktober 2026): wat er klaarstaat en wat er nieuw
    * is, en de add-on bijwerken. Alleen in de add-on.

@@ -225,7 +225,7 @@ const dakvlakken = (() => {
   const gebouwNaam = (g) => t(`daken.gebouw.${g.soort}`);
   const sleutelVan = (kant) => (kant == null ? 'plat' : String(kant));
   /** De gebouwen zoals de dienst ze leest, uit de tekening. */
-  const gebouwenUit = (d) => (d.tekening?.gebouwen ?? []).map(({ id, soort, bron, omtrek, dakvorm, nokDeg }) => ({ id, soort, bron, omtrek, dakvorm, nokDeg }));
+  const gebouwenUit = (d) => (d.tekening?.gebouwen ?? []).map(({ id, soort, bron, omtrek, dakvorm, nokDeg, kaart }) => ({ id, soort, bron, omtrek, dakvorm, nokDeg, ...(kaart ? { kaart } : {}) }));
   /** Waar een vlak ligt: wat in het open vlak staat, anders wat de dienst vond. */
   function plaatsVan(d, v) {
     if (v.gebouw) return { gebouw: v.gebouw, kant: v.kant ?? null, getekend: true };
@@ -355,9 +355,11 @@ const dakvlakken = (() => {
     let balk = '';
     if (k === 'bezig') balk = `<div class="dk-kaart"><small>${esc(t('daken.kaartBezig'))}</small></div>`;
     else if (d.kaart && huis?.bron === 'schatting') balk = `<div class="dk-kaart"><button type="button" class="lig-knop zacht" data-dak-kaart>${esc(t('daken.kaartKnop'))}</button><small>${esc(k?.fout ?? t('daken.kaartZin'))}</small></div>`;
-    else if (tk?.omgeving.length) balk = `<div class="dk-kaart"><small>${esc(t('daken.kandidaatTip'))}</small></div>`;
+    // Uit de kaart (5 november 2026): experimenteel, met de bron en altijd Zonder kaart.
+    else if (huis?.bron === 'kaart') balk = kaartBalk(huis, tk);
     const mist = d.vlakken.filter((v) => !plaatsVan(d, v).getekend).map((v) => v.letter);
-    const noot = mist.length ? `<p class="dk-noot">${esc(t('daken.nietBoven', { n: mist.length, letters: mist.join(', ') }))}</p>` : '';
+    const noten = [...(mist.length ? [t('daken.nietBoven', { n: mist.length, letters: mist.join(', ') })] : []), ...(huis?.bron === 'kaart' && tk?.omgeving.length ? [t('daken.kandidaatTip')] : [])];
+    const noot = noten.length ? `<p class="dk-noot">${esc(noten.join(' '))}</p>` : '';
     return `<div class="pan-podium dk-podium">${tk ? bovenSvg(d, s) : ''}<span class="dk-noord" aria-hidden="true">N</span>${noot}${balk}</div>`;
   }
 
@@ -412,8 +414,69 @@ const dakvlakken = (() => {
     s.kaart = null;
     const oud = gebouwenUit(d);
     const weg = oud.filter((g) => g.soort !== 'hoofdhuis' && g.bron === 'schatting').map((g) => g.id);
-    const gebouwen = oud.filter((g) => !weg.includes(g.id)).map((g) => (g.soort === 'hoofdhuis' ? { ...g, omtrek: body.hoofdhuis, bron: 'kaart' } : g));
-    return { vlakken: losVan(d.vlakken, weg), gebouwen, omgeving: body.omgeving ?? [] };
+    // Uit 3D BAG ook het dak: de vorm en hoe de nok loopt (5 november 2026).
+    const dak = body.dak && DAKVORMEN.includes(body.dak.dakvorm) ? { dakvorm: body.dak.dakvorm, nokDeg: body.dak.nokDeg } : {};
+    const kaart = body.bron === 'bag3d' || body.bron === 'osm' ? { kaart: body.bron } : {};
+    const gebouwen = oud.filter((g) => !weg.includes(g.id)).map((g) => (g.soort === 'hoofdhuis' ? { ...g, ...dak, omtrek: body.hoofdhuis, bron: 'kaart', ...kaart } : g));
+    // Een ander dak: de kanten van het huis kunnen anders liggen, dus de vlakken op het huis opnieuw plaatsen.
+    const huisId = oud.find((g) => g.soort === 'hoofdhuis')?.id;
+    return { vlakken: losVan(d.vlakken, [...weg, ...(body.dak && huisId ? [huisId] : [])]), gebouwen, omgeving: body.omgeving ?? [] };
+  }
+
+  /*
+   * De kaart is experimenteel (schets Wand-Daken-Kaart, 5 november 2026): de
+   * balk onder de tekening met de bron en Zonder kaart, de melding voor het
+   * ophalen, en de vraag voor Zonder kaart.
+   */
+  const PROEF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/></svg>';
+  const proef = () => `<span class="kk-proef">${PROEF}${esc(t('daken.kk.proef'))}</span>`;
+  function kaartBalk(huis, tk) {
+    // Naamsvermelding: 3D BAG vraagt de naam met een link en dat de vorm aangepast is; OpenStreetMap ook een link.
+    const bag = huis.kaart === 'bag3d';
+    const osm = !bag || (tk?.omgeving?.length ?? 0) > 0;
+    const bronnen = [
+      ...(bag ? [`<a href="https://docs.3dbag.nl/en/copyright" target="_blank" rel="noopener">${esc(t('daken.kk.bag'))}</a>`] : []),
+      ...(osm ? [`<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">${esc(t('daken.kk.osm'))}</a>`] : []),
+    ].join(' · ');
+    return `<div class="dk-kaart kk-balk">${proef()}<span class="kk-balktekst"><b>${esc(t('daken.kk.balk'))}</b><small>${bronnen}</small></span><button type="button" class="lig-knop zacht" data-dak-zonderkaart>${esc(t('daken.kk.zonder'))}</button></div>`;
+  }
+  const KK_IK = {
+    kaart: '<path d="M4 7l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M9 5v12M15 7v12"/>',
+    dak: '<path d="M3 13 9 7l6 4 6-5v12H3z"/><path d="M9 7v11M15 11v7"/>',
+    huis: '<path d="M3 12 12 4l9 8"/><path d="M6 10v10h12V10"/>',
+    let: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5h.01"/>',
+    vak: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16" stroke-dasharray="2 2.5"/>',
+    plek: '<path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    slot: '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+    terug: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  };
+  const kkIk = (soort, kleur) => `<span class="kk-ik kk-${kleur}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KK_IK[soort]}</svg></span>`;
+  const kkRegel = (soort, kleur, sleutel) => `<div class="kk-regel">${kkIk(soort, kleur)}<span><b>${esc(t(`daken.kk.${sleutel}b`))}</b> ${esc(t(`daken.kk.${sleutel}`))}</span></div>`;
+  /** De melding voor het ophalen: wat het doet, de privacy en altijd terug. */
+  function kaartVenster() {
+    return `<div class="kk-dim" data-kk-dicht></div><section class="kk-venster" role="dialog" aria-modal="true" aria-labelledby="kk-kop">
+      <div class="kk-inhoud">
+        <div class="kk-kop"><h2 class="kop-2" id="kk-kop">${esc(t('daken.kk.kop'))}</h2>${proef()}</div>
+        <p class="kk-lead">${esc(t('daken.kk.lead'))}</p>
+        <div class="kk-twee">
+          <div class="kk-blok"><h3>${esc(t('daken.kk.doetKop'))}</h3>${kkRegel('kaart', 'zon', 'doet1')}${kkRegel('dak', 'zon', 'doet2')}${kkRegel('huis', 'zon', 'doet3')}${kkRegel('let', 'zon', 'doet4')}</div>
+          <div class="kk-blok"><h3>${esc(t('daken.kk.privKop'))}</h3>${kkRegel('vak', 'mint', 'priv1')}${kkRegel('plek', 'mint', 'priv2')}${kkRegel('slot', 'mint', 'priv3')}</div>
+        </div>
+        <div class="kk-terug">${kkIk('terug', 'ijs')}<span><b>${esc(t('daken.kk.terugb'))}</b> ${esc(t('daken.kk.terug'))}</span></div>
+      </div>
+      <div class="kk-voet"><button type="button" class="kk-niet" data-kk-dicht>${esc(t('daken.kk.nee'))}</button><button type="button" class="knop knop-licht" data-kk-kaart>${esc(t('daken.kk.ja'))}</button></div>
+    </section>`;
+  }
+  /** De vraag voor Zonder kaart: wat er blijft. */
+  function zonderVenster() {
+    return `<div class="kk-dim" data-kk-dicht></div><section class="kk-venster kk-klein" role="dialog" aria-modal="true" aria-labelledby="kk-kop">
+      <div class="kk-inhoud"><div class="kk-kop"><h2 class="kop-2" id="kk-kop">${esc(t('daken.kk.zonderKop'))}</h2></div><p class="kk-lead">${esc(t('daken.kk.zonderZin'))}</p></div>
+      <div class="kk-voet"><button type="button" class="kk-niet" data-kk-dicht>${esc(t('daken.kk.annuleren'))}</button><button type="button" class="knop knop-licht" data-kk-zonder>${esc(t('daken.kk.zonder'))}</button></div>
+    </section>`;
+  }
+  /** Zonder kaart: geen gebouwen en geen omgeving meer, dan tekent SunArc weer een rechthoek; de vlakken blijven, los van de gebouwen. */
+  function zonderKaart(d) {
+    return { vlakken: losVan(d.vlakken, gebouwenUit(d).map((g) => g.id)), gebouwen: [], omgeving: [] };
   }
 
   /** Een kleur per letter voor de verdeling. */
@@ -990,5 +1053,5 @@ const dakvlakken = (() => {
     { plek: 'daken', id: 'dakMeters', doel: ['#wand [data-dak-scherm="meters"]', '#tel [data-dak-scherm="meters"]'], klaar: true },
   ];
 
-  return { RONDJE, vorm, klik, verander, oudeAntwoorden, opHetHuis, nietGetekend, kortZin, piek, panelen, vanKaart, gebouwenUit, nuBlad, achterZin, KORT_PLEKKEN, STANDKLEUR, kortVan, kortNaar, kantNaam, kaal, waar };
+  return { kaartVenster, zonderVenster, zonderKaart, RONDJE, vorm, klik, verander, oudeAntwoorden, opHetHuis, nietGetekend, kortZin, piek, panelen, vanKaart, gebouwenUit, nuBlad, achterZin, KORT_PLEKKEN, STANDKLEUR, kortVan, kortNaar, kantNaam, kaal, waar };
 })();

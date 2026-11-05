@@ -52,6 +52,7 @@ import { WeatherLog } from '../src/web/weather.js';
 import { EnergyStore, importFromPrefs, type EnergySource } from '../src/web/energy.js';
 import { THERMISCH_FILE, type ThermischRapport } from '../src/web/thermisch.js';
 import { ConnectionStore, connectionView, type FoundAppliance, type FoundPhase, type FoundPower } from '../src/web/aansluiting.js';
+import { naarRd, type CityJson } from '../src/web/bag3d.js';
 
 /** Wat het thermisch model zou hebben geleerd (besluit 231): twee kamers, de woonkamer zekerder dan de zolder. */
 const THERMISCH_VOORBEELD = (nu: number): ThermischRapport => ({
@@ -140,6 +141,28 @@ let integratieNu: { kan: boolean; staat: 'nee' | 'add-on' | 'anders'; versie: st
 const proefmeldingen: (string | null)[] = [];
 /** Een thuisbatterij en een auto die een test erbij zet (besluit 182); null is: wat het huis zegt. */
 let extraOpslag: Opslag | null = null;
+/** De plek van het testhuis voor de kaart (5 november 2026), in Utrecht. */
+const KAART_PLEK = { lat: 52.0907, lon: 5.1214 } as const;
+/** Een nagemaakt kaartvak van 3D BAG rond die plek: het huis met een zadeldak (nok noord-zuid), en een buur 12 meter oostelijk. */
+function nepBagVak(): CityJson {
+  const [X, Y] = naarRd(KAART_PLEK.lat, KAART_PLEK.lon);
+  const v: number[][] = [];
+  const punt = (x: number, y: number, z: number) => v.push([Math.round((X + x) * 1000), Math.round((Y + y) * 1000), z * 1000]) - 1;
+  const huis = (ox: number, id: string) => {
+    const g = [punt(ox - 4, -5, 0), punt(ox + 4, -5, 0), punt(ox + 4, 5, 0), punt(ox - 4, 5, 0)];
+    const oost = [punt(ox, -5, 9), punt(ox + 4, -5, 5), punt(ox + 4, 5, 5), punt(ox, 5, 9)];
+    const west = [punt(ox - 4, -5, 5), punt(ox, -5, 9), punt(ox, 5, 9), punt(ox - 4, 5, 5)];
+    return {
+      [id]: { type: 'Building', attributes: {}, children: [`${id}-0`], geometry: [{ type: 'MultiSurface', lod: '0', boundaries: [[g]] }] },
+      [`${id}-0`]: {
+        type: 'BuildingPart',
+        geometry: [{ type: 'Solid', lod: '2.2', boundaries: [[[g], [oost], [west]]], semantics: { surfaces: [{ type: 'GroundSurface' }, { type: 'RoofSurface', b3_azimut: 90, b3_hellingshoek: 45 }, { type: 'RoofSurface', b3_azimut: 270, b3_hellingshoek: 45 }], values: [[0, 1, 2]] } }],
+      },
+    };
+  };
+  return { transform: { scale: [0.001, 0.001, 0.001], translate: [0, 0, 0] }, vertices: v, CityObjects: { ...huis(0, 'NL.IMBAG.Pand.1'), ...huis(12, 'NL.IMBAG.Pand.2') } };
+}
+
 /** De deurbel als kaart (besluit 182); null is: geen deurbel. */
 let extraDeurbel: { camera: string; naam: string; laatsteMs: number | null; reserve?: string[] } | null = null;
 /** Nog een camera naast de deurbel, voor de kaart Camera's (besluit 201); hij ziet nu een persoon. */
@@ -492,8 +515,13 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
                 answersAtStart: null,
                 answers: connStore.current,
                 solar: { naam: 'Zonnepanelen', intervalS: 61, platform: 'solaredge_modbus_multi' },
+                kaart: true,
               }),
           },
+          // De kaart (besluit 254 en 5 november 2026): een nagemaakte plek, OpenStreetMap en 3D BAG; er gaat niets naar buiten.
+          exacteLocatie: async () => ({ latDeg: KAART_PLEK.lat, lonDeg: KAART_PLEK.lon }),
+          kaartAntwoord: async () => ({ elements: [{ geometry: [[15, -3], [15, 1], [18, 1], [18, -3], [15, -3]].map(([n, o]) => ({ lat: KAART_PLEK.lat + n! / 110_540, lon: KAART_PLEK.lon + o! / (111_320 * Math.cos((KAART_PLEK.lat * Math.PI) / 180)) })) }] }),
+          bagVak: async () => nepBagVak(),
           // De inlog van besluit 99, met een nep-Home Assistant; de browser krijgt
           // hieronder een sessie als beheerder, zodat de deuren echt op slot zitten.
           access: { kind: 'sessions', store: sessions, login: { authorizeUrl: (_origin, state) => `${haInlog}?state=${state}`, identify: async () => ({ userId: 'u', naam: 'Test', isAdmin: true }) } },
@@ -686,6 +714,27 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await wand.locator('.dk h3', { hasText: 'Wat bij welke meter hoort' }).waitFor();
     expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
     await wand.locator('[data-dak-scherm="alle"]').click();
+    // De kaart is experimenteel (5 november 2026): eerst de melding, dan het huis uit 3D BAG met de bron, en Zonder kaart terug.
+    await wand.locator('[data-dak-kaart]').click();
+    const venster = p.locator('.kk-venster');
+    await venster.locator('h2', { hasText: 'Je huis uit de kaart' }).waitFor();
+    expect(await venster.textContent()).toContain('nooit je adres of je huis');
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-kaartmelding.png') });
+    await venster.locator('[data-kk-dicht]').first().click();
+    await venster.waitFor({ state: 'detached' });
+    await wand.locator('[data-dak-kaart]').click();
+    await venster.locator('[data-kk-kaart]').click();
+    await wand.locator('.kk-balk a[href="https://docs.3dbag.nl/en/copyright"]').waitFor({ timeout: 5_000 });
+    // Het tuinhuis staat niet in 3D BAG, wel in OpenStreetMap: die bron staat er dan ook bij.
+    await wand.locator('.kk-balk a[href="https://www.openstreetmap.org/copyright"]').waitFor();
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-kaartbalk.png') });
+    await expect.poll(() => connStore.current?.daken?.gebouwen?.find((g) => g.soort === 'hoofdhuis'), { timeout: 5_000 }).toMatchObject({ bron: 'kaart', kaart: 'bag3d', dakvorm: 'zadel', nokDeg: 0 });
+    expect(connStore.current?.daken?.omgeving).toHaveLength(2);
+    await wand.locator('[data-dak-zonderkaart]').click();
+    await p.locator('.kk-venster [data-kk-zonder]').click();
+    await wand.locator('[data-dak-kaart]').waitFor({ timeout: 5_000 });
+    expect(connStore.current?.daken?.gebouwen ?? []).toEqual([]);
+    expect(connStore.current?.daken?.vlakken.some((v) => v.plek === 'uitbouw')).toBe(true);
     // De zekering uit de configuratie staat voorgekozen, en is te wijzigen (besluit 117).
     await wand.locator('[data-delen] .deel', { hasText: 'Aansluiting' }).click();
     await wand.locator('[data-vorm] h2', { hasText: 'Aansluiting' }).waitFor();
