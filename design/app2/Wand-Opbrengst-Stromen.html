@@ -57,6 +57,8 @@
   .rij:first-of-type { border-top: 0; }
   .rij .boven { display: flex; justify-content: space-between; font-size: 13.5px; gap: 8px; }
   .rij .boven span { color: var(--zacht); white-space: nowrap; }
+  .sluipkaart { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; text-decoration: none; color: inherit; }
+  .sluipkaart .klein { font-size: 12.5px; color: var(--zacht); }
   .legenda { display: flex; gap: 12px; font-size: 11.5px; color: var(--gedempt); margin-top: 6px; }
   .legenda i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
   .dagen { display: flex; align-items: end; gap: 3px; height: 110px; margin-top: 12px; }
@@ -78,6 +80,7 @@
     <div class="kolom">
       <div class="cijfers" id="cijfers"></div>
       <section class="glas kaart" id="panelen" style="flex: 1"></section>
+      <div class="glas" id="sluip"></div>
     </div>
 
     <section class="glas kaart stromen">
@@ -112,6 +115,7 @@
   document.getElementById('apparaten').innerHTML = o.apparaten(D);
   document.getElementById('sankey').innerHTML = o.stromen(D, { breedte: 380, hoogte: 470, id: 'wand' });
   document.getElementById('gas').innerHTML = o.gas(D);
+  document.getElementById('sluip').innerHTML = o.sluip(D);
 </script>
 </body>
 </html>

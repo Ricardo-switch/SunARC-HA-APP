@@ -19,6 +19,8 @@
     daken: [{ l: 'A', naam: 'Hoofddak oost', kwh: 3.1, n: 6 }, { l: 'B', naam: 'Hoofddak west', kwh: 4.1, n: 6 }],
     zelf: 3.8, terug: 3.4, verwacht: 'Verwacht 15,9 kWh over 4 dagen met een verwachting; opgewekt 12,5 (−21%).',
     doelen: [{ id: 'airco-wk', naam: 'Airco woonkamer', kwh: 0.1, zon: 0.05 }, { id: 'airco-zo', naam: 'Airco zolder', kwh: 0.1, zon: 0.05 }, { id: 'rest', naam: 'Rest van het huis', kwh: 63.0, zon: 3.7 }],
+    // Sluipverbruik (besluit 192): wat altijd aan staat, ook 's nachts.
+    sluip: { vannacht: 340, gewoon: 180, kwh: 19.0, zon: 0.4 },
     accu: null, dagen: [[2.3, 9], [1.0, 11], [0.4, 12], [0.1, 8], [0.0, 6]],
   };
   const JUL = {
@@ -27,9 +29,14 @@
     daken: [{ l: 'A', naam: 'Hoofddak oost', kwh: 296, n: 6 }, { l: 'B', naam: 'Hoofddak west', kwh: 342, n: 6 }, { l: 'C', naam: 'Garage', kwh: 210, n: 8 }],
     zelf: 446, terug: 402, verwacht: 'Verwacht 812 kWh, opgewekt 848 (+4%).',
     doelen: [{ id: 'auto', naam: 'Auto', kwh: 150, zon: 128 }, { id: 'airco-wk', naam: 'Airco woonkamer', kwh: 95, zon: 84 }, { id: 'boiler', naam: 'Boiler', kwh: 42, zon: 40 }, { id: 'vaat', naam: 'Vaatwasser', kwh: 4, zon: 3 }, { id: 'rest', naam: 'Rest van het huis', kwh: 254, zon: 191 }],
+    sluip: { vannacht: 170, gewoon: 160, kwh: 119, zon: 70 },
     accu: { laden: 64, ontladen: 58 }, dagen: Array.from({ length: 31 }, (_, i) => [18 + 10 * Math.sin(i / 3), 8 + 3 * Math.cos(i / 4)]),
   };
   const data = () => (location.hash === '#zomer' ? JUL : NOV);
+  /** De bestemmingen, met Altijd aan (sluipverbruik) afgesplitst van de rest van het huis. */
+  const metSluip = (D) => (D.sluip
+    ? [...D.doelen.map((d) => (d.id === 'rest' ? { ...d, kwh: d.kwh - D.sluip.kwh, zon: Math.max(0, d.zon - D.sluip.zon) } : d)), { id: 'sluip', naam: 'Altijd aan', kwh: D.sluip.kwh, zon: D.sluip.zon, kleur: '#ffb39f' }]
+    : D.doelen);
   const opgewekt = (D) => D.daken.reduce((s, d) => s + d.kwh, 0);
 
   function cijfers(D) {
@@ -59,7 +66,7 @@
   }
 
   function apparaten(D) {
-    const lijst = [...D.doelen].sort((a, b) => b.kwh - a.kwh);
+    const lijst = [...metSluip(D)].sort((a, b) => b.kwh - a.kwh);
     return `<h2 class="kop-3" style="margin-bottom: 4px">Per apparaat</h2>
       ${lijst.map((d) => `<div class="rij"><div class="boven"><b>${d.naam}</b><span>${nl(d.kwh)} kWh, ${euro(Math.max(0, d.kwh - d.zon) * 0.27)}</span></div><div class="verdeel dun"><i style="width: ${(d.zon / d.kwh) * 100}%; background: var(--zon)"></i><i style="width: ${(1 - d.zon / d.kwh) * 100}%; background: ${NET}"></i></div></div>`).join('')}
       ${D.accu ? `<div class="rij"><div class="boven"><b>Accu</b><span>${nl(D.accu.laden)} in, ${nl(D.accu.ontladen)} uit</span></div><div class="verdeel dun"><i style="width: 100%; background: ${MINT}"></i></div></div>` : ''}`;
@@ -79,8 +86,10 @@
     const nb = 10;
     const op = opgewekt(D);
     const totaal = op + D.net + (D.accu?.ontladen ?? 0);
-    const groot = D.doelen.filter((d) => d.kwh >= totaal * 0.02);
-    const klein = D.doelen.filter((d) => d.kwh < totaal * 0.02);
+    // Altijd aan (sluipverbruik) als eigen bestemming, afgesplitst van de rest van het huis.
+    const alle = metSluip(D);
+    const groot = alle.filter((d) => d.kwh >= totaal * 0.02);
+    const klein = alle.filter((d) => d.kwh < totaal * 0.02);
     const doelen = [...groot];
     if (klein.length) doelen.push({ id: 'overig', naam: klein.every((k) => k.naam.startsWith('Airco')) ? "Airco's" : 'Overig', kwh: klein.reduce((s, d) => s + d.kwh, 0), zon: klein.reduce((s, d) => s + d.zon, 0), kleur: 'rgba(233,239,246,0.6)' });
     for (const d of doelen) d.kleur ??= 'rgba(233,239,246,0.6)';
@@ -166,9 +175,17 @@
     return `<defs>${defs}</defs>${s}`;
   }
 
+  function sluip(D) {
+    const s = D.sluip;
+    if (!s) return '';
+    const meer = s.vannacht - s.gewoon;
+    return `<a class="sluipkaart" href="sluipverbruik.html"><span class="kopregel"><h2 class="kop-3">Sluipverbruik</h2><span style="font: 600 22px var(--kop); color: ${meer > 50 ? 'var(--gloed-t, #ff8a6b)' : 'var(--tekst)'}">${s.vannacht} W</span></span>
+      <span class="klein">${meer > 50 ? `Vannacht ${meer} W meer dan gewoon` : `Vannacht rond je gewone ${s.gewoon} W`} · deze periode ${nl(s.kwh)} kWh, altijd aan ›</span></a>`;
+  }
+
   function gas(D) {
     return `<svg viewBox="0 0 24 24" fill="none" stroke="#ff8a6b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1 1.5 2 1.5 3 1.5-1.5 1.5-5 1.5-8z"/></svg><span><b>Gas</b> naar de verwarming<small>apart: op dezelfde schaal zou het alles wegdrukken</small></span><b>${nl(D.gasM3)} m³<small>${euro(D.gasEuro)}</small></b>`;
   }
 
-  global.opbrengstStromen = { data, cijfers, panelen, perDag, apparaten, stromen, gas };
+  global.opbrengstStromen = { data, cijfers, panelen, perDag, apparaten, stromen, gas, sluip };
 })(window);
