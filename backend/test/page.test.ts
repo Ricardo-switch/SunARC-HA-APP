@@ -648,14 +648,20 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     const rond = p.locator('.rl-kaart');
     await rond.locator('h2', { hasText: 'Je huis van boven' }).waitFor({ timeout: 5_000 });
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-rond-daken1.png') });
-    for (const kop of ['Elk vlak apart', 'Van boven of het huis', 'Een vlak erbij', 'Omvormers en meters']) {
-      await rond.locator('[data-rl-volgende]').click();
+    for (const kop of ['Elk vlak apart', 'Van boven of het huis', 'Je huis, met de panelen erop', 'Een vlak erbij', 'Omvormers en meters']) {
+        await rond.locator('[data-rl-volgende]').click();
       await rond.locator('h2', { hasText: kop }).waitFor();
       if (process.env.HEMS_PAGE_SHOT) await p.waitForTimeout(500).then(() => p.screenshot({ path: process.env.HEMS_PAGE_SHOT!.replace('.png', `-rond-${kop.split(' ')[0]}.png`) }));
     }
     await rond.locator('[data-rl-klaar]').click();
     await rond.waitFor({ state: 'detached' });
     expect(await p.evaluate(() => localStorage.getItem('sc-rond-daken-gezien'))).toBe('1');
+    // Het vraagteken bovenin laat hem opnieuw zien (Ricardo, 5 november 2026); de stop bij het huis zette de wissel om, en weer terug.
+    await wand.locator('svg.dk-boven').waitFor();
+    await wand.locator('[data-dak-uitleg]').click();
+    await rond.locator('h2', { hasText: 'Je huis van boven' }).waitFor({ timeout: 5_000 });
+    await rond.locator('[data-rl-overslaan]').click();
+    await rond.waitFor({ state: 'detached' });
     // De wissel naar het huis in 3D, en terug.
     await wand.locator('[data-dak-zicht="huis"]').click();
     await wand.locator('[data-pan-podium] svg.sc-huis').waitFor();

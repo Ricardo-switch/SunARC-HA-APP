@@ -470,7 +470,7 @@ const dakvlakken = (() => {
     // Van boven of het huis (besluit 254): standaard van boven.
     const wissel = `<span class="dk-wissel" role="group">${['boven', 'huis'].map((z) => `<button type="button" data-dak-zicht="${z}" aria-pressed="${(s.zicht ?? 'boven') === z}">${esc(t(`daken.zicht.${z}`))}</button>`).join('')}</span>`;
     return `<div class="pan3 dk">
-      <div class="pan-kop"><h2 class="kop-2">${esc(t('daken.titel'))}</h2>${chip(vlakken, d?.achter && s.achterGezien !== `${d.achter.letter}:${d.achter.wanneer}`)}${d ? wissel : ''}</div>
+      <div class="pan-kop"><h2 class="kop-2">${esc(t('daken.titel'))}</h2>${chip(vlakken, d?.achter && s.achterGezien !== `${d.achter.letter}:${d.achter.wanneer}`)}${d ? `${wissel}<button type="button" class="pil dk-vraag" data-dak-uitleg aria-label="${esc(t('daken.uitleg'))}" title="${esc(t('daken.uitleg'))}">?</button>` : ''}</div>
       <div class="pan-veld">
         ${d ? podium(d, s) : ''}
         <div class="pan-rechts">${rechts}</div>
@@ -977,13 +977,16 @@ const dakvlakken = (() => {
 
   /*
    * De rondleiding de eerste keer dat Daken en panelen opent (besluit 254):
-   * vijf stops op de pagina zelf, met rondleiding.eigen.
+   * zes stops op de pagina zelf, met rondleiding.eigen; het vraagteken
+   * bovenin laat hem opnieuw zien.
    */
   const RONDJE = [
     { plek: 'daken', id: 'dakBoven', doel: ['#wand .dk-boven, #wand [data-pan-podium]', '#tel .dk-boven, #tel [data-pan-podium]'] },
     { plek: 'daken', id: 'dakLijst', doel: ['#wand .pan-rechts .dk-lijst', '#tel .pan-rechts .dk-lijst'] },
     { plek: 'daken', id: 'dakZicht', doel: ['#wand .dk-wissel', '#tel .dk-wissel'] },
-    { plek: 'daken', id: 'dakErbij', doel: ['#wand [data-dak-scherm="erbij"]', '#tel [data-dak-scherm="erbij"]'] },
+    // Het huis (Ricardo, 5 november 2026): de wissel gaat vanzelf om, en bij de volgende stop terug.
+    { plek: 'daken', id: 'dakHuis', doe: ['#wand [data-dak-zicht="huis"]', '#tel [data-dak-zicht="huis"]'], doel: ['#wand [data-pan-podium]', '#tel [data-pan-podium]'] },
+    { plek: 'daken', id: 'dakErbij', doe: ['#wand [data-dak-zicht="boven"]', '#tel [data-dak-zicht="boven"]'], doel: ['#wand [data-dak-scherm="erbij"]', '#tel [data-dak-scherm="erbij"]'] },
     { plek: 'daken', id: 'dakMeters', doel: ['#wand [data-dak-scherm="meters"]', '#tel [data-dak-scherm="meters"]'], klaar: true },
   ];
 

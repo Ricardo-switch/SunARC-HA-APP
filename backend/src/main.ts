@@ -77,7 +77,7 @@ import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeC
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
 import { sunPosition } from './core/sun.js';
 import { panelenVan, type DakVlak } from './web/daken.js';
-import { achterblijven, meetVlakken, metMeting, opbrengstPerVlak, verdeelDag, type Achter, type MeterGroep, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
+import { aanvullenUitMeter, achterblijven, meetVlakken, metMeting, opbrengstPerVlak, verdeelDag, type Achter, type MeterGroep, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
 import { findHeatStores } from './web/buffers-vinden.js';
 import { kiesLigging, meetLigging, omvormerUitType, type Meting, type PanelenAntwoord } from './web/ligging.js';
 import { alarmSensoren, vindRookmelders } from './web/rookmelders.js';
@@ -1470,8 +1470,32 @@ async function dakenOpbrengst(vanMs: number, totMs: number): Promise<{ vlakken: 
     const id = v.meter ?? (ids.length === 1 ? ids[0]! : '');
     groepen.set(id, [...(groepen.get(id) ?? []), v]);
   }
+  // Eén meter voor alle vlakken: de uren van vóór de omvormer uit de zonnemeter in kWh (5 november 2026).
+  const meters = energyStore?.current?.zon ?? [];
+  let kwhPerUur = new Map<number, number>();
+  if (groepen.size === 1 && meters.length) {
+    const kwh = await client.query<Record<string, { start: number | string; change?: number | null }[]>>('recorder/statistics_during_period', {
+      start_time: new Date(vanMs).toISOString(),
+      end_time: new Date(tot).toISOString(),
+      statistic_ids: [...meters],
+      period: 'hour',
+      types: ['change'],
+      units: { energy: 'kWh' },
+    });
+    kwhPerUur = new Map();
+    for (const id of meters) {
+      for (const r of kwh?.[id] ?? []) {
+        if (typeof r.change !== 'number' || !Number.isFinite(r.change)) continue;
+        const t = typeof r.start === 'number' ? r.start : Date.parse(r.start);
+        kwhPerUur.set(t, (kwhPerUur.get(t) ?? 0) + Math.max(0, r.change));
+      }
+    }
+  }
   const kWh = opbrengstPerVlak(
-    [...groepen].map(([id, vlakken]) => ({ vlakken, rows: id ? reeks(id) : somPerVak(ids.map(reeks), [], true) })),
+    [...groepen].map(([id, vlakken]) => {
+      const rows = id ? reeks(id) : somPerVak(ids.map(reeks), [], true);
+      return { vlakken, rows: kwhPerUur.size ? aanvullenUitMeter(rows, kwhPerUur) : rows };
+    }),
     location,
   );
   const uit = { vlakken: d.vlakken.map((v) => ({ letter: v.letter, plek: v.plek, aantal: panelenVan(v), kWh: kWh[v.letter] ?? 0 })), achter: vlakMetingNu()?.achter ?? null };

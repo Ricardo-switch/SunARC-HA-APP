@@ -280,6 +280,18 @@ function sumBy(rows: Rows, ids: readonly string[]): Map<number, number> {
   return out;
 }
 
+/**
+ * Opgewekt per uur of dag: de omvormer waar hij een statistiek heeft, anders
+ * de zonnemeter (5 november 2026). Het vermogen van een omvormer staat er vaak
+ * pas sinds hij gekoppeld is (bij Ricardo 1 oktober 2026): alleen de omvormer
+ * gaf over een contractjaar 212 kWh in plaats van 3.700, en 0% zon.
+ */
+export function opgewektPerVak(meter: ReadonlyMap<number, number>, omvormer: readonly { readonly startMs: number; readonly change: number }[] | null): Map<number, number> {
+  const uit = new Map(meter);
+  for (const r of omvormer ?? []) uit.set(r.startMs, r.change);
+  return uit;
+}
+
 /** Zoals sumBy, maar een stap omlaag telt mee: een kostenteller daalt in een uur met een negatieve prijs. */
 function sumKost(rows: Rows, ids: readonly string[]): Map<number, number> {
   const out = new Map<number, number>();
@@ -399,7 +411,7 @@ export async function yieldReport(
   // zonnemeter in kWh kan achterlopen; zelf gebruikt kan per uur nooit meer zijn
   // dan wat hij zegt. Zonder omvormer de zonnemeter, zoals altijd.
   const uitOmvormer = await (source.opgewekt?.(range.startMs, range.endMs, fine) ?? Promise.resolve(null)).catch(() => null);
-  const zon = uitOmvormer ? new Map(uitOmvormer.map((r) => [r.startMs, r.change])) : sumBy(rows, s.zon);
+  const zon = opgewektPerVak(sumBy(rows, s.zon), uitOmvormer);
   const gas = s.gas ? sumBy(rows, [s.gas]) : new Map<number, number>();
   const hasSun = s.zon.length > 0 || uitOmvormer != null;
   const basisKwh = (BASIS_ZONDER_METER_W / 1000) * (stap / 3_600_000);
@@ -624,7 +636,7 @@ async function compareSeries(source: EnergySource, s: EnergySettings, kind: Peri
   const rows = await source.changes(ids, from, range.endMs, period);
   // Opgewekt uit de omvormers per dag, als die er zijn (5 november 2026).
   const uitOmvormer = await (source.opgewekt?.(from, range.endMs, 'day') ?? Promise.resolve(null)).catch(() => null);
-  const sums = { afname: sumBy(rows, s.net.afname), terug: sumBy(rows, s.net.teruglevering), zon: uitOmvormer ? new Map(uitOmvormer.map((r) => [r.startMs, r.change])) : sumBy(rows, s.zon), gas: s.gas ? sumBy(rows, [s.gas]) : new Map<number, number>() };
+  const sums = { afname: sumBy(rows, s.net.afname), terug: sumBy(rows, s.net.teruglevering), zon: opgewektPerVak(sumBy(rows, s.zon), uitOmvormer), gas: s.gas ? sumBy(rows, [s.gas]) : new Map<number, number>() };
   const kostSums = dyn ? { af: sumKost(rows, dyn.afname), terug: dyn.terug.length ? sumKost(rows, dyn.terug) : null } : null;
   const tm = tariefMeters(s);
   const dalSums = tm.perMeter ? { afname: sumBy(rows, s.net.afname.filter((id) => tm.dal.has(id))), terug: sumBy(rows, s.net.teruglevering.filter((id) => tm.dal.has(id))) } : null;

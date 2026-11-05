@@ -1,5 +1,27 @@
 # Wat is er nieuw · What is new
 
+## 0.127.1
+
+*5 november 2026*
+
+**Beter**
+
+- Daken en panelen heeft bovenin een vraagteken om de rondleiding opnieuw te zien, en de rondleiding laat ook je huis met de panelen zien
+
+**Opgelost**
+
+- Opbrengst telde de zon alleen uit de omvormer, ook van vóór hij gekoppeld was: dan gaf het stroombeeld 0% zon en Per dak veel te weinig. Waar de omvormer nog niets meet, telt nu de zonnemeter
+
+*English*
+
+**Improved**
+
+- Roofs and panels has a question mark at the top to see the tour again, and the tour also shows your house with the panels
+
+**Fixed**
+
+- Yield counted the sun only from the inverter, also from before it was connected: the flow picture then showed 0% sun and Per roof far too little. Where the inverter does not measure yet, the solar meter counts now
+
 ## 0.127.0
 
 *5 november 2026*

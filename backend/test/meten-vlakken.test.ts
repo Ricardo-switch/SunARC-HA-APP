@@ -13,7 +13,7 @@ import { clearSkyOnPlaneWm2, sunPosition } from '../src/core/sun.js';
 import type { DakVlak } from '../src/web/daken.js';
 import type { Geometry } from '../src/core/model.js';
 import { kiesLigging } from '../src/web/ligging.js';
-import { achterblijven, meetVlakken, metMeting, nuPerVlak, opbrengstPerVlak, verdeelDag } from '../src/web/meten-vlakken.js';
+import { aanvullenUitMeter, achterblijven, meetVlakken, metMeting, nuPerVlak, opbrengstPerVlak, verdeelDag } from '../src/web/meten-vlakken.js';
 import { naOmvormers, omvormersSamenW } from '../src/web/omvormers.js';
 import type { PowerRow } from '../src/web/today.js';
 
@@ -186,6 +186,17 @@ describe('per vlak (stap 5)', () => {
     const uren = Array.from({ length: 24 }, (_, h) => ({ startMs: Date.UTC(2026, 5, 21, h), meanW: h >= 5 && h <= 19 ? 1000 : 0 }));
     const k = opbrengstPerVlak([{ vlakken: [A, B], rows: uren }], PLEK);
     expect(k.A! + k.B!).toBeCloseTo(15, 0);
+  });
+
+  it('vult de uren van vóór de omvormer aan uit de zonnemeter (5 november 2026)', () => {
+    // De omvormer heeft pas vanaf 12 uur een vermogen; de zonnemeter telt de ochtend.
+    const uren = Array.from({ length: 24 }, (_, h) => ({ startMs: Date.UTC(2026, 5, 21, h), meanW: h >= 12 && h <= 19 ? 1000 : 0 })).filter((r) => new Date(r.startMs).getUTCHours() >= 12);
+    const meter = new Map(Array.from({ length: 24 }, (_, h) => [Date.UTC(2026, 5, 21, h), h >= 5 && h <= 19 ? 0.9 : 0] as [number, number]));
+    const rows = aanvullenUitMeter(uren, meter);
+    expect(rows.map((r) => r.startMs)).toEqual([...rows.map((r) => r.startMs)].sort((x, y) => x - y));
+    // De omvormer gaat voor waar hij er is: 8 uur × 1 kWh, en 7 ochtenduren × 0,9 uit de meter.
+    const k = opbrengstPerVlak([{ vlakken: [A, B], rows }], PLEK);
+    expect(k.A! + k.B!).toBeCloseTo(8 + 7 * 0.9, 0);
   });
 
   it('ziet een dak dat elke zonnige ochtend achterblijft, en noemt het oostvlak', () => {

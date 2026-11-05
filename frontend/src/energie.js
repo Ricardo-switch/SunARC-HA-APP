@@ -533,6 +533,15 @@ document.addEventListener('click', async (ev) => {
   // De dakvlakken en gebouwen in de tekening van boven zijn geen knoppen, maar wel aan te tikken (besluit 254).
   const knop = ev.target.closest('button, [data-dak-dakvlak], [data-dak-kandidaat], [data-dak-gebouw]');
   if (!knop || knop.disabled) return;
+  // Het vraagteken bij Daken en panelen (Ricardo, 5 november 2026): de rondleiding opnieuw, zoals op Thuis.
+  if (knop.hasAttribute('data-dak-uitleg')) {
+    if (dakStaat.scherm !== 'alle') {
+      Object.assign(dakStaat, { scherm: 'alle', concept: null, origineel: null });
+      teken();
+    }
+    window.rondleiding?.eigen('daken', dakvlakken.RONDJE, true);
+    return;
+  }
   // Daken en panelen (besluit 254).
   if (a && Object.keys(knop.dataset).some((k) => k.startsWith('dak'))) {
     const wat = dakvlakken.klik(knop, aInfo?.daken, dakStaat);

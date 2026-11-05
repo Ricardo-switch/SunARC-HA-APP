@@ -216,6 +216,17 @@ export function nuPerVlak(groepen: readonly { readonly vlakken: readonly DakVlak
 }
 
 /**
+ * De uren zonder vermogen van de omvormer, aangevuld uit de zonnemeter in kWh
+ * per uur (5 november 2026): het vermogen staat er vaak pas sinds de omvormer
+ * gekoppeld is, de zonnemeter al veel langer.
+ */
+export function aanvullenUitMeter(rows: readonly PowerRow[], kwhPerUur: ReadonlyMap<number, number>): PowerRow[] {
+  const er = new Set(rows.map((r) => r.startMs));
+  const erbij = [...kwhPerUur].filter(([t, kwh]) => !er.has(t) && kwh > 0).map(([t, kwh]) => ({ startMs: t, meanW: kwh * 1000 }));
+  return [...rows, ...erbij].sort((a, b) => a.startMs - b.startMs);
+}
+
+/**
  * De opbrengst per vlak over een periode (stap 5): per uur wat de meter
  * gemiddeld mat, verdeeld naar de heldere lucht per vlak, opgeteld in kWh.
  */

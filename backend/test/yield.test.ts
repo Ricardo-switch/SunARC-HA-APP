@@ -151,6 +151,18 @@ describe('een dag terugkijken', () => {
     expect(r.zon).toMatchObject({ opgewektKwh: 14, zelfKwh: 7, terugKwh: 7, zelfPct: 50 });
   });
 
+  it('vult uren zonder omvormer aan uit de zonnemeter: het vermogen staat er pas sinds de koppeling (5 november 2026)', async () => {
+    // De omvormer heeft pas vanaf 12 uur een statistiek; daarvoor telt de zonnemeter.
+    const bron = fakeSource();
+    bron.opgewekt = async (startMs, endMs) => {
+      const rows: { startMs: number; change: number }[] = [];
+      for (let t = startMs; t < endMs; t += 3_600_000) if (partsIn(t, TZ).h >= 12) rows.push({ startMs: t, change: HOURLY['sensor.zon']!(partsIn(t, TZ).h) });
+      return rows;
+    };
+    const r = (await yieldReport(bron, SETTINGS, 'dag', '2026-09-15', TZ, Date.UTC(2026, 9, 7, 12)))!;
+    expect(r.zon).toMatchObject({ opgewektKwh: 14, zelfKwh: 7, terugKwh: 7, zelfPct: 50 });
+  });
+
   it('zonder zonnepanelen geen zon, en alles van het net', async () => {
     const r = (await yieldReport(fakeSource(), { ...SETTINGS, zon: [], net: { afname: ['sensor.afname'], teruglevering: [] } }, 'dag', '2026-09-15', TZ, Date.UTC(2026, 9, 7)))!;
     expect(r.zon).toBeNull();

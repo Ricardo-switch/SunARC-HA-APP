@@ -11931,6 +11931,11 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
   erbij, omvormers en meters). `rondleiding.eigen` kan dat voor elke pagina;
   wat gezien is, onthoudt de browser per rondleiding.
 
+*Nagekomen, versie 0.127.1* (Ricardo, dezelfde dag): een vraagteken bovenin
+Daken en panelen laat de rondleiding opnieuw zien, zoals op Thuis; en een
+stop bij het huis, waarvoor de rondleiding de wissel zelf omzet en daarna
+terug.
+
 ---
 
 ## 255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer
@@ -11969,6 +11974,16 @@ en zelf gebruikt kan per uur nooit meer zijn dan wat die meter zegt.
 - Het sluipverbruik, Per dak en de rest van Opbrengst blijven zoals ze waren.
 - **Uitrol:** samen met Daken en panelen (besluit 254) in één grote release;
   tot dan op beta.
+
+*Nagekomen, versie 0.127.1* (Ricardo, 5 november, op beta): het stroombeeld
+liet over het contractjaar 0% zon zien, en Per dak 212 kWh in plaats van ruim
+3.700. Het vermogen van zijn omvormer (`sensor.solaredge_i1_ac_power`, via
+Modbus) heeft in Home Assistant pas een statistiek sinds 1 oktober 2026. Nu
+telt per uur (of dag) de omvormer waar hij er is, en anders de zonnemeter
+(`opgewektPerVak` in yield.ts); Per dak vult de uren zonder omvormer aan uit de
+zonnemeter in kWh (`aanvullenUitMeter`), als één meter alle vlakken meet. Ook
+gezien: de zonnemeter van de cloudkoppeling (`sensor.solaredge_produced_energy`)
+telt sinds 2 november niet meer; daar vangt de omvormer het nu op.
 
 ---
 

@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.127.0';
+export const VERSIE = '0.127.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,16 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.127.1',
+    datum: '2026-11-05',
+    beter: ['Daken en panelen heeft bovenin een vraagteken om de rondleiding opnieuw te zien, en de rondleiding laat ook je huis met de panelen zien'],
+    opgelost: ['Opbrengst telde de zon alleen uit de omvormer, ook van vóór hij gekoppeld was: dan gaf het stroombeeld 0% zon en Per dak veel te weinig. Waar de omvormer nog niets meet, telt nu de zonnemeter'],
+    en: {
+      beter: ['Roofs and panels has a question mark at the top to see the tour again, and the tour also shows your house with the panels'],
+      opgelost: ['Yield counted the sun only from the inverter, also from before it was connected: the flow picture then showed 0% sun and Per roof far too little. Where the inverter does not measure yet, the solar meter counts now'],
+    },
+  },
   {
     versie: '0.127.0',
     datum: '2026-11-05',

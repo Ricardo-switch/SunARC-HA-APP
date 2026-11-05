@@ -268,7 +268,16 @@
         const b = e.target.closest('button');
         if (!b) return;
         if (b.hasAttribute('data-rl-overslaan')) stop();
-        else if (b.hasAttribute('data-rl-volgende')) toon(nu + 1);
+        else if (b.hasAttribute('data-rl-volgende')) {
+          // Een stop die eerst iets omzet (de wissel naar het huis): tikken, dan wachten tot het er staat.
+          const v = reeks.stops[nu + 1];
+          const tel = document.documentElement.classList.contains('tel-stand');
+          const knop = v?.doe ? document.querySelector(v.doe[tel ? 1 : 0]) : null;
+          if (knop) {
+            knop.click();
+            zodraKlaar(nu + 1);
+          } else toon(nu + 1);
+        }
         else if (b.hasAttribute('data-rl-klaar')) stop();
         else if (b.hasAttribute('data-rl-film')) {
           stop();
