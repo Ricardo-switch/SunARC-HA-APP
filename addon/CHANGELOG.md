@@ -1,5 +1,35 @@
 # Wat is er nieuw · What is new
 
+## 0.123.0
+
+*5 november 2026*
+
+**Nieuw**
+
+- Daken en panelen: het huis van boven, met elk dakvlak om aan te tikken. Een leeg dakvlak aantikken legt er panelen op; met een vlak open verplaats je het naar een ander dakvlak
+- Per gebouw een dakvorm (zadeldak, schilddak, lessenaar of plat), met een voorstel uit de vlakken die er al zijn
+- De omtrek uit de kaart: OpenStreetMap krijgt alleen de wijk te zien, en SunArc kiest zelf je huis. Gebouwen ernaast staan grijs; tik er een aan als hij bij je huis hoort
+- Een wissel tussen Van boven en Het huis
+
+**Opgelost**
+
+- Op de kaart (de voorkant opmeten) zocht bij de afgeronde plek van het huis, en vond zo niet je eigen huis
+- Na het verdraaien van een dakvlak zocht de meting nog maar één kant van het dak; nu zoekt hij weer vrij, en zegt een vlak wat de meting wel ziet
+
+*English*
+
+**New**
+
+- Roofs and panels: the house from above, with every roof plane to tap. Tapping an empty roof plane puts panels on it; with a plane open, you move it to another roof plane
+- A roof shape per building (gable, hip, lean-to or flat), suggested from the planes that are already there
+- The outline from the map: OpenStreetMap only gets to see the neighbourhood, and SunArc picks your house itself. Buildings next door are grey; tap one if it is part of your house
+- A switch between From above and The house
+
+**Fixed**
+
+- On the map (measuring the front) searched around the rounded location of the house, and so did not find your own house
+- After turning a roof plane the measurement only searched one side of the roof; now it searches freely again, and a plane says what the measurement does see
+
 ## 0.122.2
 
 *5 november 2026*

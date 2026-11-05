@@ -520,7 +520,10 @@ function oudeDaken(i: LiggingInput, oud: { geometry: Geometry; bron: LiggingBron
  */
 export function dakenNu(i: LiggingInput): { daken: Daken; bewaard: boolean } {
   if (i.daken && i.daken.vlakken.length > 0) return { daken: i.daken, bewaard: true };
-  return { daken: dakenUitOud(oudeDaken(i, hoofddak(i))), bewaard: false };
+  // Gebouwen zonder vlakken (stap 2): de tekening blijft, de vlakken volgen uit wat er al was.
+  const oud = dakenUitOud(oudeDaken(i, hoofddak(i)));
+  const { gebouwen, omgeving } = i.daken ?? {};
+  return { daken: { ...oud, ...(gebouwen ? { gebouwen } : {}), ...(omgeving ? { omgeving } : {}) }, bewaard: false };
 }
 
 /** Het hoofddak zoals vóór besluit 254: bevestigd, de configuratie, de meting, de schatting. */

@@ -29,7 +29,7 @@ let zelf = null;
  */
 const ligStaat = { aanpassen: false, concept: null, zelf: false, na: () => teken() };
 /** Daken en panelen (besluit 254, dakvlakken.js): welk scherm, en het vlak dat open staat. */
-const dakStaat = { scherm: 'alle', concept: null, origineel: null, genomen: false };
+const dakStaat = { scherm: 'alle', concept: null, origineel: null, genomen: false, zicht: 'boven', gebouw: null, kandidaat: null, kaart: null };
 /** Het deel dat het laatst getekend werd: wie Daken en panelen opent, begint bij de vlakken. */
 let vorigDeel = null;
 
@@ -393,7 +393,7 @@ function tekenNu() {
   const nu = groep.tekenDelen(delen());
   // Op de telefoon is de lijst zonder deel in het adres: dan staat er geen deel open.
   const open = location.hash.length > 1 ? nu : null;
-  if (open === 'panelen' && vorigDeel !== 'panelen') Object.assign(dakStaat, { scherm: 'alle', concept: null, origineel: null, genomen: false });
+  if (open === 'panelen' && vorigDeel !== 'panelen') Object.assign(dakStaat, { scherm: 'alle', concept: null, origineel: null, genomen: false, gebouw: null, kandidaat: null });
   vorigDeel = open;
   const wacht = `<p class="klein">${esc(t('algemeen.laden'))}…</p>`;
   const vorm = {
@@ -403,7 +403,8 @@ function tekenNu() {
     prijzen: () => (e ? prijzenVorm() : wacht),
     verwarming: () => (a ? verwarmingVorm() : wacht),
   }[nu]?.() ?? wacht;
-  $$('[data-vorm]').forEach((el) => (el.innerHTML = vorm));
+  // Een eigen voorvoegsel per scherm voor de namen in de tekening van boven (besluit 254): wand en telefoon staan allebei in de pagina.
+  $$('[data-vorm]').forEach((el, i) => (el.innerHTML = vorm.replaceAll('dkid-', `dk${i}-`)));
   $$('[data-naast]').forEach((el) => (el.innerHTML = naast(nu)));
   if (nu === 'panelen') tekenPanelenHuis();
 }
@@ -466,7 +467,10 @@ function bewaarDaken(w) {
     a.daken = null;
     a.dak = null;
   } else {
-    a.daken = w.vlakken.length ? { vlakken: w.vlakken, voorgevelDeg: d.voorgevelDeg, omvormerW: d.omvormerW } : null;
+    // De gebouwen van boven gaan mee (besluit 254, stap 2a): wat de tekening nu laat zien.
+    const gebouwen = w.gebouwen ?? dakvlakken.gebouwenUit(d);
+    const omgeving = w.omgeving ?? d.tekening?.omgeving ?? [];
+    a.daken = w.vlakken.length || gebouwen.length ? { vlakken: w.vlakken, voorgevelDeg: d.voorgevelDeg, omvormerW: d.omvormerW, gebouwen, omgeving } : null;
     const oud = dakvlakken.oudeAntwoorden(w.vlakken, d.voorgevelDeg, a.panelen);
     a.panelen = oud.panelen;
     a.elders = oud.elders;
@@ -494,14 +498,21 @@ function netDalBij() {
   e.net.dal = (e.net.dal ?? []).filter((id) => net.has(id));
 }
 
-document.addEventListener('click', (ev) => {
-  const knop = ev.target.closest('button');
+document.addEventListener('click', async (ev) => {
+  // De dakvlakken en gebouwen in de tekening van boven zijn geen knoppen, maar wel aan te tikken (besluit 254).
+  const knop = ev.target.closest('button, [data-dak-dakvlak], [data-dak-kandidaat], [data-dak-gebouw]');
   if (!knop || knop.disabled) return;
   // Daken en panelen (besluit 254).
   if (a && Object.keys(knop.dataset).some((k) => k.startsWith('dak'))) {
     const wat = dakvlakken.klik(knop, aInfo?.daken, dakStaat);
     if (wat === 'teken') teken();
-    else if (wat) bewaarDaken(wat);
+    else if (wat?.kaart) {
+      // De omtrek uit de kaart: even wachten, dan bewaren wat erbij kwam.
+      teken();
+      const w = await dakvlakken.vanKaart(aInfo.daken, dakStaat);
+      teken();
+      if (w) bewaarDaken(w);
+    } else if (wat) bewaarDaken(wat);
     return;
   }
   // Het overzicht van de panelen (besluit 187): een paneel erbij of eraf, een ander dak, zelf aanpassen.

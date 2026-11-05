@@ -46,6 +46,37 @@ export interface DakVlak {
   /** De sensor die de opbrengst van dit vlak meet, of null als de bewoner het niet weet. */
   readonly meter: string | null;
   readonly bron: VlakBron;
+  /**
+   * Op welk gebouw en welk dakvlak het ligt (stap 2): het gebouw en de richting
+   * van dat dakvlak, null bij een plat dak. Weg: SunArc zoekt het zelf, naar
+   * de plek en de richting.
+   */
+  readonly gebouw?: string;
+  readonly kant?: number | null;
+}
+
+/** Wat voor gebouw (stap 2); `grond` is een rek in de tuin. */
+export const GEBOUW_SOORTEN = ['hoofdhuis', 'uitbouw', 'garage', 'carport', 'tuinhuis', 'grond', 'anders'] as const;
+export type GebouwSoort = (typeof GEBOUW_SOORTEN)[number];
+export const DAKVORMEN = ['zadel', 'schild', 'lessenaar', 'plat'] as const;
+export type Dakvorm = (typeof DAKVORMEN)[number];
+
+/** Een punt in meters vanaf de plek van het huis in Home Assistant: x naar het oosten, y naar het noorden. */
+export type Xy = readonly [number, number];
+
+/**
+ * Een gebouw van boven (besluit 254, stap 2): de omtrek, de dakvorm en de nok.
+ * Bij een zadel- of schilddak is `nokDeg` de richting van de nok, bij een
+ * lessenaar de kant waar het dak naartoe kijkt; bij plat telt hij niet.
+ */
+export interface Gebouw {
+  readonly id: string;
+  readonly soort: GebouwSoort;
+  /** `kaart`: de omtrek uit OpenStreetMap; `schatting`: een blok op een gangbare plek. */
+  readonly bron: 'kaart' | 'schatting';
+  readonly omtrek: readonly Xy[];
+  readonly dakvorm: Dakvorm;
+  readonly nokDeg: number;
 }
 
 export interface Daken {
@@ -54,6 +85,10 @@ export interface Daken {
   readonly voorgevelDeg: number | null;
   /** Wat de omvormer hooguit levert; null als het niet bekend is. */
   readonly omvormerW: number | null;
+  /** De gebouwen van boven (stap 2). Weg: SunArc zet ze zelf neer. */
+  readonly gebouwen?: readonly Gebouw[];
+  /** De gebouwen eromheen uit de kaart, om aan te tikken wat erbij hoort. */
+  readonly omgeving?: readonly (readonly Xy[])[];
 }
 
 /** Panelen op een ander dak (besluit 187), zoals bij de antwoorden. */
@@ -98,13 +133,48 @@ const heel = (v: unknown, min: number, max: number) => Number.isInteger(v) && (v
  * De daken zoals de pagina of het bestand ze geeft. Null of zonder vlakken:
  * niet bewaard, dan volgen ze uit wat er al was.
  */
+/** Een omtrek in meters: 3 tot 200 punten, binnen 500 meter van het huis. */
+function leesOmtrek(x: unknown): Xy[] | null {
+  if (!Array.isArray(x) || x.length < 3 || x.length > 200) return null;
+  const uit: Xy[] = [];
+  for (const p of x) {
+    if (!Array.isArray(p) || p.length !== 2 || !getal(p[0], -500, 500) || !getal(p[1], -500, 500)) return null;
+    uit.push([Math.round((p[0] as number) * 100) / 100, Math.round((p[1] as number) * 100) / 100]);
+  }
+  return uit;
+}
+
+function leesGebouwen(x: unknown): Gebouw[] | { fout: string } {
+  if (x == null) return [];
+  if (!Array.isArray(x) || x.length > 12) return { fout: 'de gebouwen zijn tot 12 stuks' };
+  const ids = new Set<string>();
+  const uit: Gebouw[] = [];
+  for (const g of x) {
+    const r = (typeof g === 'object' && g != null && !Array.isArray(g) ? g : {}) as Record<string, unknown>;
+    const id = r['id'];
+    const omtrek = leesOmtrek(r['omtrek']);
+    if (typeof id !== 'string' || !/^[a-z]{2,12}(-\d{1,2})?$/.test(id) || ids.has(id)) return { fout: 'elk gebouw heeft een eigen naam' };
+    ids.add(id);
+    if (!GEBOUW_SOORTEN.includes(r['soort'] as GebouwSoort) || !DAKVORMEN.includes(r['dakvorm'] as Dakvorm) || (r['bron'] !== 'kaart' && r['bron'] !== 'schatting') || !getal(r['nokDeg'], 0, 360) || !omtrek) {
+      return { fout: `gebouw ${id}: een soort, een dakvorm, de nok en een omtrek in meters` };
+    }
+    uit.push({ id, soort: r['soort'] as GebouwSoort, bron: r['bron'] as Gebouw['bron'], omtrek, dakvorm: r['dakvorm'] as Dakvorm, nokDeg: r['nokDeg'] as number });
+  }
+  return uit;
+}
+
 export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: string } {
   if (raw == null) return { daken: null };
   if (typeof raw !== 'object' || Array.isArray(raw)) return { fout: 'onbekende daken' };
   const r = raw as Record<string, unknown>;
   const lijst = r['vlakken'];
   if (!Array.isArray(lijst) || lijst.length > MAX_VLAKKEN) return { fout: `de daken zijn tot ${MAX_VLAKKEN} vlakken` };
-  if (lijst.length === 0) return { daken: null };
+  const gebouwen = leesGebouwen(r['gebouwen']);
+  if ('fout' in gebouwen) return gebouwen;
+  const omgevingRaw = r['omgeving'] ?? [];
+  const omgeving = Array.isArray(omgevingRaw) && omgevingRaw.length <= 20 ? omgevingRaw.map(leesOmtrek) : null;
+  if (!omgeving || omgeving.some((o) => o == null)) return { fout: 'de omgeving is tot 20 gebouwen met een omtrek in meters' };
+  if (lijst.length === 0 && gebouwen.length === 0) return { daken: null };
   const voorgevel = r['voorgevelDeg'] ?? null;
   if (voorgevel !== null && !getal(voorgevel, 0, 360)) return { fout: 'de voorkant is 0 tot 360°' };
   const omvormerW = r['omvormerW'] ?? null;
@@ -130,6 +200,10 @@ export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: strin
     if (meter !== null && (typeof meter !== 'string' || !/^sensor\.[a-z0-9_]{1,160}$/.test(meter))) return { fout: `vlak ${letter}: de meter is een sensor uit Home Assistant` };
     const bron = v['bron'] ?? 'bewoner';
     if (!VLAK_BRONNEN.includes(bron as VlakBron)) return { fout: `vlak ${letter}: onbekende bron` };
+    const gebouw = v['gebouw'];
+    const kant = v['kant'];
+    if (gebouw != null && (typeof gebouw !== 'string' || !gebouwen.some((g) => g.id === gebouw))) return { fout: `vlak ${letter}: onbekend gebouw` };
+    if (kant != null && !getal(kant, 0, 360)) return { fout: `vlak ${letter}: de kant is 0 tot 360°` };
     vlakken.push({
       letter,
       plek: v['plek'] as DakPlek,
@@ -141,9 +215,18 @@ export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: strin
       wpPerPaneel: v['wpPerPaneel'] as number,
       meter: meter as string | null,
       bron: bron as VlakBron,
+      ...(typeof gebouw === 'string' ? { gebouw, kant: (kant as number | null | undefined) ?? null } : {}),
     });
   }
-  return { daken: { vlakken, voorgevelDeg: voorgevel as number | null, omvormerW: omvormerW as number | null } };
+  return {
+    daken: {
+      vlakken,
+      voorgevelDeg: voorgevel as number | null,
+      omvormerW: omvormerW as number | null,
+      ...(gebouwen.length ? { gebouwen } : {}),
+      ...(omgeving.length ? { omgeving: omgeving as Xy[][] } : {}),
+    },
+  };
 }
 
 /* ------------------------------------------------------------ uit wat er al was */

@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.122.2';
+export const VERSIE = '0.123.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,32 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.123.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'Daken en panelen: het huis van boven, met elk dakvlak om aan te tikken. Een leeg dakvlak aantikken legt er panelen op; met een vlak open verplaats je het naar een ander dakvlak',
+      'Per gebouw een dakvorm (zadeldak, schilddak, lessenaar of plat), met een voorstel uit de vlakken die er al zijn',
+      'De omtrek uit de kaart: OpenStreetMap krijgt alleen de wijk te zien, en SunArc kiest zelf je huis. Gebouwen ernaast staan grijs; tik er een aan als hij bij je huis hoort',
+      'Een wissel tussen Van boven en Het huis',
+    ],
+    opgelost: [
+      'Op de kaart (de voorkant opmeten) zocht bij de afgeronde plek van het huis, en vond zo niet je eigen huis',
+      'Na het verdraaien van een dakvlak zocht de meting nog maar één kant van het dak; nu zoekt hij weer vrij, en zegt een vlak wat de meting wel ziet',
+    ],
+    en: {
+      nieuw: [
+        'Roofs and panels: the house from above, with every roof plane to tap. Tapping an empty roof plane puts panels on it; with a plane open, you move it to another roof plane',
+        'A roof shape per building (gable, hip, lean-to or flat), suggested from the planes that are already there',
+        'The outline from the map: OpenStreetMap only gets to see the neighbourhood, and SunArc picks your house itself. Buildings next door are grey; tap one if it is part of your house',
+        'A switch between From above and The house',
+      ],
+      opgelost: [
+        'On the map (measuring the front) searched around the rounded location of the house, and so did not find your own house',
+        'After turning a roof plane the measurement only searched one side of the roof; now it searches freely again, and a plane says what the measurement does see',
+      ],
+    },
+  },
   {
     versie: '0.122.2',
     datum: '2026-11-05',

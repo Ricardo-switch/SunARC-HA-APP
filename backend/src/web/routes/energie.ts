@@ -8,7 +8,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { validateConnection } from '../aansluiting.js';
 import { importFromPrefs, pricesInPrefs, type DashboardPrice, type MeterOption } from '../energy.js';
-import { gevelsUitOmtrek, haalOmtrek, voorkantUitKaart } from '../kaart.js';
+import { gevelsUitOmtrek, haalKaart, haalOmtrek, huisEnOmgeving, kaartVak, voorkantUitKaart } from '../kaart.js';
 import { readJson, sendJson } from '../http.js';
 import { taalVan, type Diensten, type Verzoek } from '../diensten.js';
 
@@ -27,6 +27,11 @@ export async function energieRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
 
   if (path === '/api/gevel-kaart' && method === 'POST') {
     await gevelKaartRoute(d, req, res);
+    return true;
+  }
+
+  if (path === '/api/daken-kaart' && method === 'POST') {
+    await dakenKaartRoute(d, res);
     return true;
   }
 
@@ -109,7 +114,8 @@ export async function aansluitingRoute(d: Diensten, req: IncomingMessage, res: S
  * Alleen na een tik van de beheerder; niets bewaard behalve een dag de omtrek.
  */
 export async function gevelKaartRoute(d: Diensten, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const loc = d.options.location?.() ?? null;
+  // De precieze plek (besluit 254): de ligging voor de zon is afgerond op 0,1° en wijst geen huis aan.
+  const loc = (await d.options.exacteLocatie?.().catch(() => null)) ?? d.options.location?.() ?? null;
   if (loc == null) {
     sendJson(res, 503, { wachten: 'de ligging van het huis komt van Home Assistant zodra die verbonden is' });
     return;
@@ -143,4 +149,38 @@ export async function gevelKaartRoute(d: Diensten, req: IncomingMessage, res: Se
     return;
   }
   sendJson(res, 200, { voorkantDeg: voorkantUitKaart(gevels, nu), as: gevels.as, bron: 'OpenStreetMap' });
+}
+
+/** De antwoorden van OpenStreetMap per vak van het raster, een dag. */
+const kaartVakken = new Map<string, { at: number; antwoord: unknown }>();
+
+/**
+ * Het huis van boven uit de kaart (besluit 254, stap 2a): het gebouw waar de
+ * plek uit Home Assistant in ligt en de gebouwen eromheen, in meters vanaf die
+ * plek. Naar OpenStreetMap gaat alleen het vak van het raster; de plek zelf
+ * blijft in huis en wordt niet bewaard. Alleen na een tik van de beheerder.
+ */
+export async function dakenKaartRoute(d: Diensten, res: ServerResponse): Promise<void> {
+  const loc = await (d.options.exacteLocatie?.() ?? Promise.resolve(null)).catch(() => null);
+  if (loc == null) {
+    sendJson(res, 503, { wachten: 'de plek van het huis komt van Home Assistant zodra die verbonden is' });
+    return;
+  }
+  const vak = kaartVak(loc.latDeg, loc.lonDeg).sleutel;
+  let bewaard = kaartVakken.get(vak);
+  if (bewaard == null || Date.now() - bewaard.at > 86_400_000) {
+    try {
+      bewaard = { at: Date.now(), antwoord: await (d.options.kaartAntwoord ?? haalKaart)(loc.latDeg, loc.lonDeg) };
+    } catch {
+      sendJson(res, 502, { fout: 'De kaart gaf geen antwoord. Probeer het straks nog eens.' });
+      return;
+    }
+    kaartVakken.set(vak, bewaard);
+  }
+  const uit = huisEnOmgeving(bewaard.antwoord, { lat: loc.latDeg, lon: loc.lonDeg });
+  if (uit == null) {
+    sendJson(res, 404, { fout: 'Op de kaart staat op deze plek geen huis.' });
+    return;
+  }
+  sendJson(res, 200, { hoofdhuis: uit.huis, omgeving: uit.omgeving, bron: 'OpenStreetMap' });
 }

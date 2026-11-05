@@ -141,6 +141,42 @@
   #tel .dk-opstel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #tel .dk-tegels { grid-template-columns: 1fr; }
   #tel .dk-noot { display: none; }
+
+  /* Het huis van boven (besluit 254, stap 2a). */
+  .dk-wissel { margin-left: auto; display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--wit) / 0.06); }
+  .dk-wissel button { height: 30px; padding: 0 12px; border-radius: 999px; border: 0; background: none; color: var(--zacht); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .dk-wissel button[aria-pressed="true"] { background: rgb(var(--wit) / 0.16); color: var(--tekst); }
+  .dk-podium { margin: 0; border-radius: 18px; background: radial-gradient(120% 100% at 50% 40%, rgb(var(--wit) / 0.04), transparent 70%); }
+  .dk-boven { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .dk-boven [role="button"] { cursor: pointer; outline: none; }
+  .dk-kand polygon { fill: rgb(var(--wit) / 0.04); stroke: rgb(var(--wit) / 0.3); }
+  .dk-kand text { fill: rgb(var(--wit) / 0.45); font-weight: 800; font-family: var(--romp); }
+  .dk-kand:hover polygon, .dk-kand.aan polygon { fill: rgba(247, 181, 72, 0.12); stroke: var(--zon); }
+  .dk-romp { fill: rgb(var(--wit) / 0.06); stroke: rgb(var(--wit) / 0.45); }
+  .dk-gebouw.aan .dk-romp { stroke: var(--zon); }
+  .dk-dv { fill: rgb(var(--wit) / 0.05); stroke: rgb(var(--wit) / 0.28); }
+  .dk-dv:hover, .dk-dv:focus-visible { fill: rgba(247, 181, 72, 0.14); }
+  .dk-dv.vol { stroke: #9cc0e4; }
+  .dk-dv.open { stroke: var(--zon); stroke-width: 0.25; }
+  .dk-nok { stroke: rgb(var(--wit) / 0.6); pointer-events: none; }
+  .dk-pijl { stroke: #ffd27a; stroke-linecap: round; pointer-events: none; }
+  .dk-badge { pointer-events: none; }
+  .dk-badge text { fill: #0b1424; font-weight: 800; font-family: var(--kop); }
+  .dk-badge.open rect { stroke: var(--tekst); stroke-width: 0.2; }
+  .dk-gnaam rect { fill: rgb(var(--nacht) / 0.78); stroke: rgb(var(--wit) / 0.2); stroke-width: 0.08; }
+  .dk-gnaam text { fill: var(--zacht); font-weight: 700; font-family: var(--romp); }
+  .dk-gnaam:hover rect { stroke: var(--zon); }
+  .dk-straat { fill: rgb(var(--wit) / 0.4); font-weight: 700; font-family: var(--romp); letter-spacing: 0.1em; pointer-events: none; }
+  .dk-noord { position: absolute; top: 10px; right: 12px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgb(var(--nacht) / 0.6); border: 1px solid rgb(var(--wit) / 0.3); font-weight: 800; font-size: 12px; color: var(--zon); }
+  .dk-kaart { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: rgb(var(--nacht) / 0.82); }
+  .dk-kaart .lig-knop { height: 36px; padding: 0 14px; font-size: 13.5px; white-space: nowrap; }
+  .dk-kaart small { font-size: 12px; color: var(--zacht); line-height: 1.35; }
+  .dk-podium .dk-noot { bottom: auto; top: 10px; right: 56px; }
+  .dk-ligt { margin: -4px 0 0; }
+  .dk-gicoon svg { width: 22px; height: 16px; }
+  #tel .dk-podium { height: 300px; }
+  #tel .dk-podium .dk-noot { display: block; position: absolute; }
+  #tel .pan-kop .dk-wissel { margin-left: 0; }
 </style>
 </head>
 <body class="lucht lucht-dag">

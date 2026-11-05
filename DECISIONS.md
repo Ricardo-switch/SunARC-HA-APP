@@ -11753,7 +11753,7 @@ al met elk aantal `solarPlanes`; de app kent alleen voorkant, achterkant,
 beide of plat met één helling, garage, carport en tuinhuis tellen niet mee in
 de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 
-*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, de rest nog niet):*
+*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, de rest nog niet):*
 
 - **Elk dakvlak apart,** met een letter, een plek (hoofddak, dwarskap,
   uitbouw, garage, carport, tuinhuis of schuur, de grond, gevel of balkon), een
@@ -11815,6 +11815,38 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
   één omvormer kiezen allemaal die omvormer. Leest SunArc één omvormer, dan
   staat die bij elk nog niet bewaard vlak, en Hoort bij zet hem bij alle
   vlakken zonder meter.
+- **Stap 2 in tweeën** (Ricardo, 5 november 2026): 2a de tekening van boven
+  met de omtrek uit de kaart, een dakvorm per gebouw en vlakken aantikken;
+  2b blokken zelf schuiven, draaien en toevoegen.
+
+*Stap 2a gebouwd (0.123.0, 5 november 2026):*
+
+- **De kaart en je plek.** Naar OpenStreetMap gaat een vak van een vast
+  raster (0,004° bij 0,006°, ongeveer 450 bij 400 meter, met een rand), niet
+  de plek van het huis; SunArc kiest daarna in huis het gebouw waar de plek
+  in ligt (Ricardo: liever dit dan de plek zelf). De plek voor de zon is
+  sinds besluit 93 afgerond op 0,1°; daarmee wees de kaart nooit het eigen
+  huis aan, ook niet bij Op de kaart (21 oktober). Daarom vraagt SunArc de
+  precieze plek pas na de tik aan Home Assistant en bewaart hem niet; bewaard
+  worden alleen omtrekken in meters vanaf die plek. Op de kaart gebruikt nu
+  hetzelfde.
+- **De tekening** (`web/daken-tekening.ts`): de dakvlakken volgen uit de
+  kleinste rechthoek om de omtrek en de dakvorm (zadel 2, schild 4,
+  lessenaar en plat 1); de nok valt op de as van de rechthoek die het
+  dichtst bij de keuze ligt. Zonder kaart een blok van 10 bij 9 meter langs
+  de voorgevel, en voor een vlak op de uitbouw, garage, carport, het tuinhuis
+  of de grond een blok op een gangbare plek. De dakvorm is een voorstel uit
+  de vlakken (een schuin vlak: de nok haaks erop); de bewoner kiest.
+- **Vanzelf, tik om te wisselen:** elk vlak ligt op het dakvlak van zijn
+  gebouw dat dezelfde kant op kijkt; wijkt een schuin vlak meer dan 60° af,
+  dan staat het er niet in en zegt de pagina dat. Met een vlak open verplaatst
+  een tik het; een leeg dakvlak aantikken maakt een nieuw vlak. Gebouwen
+  binnen 35 meter staan grijs; aantikken maakt er een garage, uitbouw,
+  carport, schuur of ander gebouw van.
+- **Van boven of het huis:** van boven is standaard, Het huis toont het
+  3D-huis zoals in stap 1.
+- De tekening verandert niets aan de berekening: die rekent met de richting
+  en de helling per vlak.
 - **Nog niet:** de meter verdeelt nog niets (stap 4 en 5), en de omvormer
   kapt alle vlakken samen af op één vermogen, ook als een garage een eigen
   omvormer heeft.

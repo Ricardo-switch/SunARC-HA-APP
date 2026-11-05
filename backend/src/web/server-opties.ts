@@ -337,6 +337,14 @@ export interface WebOptions {
   /** De omtrek van het huis op de kaart (21 oktober 2026); anders OpenStreetMap. Voor de tests. */
   readonly omtrek?: (latDeg: number, lonDeg: number) => Promise<readonly Punt[] | null>;
   /**
+   * De precieze plek van het huis uit Home Assistant (besluit 254, stap 2a),
+   * alleen gevraagd na een tik op de kaart en niet bewaard: daarmee kiest
+   * SunArc zelf het gebouw uit het vak dat naar OpenStreetMap ging.
+   */
+  readonly exacteLocatie?: () => Promise<Location | null>;
+  /** Het antwoord van OpenStreetMap voor een vak van het raster; anders Overpass. Voor de tests. */
+  readonly kaartAntwoord?: (latDeg: number, lonDeg: number) => Promise<unknown>;
+  /**
    * Bijwerken vanuit de app (21 oktober 2026): wat er klaarstaat en wat er nieuw
    * is, en de add-on bijwerken. Alleen in de add-on.
    */

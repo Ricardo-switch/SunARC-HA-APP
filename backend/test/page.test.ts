@@ -640,10 +640,19 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     // Rechtstreeks naar het deel van Energie; de oude doorverwijzing is weg sinds besluit 142.
     await p.goto(`${baseUrl}/energie.html#panelen`);
     const wand = p.locator('#wand');
-    // Daken en panelen (besluit 254): de vlakken als kaartjes, met het huis ernaast.
+    // Daken en panelen (besluit 254): de vlakken als kaartjes, met het huis van boven ernaast.
     await wand.locator('.dk h3', { hasText: 'Waar de panelen liggen' }).waitFor();
-    await wand.locator('[data-pan-podium] svg.sc-huis').waitFor();
+    await wand.locator('svg.dk-boven .dk-gebouw').first().waitFor();
     expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
+    // De wissel naar het huis in 3D, en terug.
+    await wand.locator('[data-dak-zicht="huis"]').click();
+    await wand.locator('[data-pan-podium] svg.sc-huis').waitFor();
+    await wand.locator('[data-dak-zicht="boven"]').click();
+    // Het hoofdhuis: een andere dakvorm kiezen.
+    await wand.locator('[data-dak-gebouw="huis"]').click();
+    await wand.locator('[data-dak-dakvorm="schild"]').click();
+    await expect.poll(() => connStore.current?.daken?.gebouwen?.find((g) => g.id === 'huis')?.dakvorm, { timeout: 5_000 }).toBe('schild');
+    await wand.locator('[data-dak-scherm="alle"]').click();
     // Een vlak erbij: eerst wat voor dak, dan hoe ze liggen.
     await wand.locator('[data-dak-scherm="erbij"]').click();
     await wand.locator('[data-dak-plek="uitbouw"]').click();
@@ -1342,8 +1351,11 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     try {
       const wand = p.locator('#wand');
       const svg = wand.locator('[data-pan-podium] svg.sc-huis');
-      // Naar het huis bij Daken en panelen (besluit 254): dat staat er altijd.
-      const naarHuis = () => svg.waitFor({ timeout: 10_000 });
+      // Naar het huis bij Daken en panelen (besluit 254): de wissel van boven naar het huis.
+      const naarHuis = async () => {
+        await wand.locator('[data-dak-zicht="huis"]').click({ timeout: 10_000 });
+        await svg.waitFor({ timeout: 10_000 });
+      };
       await p.goto(`${baseUrl}/energie.html#panelen`);
       await naarHuis();
       // De opkomst met een pijl omhoog, bij het begin van de ring.

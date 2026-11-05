@@ -25,6 +25,7 @@ import type { HaDevice, HaRegistryEntity } from '../adapters/homeassistant/disco
 import type { SiteConfig } from '../core/model.js';
 import type { Lang } from './assistant.js';
 import { heatStoreConfig, type FoundHeatStore } from './buffers-vinden.js';
+import { tekening, type Tekening } from './daken-tekening.js';
 import { leesDaken, piekVan, type Daken, type DakVlak } from './daken.js';
 import { VOORKANT_ZON, aantalVan, dakUitAanpassing, dakUitMeting, dakenNu, liggingView, type Dak, type LiggingView, type Meting, type VoorkantZon } from './ligging.js';
 
@@ -792,6 +793,10 @@ export interface DakenView {
    * gekozen zijn (Ricardo, 5 november 2026), met hun naam.
    */
   readonly meters: readonly { readonly id: string; readonly naam: string }[];
+  /** Het huis van boven (stap 2a): de gebouwen, hun dakvlakken en waar elk vlak ligt. */
+  readonly tekening: Tekening;
+  /** Kan SunArc de omtrek uit de kaart halen (is de plek van het huis bekend)? */
+  readonly kaart: boolean;
 }
 
 function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): DakenView {
@@ -807,6 +812,8 @@ function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): Dake
     omvormerW: daken.omvormerW,
     meting: c.meting ? c.meting.vlakken.map((v) => ({ azimuthDeg: Math.round(v.azimuthDeg) % 360, tiltDeg: Math.round(v.tiltDeg), peakW: v.peakW })) : null,
     meters: ids.map((id) => ({ id, naam: naam(id) })),
+    tekening: tekening(daken),
+    kaart: c.kaart ?? false,
   };
 }
 
@@ -825,6 +832,8 @@ export interface ConnectionContext {
   readonly meting?: Meting | null;
   /** De omvormer uit zijn typenummer in Home Assistant. */
   readonly omvormerGevonden?: number | null;
+  /** Kan de omtrek uit de kaart komen (besluit 254)? */
+  readonly kaart?: boolean;
 }
 
 export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): ConnectionView {

@@ -4,9 +4,12 @@
  * staal in de muur trekt een kompas opzij. De omtrek van het huis in
  * OpenStreetMap komt in Nederland uit de BAG, en is op de meter nauwkeurig.
  *
- * Alleen als de bewoner erom vraagt, met één knop: de ligging van het huis
- * gaat dan naar OpenStreetMap (Overpass), eenmalig en alleen lezen. Het
- * antwoord is een voorstel; de bewoner kiest het, zoals bij Aanpassen.
+ * Alleen als de bewoner erom vraagt, met één knop, eenmalig en alleen lezen.
+ * Sinds besluit 254 (stap 2a) gaat niet de plek van het huis naar
+ * OpenStreetMap (Overpass), maar een vak van ongeveer 450 bij 400 meter op een
+ * vast raster: OpenStreetMap ziet de wijk, niet het huis. SunArc kiest daarna
+ * zelf het gebouw waar de plek uit Home Assistant in ligt. Het antwoord is een
+ * voorstel; de bewoner kiest het, zoals bij Aanpassen.
  *
  * `gevelsUitOmtrek` is zuiver: de omtrek in, de richtingen van de gevels uit.
  */
@@ -93,30 +96,78 @@ export function voorkantUitKaart(k: KaartGevels, nuDeg: number): number {
   return kandidaten.sort((a, b) => verschil(a, nuDeg) - verschil(b, nuDeg))[0]!;
 }
 
-/** De vraag aan Overpass: de gebouwen binnen 40 meter, met hun omtrek. */
-export const overpassVraag = (lat: number, lon: number) => `[out:json][timeout:50];way(around:40,${lat.toFixed(6)},${lon.toFixed(6)})["building"];out geom;`;
+/** Het raster: vakken van 0,004° noord-zuid bij 0,006° oost-west, ongeveer 450 bij 400 meter. */
+const CEL = { lat: 0.004, lon: 0.006 } as const;
+/** Zoveel erbij aan elke kant, zodat een huis op de rand van het vak heel blijft. */
+const RAND = { lat: 0.0006, lon: 0.0009 } as const;
 
-/** Het gebouw waar het huis in ligt, of anders het dichtstbijzijnde. */
-export function kiesGebouw(antwoord: unknown, p: Punt): readonly Punt[] | null {
-  const elementen = (antwoord as { elements?: { geometry?: { lat: number; lon: number }[] }[] })?.elements ?? [];
-  const omtrekken = elementen.map((e) => e.geometry ?? []).filter((g) => g.length >= 4);
-  const erin = omtrekken.find((g) => binnen(p, g));
-  if (erin) return erin;
-  const afstand = (g: readonly Punt[]) => {
-    const m = g.reduce((s, q) => ({ lat: s.lat + q.lat / g.length, lon: s.lon + q.lon / g.length }), { lat: 0, lon: 0 });
-    return Math.hypot((m.lat - p.lat) * 110_540, (m.lon - p.lon) * 111_320 * Math.cos(p.lat * RAD));
-  };
-  return [...omtrekken].sort((a, b) => afstand(a) - afstand(b))[0] ?? null;
+/** Het vak van het raster waar de plek in ligt; dat, en niet de plek, gaat naar OpenStreetMap. */
+export function kaartVak(lat: number, lon: number): { zuid: number; west: number; noord: number; oost: number; sleutel: string } {
+  const z = Math.floor(lat / CEL.lat) * CEL.lat;
+  const w = Math.floor(lon / CEL.lon) * CEL.lon;
+  const r = (n: number) => Number(n.toFixed(4));
+  return { zuid: r(z - RAND.lat), west: r(w - RAND.lon), noord: r(z + CEL.lat + RAND.lat), oost: r(w + CEL.lon + RAND.lon), sleutel: `${r(z)},${r(w)}` };
 }
 
-/** Vraagt Overpass om de omtrek van het huis; null als het niet lukt. */
-export async function haalOmtrek(lat: number, lon: number, doe: typeof fetch = fetch): Promise<readonly Punt[] | null> {
+/** De vraag aan Overpass: alle gebouwen in het vak, met hun omtrek. */
+export const overpassVraag = (lat: number, lon: number) => {
+  const v = kaartVak(lat, lon);
+  return `[out:json][timeout:50];way(${v.zuid},${v.west},${v.noord},${v.oost})["building"];out geom;`;
+};
+
+/** De omtrekken uit een antwoord van Overpass. */
+const omtrekkenVan = (antwoord: unknown): Punt[][] =>
+  ((antwoord as { elements?: { geometry?: { lat: number; lon: number }[] }[] })?.elements ?? []).map((e) => e.geometry ?? []).filter((g) => g.length >= 4);
+
+const afstandM = (g: readonly Punt[], p: Punt) => {
+  const m = g.reduce((s, q) => ({ lat: s.lat + q.lat / g.length, lon: s.lon + q.lon / g.length }), { lat: 0, lon: 0 });
+  return Math.hypot((m.lat - p.lat) * 110_540, (m.lon - p.lon) * 111_320 * Math.cos(p.lat * RAD));
+};
+
+/** Het gebouw waar het huis in ligt, of anders het dichtstbijzijnde binnen 40 meter. */
+export function kiesGebouw(antwoord: unknown, p: Punt): readonly Punt[] | null {
+  const omtrekken = omtrekkenVan(antwoord);
+  const erin = omtrekken.find((g) => binnen(p, g));
+  if (erin) return erin;
+  const dichtst = [...omtrekken].sort((a, b) => afstandM(a, p) - afstandM(b, p))[0];
+  return dichtst && afstandM(dichtst, p) <= 40 ? dichtst : null;
+}
+
+/** Een omtrek in meters vanaf de plek: x naar het oosten, y naar het noorden. */
+export function naarMeters(omtrek: readonly Punt[], p: Punt): [number, number][] {
+  const pts = omtrek.length > 1 && omtrek[0]!.lat === omtrek.at(-1)!.lat && omtrek[0]!.lon === omtrek.at(-1)!.lon ? omtrek.slice(0, -1) : omtrek;
+  return pts.map((q) => [Math.round((q.lon - p.lon) * 111_320 * Math.cos(p.lat * RAD) * 100) / 100, Math.round((q.lat - p.lat) * 110_540 * 100) / 100]);
+}
+
+/**
+ * Het huis en de gebouwen eromheen (besluit 254, stap 2a), in meters vanaf de
+ * plek: tot 20 gebouwen binnen 35 meter, de dichtstbijzijnde eerst. Daaruit
+ * tikt de bewoner wat erbij hoort; de rest van het vak blijft weg.
+ */
+export function huisEnOmgeving(antwoord: unknown, p: Punt): { huis: [number, number][]; omgeving: [number, number][][] } | null {
+  const huis = kiesGebouw(antwoord, p);
+  if (!huis) return null;
+  const omgeving = omtrekkenVan(antwoord)
+    .filter((g) => g !== huis && afstandM(g, p) <= 35)
+    .sort((a, b) => afstandM(a, p) - afstandM(b, p))
+    .slice(0, 20)
+    .map((g) => naarMeters(g, p));
+  return { huis: naarMeters(huis, p), omgeving };
+}
+
+/** Vraagt Overpass om de gebouwen in het vak van de plek; het antwoord zoals het komt. */
+export async function haalKaart(lat: number, lon: number, doe: typeof fetch = fetch): Promise<unknown> {
   const res = await doe('https://overpass-api.de/api/interpreter', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'SmartClimate (github.com/Ricardo-switch/SunArc)' },
     body: `data=${encodeURIComponent(overpassVraag(lat, lon))}`,
     signal: AbortSignal.timeout(60_000),
   });
-  if (!res.ok) return null;
-  return kiesGebouw(await res.json(), { lat, lon });
+  if (!res.ok) throw new Error(`Overpass ${res.status}`);
+  return res.json();
+}
+
+/** Vraagt Overpass om de omtrek van het huis; null als hij er niet is. */
+export async function haalOmtrek(lat: number, lon: number, doe: typeof fetch = fetch): Promise<readonly Punt[] | null> {
+  return kiesGebouw(await haalKaart(lat, lon, doe), { lat, lon });
 }

@@ -74,9 +74,10 @@ import type { TeDoenDienst } from './web/routes/tedoen.js';
 import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
-import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied } from './web/aansluiting.js';
+import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
+import { panelenVan } from './web/daken.js';
 import { findHeatStores } from './web/buffers-vinden.js';
-import { kiesLigging, meetLigging, omvormerUitType, type Meting } from './web/ligging.js';
+import { kiesLigging, meetLigging, omvormerUitType, type Meting, type PanelenAntwoord } from './web/ligging.js';
 import { alarmSensoren, vindRookmelders } from './web/rookmelders.js';
 import { eigenUpdate, updateView, type UpdateView } from './web/bijwerken.js';
 import { haEnergySource } from './adapters/homeassistant/energy.js';
@@ -1067,12 +1068,24 @@ function omvormerGevonden(): number | null {
 
 let metingBewaard: { sleutel: string; meting: Meting | null } | null = null;
 /** De ligging gemeten uit de opbrengst, of null zonder heldere dag; bewaard tot er iets verandert. */
+/**
+ * Wat de meting over het dak mag aannemen. Met bewaarde daken (besluit 254)
+ * zoekt hij vrij, één vlak of twee tegenover elkaar, met het aantal panelen op
+ * het hoofddak: anders stuurt wat de bewoner bij een vlak invulde de meting,
+ * en kan hij niet meer zeggen dat het anders ligt.
+ */
+function metingPanelen(a: ConnectionAnswers | null): PanelenAntwoord {
+  const hoofd = (a?.daken?.vlakken ?? []).filter((v) => v.plek === 'hoofddak' || v.plek === 'dwarskap');
+  if (hoofd.length) return { ligging: null, aantal: Math.min(200, hoofd.reduce((s, v) => s + panelenVan(v), 0)), voorkant: null, achterkant: null };
+  return a?.panelen ?? { ligging: null, aantal: null, voorkant: null, achterkant: null };
+}
+
 function metingNu(): Meting | null {
   const r = liggingRijen;
   const cfg = siteConfig;
   if (!r || !location || !cfg) return null;
   const a = connectionStore?.current ?? null;
-  const panelen = a?.panelen ?? { ligging: null, aantal: null, voorkant: null, achterkant: null };
+  const panelen = metingPanelen(a);
   const omvormerW = a?.dak?.omvormerW ?? omvormerGevonden();
   const sleutel = JSON.stringify([r.at, location, panelen, omvormerW]);
   if (metingBewaard?.sleutel !== sleutel) metingBewaard = { sleutel, meting: meetLigging(r.rijen, location, panelen, { timeZone: cfg.timezone, omvormerW }) };
@@ -1936,6 +1949,9 @@ if (webPort != null) {
         }
       : {}),
     location: () => location,
+    // De precieze plek alleen na een tik op de kaart (besluit 254); niet bewaard.
+    exacteLocatie: () =>
+      client.query<HaCoreConfig>('get_config').then((c) => (typeof c.latitude === 'number' && typeof c.longitude === 'number' ? { latDeg: c.latitude, lonDeg: c.longitude } : null)),
     historie: historieVan,
     sluipverbruik,
     house: houseReport,
@@ -2218,6 +2234,8 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
         answers: store.current,
         meting: metingNu(),
         omvormerGevonden: omvormerGevonden(),
+        // De omtrek uit de kaart kan zodra Home Assistant de plek gaf (besluit 254).
+        kaart: location != null,
         inGebruik: {
           netmeter: siteConfig?.power.gridPower ? { afname: siteConfig.power.gridPower.id, terug: siteConfig.power.gridExport?.id ?? null } : null,
           omvormers: siteConfig?.solarProduction ? [siteConfig.solarProduction.id, ...(siteConfig.solarExtra ?? []).map((p) => p.id)] : [],
