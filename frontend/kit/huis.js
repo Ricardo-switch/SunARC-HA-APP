@@ -472,6 +472,8 @@
     const kamers = [];
     // Met `opts.tik`: per kamer een onzichtbaar vlak om op te tikken, bovenop alles.
     const tikken = [];
+    /** Wat boven de kamers ligt om op te tikken: de panelen (besluit 254, stap 5). */
+    const tikkenBoven = [];
     const tik = (kamer, pts, extra = '') => {
       if (!opts.tik) return;
       const naam = esc(kamer.naam ?? '');
@@ -1073,6 +1075,13 @@
       const voorLicht = opVlak(voorDeg);
       if (voorLicht) rij(voorN, voorQ, `fill="#FFC24D" fill-opacity="${(0.42 * voorLicht).toFixed(2)}"`);
       bundel(voorLicht, glas);
+      // Een tik op de panelen (besluit 254, stap 5), ook bij de nok langs de straat.
+      if (model.zon?.tik && opts.tik) {
+        const aria = esc(model.zon.tikLabel ?? '');
+        const attr = `class="sc-tik" data-tik="${esc(model.zon.tik)}" fill="transparent" role="button" tabindex="0"${aria ? ` aria-label="${aria}"` : ''}`;
+        if (voorN > 0) tikkenBoven.push(poly(glas, attr));
+        if (achterN > 0) tikkenBoven.push(poly([achterQ(0.04, 0.1), achterQ(0.04, W - 0.1), achterQ(0.96, W - 0.1), achterQ(0.96, 0.1)], attr));
+      }
     }
     /*
      * Een zachte bundel van de zon naar een dakvlak dat licht vangt, en een warme
@@ -1122,6 +1131,13 @@
       // Panelen op het andere dakvlak (besluit 111): dat vlak is open om de zolder te
       // tonen, dus daar alleen de omtrek en een zweem, zodat de zolder zichtbaar blijft.
       raster(model.zon?.panelenLinks ?? 0, (u, v) => [u * (W / 2) - 0.02, v, zt + u * R + 0.02], `fill="#4d7eac" fill-opacity="0.22" stroke="#9cc0e4" stroke-opacity="0.75" stroke-width="1"`);
+      // Een tik op de panelen (besluit 254, stap 5): `zon.tik` komt als data-tik op een vlak boven de zolder.
+      if (model.zon?.tik && opts.tik) {
+        const aria = esc(model.zon.tikLabel ?? '');
+        const vlak = (q) => poly([q(0.06, 0.04), q(0.06, D - 0.04), q(0.94, D - 0.04), q(0.94, 0.04)], `class="sc-tik" data-tik="${esc(model.zon.tik)}" fill="transparent" role="button" tabindex="0"${aria ? ` aria-label="${aria}"` : ''}`);
+        if (model.zon.panelen !== 0) tikkenBoven.push(vlak((u, v) => [W - u * (W / 2) + 0.02, v, zt + u * R + 0.02]));
+        if ((model.zon.panelenLinks ?? 0) > 0) tikkenBoven.push(vlak((u, v) => [u * (W / 2) - 0.02, v, zt + u * R + 0.02]));
+      }
       if (zonKracht > 0) {
         // Het licht dat de panelen vangen, als een glans over het dakvlak.
         const q = (u, v) => [W - u * (W / 2) + 0.03, v, zt + u * R + 0.03];
@@ -1288,14 +1304,15 @@
       const hoogte = (l.groot ? 34 : 22) + (regels.length - 1) * 17 + 10;
       const lx = a[0] + (l.dx ?? 40);
       const ly = a[1] + (l.dy ?? -40);
-      const bx = l.dx < 0 ? lx - breedte : lx;
-      const by = ly - hoogte / 2;
+      // Binnen de tekening (5 november 2026): een breed label viel op de telefoon links buiten beeld.
+      const bx = Math.max(6, Math.min((opts.breedte ?? 760) - breedte - 6, l.dx < 0 ? lx - breedte : lx));
+      const by = Math.max(6, Math.min((opts.hoogte ?? 560) - hoogte - 6, ly - hoogte / 2));
       const kleur = KLEUR[l.toon] ?? KLEUR.zacht;
       // In het licht een wit kaartje met donkere tekst, zoals de rest van de app (besluit 181).
       const tl = licht ? (k) => TEKST_LICHT[k] ?? k : (k) => k;
       // Een label om aan te tikken (besluit 254, stap 5): `tik` komt als data-tik op de groep.
       labels.push(`<g class="sc-label"${l.tik ? ` data-tik="${esc(l.tik)}" role="button" tabindex="0" style="cursor: pointer"${l.tikLabel ? ` aria-label="${esc(l.tikLabel)}"` : ''}` : ''}>
-        <polyline points="${a[0]},${a[1]} ${lx},${ly}" fill="none" stroke="${kleur}" stroke-opacity="0.55" stroke-width="1"/>
+        <polyline points="${a[0]},${a[1]} ${l.dx < 0 ? bx + breedte : bx},${by + hoogte / 2}" fill="none" stroke="${kleur}" stroke-opacity="0.55" stroke-width="1"/>
         <circle cx="${a[0]}" cy="${a[1]}" r="3" fill="${kleur}"/>
         <rect x="${bx}" y="${by}" width="${breedte}" height="${hoogte}" rx="12" fill="${licht ? '#ffffff' : '#0E1828'}" fill-opacity="${licht ? 0.88 : 0.78}" stroke="${kleur}" stroke-opacity="${licht ? 0.6 : 0.35}"/>
         ${regels
@@ -3132,6 +3149,7 @@
       ${weer.length ? `${weerStijl}<g>${weer.join('')}</g>` : ''}
       <g>${labels.join('')}</g>
       ${tikken.length ? `<g>${tikken.join('')}</g>` : ''}
+      ${tikkenBoven.length ? `<g>${tikkenBoven.join('')}</g>` : ''}
       ${opts.controle ? `<desc class="sc-controle">${esc(JSON.stringify(controle))}</desc>` : ''}
     </svg>`;
   }

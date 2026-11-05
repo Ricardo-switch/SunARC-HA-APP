@@ -90,6 +90,8 @@ function huisModel() {
   // Met meer dakvlakken (besluit 254, stap 5): een tik geeft per vlak wat het nu levert.
   const daken = aansluiting?.daken?.vlakken?.length ?? 0;
   const dakRegel = daken > 1 ? [t('thuis.label.daken', { n: daken })] : [];
+  // Een tik op de panelen zelf opent ook De zon op je daken, niet de zolder.
+  const dakenTik = daken > 1;
   if (zonKw > 0.05) labels.push({ bij: 'panelen', titel: `${getal(zonKw)} kW`, groot: true, toon: 'zon', regels: [t('thuis.label.panelen'), ...dakRegel, ...over], dx: 64, dy: -70, ...(daken > 1 ? { tik: 'daken', tikLabel: t('daken.nu.kop') } : {}) });
   // Van het net in violet, terug in groen: dezelfde kleur als de lijn (besluit 187).
   if (!s.geschat) labels.push({ bij: 'net', titel: netKw > 0.05 ? t('thuis.label.vanNet', { kw: getal(netKw) }) : netKw < -0.05 ? t('thuis.label.terug', { kw: getal(-netKw) }) : t('thuis.label.nietsNet'), toon: netKw > 0.05 ? 'violet' : 'mint', dx: 40, dy: 64 });
@@ -103,7 +105,7 @@ function huisModel() {
     wolken,
     // De zon op zijn boog, aan de kant van het oosten. De ring van de dag staat bij Zonnepanelen (besluit 205):
     // op Thuis liep hij door de kop, de stromen en de labels.
-    zon: zon?.dag ? { stand: zon.dag.fractie, hoogte: zon.dag.hoogteDeel, aandeel: Math.min(1, (zonKw * 1000) / Math.max(helder, 1500)), opRechts: huismodel.zonOpRechts(aansluiting?.ligging, aansluiting?.antwoorden?.panelen) ?? undefined, ...opDak } : { aandeel: 0, ...opDak },
+    zon: { ...(zon?.dag ? { stand: zon.dag.fractie, hoogte: zon.dag.hoogteDeel, aandeel: Math.min(1, (zonKw * 1000) / Math.max(helder, 1500)), opRechts: huismodel.zonOpRechts(aansluiting?.ligging, aansluiting?.antwoorden?.panelen) ?? undefined, ...opDak } : { aandeel: 0, ...opDak }), ...(dakenTik ? { tik: 'daken', tikLabel: t('daken.nu.kop') } : {}) },
     // Het huis zelf, zoals elke pagina het tekent (besluit 191), met de panelen op een ander dak (besluit 187).
     // Geen kompas op Thuis (24 oktober 2026): dat hoort bij Zonnepanelen.
     ...gekozenBuiten(huismodel.huisDelen(tek, elders)),

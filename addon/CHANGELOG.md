@@ -1,5 +1,21 @@
 # Wat is er nieuw · What is new
 
+## 0.126.1
+
+*5 november 2026*
+
+**Opgelost**
+
+- Thuis: een tik op de panelen opent De zon op je daken, niet meer de zolder
+- Een breed label op het huis valt niet meer buiten beeld, zoals bij de panelen op de telefoon
+
+*English*
+
+**Fixed**
+
+- Home: tapping the panels opens The sun on your roofs, no longer the attic
+- A wide label on the house no longer falls off the screen, like the one at the panels on the phone
+
 ## 0.126.0
 
 *5 november 2026*
