@@ -5176,7 +5176,9 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     const p = await context.newPage();
     const fouten: string[] = [];
     p.on('pageerror', (e) => fouten.push(e.message));
-    const nu = Date.now();
+    // Een vaste klok, 11:00 in Amsterdam: na 23:20 viel "over 40 minuten" op morgen, en dan stond er vandaag geen opdracht op de boog.
+    const nu = Date.UTC(2026, 10, 5, 10, 0);
+    await p.clock.setFixedTime(new Date(nu));
     const scherm = [{ pad: 'api/scherm', body: { id: 'cover.screen', actie: 'dicht' } }];
     const licht = [{ pad: 'api/licht', body: { id: 'light.badkamer', aan: true } }];
     const gepland = [
