@@ -11753,7 +11753,7 @@ al met elk aantal `solarPlanes`; de app kent alleen voorkant, achterkant,
 beide of plat met één helling, garage, carport en tuinhuis tellen niet mee in
 de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 
-*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, de rest nog niet):*
+*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, stap 4 in 0.124.0, de rest nog niet):*
 
 - **Elk dakvlak apart,** met een letter, een plek (hoofddak, dwarskap,
   uitbouw, garage, carport, tuinhuis of schuur, de grond, gevel of balkon), een
@@ -11853,6 +11853,34 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
   3D-huis zoals in stap 1.
 - De tekening verandert niets aan de berekening: die rekent met de richting
   en de helling per vlak.
+*Stap 4 gebouwd (0.124.0, 5 november 2026), keuzes van Ricardo:*
+
+- **De meting per dakvlak** (`web/meten-vlakken.ts`): per meter zijn eigen
+  opbrengst (de tien dagen per omvormer, niet meer alleen de som). Hij begint
+  bij de ingevulde vlakken en zoekt per vlak binnen 60° van de ingevulde
+  richting de richting en de helling die het best bij de heldere momenten
+  passen; de verhouding tussen de vlakken (aantal maal Wp) staat vast. Wat
+  niet 1% beter past dan de invoer, blijft de invoer. Vlakken zonder meter
+  horen bij de enige omvormer, of, als geen vlak een meter heeft, bij alle
+  omvormers samen. De bovenkant en het beoordelen zijn dezelfde als bij de
+  meting van besluit 157 (`bovenkant`, `beoordeel` in ligging.ts).
+- **Gemeten volgt vanzelf:** een vlak dat gemeten of geschat is, neemt de
+  meting over in de berekening en op de pagina (`metMeting`); wat de bewoner
+  zelf instelde, blijft staan en krijgt het voorstel met Neem over. Daarnaast
+  blijft het hele dak vrij gemeten, zodat een vlak aan de verkeerde kant
+  opvalt.
+- **De grens per omvormer:** een vlak met een meter hoort bij die omvormer
+  (`SolarPlane.inverter`), met zijn eigen grens (`Geometry.inverters`): wat de
+  bewoner invulde, anders uit het typenummer van het apparaat; met één
+  omvormer ook de oude grens. De heldere lucht en het leren kappen per
+  omvormer af (`web/omvormers.ts`).
+- **Verdelen:** wat één meter op de laatste hele dag mat, per vlak naar wat
+  elk vlak bij heldere lucht zou leveren; bij Omvormers en meters als
+  grafiek, als de meter meer vlakken meet.
+- **Nog niet:** Thuis en Opbrengst per vlak (stap 5), een vlak dat
+  achterblijft melden, en alle vlakken weghalen valt nog terug op het
+  instellingenbestand (NAS en Pi).
+
 - **Nog niet:** de meter verdeelt nog niets (stap 4 en 5), en de omvormer
   kapt alle vlakken samen af op één vermogen, ook als een garage een eigen
   omvormer heeft.

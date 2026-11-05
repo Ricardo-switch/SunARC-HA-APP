@@ -289,14 +289,19 @@ export interface SolarPlane {
   readonly peakW: number;
   /** Waar de richting en de helling vandaan komen. */
   readonly source: GeometrySource;
+  /** De omvormer waar dit vlak op zit (besluit 254, stap 4), als dat bekend is. */
+  readonly inverter?: string;
 }
 
 export interface Geometry {
   readonly facades: readonly Facade[];
   readonly solarPlanes: readonly SolarPlane[];
-  /** Wat de omvormer hooguit levert; daarboven kapt hij af. */
+  /** Wat de omvormer hooguit levert; daarboven kapt hij af. Met `inverters`: voor de vlakken zonder eigen omvormer. */
   readonly inverterMaxW?: number;
+  /** Per omvormer wat hij hooguit levert (besluit 254, stap 4); elk kapt zijn eigen vlakken af. */
+  readonly inverters?: readonly { readonly id: string; readonly maxW: number }[];
 }
+
 
 /**
  * Eén fase van de aansluiting (besluit 78): de stroommeter en de zekering.

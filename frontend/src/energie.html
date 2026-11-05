@@ -106,15 +106,18 @@
   .dk-opstel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
   .dk-opstel button { padding: 6px 4px 6px; border-radius: 12px; background: rgb(var(--wit) / 0.05); border: 1.5px solid transparent; color: var(--zacht); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
   .dk-opstel button.aan { border-color: var(--zon); color: var(--tekst); background: rgba(247, 181, 72, 0.08); }
-  .dk-opstel svg { width: 100%; height: 32px; display: block; }
-  .dk-richting { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; align-items: center; }
-  .dk-kompas { width: 88px; height: 88px; }
+  .dk-opstel svg { width: 100%; height: 24px; display: block; }
+  #wand .dk-opstel button { padding: 4px 4px; font-size: 12px; }
+  #wand .dk-uitleg { display: none; }
+  #wand .pan-rechts { gap: 6px; }
+  .dk-richting { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .dk-kompas { width: 72px; height: 72px; }
   .dk-rij { display: flex; align-items: center; gap: 10px; }
   .dk-stapper { display: flex; align-items: center; gap: 8px; }
   .dk-stapper button { width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgb(var(--wit) / 0.08); color: var(--tekst); font: inherit; font-weight: 800; cursor: pointer; }
   .dk-stapper b { min-width: 34px; text-align: center; font: 600 18px var(--kop); white-space: nowrap; }
   .dk-seg { display: flex; flex-wrap: wrap; gap: 5px; }
-  .dk-seg button { min-height: 30px; padding: 0 11px; border-radius: 999px; border: 0; background: rgb(var(--wit) / 0.06); color: var(--zacht); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .dk-seg button { min-height: 30px; padding: 0 9px; border-radius: 999px; border: 0; background: rgb(var(--wit) / 0.06); color: var(--zacht); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
   .dk-seg button.aan { background: rgb(var(--wit) / 0.18); color: var(--tekst); }
   .dk-aantallen { display: flex; flex-wrap: wrap; gap: 10px 18px; }
   .dk-meting { padding: 8px 12px; border-radius: 12px; background: rgba(110, 231, 183, 0.08); border: 1px solid rgba(110, 231, 183, 0.22); font-size: 12.5px; color: var(--zacht); line-height: 1.45; }
@@ -135,6 +138,14 @@
   .dk-meter > small { font-size: 12px; color: var(--gedempt); white-space: normal; }
   .dk-naar { grid-row: 1 / 3; grid-column: 2; display: flex; gap: 4px; }
   .dk-naar .dk-letter { width: 24px; height: 24px; border-radius: 7px; font-size: 12px; }
+  .dk-grens, .dk-verdeel { grid-column: 2 / 4; display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 12px; color: var(--zacht); }
+  .dk-grens { flex-direction: row; align-items: center; gap: 8px; }
+  .dk-grens span { flex: 1; }
+  .dk-grens input { width: 96px; height: 30px; font-size: 13px; padding: 0 10px; }
+  .dk-verdeel svg { width: 100%; height: 64px; display: block; }
+  .dk-legenda { display: flex; gap: 12px; font-size: 11.5px; color: var(--zacht); }
+  .dk-legenda small { flex: 1; font-size: 11.5px; }
+  .dk-legenda i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; }
   .dk-meter .dk-alles { grid-column: 3; justify-self: start; height: 34px; padding: 0 14px; font-size: 13px; margin-top: 6px; }
   .dk .pan-podium { position: relative; }
   .dk-noot { position: absolute; left: 14px; right: 14px; bottom: 12px; margin: 0; padding: 9px 12px; border-radius: 12px; background: rgb(var(--nacht) / 0.85); color: var(--zacht); font-size: 12.5px; line-height: 1.45; }

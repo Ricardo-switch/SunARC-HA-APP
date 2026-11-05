@@ -470,7 +470,9 @@ function bewaarDaken(w) {
     // De gebouwen van boven gaan mee (besluit 254, stap 2a): wat de tekening nu laat zien.
     const gebouwen = w.gebouwen ?? dakvlakken.gebouwenUit(d);
     const omgeving = w.omgeving ?? d.tekening?.omgeving ?? [];
-    a.daken = w.vlakken.length || gebouwen.length ? { vlakken: w.vlakken, voorgevelDeg: d.voorgevelDeg, omvormerW: d.omvormerW, gebouwen, omgeving } : null;
+    // Wat elke omvormer hooguit levert (stap 4): wat de bewoner invulde blijft staan.
+    const grenzen = w.grenzen ?? a.daken?.grenzen ?? {};
+    a.daken = w.vlakken.length || gebouwen.length ? { vlakken: w.vlakken, voorgevelDeg: d.voorgevelDeg, omvormerW: d.omvormerW, gebouwen, omgeving, ...(Object.keys(grenzen).length ? { grenzen } : {}) } : null;
     const oud = dakvlakken.oudeAntwoorden(w.vlakken, d.voorgevelDeg, a.panelen);
     a.panelen = oud.panelen;
     a.elders = oud.elders;
@@ -642,7 +644,9 @@ document.addEventListener('click', async (ev) => {
 document.addEventListener('change', (ev) => {
   const t = ev.target;
   if (ligging.verander(t, ligStaat)) return teken();
-  if (dakvlakken.verander(t, dakStaat)) return teken();
+  const dak = dakvlakken.verander(t, dakStaat, aInfo?.daken);
+  if (dak === 'teken') return teken();
+  if (dak) return bewaarDaken(dak);
   // De netmeter en de omvormers (testerronde, november 2026).
   if (a && vermogens.verander(t, aInfo, a)) {
     teken();

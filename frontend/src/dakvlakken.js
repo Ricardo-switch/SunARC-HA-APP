@@ -111,6 +111,13 @@ const dakvlakken = (() => {
 
   /** Wat de meting over het hoofddak zegt, naast dit vlak (besluit 157). */
   function metingBij(d, v) {
+    // De meting per dakvlak (stap 4): wat de meting voor dit vlak vond.
+    const eigen = d.vlakMeting?.[v.letter];
+    if (eigen && v.opstelling !== 'plat') {
+      const woorden = { richting: `${norm(eigen.azimuthDeg)}°`, helling: `${Math.round(eigen.tiltDeg)}°` };
+      if (hoek(eigen.azimuthDeg, v.azimuthDeg) <= 5 && Math.abs(eigen.tiltDeg - v.tiltDeg) <= 3) return `<div class="dk-meting"><b>${esc(t('daken.meting.klopt', woorden))}</b></div>`;
+      return `<div class="dk-meting">${esc(t('daken.meting.zegt', woorden))} <button type="button" class="lig-link" data-dak-neem>${esc(t('daken.meting.neem'))}</button></div>`;
+    }
     if (!d.meting?.length || v.plek !== 'hoofddak' || v.opstelling === 'plat') return '';
     const m = [...d.meting].sort((a, b) => hoek(a.azimuthDeg, v.azimuthDeg) - hoek(b.azimuthDeg, v.azimuthDeg))[0];
     if (!m) return '';
@@ -134,7 +141,8 @@ const dakvlakken = (() => {
     const bekend = meters.some((m) => m.id === v.meter);
     const knoppen = `${meters.map((m) => seg('data-dak-meter', m.id, m.naam, v.meter === m.id)).join('')}${seg('data-dak-meter', '', t('daken.weetNiet'), !bekend)}`;
     const uitleg = meters.length ? t('daken.gemetenDoorUitleg') : t('daken.geenMeters');
-    return `<div class="dk-seg">${knoppen}</div><span class="klein">${esc(uitleg)}</span>`;
+    // Met één omvormer is er niets uit te leggen.
+    return `<div class="dk-seg">${knoppen}</div>${meters.length === 1 ? '' : `<span class="klein">${esc(uitleg)}</span>`}`;
   }
 
   function vlakScherm(d, s) {
@@ -152,7 +160,7 @@ const dakvlakken = (() => {
       ${v.opstelling === 'plat' ? '' : `<div class="dk-richting">${kompas(v)}
         ${veld(t('daken.richting'), `<div class="dk-rij">${stapper('richting', `${norm(v.azimuthDeg)}°`, t('daken.richting'))}${v.opstelling === 'oostwest' ? `<span class="klein">${esc(t('daken.enTegenover', { graden: `${norm(v.azimuthDeg + 180)}°` }))}</span>` : `<span class="klein">${esc(kort(v.azimuthDeg))}</span>`}</div>
           <input class="lig-draai" type="range" min="0" max="355" step="1" value="${norm(v.azimuthDeg) % 360}" data-dak-draai aria-label="${esc(t('daken.draai'))}">
-          <span class="klein">${esc(t(v.opstelling === 'oostwest' ? 'daken.richtingOw' : 'daken.richtingUitleg'))}</span>`)}</div>
+          <span class="klein dk-uitleg">${esc(t(v.opstelling === 'oostwest' ? 'daken.richtingOw' : 'daken.richtingUitleg'))}</span>`)}</div>
         ${veld(t('daken.helling'), `<div class="dk-seg">${hellingen.map((h) => seg('data-dak-helling', h, `${h}°`, !eigen && Math.round(v.tiltDeg) === h)).join('')}<label class="lig-zelf${eigen ? ' aan' : ''}">${esc(t('daken.anders'))}<input type="number" inputmode="numeric" min="0" max="90" step="1" data-dak-hellingzelf value="${eigen ? Math.round(v.tiltDeg) : ''}" placeholder="°" aria-label="${esc(t('daken.helling'))}"></label></div>`)}`}
       <div class="dk-aantallen">${kanten}${veld(t('daken.perPaneel'), stapper('wp', wp(v.wpPerPaneel), t('daken.perPaneel'), ' Wp'))}</div>
       ${veld(t('daken.gemetenDoor'), meterKeuze(d, v))}
@@ -183,16 +191,18 @@ const dakvlakken = (() => {
     const groepen = (d.meters ?? []).map((m) => ({ m, vlakken: d.vlakken.filter((v) => v.meter === m.id) })).filter((g) => g.vlakken.length);
     const zonder = d.vlakken.filter((v) => v.meter == null || !kleur.has(v.meter));
     const kaart = (k, kop, zin, vlakken, knop = '') => `<div class="dk-meter"><i style="background: ${k}"></i><span class="dk-naar">${vlakken.map((v) => letter(v, k)).join('')}</span><b>${esc(kop)}</b><small>${esc(zin)}</small>${knop}</div>`;
+    // Wat de omvormer hooguit levert, met een vak om het zelf in te vullen.
+    const grens = (m) => `<label class="dk-grens"><span>${esc(m.grensW == null ? t('daken.grens.onbekend') : t(`daken.grens.${m.grensBron}`, { w: m.grensW.toLocaleString(window.taal.locale) }))}</span><input class="invoer" type="number" inputmode="numeric" min="100" max="100000" step="100" data-dak-grens="${esc(m.id)}" value="${m.grensBron === 'zelf' ? m.grensW : ''}" placeholder="${esc(t('daken.grens.vul'))}" aria-label="${esc(t('daken.grens.aria', { naam: m.naam }))}"></label>`;
     // Eén omvormer: met één tik ook de vlakken zonder meter erbij.
     const een = (d.meters ?? []).length === 1 ? d.meters[0] : null;
     const allesKnop = een ? `<button type="button" class="lig-knop zacht dk-alles" data-dak-alles="${esc(een.id)}">${esc(t('daken.meter.alles', { naam: een.naam }))}</button>` : '';
     const lijst = [
-      ...groepen.map((g) => kaart(kleur.get(g.m.id), g.m.naam, t(g.vlakken.length > 1 ? 'daken.meter.samen' : 'daken.meter.precies'), g.vlakken)),
+      ...groepen.map((g) => kaart(kleur.get(g.m.id), g.m.naam, t(g.vlakken.length > 1 ? 'daken.meter.samen' : 'daken.meter.precies'), g.vlakken, `${grens(g.m)}${verdeelGrafiek(d, g.m.id, g.vlakken)}`)),
       ...(zonder.length ? [kaart('rgb(255 255 255 / 0.35)', t('daken.meter.geen'), t('daken.meter.geenZin'), zonder, allesKnop)] : []),
     ].join('');
     return `<div class="pan-kop3"><h3 class="kop-3">${esc(t('daken.metersKop'))}</h3></div>
       <div class="dk-lijst">${lijst || `<p class="mini">${esc(t('daken.leeg'))}</p>`}</div>
-      <p class="mini">${esc(t('daken.metersUitleg'))}</p>
+      ${zonder.length || !groepen.some((g) => g.vlakken.length > 1) ? `<p class="mini">${esc(t('daken.metersUitleg'))}</p>` : ''}
       ${o.omvormers}
       ${o.sensor}
       <div class="dk-voet"><span class="mini">${esc(t('daken.naarVlakkenZin'))}</span><button type="button" class="lig-knop" data-dak-scherm="alle">${esc(t('daken.naarVlakken'))}</button></div>`;
@@ -403,6 +413,36 @@ const dakvlakken = (() => {
     return { vlakken: losVan(d.vlakken, weg), gebouwen, omgeving: body.omgeving ?? [] };
   }
 
+  /** Een kleur per letter voor de verdeling. */
+  const LETTERKLEUR = ['#f7b548', '#6fd3ff', '#a99cff', '#6ee7b7', '#ff8a6b', '#f3d48a', '#9cc0e4', '#d98c3a'];
+
+  /** Wat de meter gisteren mat, gestapeld per vlak (stap 4); alleen als hij meer vlakken meet. */
+  function verdeelGrafiek(d, id, vlakken) {
+    const v = d.verdeling?.[id];
+    if (!v || v.letters.length < 2 || !v.punten.length) return '';
+    const W = 400;
+    const H = 64;
+    const van = Math.floor(v.punten[0][0]);
+    const tot = Math.ceil(v.punten.at(-1)[0] + 0.25);
+    const top = Math.max(...v.punten.map((p) => p.slice(1).reduce((s, x) => s + x, 0))) * 1.05 || 1;
+    const X = (h) => ((h - van) / Math.max(1, tot - van)) * W;
+    const Y = (w) => H - 12 - (w / top) * (H - 16);
+    let onder = v.punten.map(() => 0);
+    let lagen = '';
+    v.letters.forEach((l, i) => {
+      const boven = v.punten.map((p, j) => onder[j] + p[i + 1]);
+      const pad = `M${v.punten.map((p, j) => `${X(p[0]).toFixed(1)},${Y(boven[j]).toFixed(1)}`).join(' L')} L${v.punten.map((p, j) => `${X(p[0]).toFixed(1)},${Y(onder[j]).toFixed(1)}`).reverse().join(' L')}Z`;
+      lagen += `<path d="${pad}" fill="${LETTERKLEUR[i % LETTERKLEUR.length]}" fill-opacity="0.85"/>`;
+      onder = boven;
+    });
+    const uren = [];
+    for (let h = Math.ceil(van / 3) * 3; h <= tot; h += 3) uren.push(h);
+    const as = uren.map((h) => `<text x="${X(h).toFixed(1)}" y="${H - 1}" font-size="9" text-anchor="middle" fill="var(--gedempt)">${h}:00</text>`).join('');
+    const datum = new Date(`${v.datum}T12:00:00`).toLocaleDateString(window.taal.locale, { weekday: 'long', day: 'numeric', month: 'long' });
+    const legenda = v.letters.map((l, i) => `<span><i style="background: ${LETTERKLEUR[i % LETTERKLEUR.length]}"></i>${esc(l)}</span>`).join('');
+    return `<div class="dk-verdeel"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(t('daken.verdeelAria', { letters: v.letters.join(', ') }))}">${lagen}<line x1="0" x2="${W}" y1="${H - 12}" y2="${H - 12}" stroke="rgb(255 255 255 / .2)"/>${as}</svg><div class="dk-legenda"><small>${esc(t('daken.verdeel', { datum }))}</small>${legenda}</div></div>`;
+  }
+
   /**
    * De hele pagina. `d`: `aInfo.daken`; `s`: het scherm en het vlak dat open
    * staat; `o.helderW`: de zon bij heldere lucht nu; `o.omvormers` en
@@ -608,7 +648,7 @@ const dakvlakken = (() => {
       return { vlakken };
     }
     if (knop.hasAttribute('data-dak-neem')) {
-      const m = [...(d.meting ?? [])].sort((a, b) => hoek(a.azimuthDeg, c.azimuthDeg) - hoek(b.azimuthDeg, c.azimuthDeg))[0];
+      const m = d.vlakMeting?.[c.letter] ?? [...(d.meting ?? [])].sort((a, b) => hoek(a.azimuthDeg, c.azimuthDeg) - hoek(b.azimuthDeg, c.azimuthDeg))[0];
       if (m) {
         c.azimuthDeg = norm(m.azimuthDeg);
         c.tiltDeg = Math.round(m.tiltDeg);
@@ -659,7 +699,16 @@ const dakvlakken = (() => {
   }
 
   /** Een veld: de richting met de schuif, of een eigen helling. */
-  function verander(el, s) {
+  function verander(el, s, d) {
+    // Wat een omvormer hooguit levert (stap 4): leeg is weer zoals uit het typenummer.
+    if (el.dataset.dakGrens && d) {
+      const w = el.value === '' ? null : Math.round(Number(el.value));
+      if (w != null && (!Number.isFinite(w) || w < 100 || w > 100000)) return null;
+      const grenzen = { ...(d.grenzen ?? {}) };
+      if (w == null) delete grenzen[el.dataset.dakGrens];
+      else grenzen[el.dataset.dakGrens] = w;
+      return { vlakken: d.vlakken.map(kaal), grenzen };
+    }
     const c = s.concept;
     if (!c) return null;
     const n = Math.round(Number(el.value));

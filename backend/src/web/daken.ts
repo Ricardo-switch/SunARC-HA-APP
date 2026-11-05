@@ -89,6 +89,8 @@ export interface Daken {
   readonly gebouwen?: readonly Gebouw[];
   /** De gebouwen eromheen uit de kaart, om aan te tikken wat erbij hoort. */
   readonly omgeving?: readonly (readonly Xy[])[];
+  /** Wat elke omvormer hooguit levert, als de bewoner het invulde (stap 4), in W per sensor. */
+  readonly grenzen?: Readonly<Record<string, number>>;
 }
 
 /** Panelen op een ander dak (besluit 187), zoals bij de antwoorden. */
@@ -118,7 +120,7 @@ export function zonnevlakken(d: Daken): SolarPlane[] {
       v.opstelling === 'oostwest' ? [[v.azimuthDeg, v.aantal, id], [v.azimuthDeg + 180, v.aantal2 ?? 0, `${id}-2`]] : [[v.azimuthDeg, v.aantal, id]];
     for (const [az, n, kantId] of kanten) {
       const peakW = Math.round(n * v.wpPerPaneel);
-      if (peakW > 0) uit.push({ id: kantId, azimuthDeg: Math.round(norm(az)), tiltDeg: Math.round(v.tiltDeg), peakW, source: v.bron });
+      if (peakW > 0) uit.push({ id: kantId, azimuthDeg: Math.round(norm(az)), tiltDeg: Math.round(v.tiltDeg), peakW, source: v.bron, ...(v.meter ? { inverter: v.meter } : {}) });
     }
   }
   return uit;
@@ -175,6 +177,11 @@ export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: strin
   const omgeving = Array.isArray(omgevingRaw) && omgevingRaw.length <= 20 ? omgevingRaw.map(leesOmtrek) : null;
   if (!omgeving || omgeving.some((o) => o == null)) return { fout: 'de omgeving is tot 20 gebouwen met een omtrek in meters' };
   if (lijst.length === 0 && gebouwen.length === 0) return { daken: null };
+  const grenzenRaw = r['grenzen'] ?? {};
+  if (typeof grenzenRaw !== 'object' || Array.isArray(grenzenRaw) || Object.entries(grenzenRaw as object).some(([k, w]) => !/^sensor\.[a-z0-9_]{1,160}$/.test(k) || !getal(w, 100, 100_000))) {
+    return { fout: 'de grens per omvormer is 100 tot 100.000 W' };
+  }
+  const grenzen = grenzenRaw as Record<string, number>;
   const voorgevel = r['voorgevelDeg'] ?? null;
   if (voorgevel !== null && !getal(voorgevel, 0, 360)) return { fout: 'de voorkant is 0 tot 360°' };
   const omvormerW = r['omvormerW'] ?? null;
@@ -225,6 +232,7 @@ export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: strin
       omvormerW: omvormerW as number | null,
       ...(gebouwen.length ? { gebouwen } : {}),
       ...(omgeving.length ? { omgeving: omgeving as Xy[][] } : {}),
+      ...(Object.keys(grenzen).length ? { grenzen: { ...grenzen } } : {}),
     },
   };
 }

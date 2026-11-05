@@ -171,7 +171,7 @@ describe('de meters op de pagina', () => {
 
   it('kiest alleen uit de omvormers die bij Omvormers en meters gekozen zijn', () => {
     const d = view({ panelen: { ligging: 'voorkant', aantal: 6 }, omvormers: ['sensor.solaredge_i1_ac_power'] });
-    expect(d.meters).toEqual([{ id: 'sensor.solaredge_i1_ac_power', naam: 'Solaredge I1 AC Power' }]);
+    expect(d.meters.map(({ id, naam }) => ({ id, naam }))).toEqual([{ id: 'sensor.solaredge_i1_ac_power', naam: 'Solaredge I1 AC Power' }]);
     // Ook niet een meter die een vlak eerder kreeg.
     const oud = view({ panelen: { ligging: 'voorkant', aantal: 6 }, omvormers: ['sensor.solaredge_i1_ac_power'], daken: { vlakken: [vlak({ meter: 'sensor.solaredge_i1_dc_power' })] } });
     expect(oud.meters.map((m) => m.id)).toEqual(['sensor.solaredge_i1_ac_power']);

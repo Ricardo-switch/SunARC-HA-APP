@@ -160,11 +160,79 @@ interface Proef {
   readonly vlakken: readonly { readonly azimuthDeg: number; readonly tiltDeg: number; readonly deel: number; readonly kant: 'voorkant' | 'achterkant' | null }[];
 }
 
-interface Punt {
+export interface Punt {
   readonly t: number;
   readonly w: number;
   readonly sun: SunPosition;
 }
+
+/**
+ * De bovenkant van de opbrengst: per tijdstip van de dag (vijf minuten) de
+ * hoogste over alle dagen; één heldere dag in tien is genoeg. Zonder wat bij
+ * de omvormer is afgekapt of bijna niets is. Null zonder genoeg metingen.
+ */
+export function bovenkant(rows: readonly PowerRow[], location: Location, omvormerW: number | null | undefined): { punten: Punt[]; maxW: number; geldig: PowerRow[] } | null {
+  const geldig = rows.filter((r) => Number.isFinite(r.meanW) && r.meanW >= 0);
+  if (geldig.length < 24) return null;
+  const maxW = Math.max(...geldig.map((r) => r.meanW));
+  if (maxW < 100) return null;
+  const bins = new Map<number, PowerRow[]>();
+  for (const r of geldig) {
+    const b = Math.floor((((r.startMs % DAY_MS) + DAY_MS) % DAY_MS) / BIN_MS);
+    const l = bins.get(b);
+    if (l) l.push(r);
+    else bins.set(b, [r]);
+  }
+  const clip = 0.97 * (omvormerW ?? maxW);
+  const punten: Punt[] = [];
+  for (const lijst of bins.values()) {
+    const p = lijst.reduce((a, b) => (b.meanW > a.meanW ? b : a));
+    if (p.meanW <= 0.08 * maxW || p.meanW >= clip) continue;
+    const t = p.startMs + BIN_MS / 2;
+    punten.push({ t, w: p.meanW, sun: sunPosition(t, location.latDeg, location.lonDeg) });
+  }
+  if (punten.length < 24) return null;
+  return { punten, maxW, geldig };
+}
+
+export interface Beoordeling {
+  /** De spreiding op de heldere momenten, gedeeld door het deel dat past: lager is beter. */
+  readonly fout: number;
+  readonly deel: number;
+  readonly span: number;
+  readonly peakW: number;
+}
+
+/**
+ * Hoe goed een model voor heldere lucht (W/m² per Wp, per zonnestand) bij de
+ * bovenkant past. Wat ver onder het model blijft, is wolk of schaduw. Null als
+ * te weinig past, of de wattpiek buiten `laag` en `hoog` valt.
+ */
+export function beoordeel(punten: readonly Punt[], model: (sun: SunPosition) => number, laag: number, hoog: number): Beoordeling | null {
+  const pts = punten.map((x) => ({ x, y: Math.log(x.w), m: model(x.sun) })).filter((q) => q.m > 20);
+  if (pts.length < 24) return null;
+  // Wat ver onder het vlak blijft, is wolk of schaduw: vier keer weglaten en opnieuw.
+  let use = pts;
+  let ls = 0;
+  for (let i = 0; i < 4; i++) {
+    ls = use.reduce((s, q) => s + q.y - Math.log(q.m), 0) / use.length;
+    const nu = pts.filter((q) => q.y - Math.log(q.m) - ls > -0.25);
+    if (nu.length < 12) return null;
+    use = nu;
+  }
+  ls = use.reduce((s, q) => s + q.y - Math.log(q.m), 0) / use.length;
+  // Het vermogen uit het midden: een wolkenrand die de zon even versterkt, telt zo niet mee.
+  const midden = use.map((q) => q.y - Math.log(q.m)).sort((a, b) => a - b)[Math.floor(use.length / 2)]!;
+  const peakW = Math.exp(midden) * 1000;
+  if (peakW < laag || peakW > hoog) return null;
+  const spreiding = Math.sqrt(use.reduce((s, q) => s + (q.y - Math.log(q.m) - ls) ** 2, 0) / use.length);
+  const deel = use.length / pts.length;
+  const uren = use.map((q) => ((q.x.t % DAY_MS) + DAY_MS) % DAY_MS);
+  return { fout: spreiding / deel, deel, span: Math.max(...uren) - Math.min(...uren), peakW };
+}
+
+/** Is de beste goed genoeg om een meting te heten? */
+export const goedGenoeg = (r: Beoordeling) => r.fout <= MAX_FOUT && r.deel >= MIN_DEEL && r.span >= MIN_SPAN_MS;
 
 /** Het model voor een heldere lucht op de vlakken, per W/m² wattpiek. */
 const modelOp = (p: Proef, sun: SunPosition) => p.vlakken.reduce((s, v) => s + clearSkyOnPlaneWm2(sun, v) * v.deel, 0);
@@ -221,68 +289,26 @@ export function meetLigging(
   opts: { readonly timeZone: string; readonly omvormerW?: number | null },
 ): Meting | null {
   if (panelen.ligging === 'geen') return null;
-  const geldig = rows.filter((r) => Number.isFinite(r.meanW) && r.meanW >= 0);
-  if (geldig.length < 24) return null;
-  const maxW = Math.max(...geldig.map((r) => r.meanW));
-  if (maxW < 100) return null;
-
-  // De bovenkant: per tijdstip van de dag de hoogste. Eén heldere dag in tien is genoeg.
-  const bins = new Map<number, PowerRow[]>();
-  for (const r of geldig) {
-    const b = Math.floor((((r.startMs % DAY_MS) + DAY_MS) % DAY_MS) / BIN_MS);
-    const l = bins.get(b);
-    if (l) l.push(r);
-    else bins.set(b, [r]);
-  }
-  const clip = 0.97 * (opts.omvormerW ?? maxW);
-  const punten: Punt[] = [];
-  for (const lijst of bins.values()) {
-    const p = lijst.reduce((a, b) => (b.meanW > a.meanW ? b : a));
-    if (p.meanW <= 0.08 * maxW || p.meanW >= clip) continue;
-    const t = p.startMs + BIN_MS / 2;
-    punten.push({ t, w: p.meanW, sun: sunPosition(t, location.latDeg, location.lonDeg) });
-  }
-  if (punten.length < 24) return null;
+  const boven = bovenkant(rows, location, opts.omvormerW);
+  if (!boven) return null;
+  const { punten, maxW, geldig } = boven;
 
   const aantal = panelen.ligging === 'beide' && panelen.voorkant != null && panelen.achterkant != null ? panelen.voorkant + panelen.achterkant : panelen.aantal;
   const laag = Math.max(maxW * 0.9, aantal ? aantal * WP_MIN : 0);
   const hoog = Math.min(maxW * 4, aantal ? aantal * WP_MAX : Infinity);
 
-  const beoordeel = (p: Proef) => {
-    const pts = punten.map((x) => ({ x, y: Math.log(x.w), m: modelOp(p, x.sun) })).filter((q) => q.m > 20);
-    if (pts.length < 24) return null;
-    // Wat ver onder het vlak blijft, is wolk of schaduw: vier keer weglaten en opnieuw.
-    let use = pts;
-    let ls = 0;
-    for (let i = 0; i < 4; i++) {
-      ls = use.reduce((s, q) => s + q.y - Math.log(q.m), 0) / use.length;
-      const nu = pts.filter((q) => q.y - Math.log(q.m) - ls > -0.25);
-      if (nu.length < 12) return null;
-      use = nu;
-    }
-    ls = use.reduce((s, q) => s + q.y - Math.log(q.m), 0) / use.length;
-    // Het vermogen uit het midden: een wolkenrand die de zon even versterkt, telt zo niet mee.
-    const midden = use.map((q) => q.y - Math.log(q.m)).sort((a, b) => a - b)[Math.floor(use.length / 2)]!;
-    const peakW = Math.exp(midden) * 1000;
-    if (peakW < laag || peakW > hoog) return null;
-    const spreiding = Math.sqrt(use.reduce((s, q) => s + (q.y - Math.log(q.m) - ls) ** 2, 0) / use.length);
-    const deel = use.length / pts.length;
-    const uren = use.map((q) => (((q.x.t % DAY_MS) + DAY_MS) % DAY_MS));
-    return { fout: spreiding / deel, deel, span: Math.max(...uren) - Math.min(...uren), peakW };
-  };
-
-  let best: { p: Proef; r: NonNullable<ReturnType<typeof beoordeel>> } | null = null;
+  let best: { p: Proef; r: Beoordeling } | null = null;
   const probeer = (lijst: Proef[]) => {
     for (const p of lijst) {
-      const r = beoordeel(p);
+      const r = beoordeel(punten, (sun) => modelOp(p, sun), laag, hoog);
       if (r && (best == null || r.fout < best.r.fout)) best = { p, r };
     }
   };
   probeer(proeven(panelen, 5));
   if (best == null) return null;
   probeer(proeven(panelen, 1, (best as { p: Proef }).p));
-  const b = best as { p: Proef; r: NonNullable<ReturnType<typeof beoordeel>> };
-  if (b.r.fout > MAX_FOUT || b.r.deel < MIN_DEEL || b.r.span < MIN_SPAN_MS) return null;
+  const b = best as { p: Proef; r: Beoordeling };
+  if (!goedGenoeg(b.r)) return null;
 
   const vlakken: GemetenVlak[] = b.p.vlakken.map((v) => ({ azimuthDeg: v.azimuthDeg, tiltDeg: v.tiltDeg, peakW: Math.round((b.r.peakW * v.deel) / 10) * 10, kant: v.kant }));
   const peakW = vlakken.reduce((s, v) => s + v.peakW, 0);
@@ -457,6 +483,8 @@ export interface LiggingInput {
   readonly daken?: Daken | null;
   /** Panelen op de garage, carport of het tuinhuis (besluit 187); tellen mee sinds besluit 254. */
   readonly elders?: EldersAantal | null;
+  /** Wat elke omvormer hooguit levert, uit zijn typenummer (stap 4), per sensor. */
+  readonly grenzen?: Readonly<Record<string, number>> | null;
 }
 
 const KOMPAS: Readonly<Record<Lang, readonly string[]>> = {
@@ -496,7 +524,15 @@ export function kiesLigging(i: LiggingInput): { geometry: Geometry; bron: Liggin
   if (i.daken && i.daken.vlakken.length > 0) {
     const facades = i.daken.voorgevelDeg != null ? gevels(i.daken.voorgevelDeg, 'bewoner') : (oud?.geometry.facades ?? []);
     const omvormerW = i.daken.omvormerW ?? i.omvormerGevonden;
-    return { bron: 'app', geometry: { facades, solarPlanes: zonnevlakken(i.daken), ...(omvormerW != null ? { inverterMaxW: omvormerW } : {}) } };
+    // Per omvormer zijn eigen grens (stap 4): wat de bewoner invulde, anders uit het typenummer; met één omvormer ook de oude grens.
+    const meters = [...new Set(i.daken.vlakken.map((v) => v.meter).filter((m): m is string => m != null))];
+    const inverters = meters
+      .map((id) => ({ id, maxW: i.daken!.grenzen?.[id] ?? i.grenzen?.[id] ?? (meters.length === 1 ? omvormerW : null) }))
+      .filter((x): x is { id: string; maxW: number } => x.maxW != null);
+    return {
+      bron: 'app',
+      geometry: { facades, solarPlanes: zonnevlakken(i.daken), ...(omvormerW != null ? { inverterMaxW: omvormerW } : {}), ...(inverters.length ? { inverters } : {}) },
+    };
   }
   // Zonder andere daken precies zoals het was.
   if (!heeftElders(i.elders)) return oud;

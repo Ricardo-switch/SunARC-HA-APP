@@ -26,6 +26,7 @@ import type { SiteConfig } from '../core/model.js';
 import type { Lang } from './assistant.js';
 import { heatStoreConfig, type FoundHeatStore } from './buffers-vinden.js';
 import { tekening, type Tekening } from './daken-tekening.js';
+import { metMeting, type VlakStand, type Verdeling } from './meten-vlakken.js';
 import { leesDaken, piekVan, type Daken, type DakVlak } from './daken.js';
 import { VOORKANT_ZON, aantalVan, dakUitAanpassing, dakUitMeting, dakenNu, liggingView, type Dak, type LiggingView, type Meting, type VoorkantZon } from './ligging.js';
 
@@ -788,11 +789,15 @@ export interface DakenView {
   readonly omvormerW: number | null;
   /** Wat de meting over het hoofddak zegt (besluit 157), om per vlak naast te leggen. */
   readonly meting: readonly { readonly azimuthDeg: number; readonly tiltDeg: number; readonly peakW: number }[] | null;
-  /**
-   * De meters om uit te kiezen: alleen de omvormers die bij Omvormers en meters
-   * gekozen zijn (Ricardo, 5 november 2026), met hun naam.
+  /** De meters om uit te kiezen: alleen de omvormers die bij Omvormers en meters
+   * gekozen zijn (Ricardo, 5 november 2026), met hun naam en wat ze hooguit
+   * leveren (stap 4): zelf ingevuld, uit het typenummer, of onbekend.
    */
-  readonly meters: readonly { readonly id: string; readonly naam: string }[];
+  readonly meters: readonly { readonly id: string; readonly naam: string; readonly grensW: number | null; readonly grensBron: 'zelf' | 'type' | null }[];
+  /** Wat de meting per vlak vond (stap 4), voor het voorstel bij een vlak dat de bewoner zelf instelde. */
+  readonly vlakMeting: Readonly<Record<string, VlakStand>>;
+  /** Per meter de laatste hele dag, verdeeld per vlak. */
+  readonly verdeling: Readonly<Record<string, Verdeling>>;
   /** Het huis van boven (stap 2a): de gebouwen, hun dakvlakken en waar elk vlak ligt. */
   readonly tekening: Tekening;
   /** Kan SunArc de omtrek uit de kaart halen (is de plek van het huis bekend)? */
@@ -811,7 +816,13 @@ function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): Dake
     voorgevelDeg: daken.voorgevelDeg,
     omvormerW: daken.omvormerW,
     meting: c.meting ? c.meting.vlakken.map((v) => ({ azimuthDeg: Math.round(v.azimuthDeg) % 360, tiltDeg: Math.round(v.tiltDeg), peakW: v.peakW })) : null,
-    meters: ids.map((id) => ({ id, naam: naam(id) })),
+    meters: ids.map((id) => {
+      const zelf = daken.grenzen?.[id];
+      const type = c.grenzen?.[id] ?? (ids.length === 1 ? (daken.omvormerW ?? c.omvormerGevonden ?? null) : null);
+      return { id, naam: naam(id), grensW: zelf ?? type ?? null, grensBron: zelf != null ? ('zelf' as const) : type != null ? ('type' as const) : null };
+    }),
+    vlakMeting: c.vlakMeting?.perLetter ?? {},
+    verdeling: c.vlakMeting?.verdeling ?? {},
     tekening: tekening(daken),
     kaart: c.kaart ?? false,
   };
@@ -834,6 +845,10 @@ export interface ConnectionContext {
   readonly omvormerGevonden?: number | null;
   /** Kan de omtrek uit de kaart komen (besluit 254)? */
   readonly kaart?: boolean;
+  /** De meting per dakvlak en wat elke meter gisteren mat, verdeeld per vlak (stap 4). */
+  readonly vlakMeting?: { readonly perLetter: Readonly<Record<string, VlakStand>>; readonly verdeling: Readonly<Record<string, Verdeling>> } | null;
+  /** Wat elke omvormer hooguit levert, uit zijn typenummer, per sensor. */
+  readonly grenzen?: Readonly<Record<string, number>>;
 }
 
 export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): ConnectionView {
@@ -845,8 +860,10 @@ export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): Connect
     panelen: c.answers?.panelen ?? null,
     voorkantZon: c.answers?.voorkantZon ?? null,
     omvormerGevonden: c.omvormerGevonden ?? null,
-    daken: c.answers?.daken ?? null,
+    // Gemeten volgt vanzelf (stap 4): de pagina laat zien waar de berekening mee rekent.
+    daken: c.answers?.daken ? metMeting(c.answers.daken, c.vlakMeting?.perLetter ?? {}) : null,
     elders: c.answers?.elders ?? null,
+    grenzen: c.grenzen ?? null,
   };
   const planes = c.base.geometry?.solarPlanes ?? [];
   const brand = c.solar ? solarBrand(c.solar.platform, lang) : null;

@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.123.1';
+export const VERSIE = '0.124.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,22 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.124.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'De meting per dakvlak: SunArc begint bij wat je invulde en zoekt per vlak de richting en de helling die bij de zonnige dagen passen. Gemeten vlakken volgen de meting vanzelf; bij een vlak dat je zelf instelde staat het voorstel, met Neem over',
+      'Elke omvormer zijn eigen grens: uit het typenummer, of zelf in te vullen bij Omvormers en meters. Een garage met een eigen omvormer kapt niet meer af op die van het huis',
+      'Meet één omvormer meer vlakken, dan zie je bij Omvormers en meters de dag van gisteren, verdeeld per vlak',
+    ],
+    en: {
+      nieuw: [
+        'Measuring per roof plane: SunArc starts from what you entered and looks per plane for the direction and tilt that fit the sunny days. Measured planes follow the measurement by themselves; a plane you set yourself shows the suggestion, with Use it',
+        'Every inverter has its own limit: from the model number, or set yourself under Inverters and meters. A garage with its own inverter no longer clips at the limit of the house',
+        'When one inverter measures several planes, Inverters and meters shows yesterday, split per plane',
+      ],
+    },
+  },
   {
     versie: '0.123.1',
     datum: '2026-11-05',

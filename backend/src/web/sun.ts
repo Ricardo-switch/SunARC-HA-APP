@@ -8,6 +8,7 @@
  */
 
 import type { Geometry } from '../core/model.js';
+import { naOmvormers } from './omvormers.js';
 import { clearSkyOnPlaneWm2, incidenceDeg, sunOnPlane, sunPosition } from '../core/sun.js';
 import { factorFor, type SolarLearned } from './solar-learn.js';
 
@@ -91,8 +92,8 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 export function clearSkyW(geometry: Geometry, location: Location, ms: number, learned: SolarLearned | null): number {
   const sun = sunPosition(ms, location.latDeg, location.lonDeg);
   const { factor } = factorFor(learned, sun, PERFORMANCE);
-  const total = geometry.solarPlanes.reduce((sum, p) => sum + (clearSkyOnPlaneWm2(sun, p) / 1000) * p.peakW * factor, 0);
-  return Math.round(Math.min(total, geometry.inverterMaxW ?? Infinity));
+  // Per omvormer afgekapt (besluit 254, stap 4); zonder omvormers per vlak zoals altijd.
+  return Math.round(naOmvormers(geometry, (p) => (clearSkyOnPlaneWm2(sun, p) / 1000) * p.peakW * factor));
 }
 
 function clearSkySource(learned: SolarLearned | null): SunReport['heldereLucht'] {

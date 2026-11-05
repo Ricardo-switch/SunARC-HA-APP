@@ -30,6 +30,7 @@ import { rename, readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import type { Geometry } from '../core/model.js';
+import { omvormersSamenW } from './omvormers.js';
 import { clearSkyOnPlaneWm2, sunPosition, type SunPosition } from '../core/sun.js';
 import { findLogFiles, linesOf } from '../divergence/read.js';
 import type { Location } from './sun.js';
@@ -162,7 +163,7 @@ export function modelW(geometry: Geometry, sun: SunPosition): number {
 
 export function learnSolar(days: QuarterDays, geometry: Geometry, location: Location): SolarLearned {
   const perBin = new Map<string, Map<string, number>>();
-  const clipW = (geometry.inverterMaxW ?? Infinity) * 0.97;
+  const clipW = omvormersSamenW(geometry) * 0.97;
   let used = 0;
   for (const [day, quarters] of Object.entries(days)) {
     const start = Date.parse(`${day}T00:00:00Z`);

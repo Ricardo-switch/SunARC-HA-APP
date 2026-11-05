@@ -75,7 +75,8 @@ import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
-import { panelenVan } from './web/daken.js';
+import { panelenVan, type DakVlak } from './web/daken.js';
+import { meetVlakken, metMeting, verdeelDag, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
 import { findHeatStores } from './web/buffers-vinden.js';
 import { kiesLigging, meetLigging, omvormerUitType, type Meting, type PanelenAntwoord } from './web/ligging.js';
 import { alarmSensoren, vindRookmelders } from './web/rookmelders.js';
@@ -1028,6 +1029,8 @@ if (scenePictures) setInterval(() => void scenePictures.refresh(), 10 * 60_000).
  * over het dak veranderen. Alleen lezen, met dezelfde vraag als Opbrengst.
  */
 let liggingRijen: { at: number; rijen: PowerRow[] } | null = null;
+/** Dezelfde tien dagen per omvormer, voor de meting per dakvlak (besluit 254, stap 4). */
+let liggingPerId = new Map<string, PowerRow[]>();
 async function leesLigging(): Promise<void> {
   // Met meer omvormers de som (testerronde, november 2026); een meetpunt met een attribuut heeft geen statistiek.
   const punten = siteConfig?.solarProduction ? [siteConfig.solarProduction, ...(siteConfig.solarExtra ?? [])] : [];
@@ -1046,6 +1049,7 @@ async function leesLigging(): Promise<void> {
     .filter((r) => typeof r.mean === 'number' && Number.isFinite(r.mean))
     .map((r) => ({ startMs: typeof r.start === 'number' ? r.start : Date.parse(r.start), meanW: r.mean as number }));
   // Alleen vakken waarin elke omvormer iets gaf: anders lijkt het dak minder sterk.
+  liggingPerId = new Map(ids.map((id) => [id, reeks(id)]));
   liggingRijen = { at: nu, rijen: somPerVak(ids.map(reeks), [], true) };
 }
 // Eerst kort na het verbinden, daarna om de drie uur; mislukt het, dan over tien minuten opnieuw.
@@ -1064,6 +1068,57 @@ function omvormerGevonden(): number | null {
   if (eigen != null) return eigen;
   const alle = [...new Set(regs.devices.map((d) => omvormerUitType(d.model)).filter((w): w is number => w != null))];
   return alle.length === 1 ? alle[0]! : null;
+}
+
+/** Wat elke omvormer hooguit levert, uit het typenummer van zijn apparaat (besluit 254, stap 4). */
+function grenzenGevonden(): Record<string, number> {
+  const regs = houseRegisters;
+  if (!regs) return {};
+  const uit: Record<string, number> = {};
+  for (const p of siteConfig?.solarProduction ? [siteConfig.solarProduction, ...(siteConfig.solarExtra ?? [])] : []) {
+    const device = regs.entities.find((e) => e.entity_id === p.id)?.device_id;
+    const w = device ? omvormerUitType(regs.devices.find((d) => d.id === device)?.model) : null;
+    if (w != null) uit[p.id] = w;
+  }
+  return uit;
+}
+
+/**
+ * De meting per dakvlak (besluit 254, stap 4): per meter zijn vlakken uit zijn
+ * eigen opbrengst. Vlakken zonder meter horen bij de enige omvormer, of, als
+ * geen enkel vlak een meter heeft, bij alle omvormers samen. Bewaard tot er
+ * iets verandert.
+ */
+let vlakMetingBewaard: { sleutel: string; uit: { perLetter: Record<string, VlakStand>; verdeling: Record<string, Verdeling> } } | null = null;
+function vlakMetingNu(): { perLetter: Record<string, VlakStand>; verdeling: Record<string, Verdeling> } | null {
+  const d = connectionStore?.current?.daken;
+  const cfg = siteConfig;
+  if (!d?.vlakken.length || !location || !cfg || !liggingRijen) return null;
+  const ids = [...liggingPerId.keys()];
+  const grenzen = grenzenGevonden();
+  const sleutel = JSON.stringify([liggingRijen.at, location, d.vlakken, d.grenzen ?? null, grenzen]);
+  if (vlakMetingBewaard?.sleutel === sleutel) return vlakMetingBewaard.uit;
+  const zonderMeter = d.vlakken.every((v) => v.meter == null);
+  const groepen = new Map<string, DakVlak[]>();
+  for (const v of d.vlakken) {
+    const id = v.meter ?? (ids.length === 1 ? ids[0]! : zonderMeter ? '' : null);
+    if (id == null || (id !== '' && !liggingPerId.has(id))) continue;
+    groepen.set(id, [...(groepen.get(id) ?? []), v]);
+  }
+  const perLetter: Record<string, VlakStand> = {};
+  const verdeling: Record<string, Verdeling> = {};
+  for (const [id, vlakken] of groepen) {
+    const rijen = id === '' ? liggingRijen.rijen : liggingPerId.get(id)!;
+    const grens = id === '' ? omvormerGevonden() : (d.grenzen?.[id] ?? grenzen[id] ?? (ids.length === 1 ? (d.omvormerW ?? omvormerGevonden()) : null));
+    const m = meetVlakken(rijen, vlakken, location, grens);
+    if (m) Object.assign(perLetter, m.vlakken);
+    // Verdelen met de stand waar de berekening mee rekent.
+    const nu = metMeting({ ...d, vlakken }, perLetter).vlakken;
+    const v = verdeelDag(rijen, nu, location, cfg.timezone, Date.now());
+    if (v) verdeling[id || 'samen'] = v;
+  }
+  vlakMetingBewaard = { sleutel, uit: { perLetter, verdeling } };
+  return vlakMetingBewaard.uit;
 }
 
 let metingBewaard: { sleutel: string; meting: Meting | null } | null = null;
@@ -1107,9 +1162,10 @@ function metLigging(c: SiteConfig): SiteConfig {
     panelen: a?.panelen ?? null,
     voorkantZon: a?.voorkantZon ?? null,
     omvormerGevonden: omvormerGevonden(),
-    // Daken en panelen (besluit 254): elk vlak apart, en de andere daken tellen mee.
-    daken: a?.daken ?? null,
+    // Daken en panelen (besluit 254): elk vlak apart, en de andere daken tellen mee; gemeten volgt de meting (stap 4).
+    daken: a?.daken ? metMeting(a.daken, vlakMetingNu()?.perLetter ?? {}) : null,
     elders: a?.elders ?? null,
+    grenzen: grenzenGevonden(),
   };
   // Hetzelfde object zolang er niets verandert: de weercache kijkt ernaar.
   const sleutel = JSON.stringify(input);
@@ -2236,6 +2292,9 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
         omvormerGevonden: omvormerGevonden(),
         // De omtrek uit de kaart kan zodra Home Assistant de plek gaf (besluit 254).
         kaart: location != null,
+        // De meting per dakvlak en de grens per omvormer (stap 4).
+        vlakMeting: vlakMetingNu(),
+        grenzen: grenzenGevonden(),
         inGebruik: {
           netmeter: siteConfig?.power.gridPower ? { afname: siteConfig.power.gridPower.id, terug: siteConfig.power.gridExport?.id ?? null } : null,
           omvormers: siteConfig?.solarProduction ? [siteConfig.solarProduction.id, ...(siteConfig.solarExtra ?? []).map((p) => p.id)] : [],
