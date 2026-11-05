@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.129.0
+
+*5 november 2026*
+
+**Nieuw**
+
+- Opbrengst heeft Nu: live waar je stroom heen gaat, met de zon per dak, wat er aan staat en wat terug gaat naar het net
+
+*English*
+
+**New**
+
+- Yield has Now: live where your power goes, with the sun per roof, what is on and what goes back to the grid
+
 ## 0.128.1
 
 *5 november 2026*

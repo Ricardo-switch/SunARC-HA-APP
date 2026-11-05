@@ -11986,6 +11986,15 @@ zonnemeter in kWh (`aanvullenUitMeter`), als één meter alle vlakken meet. Ook
 gezien: de zonnemeter van de cloudkoppeling (`sensor.solaredge_produced_energy`)
 telt sinds 2 november niet meer; daar vangt de omvormer het nu op.
 
+*Nagekomen, versie 0.129.0* (Ricardo, dezelfde avond): **Nu** naast dag,
+week, maand en jaar, live. Links de zon, het huis en het net in kW, en per
+dakvlak wat het nu levert met een streepje voor de heldere lucht. In het
+midden het stroombeeld van nu: de zon per dakvlak en het net naar de
+apparaten met een eigen meter die nu meer dan 30 W vragen (hooguit vijf), de
+rest van het huis, Altijd aan en terug. Rechts Nu aan; Per dag valt weg. Elke
+vijf tellen opnieuw (`api/state`, `api/huis`), de dakvlakken elke halve minuut
+(`api/aansluiting`), alleen zolang de pagina in beeld is.
+
 ---
 
 ## 256. De kaart is experimenteel, met 3D BAG naast OpenStreetMap

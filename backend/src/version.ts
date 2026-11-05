@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.128.1';
+export const VERSIE = '0.129.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,12 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.129.0',
+    datum: '2026-11-05',
+    nieuw: ['Opbrengst heeft Nu: live waar je stroom heen gaat, met de zon per dak, wat er aan staat en wat terug gaat naar het net'],
+    en: { nieuw: ['Yield has Now: live where your power goes, with the sun per roof, what is on and what goes back to the grid'] },
+  },
   {
     versie: '0.128.1',
     datum: '2026-11-05',

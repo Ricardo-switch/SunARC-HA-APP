@@ -2869,6 +2869,53 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await context.close();
   }, 30_000);
 
+  it('toont bij Opbrengst Nu: het huis van dit moment, live (5 november 2026)', async () => {
+    const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    // De stromen van nu vast: 2,4 kW zon, 0,8 kW terug, het huis 1,6 kW; daarna 3,0 kW zon.
+    let zonKw = 2.4;
+    await context.route(`${baseUrl}/api/state`, async (route) => {
+      const r = await route.fetch();
+      const j = (await r.json()) as { bewoner?: { stromen?: unknown } };
+      if (j.bewoner) j.bewoner.stromen = { zonKw, netKw: 1.6 - zonKw, verbruikKw: 1.6, aircoKw: 0, huisKw: 1.6, geplandKw: 0 };
+      await route.fulfill({ response: r, json: j });
+    });
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/opbrengst.html`);
+    const wand = p.locator('#wand');
+    await wand.locator('[data-soort="nu"]').click();
+    await wand.locator('.livelabel').waitFor({ timeout: 10_000 });
+    await wand.locator('h1', { hasText: 'Nu 2,4 kW van je eigen dak' }).waitFor({ timeout: 10_000 });
+    // Het stroombeeld van nu: terug naar het net, en Nu aan rechts.
+    await wand.locator('[data-sankey] svg text', { hasText: 'Naar het net' }).waitFor();
+    expect(await wand.locator('[data-sankey]').textContent()).toContain('0,80 kW');
+    await wand.locator('[data-apparaten] h2', { hasText: 'Nu aan' }).waitFor();
+    expect(await wand.locator('[data-perdag]').isHidden()).toBe(true);
+    expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-opbrengst-nu.png') });
+    // Live: binnen een paar tellen het nieuwe getal, zonder iets te doen.
+    zonKw = 3;
+    await wand.locator('h1', { hasText: 'Nu 3,0 kW van je eigen dak' }).waitFor({ timeout: 10_000 });
+    // Terug naar een maand: dan weer de periode, en geen live meer.
+    await wand.locator('[data-soort="maand"]').click();
+    await wand.locator('.livelabel').waitFor({ state: 'detached', timeout: 10_000 });
+    expect(await wand.locator('[data-perdag]').isHidden()).toBe(false);
+    // Op de telefoon: dezelfde delen onder elkaar, binnen de breedte.
+    await p.setViewportSize({ width: 390, height: 844 });
+    await p.reload();
+    await p.locator('#tel [data-soort="nu"]').click();
+    await p.locator('#tel .livelabel').waitFor({ timeout: 10_000 });
+    await p.locator('#tel [data-telinhoud] h2', { hasText: 'Waar je stroom nu heen gaat' }).waitFor();
+    expect(await p.evaluate<boolean>('document.documentElement.scrollWidth <= innerWidth + 1')).toBe(true);
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-opbrengst-nu-tel.png'), fullPage: true });
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 30_000);
+
   it('toont zonder verbinding de laatste stand, grijs', async () => {
     const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
     await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
