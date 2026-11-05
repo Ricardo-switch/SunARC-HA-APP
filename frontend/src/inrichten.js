@@ -93,7 +93,8 @@ function gedaan(id) {
   if (id === 'zekering') return d.aans?.antwoorden?.zekering != null;
   // De netmeter (testerronde, november 2026): gekozen, of de regeling heeft er al een.
   if (id === 'vermogen') return vermogens.netNu(d.aans, null) != null;
-  if (id === 'prijzen') return d.energie?.instellingen?.prijzen?.stroom != null;
+  // Een prijs per uur is ook een stroomprijs (issue 126).
+  if (id === 'prijzen') return d.energie?.instellingen?.prijzen?.stroom != null || !!d.energie?.instellingen?.prijzen?.dynamisch;
   if (id === 'functies') return d.functies?.instellingen != null;
   if (id === 'wand' || id === 'account') return (d.bewoners?.schermen ?? []).length > 0;
   if (id === 'bewoners') return (d.bewoners?.bewoners ?? []).length > 0;

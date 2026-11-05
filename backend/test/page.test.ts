@@ -4776,6 +4776,65 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
   }, 40_000);
 
   /*
+   * Issue 126: met een prijs per uur vroeg Prijzen nog om een vaste stroomprijs
+   * (bij één tarief en bij normaal en dal), en teruglevering bleef een vast
+   * bedrag. Nu is de stroomprijs een gemiddelde dat mag ontbreken, en telt
+   * teruglevering per uur als Home Assistant dat doet.
+   */
+  it('vraagt bij een prijs per uur niet om een vaste stroomprijs of dalprijs', async () => {
+    const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    if (energyStore.current == null) await energyStore.save(importFromPrefs(await ENERGY_SOURCE.prefs(), await ENERGY_SOURCE.meters()));
+    const energieWas = energyStore.current!;
+    const tariefWas = connStore.current?.tarief ?? null;
+    // Zoals bij de melder: nog geen stroomprijs, en geen prijs per uur bewaard.
+    const { dynamisch: _weg, ...zonder } = energieWas.prijzen;
+    await energyStore.save({ ...energieWas, prijzen: { ...zonder, stroom: null, stroomDal: null } });
+    const dynamisch = { prijsEntiteit: 'sensor.zonneplan_current_electricity_tariff', afname: ['sensor.p1_afname_cost'], terug: ['sensor.p1_terug_compensation'] };
+    await context.route(`${baseUrl}/api/energie*`, async (route) => {
+      if (route.request().method() !== 'GET') return route.continue();
+      const res = await route.fetch();
+      const v = (await res.json()) as { voorstel: { prijzen: Record<string, unknown> } | null; instellingen: unknown };
+      const voorstel = v.voorstel ?? (v.instellingen as typeof v.voorstel);
+      await route.fulfill({ response: res, json: { ...v, voorstel: { ...voorstel, prijzen: { ...voorstel!.prijzen, dynamisch } }, prijsNu: 0.2345 } });
+    });
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    const wand = (sel: string) => p.locator(`#wand ${sel}`);
+    try {
+      await p.goto(`${baseUrl}/energie.html#prijzen`);
+      await wand(`[data-kies="contract"][data-waarde='"vast"']`).click();
+      // Normaal en dal gekozen, de dalprijs nog leeg: dat hield het bewaren van Per uur tegen.
+      await wand(`[data-kies="stroomtarief"][data-waarde='"dubbel"']`).click();
+      await wand(`[data-kies="contract"][data-waarde='"dynamisch"']`).click();
+      await expect.poll(() => energyStore.current?.prijzen.dynamisch ?? null, { timeout: 5000 }).toEqual(dynamisch);
+      await expect.poll(() => connStore.current?.tarief ?? null, { timeout: 5000 }).toBe('dynamisch');
+      await wand(':text("Prijs per uur uit Home Assistant")').first().waitFor({ timeout: 5000 });
+      // Geen vraag om een vaste prijs: geen melding, geen rood veld, geen normaal en dal.
+      expect(await wand(':text("Zonder stroomprijs")').count()).toBe(0);
+      expect(await wand('[data-prijs="stroom"].leeg').count()).toBe(0);
+      expect(await wand('[data-kies="stroomtarief"]').count()).toBe(0);
+      expect(await wand('[data-prijs="stroomDal"]').count()).toBe(0);
+      expect(energyStore.current?.prijzen.stroomDal ?? null).toBeNull();
+      // Teruglevering telt per uur, zoals Home Assistant: geen vaste bedragen.
+      await wand(':text("Teruglevering telt ook met de prijs van elk uur")').first().waitFor({ timeout: 5000 });
+      expect(await wand('[data-prijs="teruglevering"]').count()).toBe(0);
+      expect(await wand('[data-prijs="vanaf2027.vergoeding"]').count()).toBe(0);
+      // Het overzicht zegt niet meer dat de prijs ontbreekt.
+      expect(await p.locator('#wand', { hasText: 'stroomprijs ontbreekt' }).count()).toBe(0);
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-uurprijs-126.png') });
+      expect(fouten).toEqual([]);
+    } finally {
+      await context.close();
+      await energyStore.save(energieWas);
+      if (connStore.current) await connStore.save({ ...connStore.current, tarief: tariefWas });
+    }
+  }, 40_000);
+
+  /*
    * De valuta van het huis (testerronde, november 2026): zegt Home Assistant
    * dollar, dan staan de bedragen en de prijsvelden in dollar.
    */

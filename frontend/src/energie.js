@@ -119,13 +119,14 @@ function delen() {
   const vlakken = aInfo?.daken?.vlakken ?? [];
   const geen = a?.panelen.ligging === 'geen';
   const z = zekeringNu();
-  const prijsMist = e && (p.stroom == null || (e.gas && p.gas == null));
+  // Een prijs per uur is ook een stroomprijs (issue 126).
+  const prijsMist = e && ((p.stroom == null && !p.dynamisch) || (e.gas && p.gas == null));
   const soort = a?.verwarming.soort ? t(`energie.soort.${a.verwarming.soort}`) : null;
   return [
     { id: 'panelen', titel: t('daken.titel'), zin: dakvlakken.kortZin(aInfo?.daken) ?? (geen ? t('daken.geen') : t('instellingen.nogKiezen')), stand: !aInfo ? null : vlakken.length || geen ? 'goed' : 'mist' },
     { id: 'aansluiting', titel: t('energie.aansluiting'), zin: z ? `${z.fasen} × ${z.ampere} A` : t('energie.zekeringKiezen'), stand: !aInfo ? null : z ? 'goed' : 'mist' },
     { id: 'meters', titel: t('energie.meters'), zin: e ? [e.net.afname.length ? t('energie.stroom') : null, e.gas ? t('energie.gas') : null, e.apparaten.length ? t('energie.nApparaten', { n: e.apparaten.length }) : null].filter(Boolean).join(', ') || t('instellingen.nogKiezen') : '…', stand: !e ? null : e.net.afname.length ? 'goed' : 'mist' },
-    { id: 'prijzen', titel: t('energie.prijzen'), zin: !e ? '…' : p.stroom == null ? t('energie.prijsMist') : t('energie.prijsPerKwh', { prijs: nl(p.stroom, 2) }), stand: !e ? null : prijsMist ? 'mist' : 'goed' },
+    { id: 'prijzen', titel: t('energie.prijzen'), zin: !e ? '…' : p.dynamisch ? t('energie.prijsPerUur') : p.stroom == null ? t('energie.prijsMist') : t('energie.prijsPerKwh', { prijs: nl(p.stroom, 2) }), stand: !e ? null : prijsMist ? 'mist' : 'goed' },
     { id: 'verwarming', titel: t('energie.verwarming'), zin: soort ? (a.verwarming.aanvoerC ? t('energie.aanvoer', { soort, c: a.verwarming.aanvoerC }) : soort) : t('instellingen.nogKiezen'), stand: !aInfo ? null : a.verwarming.soort ? 'goed' : 'leeg' },
   ];
 }
@@ -319,7 +320,8 @@ function prijzenVorm() {
       </div>
     </div>`).join('');
   const erbij = VOORSTELLEN.filter((x) => !p.vast.some((v) => v.naam.toLowerCase() === x.naam.toLowerCase()));
-  const mist = p.stroom == null ? t('energie.mistStroom') : e.gas && p.gas == null ? t('energie.mistGas') : '';
+  // Bij een prijs per uur is een vaste stroomprijs niet nodig (issue 126).
+  const mist = p.stroom == null && !p.dynamisch ? t('energie.mistStroom') : e.gas && p.gas == null ? t('energie.mistGas') : '';
   // Een prijs per uur (testerronde, november 2026): Opbrengst rekent dan met de kostentellers van Home Assistant.
   const dynKan = !p.dynamisch ? eInfo?.voorstel?.prijzen?.dynamisch ?? null : null;
   // Kent Home Assistant de prijs per uur nog niet, dan zegt het hier wat er mist en welke sensor hem al geeft (issue 119).
@@ -332,19 +334,33 @@ function prijzenVorm() {
     : dynKan
       ? `<div class="melding"><span class="stip" style="background: var(--gloed)"></span><span>${esc(t('energie.uurprijsKan'))} <button type="button" class="knop-tekst" data-uurprijs>${esc(t('energie.uurprijsOvernemen'))}</button></span></div>`
       : uurprijsMist;
+  // Met een prijs per uur (issue 126): geen normaal en dal, en de stroomprijs is een gemiddelde dat mag ontbreken.
+  const stroomBlok = p.dynamisch
+    ? `<p class="uitleg">${esc(t('energie.stroomPerUur'))}</p>
+      ${bedragVeld(t('energie.stroomGemiddeld'), 'stroom', p.stroom, nl(0.25, 2))}`
+    : `${keuzes(t('energie.tarief'), 'stroomtarief', [['enkel', t('energie.enkel')], ['dubbel', t('energie.dubbel')]], dubbel ? 'dubbel' : 'enkel')}
+      <div class="${dubbel ? 'twee' : ''}">${bedragVeld(t(dubbel ? 'energie.normaalKwh' : 'energie.perKwh'), 'stroom', p.stroom, nl(0.27, 2), '0', true)}${dubbel ? bedragVeld(t('energie.dalKwh'), 'stroomDal', p.stroomDal, nl(0.25, 2), '0', true) : ''}</div>
+      <p class="mini">${esc(t('energie.totaalprijs'))}</p>${dalTijden}`;
+  // Teruglevering per uur, als Home Assistant die telt; anders zegt het wat er mist, en blijven de bedragen.
+  const terugKan = p.dynamisch && !p.dynamisch.terug.length && eInfo?.voorstel?.prijzen?.dynamisch?.terug?.length;
+  const terugVast = `${keuzes(t('energie.salderen'), 'salderen', [[true, t('energie.salderenTot')], [false, t('energie.geenSalderen')]], p.salderen)}
+      ${p.salderen ? `<p class="uitleg">${esc(t(p.dynamisch ? 'energie.salderenUurprijs' : 'energie.salderenUitleg'))}</p>
+      ${bedragVeld(t('energie.vergoedingBoven'), 'teruglevering', p.teruglevering, nl(0.15, 2))}` : `<p class="uitleg">${esc(t('energie.zonderSalderen'))}</p>`}
+      <span class="veldnaam" style="margin-top: 4px">${esc(t(p.salderen ? 'energie.vanaf2027' : 'energie.krijgenBetalen'))}</span>
+      <div class="twee">${bedragVeld(t('energie.jeKrijgt'), 'vanaf2027.vergoeding', p.vanaf2027.vergoeding, nl(0.07, 2))}${bedragVeld(t('energie.jeBetaalt'), 'vanaf2027.kosten', p.vanaf2027.kosten, nl(0.06, 2))}</div>`;
+  const terugBlok = !p.dynamisch
+    ? terugVast
+    : p.dynamisch.terug.length
+      ? `<div class="melding"><span class="stip" style="background: var(--mint)"></span><span>${esc(t('energie.terugPerUur'))}</span></div>`
+      : `<div class="melding" data-terug-niet-per-uur><span class="stip" style="background: var(--gloed)"></span><span>${esc(t(terugKan ? 'energie.terugPerUurKan' : 'energie.terugNietPerUur'))} ${terugKan ? `<button type="button" class="knop-tekst" data-uurprijs>${esc(t('energie.uurprijsOvernemen'))}</button>` : `${app.inHA() ? `<button type="button" class="knop-tekst" data-uurprijs-ha>${esc(t('energie.uurprijsOpenHA'))}</button> ` : ''}<button type="button" class="knop-tekst" data-uurprijs-opnieuw>${esc(t('energie.uurprijsOpnieuw'))}</button>`}</span></div>
+      ${terugVast}`;
   return `${kop(t('energie.prijzen'))}
     ${mist ? `<div class="melding"><span class="stip" style="background: var(--gloed)"></span>${esc(mist)}</div>` : ''}
     ${kolommen(`${blok(t('energie.soortContract'), `${keuzes(t('energie.soortContract'), 'contract', [['vast', t('energie.contract.vast')], ['dynamisch', t('energie.contract.dynamisch')], ['weetniet', t('energie.weetNiet')]], a?.tarief ?? null, !a)}
       <p class="mini">${esc(t('energie.dynamischUitleg'))}</p>
       ${uurprijs}
       <label class="veldnaam">${esc(t('energie.contractStart'))}<input class="invoer" type="date" data-contract value="${esc(p.contractStart ?? '')}" min="2000-01-01" max="2100-12-31"></label>
-      <p class="mini">${esc(t('energie.contractUitleg'))}</p>`)}${blok(t('energie.stroomKop'), `${keuzes(t('energie.tarief'), 'stroomtarief', [['enkel', t('energie.enkel')], ['dubbel', t('energie.dubbel')]], dubbel ? 'dubbel' : 'enkel')}
-      <div class="${dubbel ? 'twee' : ''}">${bedragVeld(t(dubbel ? 'energie.normaalKwh' : 'energie.perKwh'), 'stroom', p.stroom, nl(0.27, 2), '0', true)}${dubbel ? bedragVeld(t('energie.dalKwh'), 'stroomDal', p.stroomDal, nl(0.25, 2), '0', true) : ''}</div>
-      <p class="mini">${esc(t('energie.totaalprijs'))}</p>${dalTijden}`)}${e.gas ? blok(t('energie.gasKop'), `${bedragVeld(t('energie.perM3'), 'gas', p.gas, nl(1.36, 2), '0', true)}<p class="mini">${esc(t('energie.gasTotaal'))}</p>`) : ''}`, `${blok(t('energie.teruglevering'), `${keuzes(t('energie.salderen'), 'salderen', [[true, t('energie.salderenTot')], [false, t('energie.geenSalderen')]], p.salderen)}
-      ${p.salderen ? `<p class="uitleg">${esc(t('energie.salderenUitleg'))}</p>
-      ${bedragVeld(t('energie.vergoedingBoven'), 'teruglevering', p.teruglevering, nl(0.15, 2))}` : `<p class="uitleg">${esc(t('energie.zonderSalderen'))}</p>`}
-      <span class="veldnaam" style="margin-top: 4px">${esc(t(p.salderen ? 'energie.vanaf2027' : 'energie.krijgenBetalen'))}</span>
-      <div class="twee">${bedragVeld(t('energie.jeKrijgt'), 'vanaf2027.vergoeding', p.vanaf2027.vergoeding, nl(0.07, 2))}${bedragVeld(t('energie.jeBetaalt'), 'vanaf2027.kosten', p.vanaf2027.kosten, nl(0.06, 2))}</div>`)}${blok(t('energie.vasteKosten'), `${posten || `<p class="uitleg">${esc(t('energie.geenPosten'))}</p>`}
+      <p class="mini">${esc(t('energie.contractUitleg'))}</p>`)}${blok(t('energie.stroomKop'), stroomBlok)}${e.gas ? blok(t('energie.gasKop'), `${bedragVeld(t('energie.perM3'), 'gas', p.gas, nl(1.36, 2), '0', true)}<p class="mini">${esc(t('energie.gasTotaal'))}</p>`) : ''}`, `${blok(t('energie.teruglevering'), terugBlok)}${blok(t('energie.vasteKosten'), `${posten || `<p class="uitleg">${esc(t('energie.geenPosten'))}</p>`}
       <div class="meterchips">${erbij.map((x) => `<button type="button" data-vast-erbij="${esc(x.naam)}">+ ${esc(x.naam)}</button>`).join('')}<button type="button" data-vast-erbij="">${esc(t('energie.anderePost'))}</button></div>
       <p class="mini">${esc(t('energie.postUitleg'))}</p>`)}`)}`;
 }
@@ -443,7 +459,7 @@ function bewaarAansluiting(ookEnergie = false, zonOok = false) {
 
 /** Wat er nog mist voor de prijzen bewaard kunnen worden, of null. */
 function energieFout() {
-  if (dubbel && e.prijzen.stroomDal == null) return t('energie.vulDal');
+  if (dubbel && e.prijzen.stroomDal == null && !e.prijzen.dynamisch) return t('energie.vulDal');
   const leegBedrag = e.prijzen.vast.find((v) => v.bedrag == null);
   return leegBedrag ? t('energie.vulBedrag', { naam: leegBedrag.naam }) : null;
 }
@@ -579,6 +595,9 @@ document.addEventListener('click', async (ev) => {
         const dyn = eInfo?.voorstel?.prijzen?.dynamisch;
         if (e && w === 'dynamisch' && !e.prijzen.dynamisch && dyn && eInfo?.instellingen) {
           e.prijzen.dynamisch = JSON.parse(JSON.stringify(dyn));
+          // Een prijs per uur kent geen normaal en dal (issue 126).
+          dubbel = false;
+          e.prijzen.stroomDal = null;
           teken();
           return bewaarAansluiting(true);
         }
@@ -633,8 +652,12 @@ document.addEventListener('click', async (ev) => {
     e = aanvullen({ ...v, prijzen: { ...p, stroom: p.stroom ?? v.prijzen.stroom, gas: p.gas ?? v.prijzen.gas, teruglevering: p.teruglevering ?? v.prijzen.teruglevering, ...(v.prijzen.dynamisch ? { dynamisch: v.prijzen.dynamisch } : {}) } });
   } else if (knop.hasAttribute('data-uurprijs') || knop.hasAttribute('data-uurprijs-uit')) {
     const aan = knop.hasAttribute('data-uurprijs');
-    if (aan) e.prijzen.dynamisch = JSON.parse(JSON.stringify(eInfo.voorstel.prijzen.dynamisch));
-    else delete e.prijzen.dynamisch;
+    if (aan) {
+      e.prijzen.dynamisch = JSON.parse(JSON.stringify(eInfo.voorstel.prijzen.dynamisch));
+      // Een prijs per uur kent geen normaal en dal (issue 126).
+      dubbel = false;
+      e.prijzen.stroomDal = null;
+    } else delete e.prijzen.dynamisch;
     // Het soort contract gaat mee (issue 119).
     const tarief = aan ? 'dynamisch' : 'vast';
     if (a && a.tarief !== tarief) {
