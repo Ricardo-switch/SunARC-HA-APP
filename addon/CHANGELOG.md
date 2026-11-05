@@ -1,5 +1,21 @@
 # Wat is er nieuw · What is new
 
+## 0.122.1
+
+*5 november 2026*
+
+**Beter**
+
+- Daken en panelen: bij Gemeten door staan alleen de omvormers die je bij Omvormers en meters koos, in plaats van elke sensor met een vermogen
+- Liggen meer vlakken aan één omvormer, dan kies je hem bij elk vlak; met één omvormer staat hij er vanzelf, en Hoort bij zet hem bij alle vlakken zonder meter
+
+*English*
+
+**Improved**
+
+- Roofs and panels: Measured by only shows the inverters you chose under Inverters and meters, instead of every sensor with a power reading
+- When several planes share one inverter, you choose it at each plane; with one inverter it is filled in already, and Belongs to sets it for all planes without a meter
+
 ## 0.122.0
 
 *4 november 2026*

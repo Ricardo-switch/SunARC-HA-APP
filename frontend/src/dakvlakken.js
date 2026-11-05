@@ -119,6 +119,19 @@ const dakvlakken = (() => {
     return `<div class="dk-meting">${esc(t('daken.meting.zegt', woorden))} <button type="button" class="lig-link" data-dak-neem>${esc(t('daken.meting.neem'))}</button></div>`;
   }
 
+  /**
+   * Welke omvormer dit vlak meet: alleen de omvormers die bij Omvormers en
+   * meters gekozen zijn, of Weet ik niet. Meer vlakken aan één omvormer kiezen
+   * allemaal die omvormer.
+   */
+  function meterKeuze(d, v) {
+    const meters = d.meters ?? [];
+    const bekend = meters.some((m) => m.id === v.meter);
+    const knoppen = `${meters.map((m) => seg('data-dak-meter', m.id, m.naam, v.meter === m.id)).join('')}${seg('data-dak-meter', '', t('daken.weetNiet'), !bekend)}`;
+    const uitleg = meters.length ? t('daken.gemetenDoorUitleg') : t('daken.geenMeters');
+    return `<div class="dk-seg">${knoppen}</div><span class="klein">${esc(uitleg)}</span>`;
+  }
+
   function vlakScherm(d, s) {
     const v = s.concept;
     const nieuw = !d.vlakken.some((x) => x.letter === v.letter);
@@ -136,9 +149,7 @@ const dakvlakken = (() => {
           <span class="klein">${esc(t(v.opstelling === 'oostwest' ? 'daken.richtingOw' : 'daken.richtingUitleg'))}</span>`)}</div>
         ${veld(t('daken.helling'), `<div class="dk-seg">${hellingen.map((h) => seg('data-dak-helling', h, `${h}°`, !eigen && Math.round(v.tiltDeg) === h)).join('')}<label class="lig-zelf${eigen ? ' aan' : ''}">${esc(t('daken.anders'))}<input type="number" inputmode="numeric" min="0" max="90" step="1" data-dak-hellingzelf value="${eigen ? Math.round(v.tiltDeg) : ''}" placeholder="°" aria-label="${esc(t('daken.helling'))}"></label></div>`)}`}
       <div class="dk-aantallen">${kanten}${veld(t('daken.perPaneel'), stapper('wp', wp(v.wpPerPaneel), t('daken.perPaneel'), ' Wp'))}</div>
-      ${veld(t('daken.gemetenDoor'), metersHier.length
-        ? `<div class="dk-seg">${metersHier.map((m) => seg('data-dak-meter', m.id, m.naam, v.meter === m.id)).join('')}${seg('data-dak-meter', '', t('daken.weetNiet'), v.meter == null)}</div>`
-        : `<span class="klein">${esc(t('daken.geenMeters'))}</span>`)}
+      ${veld(t('daken.gemetenDoor'), meterKeuze(d, v))}
       ${metingBij(d, v)}
       <div class="dk-voet"><button type="button" class="lig-knop zacht" data-dak-scherm="alle">${esc(t('daken.alle'))}</button>${nieuw ? '' : `<button type="button" class="lig-link dk-weg" data-dak-weg>${esc(t('daken.weg'))}</button>`}<button type="button" class="lig-knop" data-dak-bewaar>${esc(t('daken.bewaar'))}</button></div>`;
   }
@@ -165,10 +176,13 @@ const dakvlakken = (() => {
     const kleur = new Map((d.meters ?? []).map((m, i) => [m.id, METERKLEUR[i % METERKLEUR.length]]));
     const groepen = (d.meters ?? []).map((m) => ({ m, vlakken: d.vlakken.filter((v) => v.meter === m.id) })).filter((g) => g.vlakken.length);
     const zonder = d.vlakken.filter((v) => v.meter == null || !kleur.has(v.meter));
-    const kaart = (k, kop, zin, vlakken) => `<div class="dk-meter"><i style="background: ${k}"></i><span class="dk-naar">${vlakken.map((v) => letter(v, k)).join('')}</span><b>${esc(kop)}</b><small>${esc(zin)}</small></div>`;
+    const kaart = (k, kop, zin, vlakken, knop = '') => `<div class="dk-meter"><i style="background: ${k}"></i><span class="dk-naar">${vlakken.map((v) => letter(v, k)).join('')}</span><b>${esc(kop)}</b><small>${esc(zin)}</small>${knop}</div>`;
+    // Eén omvormer: met één tik ook de vlakken zonder meter erbij.
+    const een = (d.meters ?? []).length === 1 ? d.meters[0] : null;
+    const allesKnop = een ? `<button type="button" class="lig-knop zacht dk-alles" data-dak-alles="${esc(een.id)}">${esc(t('daken.meter.alles', { naam: een.naam }))}</button>` : '';
     const lijst = [
       ...groepen.map((g) => kaart(kleur.get(g.m.id), g.m.naam, t(g.vlakken.length > 1 ? 'daken.meter.samen' : 'daken.meter.precies'), g.vlakken)),
-      ...(zonder.length ? [kaart('rgb(255 255 255 / 0.35)', t('daken.meter.geen'), t('daken.meter.geenZin'), zonder)] : []),
+      ...(zonder.length ? [kaart('rgb(255 255 255 / 0.35)', t('daken.meter.geen'), t('daken.meter.geenZin'), zonder, allesKnop)] : []),
     ].join('');
     return `<div class="pan-kop3"><h3 class="kop-3">${esc(t('daken.metersKop'))}</h3></div>
       <div class="dk-lijst">${lijst || `<p class="mini">${esc(t('daken.leeg'))}</p>`}</div>
@@ -248,6 +262,8 @@ const dakvlakken = (() => {
       return 'teken';
     }
     if (knop.hasAttribute('data-dak-geen')) return { geen: true };
+    // Alle vlakken zonder meter bij deze omvormer.
+    if (ds.dakAlles) return { vlakken: d.vlakken.map((v) => ({ ...kaal(v), meter: (d.meters ?? []).some((m) => m.id === v.meter) ? v.meter : ds.dakAlles })) };
     const c = s.concept;
     if (!c) return null;
     if (knop.hasAttribute('data-dak-bewaar')) {

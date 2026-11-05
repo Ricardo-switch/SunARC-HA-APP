@@ -6,9 +6,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Geometry } from '../src/core/model.js';
-import { validateConnection } from '../src/web/aansluiting.js';
+import { connectionView, validateConnection, type FoundPower } from '../src/web/aansluiting.js';
 import { dakenUitOud, leesDaken, piekVan, zonnevlakken, type DakVlak, type Daken } from '../src/web/daken.js';
 import { dakenNu, kiesLigging, type LiggingInput, type Meting } from '../src/web/ligging.js';
+import { exampleSite } from './site.js';
 
 const vlak = (x: Partial<DakVlak> = {}): DakVlak => ({
   letter: 'A',
@@ -150,5 +151,38 @@ describe('wat de berekening krijgt', () => {
     expect(nu.bewaard).toBe(false);
     expect(zonnevlakken(nu.daken)).toEqual(kiesLigging(i)!.geometry.solarPlanes);
     expect(dakenNu({ ...i, daken: wendy })).toEqual({ daken: wendy, bewaard: true });
+  });
+});
+
+describe('de meters op de pagina', () => {
+  const vermogens: FoundPower[] = [
+    { id: 'sensor.solaredge_i1_ac_power', naam: 'Solaredge I1 AC Power', w: 1200, rol: 'zon' },
+    { id: 'sensor.solaredge_i1_dc_power', naam: 'Solaredge I1 DC Power', w: 1250, rol: 'zon' },
+    { id: 'sensor.power_production_next_hour', naam: 'Solar production forecast Estimated power production - in 1 hour', w: 900, rol: 'zon' },
+    { id: 'sensor.pv_overschot', naam: 'PV overschot (W)', w: 300, rol: 'zon' },
+    { id: 'sensor.solaredge_opslagvermogen', naam: 'solaredge Opslagvermogen', w: 0, rol: 'zon' },
+  ];
+  const found = { fasen: [], apparaten: [], vermogens };
+  const view = (body: Record<string, unknown>) => {
+    const checked = validateConnection(body, found);
+    if (!checked.ok) throw new Error(checked.reden);
+    return connectionView({ base: exampleSite, found, applied: { toegevoegd: [], overgeslagen: [] }, answersAtStart: null, answers: checked.answers, solar: null }).daken;
+  };
+
+  it('kiest alleen uit de omvormers die bij Omvormers en meters gekozen zijn', () => {
+    const d = view({ panelen: { ligging: 'voorkant', aantal: 6 }, omvormers: ['sensor.solaredge_i1_ac_power'] });
+    expect(d.meters).toEqual([{ id: 'sensor.solaredge_i1_ac_power', naam: 'Solaredge I1 AC Power' }]);
+    // Ook niet een meter die een vlak eerder kreeg.
+    const oud = view({ panelen: { ligging: 'voorkant', aantal: 6 }, omvormers: ['sensor.solaredge_i1_ac_power'], daken: { vlakken: [vlak({ meter: 'sensor.solaredge_i1_dc_power' })] } });
+    expect(oud.meters.map((m) => m.id)).toEqual(['sensor.solaredge_i1_ac_power']);
+  });
+
+  it('geeft bij één omvormer elk vlak die omvormer, tot de bewoner bewaart', () => {
+    const d = view({ panelen: { ligging: 'beide', voorkant: 6, achterkant: 6 }, omvormers: ['sensor.solaredge_i1_ac_power'] });
+    expect(d.bewaard).toBe(false);
+    expect(d.vlakken.length).toBeGreaterThan(0);
+    expect(d.vlakken.every((v) => v.meter === 'sensor.solaredge_i1_ac_power')).toBe(true);
+    const bewaard = view({ panelen: { ligging: 'voorkant', aantal: 6 }, omvormers: ['sensor.solaredge_i1_ac_power'], daken: { vlakken: [vlak()] } });
+    expect(bewaard.vlakken[0]?.meter).toBeNull();
   });
 });

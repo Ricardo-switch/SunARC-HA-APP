@@ -11809,6 +11809,12 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
   tekent, met de letters; wat het nog niet kan tekenen, staat eronder. Bij
   het hoofddak staat wat de meting zegt, met Neem over. Bewaren zet ook de
   oude antwoorden (`panelen`, `elders`) gelijk, voor Thuis en Inrichten.
+- **De meter per vlak** (0.122.1, Ricardo 5 november 2026): alleen de
+  omvormers die bij Omvormers en meters gekozen zijn, of Weet ik niet; elke
+  sensor met een vermogen was te veel en onoverzichtelijk. Meer vlakken aan
+  één omvormer kiezen allemaal die omvormer. Leest SunArc één omvormer, dan
+  staat die bij elk nog niet bewaard vlak, en Hoort bij zet hem bij alle
+  vlakken zonder meter.
 - **Nog niet:** de meter verdeelt nog niets (stap 4 en 5), en de omvormer
   kapt alle vlakken samen af op één vermogen, ook als een garage een eigen
   omvormer heeft.

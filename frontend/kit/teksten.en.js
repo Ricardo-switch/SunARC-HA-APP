@@ -4238,7 +4238,9 @@
   'daken.meter.samen': 'measures these planes together',
   'daken.meter.precies': 'measures this plane exactly',
   'daken.meter.geen': 'No meter yet',
-  'daken.meter.geenZin': 'Choose at the plane which meter measures its panels.',
+  'daken.meter.geenZin': 'Choose at the plane which inverter measures its panels; the same one as another plane is fine.',
+  'daken.meter.alles': 'Belongs to {naam}',
+  'daken.gemetenDoorUitleg': 'Are several planes on one inverter? Then choose it at each of those planes.',
   'daken.metersUitleg': 'A meter of its own per plane, such as a string or micro-inverters, shows exactly what each plane delivers.',
   'daken.nietGetekend': { one: '{letters} is not in the drawing yet; that comes with the view from above.', other: '{letters} are not in the drawing yet; that comes with the view from above.' },
 };

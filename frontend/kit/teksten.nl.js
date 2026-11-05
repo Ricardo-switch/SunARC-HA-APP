@@ -4243,7 +4243,9 @@
   'daken.meter.samen': 'meet deze vlakken samen',
   'daken.meter.precies': 'meet dit vlak precies',
   'daken.meter.geen': 'Nog geen meter',
-  'daken.meter.geenZin': 'Kies bij het vlak welke meter zijn panelen meet.',
+  'daken.meter.geenZin': 'Kies bij het vlak welke omvormer zijn panelen meet; dezelfde als bij een ander vlak mag.',
+  'daken.meter.alles': 'Hoort bij {naam}',
+  'daken.gemetenDoorUitleg': 'Liggen meer vlakken aan één omvormer? Kies hem dan bij elk van die vlakken.',
   'daken.metersUitleg': 'Een eigen meter per vlak, zoals een string of micro-omvormers, laat precies zien wat elk vlak levert.',
   'daken.nietGetekend': { one: '{letters} staat nog niet in de tekening; dat komt met de tekening van boven.', other: '{letters} staan nog niet in de tekening; dat komt met de tekening van boven.' },
 };

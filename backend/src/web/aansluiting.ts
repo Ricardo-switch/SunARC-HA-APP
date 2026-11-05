@@ -787,25 +787,26 @@ export interface DakenView {
   readonly omvormerW: number | null;
   /** Wat de meting over het hoofddak zegt (besluit 157), om per vlak naast te leggen. */
   readonly meting: readonly { readonly azimuthDeg: number; readonly tiltDeg: number; readonly peakW: number }[] | null;
-  /** De meters om uit te kiezen: de omvormers die SunArc leest, met hun naam. */
+  /**
+   * De meters om uit te kiezen: alleen de omvormers die bij Omvormers en meters
+   * gekozen zijn (Ricardo, 5 november 2026), met hun naam.
+   */
   readonly meters: readonly { readonly id: string; readonly naam: string }[];
 }
 
 function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): DakenView {
   const { daken, bewaard } = dakenNu(i);
   const ids = c.answers?.omvormers?.length ? c.answers.omvormers : (c.inGebruik?.omvormers ?? []);
-  // Een meter die een vlak al heeft, blijft te kiezen, ook als hij niet meer in de lijst staat.
-  // Ook een string of micro-omvormers: die telt SunArc niet op, maar ze meten wel een vlak.
-  const zon = (c.found.vermogens ?? []).filter((v) => v.rol === 'zon').map((v) => v.id);
-  const alle = [...new Set([...ids, ...zon, ...daken.vlakken.map((v) => v.meter).filter((m): m is string => m != null)])];
   const naam = (id: string) => c.found.vermogens?.find((v) => v.id === id)?.naam ?? id;
+  // Leest SunArc één omvormer, dan meet die alles wat nog niet bewaard is.
+  const vanzelf = !bewaard && ids.length === 1 ? ids[0]! : null;
   return {
     bewaard,
-    vlakken: daken.vlakken.map((v) => ({ ...v, peakW: Math.round(piekVan(v)) })),
+    vlakken: daken.vlakken.map((v) => ({ ...v, meter: v.meter ?? vanzelf, peakW: Math.round(piekVan(v)) })),
     voorgevelDeg: daken.voorgevelDeg,
     omvormerW: daken.omvormerW,
     meting: c.meting ? c.meting.vlakken.map((v) => ({ azimuthDeg: Math.round(v.azimuthDeg) % 360, tiltDeg: Math.round(v.tiltDeg), peakW: v.peakW })) : null,
-    meters: alle.map((id) => ({ id, naam: naam(id) })),
+    meters: ids.map((id) => ({ id, naam: naam(id) })),
   };
 }
 
