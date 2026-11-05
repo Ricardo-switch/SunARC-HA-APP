@@ -11753,7 +11753,7 @@ al met elk aantal `solarPlanes`; de app kent alleen voorkant, achterkant,
 beide of plat met één helling, garage, carport en tuinhuis tellen niet mee in
 de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 
-*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, stap 4 in 0.124.0, de rest nog niet):*
+*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, stap 4 in 0.124.0, stap 5 in 0.125.0; 2b en 3 nog niet):*
 
 - **Elk dakvlak apart,** met een letter, een plek (hoofddak, dwarskap,
   uitbouw, garage, carport, tuinhuis of schuur, de grond, gevel of balkon), een
@@ -11877,9 +11877,29 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 - **Verdelen:** wat één meter op de laatste hele dag mat, per vlak naar wat
   elk vlak bij heldere lucht zou leveren; bij Omvormers en meters als
   grafiek, als de meter meer vlakken meet.
-- **Nog niet:** Thuis en Opbrengst per vlak (stap 5), een vlak dat
-  achterblijft melden, en alle vlakken weghalen valt nog terug op het
+- **Nog niet:** alle vlakken weghalen valt nog terug op het
   instellingenbestand (NAS en Pi).
+
+*Stap 5 gebouwd (0.125.0, 5 november 2026), keuzes van Ricardo:*
+
+- **Thuis:** met meer dakvlakken zegt het label bij de panelen "2 daken · tik
+  voor elk dak"; een tik geeft De zon op je daken: het huis van boven, per vlak
+  wat het nu levert (wat zijn meter meet, verdeeld naar de heldere lucht per
+  vlak) en een streepje voor wat het bij heldere lucht zou leveren.
+- **Opbrengst:** een wissel Samen / Per dak; per vlak de kWh van de gekozen
+  periode (per uur wat elke meter gemiddeld mat, uit de statistiek, verdeeld
+  naar de heldere lucht) en per paneel, zodat daken van verschillende grootte
+  te vergelijken zijn.
+- **Achterblijven** (`achterblijven` in meten-vlakken.ts): met een eigen meter
+  per vlak per paneel vergeleken met het beste (18% minder telt). Met één
+  meter: blijft het dak op zonnige dagen in een deel van de dag (ochtend,
+  middag, avond, naar de stand van de zon) een kwart of meer achter bij het
+  beste deel, dan noemt SunArc het vlak dat dan de meeste zon heeft, met
+  "waarschijnlijk", en zegt de kop niet welk vlak. Eerlijk: met één meter is
+  per vlak niets te meten, alleen wanneer het dak minder geeft.
+- **Waar:** bovenaan Daken en panelen met de lijn van de zonnige dagen (Ik
+  kijk het na / Invoer aanpassen), onder Per dak bij Opbrengst, en in de bel
+  zodra het op drie zonnige dagen te zien was.
 
 - **Nog niet:** de meter verdeelt nog niets (stap 4 en 5), en de omvormer
   kapt alle vlakken samen af op één vermogen, ook als een garage een eigen

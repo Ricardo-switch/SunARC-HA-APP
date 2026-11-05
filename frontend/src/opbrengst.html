@@ -68,6 +68,18 @@
   .sluipingang:hover { border-color: rgb(var(--wit) / 0.3); }
   .sluipingang:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
 </style>
+  <style>
+    /* Per dak (besluit 254, stap 5). */
+    .dakrijen { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+    .dakrij { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13.5px; }
+    .daknaam { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .dakletter { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font: 800 12px var(--kop); color: #0b1424; }
+    .dakstaaf { position: relative; height: 8px; border-radius: 6px; background: rgb(var(--wit) / 0.06); overflow: hidden; }
+    .dakstaaf i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; }
+    .dakrij b { text-align: right; font: 600 15px var(--kop); white-space: nowrap; }
+    .dakrij b small { display: block; font: 600 11.5px var(--romp); color: var(--gedempt); }
+    .dakopval { margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: rgba(255, 138, 107, 0.08); border: 1px solid rgba(255, 138, 107, 0.25); font-size: 13px; color: var(--zacht); line-height: 1.45; }
+  </style>
 </head>
 <body class="lucht lucht-dag">
   <div id="wand" class="wand">
@@ -103,6 +115,7 @@
   <script src="kit/sankey.js"></script>
   <script src="basis.js"></script>
   <script src="rondleiding.js"></script>
+  <script src="dakvlakken.js"></script>
   <script src="opbrengst.js"></script>
 </body>
 </html>

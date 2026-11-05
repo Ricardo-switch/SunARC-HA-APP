@@ -26,7 +26,8 @@ import type { SiteConfig } from '../core/model.js';
 import type { Lang } from './assistant.js';
 import { heatStoreConfig, type FoundHeatStore } from './buffers-vinden.js';
 import { tekening, type Tekening } from './daken-tekening.js';
-import { metMeting, type VlakStand, type Verdeling } from './meten-vlakken.js';
+import { metMeting, nuPerVlak, type Achter, type VlakStand, type Verdeling } from './meten-vlakken.js';
+import type { SunPosition } from '../core/sun.js';
 import { leesDaken, piekVan, type Daken, type DakVlak } from './daken.js';
 import { VOORKANT_ZON, aantalVan, dakUitAanpassing, dakUitMeting, dakenNu, liggingView, type Dak, type LiggingView, type Meting, type VoorkantZon } from './ligging.js';
 
@@ -798,6 +799,10 @@ export interface DakenView {
   readonly vlakMeting: Readonly<Record<string, VlakStand>>;
   /** Per meter de laatste hele dag, verdeeld per vlak. */
   readonly verdeling: Readonly<Record<string, Verdeling>>;
+  /** Wat elk vlak nu levert en bij heldere lucht zou leveren, in W (stap 5). */
+  readonly nu: Readonly<Record<string, { readonly w: number | null; readonly helderW: number }>>;
+  /** Een vlak dat achterblijft (stap 5), of null. */
+  readonly achter: Achter | null;
   /** Het huis van boven (stap 2a): de gebouwen, hun dakvlakken en waar elk vlak ligt. */
   readonly tekening: Tekening;
   /** Kan SunArc de omtrek uit de kaart halen (is de plek van het huis bekend)? */
@@ -823,6 +828,19 @@ function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): Dake
     }),
     vlakMeting: c.vlakMeting?.perLetter ?? {},
     verdeling: c.vlakMeting?.verdeling ?? {},
+    // Per meter wat hij nu meet, verdeeld over zijn vlakken (stap 5).
+    nu: (() => {
+      if (!c.zonNu) return {};
+      const w = (id: string) => c.found.vermogens?.find((x) => x.id === id)?.w ?? null;
+      const groepen = new Map<string, DakVlak[]>();
+      for (const v of daken.vlakken) {
+        const id = v.meter ?? (ids.length === 1 ? ids[0]! : '');
+        groepen.set(id, [...(groepen.get(id) ?? []), v]);
+      }
+      const somW = ids.map(w).some((x) => x == null) ? null : ids.reduce((s, id) => s + (w(id) ?? 0), 0);
+      return nuPerVlak([...groepen].map(([id, vlakken]) => ({ vlakken, meterW: id ? w(id) : somW })), c.zonNu);
+    })(),
+    achter: c.vlakMeting?.achter ?? null,
     tekening: tekening(daken),
     kaart: c.kaart ?? false,
   };
@@ -846,7 +864,9 @@ export interface ConnectionContext {
   /** Kan de omtrek uit de kaart komen (besluit 254)? */
   readonly kaart?: boolean;
   /** De meting per dakvlak en wat elke meter gisteren mat, verdeeld per vlak (stap 4). */
-  readonly vlakMeting?: { readonly perLetter: Readonly<Record<string, VlakStand>>; readonly verdeling: Readonly<Record<string, Verdeling>> } | null;
+  readonly vlakMeting?: { readonly perLetter: Readonly<Record<string, VlakStand>>; readonly verdeling: Readonly<Record<string, Verdeling>>; readonly achter?: Achter | null } | null;
+  /** De zon van nu, voor wat elk vlak nu levert (stap 5). */
+  readonly zonNu?: SunPosition | null;
   /** Wat elke omvormer hooguit levert, uit zijn typenummer, per sensor. */
   readonly grenzen?: Readonly<Record<string, number>>;
 }

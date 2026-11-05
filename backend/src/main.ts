@@ -75,8 +75,9 @@ import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
+import { sunPosition } from './core/sun.js';
 import { panelenVan, type DakVlak } from './web/daken.js';
-import { meetVlakken, metMeting, verdeelDag, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
+import { achterblijven, meetVlakken, metMeting, opbrengstPerVlak, verdeelDag, type Achter, type MeterGroep, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
 import { findHeatStores } from './web/buffers-vinden.js';
 import { kiesLigging, meetLigging, omvormerUitType, type Meting, type PanelenAntwoord } from './web/ligging.js';
 import { alarmSensoren, vindRookmelders } from './web/rookmelders.js';
@@ -1089,8 +1090,8 @@ function grenzenGevonden(): Record<string, number> {
  * geen enkel vlak een meter heeft, bij alle omvormers samen. Bewaard tot er
  * iets verandert.
  */
-let vlakMetingBewaard: { sleutel: string; uit: { perLetter: Record<string, VlakStand>; verdeling: Record<string, Verdeling> } } | null = null;
-function vlakMetingNu(): { perLetter: Record<string, VlakStand>; verdeling: Record<string, Verdeling> } | null {
+let vlakMetingBewaard: { sleutel: string; uit: { perLetter: Record<string, VlakStand>; verdeling: Record<string, Verdeling>; achter: Achter | null } } | null = null;
+function vlakMetingNu(): { perLetter: Record<string, VlakStand>; verdeling: Record<string, Verdeling>; achter: Achter | null } | null {
   const d = connectionStore?.current?.daken;
   const cfg = siteConfig;
   if (!d?.vlakken.length || !location || !cfg || !liggingRijen) return null;
@@ -1107,6 +1108,7 @@ function vlakMetingNu(): { perLetter: Record<string, VlakStand>; verdeling: Reco
   }
   const perLetter: Record<string, VlakStand> = {};
   const verdeling: Record<string, Verdeling> = {};
+  const meterGroepen: MeterGroep[] = [];
   for (const [id, vlakken] of groepen) {
     const rijen = id === '' ? liggingRijen.rijen : liggingPerId.get(id)!;
     const grens = id === '' ? omvormerGevonden() : (d.grenzen?.[id] ?? grenzen[id] ?? (ids.length === 1 ? (d.omvormerW ?? omvormerGevonden()) : null));
@@ -1116,8 +1118,11 @@ function vlakMetingNu(): { perLetter: Record<string, VlakStand>; verdeling: Reco
     const nu = metMeting({ ...d, vlakken }, perLetter).vlakken;
     const v = verdeelDag(rijen, nu, location, cfg.timezone, Date.now());
     if (v) verdeling[id || 'samen'] = v;
+    meterGroepen.push({ id, vlakken: nu, rows: rijen, grensW: grens });
   }
-  vlakMetingBewaard = { sleutel, uit: { perLetter, verdeling } };
+  // Een vlak dat achterblijft (stap 5): per meter, en per deel van de dag.
+  const achter = achterblijven(meterGroepen, location, cfg.timezone);
+  vlakMetingBewaard = { sleutel, uit: { perLetter, verdeling, achter } };
   return vlakMetingBewaard.uit;
 }
 
@@ -1213,7 +1218,13 @@ function meldingenRonde(): void {
     huis: h,
     states: allStates,
     addOn: version.installatie === 'add-on',
-    panelenVoorstel: connectionStore?.current?.dak == null && metingNu() != null,
+    // Met bewaarde daken (besluit 254) is er niets meer te bevestigen.
+    panelenVoorstel: connectionStore?.current?.dak == null && !connectionStore?.current?.daken?.vlakken.length && metingNu() != null,
+    // Een vlak dat op minstens drie zonnige dagen achterbleef (stap 5).
+    dakAchter: (() => {
+      const a = vlakMetingNu()?.achter;
+      return a && a.dagen >= 3 ? { letter: a.letter, wanneer: a.wanneer, minderPct: a.minderPct, eigenMeter: a.eigenMeter } : null;
+    })(),
     winterdagen: analyse?.latest?.dataset?.seizoenen?.find((s) => s.seizoen === 'winter')?.dagen ?? null,
     profiel: runner?.latest?.explanation.profile ?? null,
     hoofd: bewonersStore ? hoofdVan(bewonersStore.current) : null,
@@ -1427,6 +1438,46 @@ const historie = new Historie({
   vraag: (type, velden) => client.query<Record<string, { start: number | string; mean?: number | null }[]>>(type, velden),
 });
 const historieVan = (vanMs: number, totMs: number) => historie.van(vanMs, totMs);
+
+/**
+ * De opbrengst per dakvlak over een periode (besluit 254, stap 5): per uur wat
+ * elke meter gemiddeld mat, uit de statistiek van Home Assistant, verdeeld naar
+ * de heldere lucht per vlak. Een half uur bewaard per periode.
+ */
+const dakenOpbrengstBewaard = new Map<string, { at: number; uit: { vlakken: { letter: string; plek: string; aantal: number; kWh: number }[]; achter: Achter | null } }>();
+async function dakenOpbrengst(vanMs: number, totMs: number): Promise<{ vlakken: { letter: string; plek: string; aantal: number; kWh: number }[]; achter: Achter | null } | null> {
+  const a = connectionStore?.current;
+  const ids = siteConfig?.solarProduction ? [siteConfig.solarProduction.id, ...(siteConfig.solarExtra ?? []).map((p) => p.id)] : [];
+  if (!a?.daken?.vlakken.length || !location || !ids.length) return null;
+  const d = metMeting(a.daken, vlakMetingNu()?.perLetter ?? {});
+  const tot = Math.min(totMs, Date.now());
+  const sleutel = JSON.stringify([vanMs, tot - (tot % 1_800_000), d.vlakken]);
+  const b = dakenOpbrengstBewaard.get(sleutel);
+  if (b && Date.now() - b.at < 1_800_000) return b.uit;
+  const raw = await client.query<Record<string, { start: number | string; mean?: number | null }[]>>('recorder/statistics_during_period', {
+    start_time: new Date(vanMs).toISOString(),
+    end_time: new Date(tot).toISOString(),
+    statistic_ids: ids,
+    period: 'hour',
+    types: ['mean'],
+    units: { power: 'W' },
+  });
+  const reeks = (id: string): PowerRow[] => (raw?.[id] ?? [])
+    .filter((r) => typeof r.mean === 'number' && Number.isFinite(r.mean))
+    .map((r) => ({ startMs: typeof r.start === 'number' ? r.start : Date.parse(r.start), meanW: r.mean as number }));
+  const groepen = new Map<string, DakVlak[]>();
+  for (const v of d.vlakken) {
+    const id = v.meter ?? (ids.length === 1 ? ids[0]! : '');
+    groepen.set(id, [...(groepen.get(id) ?? []), v]);
+  }
+  const kWh = opbrengstPerVlak(
+    [...groepen].map(([id, vlakken]) => ({ vlakken, rows: id ? reeks(id) : somPerVak(ids.map(reeks), [], true) })),
+    location,
+  );
+  const uit = { vlakken: d.vlakken.map((v) => ({ letter: v.letter, plek: v.plek, aantal: panelenVan(v), kWh: kWh[v.letter] ?? 0 })), achter: vlakMetingNu()?.achter ?? null };
+  dakenOpbrengstBewaard.set(sleutel, { at: Date.now(), uit });
+  return uit;
+}
 
 /** Welke rookmelders nu iets zien, met hun kamer (21 oktober 2026). */
 function alarmNu(): AlarmMelder[] {
@@ -2009,6 +2060,7 @@ if (webPort != null) {
     exacteLocatie: () =>
       client.query<HaCoreConfig>('get_config').then((c) => (typeof c.latitude === 'number' && typeof c.longitude === 'number' ? { latDeg: c.latitude, lonDeg: c.longitude } : null)),
     historie: historieVan,
+    dakenOpbrengst,
     sluipverbruik,
     house: houseReport,
     ...(lightSwitch ? { lights: lightSwitch } : {}),
@@ -2292,8 +2344,9 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
         omvormerGevonden: omvormerGevonden(),
         // De omtrek uit de kaart kan zodra Home Assistant de plek gaf (besluit 254).
         kaart: location != null,
-        // De meting per dakvlak en de grens per omvormer (stap 4).
+        // De meting per dakvlak en de grens per omvormer (stap 4); de zon van nu voor elk vlak nu (stap 5).
         vlakMeting: vlakMetingNu(),
+        zonNu: location ? sunPosition(Date.now(), location.latDeg, location.lonDeg) : null,
         grenzen: grenzenGevonden(),
         inGebruik: {
           netmeter: siteConfig?.power.gridPower ? { afname: siteConfig.power.gridPower.id, terug: siteConfig.power.gridExport?.id ?? null } : null,

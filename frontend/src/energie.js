@@ -29,7 +29,13 @@ let zelf = null;
  */
 const ligStaat = { aanpassen: false, concept: null, zelf: false, na: () => teken() };
 /** Daken en panelen (besluit 254, dakvlakken.js): welk scherm, en het vlak dat open staat. */
-const dakStaat = { scherm: 'alle', concept: null, origineel: null, genomen: false, zicht: 'boven', gebouw: null, kandidaat: null, kaart: null };
+const dakStaat = { scherm: 'alle', concept: null, origineel: null, genomen: false, zicht: 'boven', gebouw: null, kandidaat: null, kaart: null, achterGezien: (() => {
+  try {
+    return localStorage.getItem('sc-dak-gezien');
+  } catch {
+    return null;
+  }
+})() };
 /** Het deel dat het laatst getekend werd: wie Daken en panelen opent, begint bij de vlakken. */
 let vorigDeel = null;
 

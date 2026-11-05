@@ -30,7 +30,7 @@ import { metLidwoord } from './kamerwoorden.js';
 
 export const MELDINGEN_FILE = 'meldingen.json';
 
-export type MeldingSoort = 'nieuw' | 'weg' | 'stil' | 'batterij' | 'filter' | 'meter' | 'versie' | 'mijlpaal' | 'comfort' | 'panelen' | 'rook' | 'update' | 'sluip';
+export type MeldingSoort = 'nieuw' | 'weg' | 'stil' | 'batterij' | 'filter' | 'meter' | 'versie' | 'mijlpaal' | 'comfort' | 'panelen' | 'rook' | 'update' | 'sluip' | 'dak';
 
 export interface Melding {
   /** Vast per onderwerp, zoals `stil:light.hal`: zo komt hetzelfde niet dubbel. */
@@ -90,6 +90,11 @@ export interface MeldingenBron {
   readonly winterdagen: number | null;
   /** Hoe de panelen liggen (besluit 157): gemeten en nog niet bevestigd. Weg zonder panelen. */
   readonly panelen?: { readonly voorstel: boolean } | null;
+  /**
+   * Een dakvlak dat achterblijft (besluit 254, stap 5), op minstens drie zonnige
+   * dagen; `letter` null als het niet aan één vlak ligt.
+   */
+  readonly dak?: { readonly letter: string | null; readonly wanneer: 'ochtend' | 'middag' | 'avond' | 'dag'; readonly minderPct: number; readonly eigenMeter: boolean } | null;
   /**
    * Een nacht met opvallend sluipverbruik (besluit 192), de laatste nacht van
    * vandaag of gisteren; weg of null als die nacht gewoon was.
@@ -209,6 +214,13 @@ const WOORDEN = {
       klaar: (naam: string) => `${naam} levert weer`,
       klaarTekst: 'De metingen komen weer binnen.',
     },
+    dak: {
+      titel: (letter: string | null) => (letter ? `Dakvlak ${letter} levert minder` : 'Je dak levert minder'),
+      wanneer: { ochtend: "'s ochtends", middag: "'s middags", avond: "'s avonds", dag: 'de hele dag' },
+      tekst: (pct: number, wanneer: string, zeker: boolean) => `Op zonnige dagen ${wanneer} ${pct}% minder dan bij heldere lucht${zeker ? '' : ', waarschijnlijk door schaduw'}. Kijk of er iets voor staat.`,
+      klaar: 'Je daken leveren weer zoals verwacht',
+      klaarTekst: 'Op de zonnige dagen klopt het weer.',
+    },
     panelen: {
       titel: 'Je panelen zijn gemeten',
       tekst: 'Uit een heldere dag volgt hoe ze liggen. Kijk of de richting, de helling en het vermogen kloppen.',
@@ -301,6 +313,13 @@ const WOORDEN = {
       waarom: 'Without this meter the figures and the sun are not right.',
       klaar: (naam: string) => `${naam} is reporting again`,
       klaarTekst: 'The readings are coming in again.',
+    },
+    dak: {
+      titel: (letter: string | null) => (letter ? `Roof plane ${letter} delivers less` : 'Your roof delivers less'),
+      wanneer: { ochtend: 'in the morning', middag: 'around midday', avond: 'in the evening', dag: 'all day' },
+      tekst: (pct: number, wanneer: string, zeker: boolean) => `On sunny days ${wanneer} ${pct}% less than with a clear sky${zeker ? '' : ', probably because of shade'}. Check whether something is in front of it.`,
+      klaar: 'Your roofs deliver as expected again',
+      klaarTekst: 'On the sunny days it is right again.',
     },
     panelen: {
       titel: 'Your panels have been measured',
@@ -464,6 +483,14 @@ export function wat(bron: MeldingenBron): (Nieuwe & { en: MeldingWoorden })[] {
     uit.push(tweetalig((lang) => {
       const w = WOORDEN[lang];
       return { id: 'panelen:voorstel', soort: 'panelen', aandacht: true, titel: w.panelen.titel, tekst: w.panelen.tekst, actie: { label: w.bekijk, href: 'energie.html#panelen' }, klaar: { titel: w.panelen.klaar, tekst: w.panelen.klaarTekst } };
+    }));
+  }
+  // Een dakvlak dat achterblijft (besluit 254, stap 5): één melding per vlak en deel van de dag.
+  const dak = bron.dak;
+  if (dak) {
+    uit.push(tweetalig((lang) => {
+      const w = WOORDEN[lang];
+      return { id: `dak:${dak.letter ?? 'samen'}:${dak.wanneer}`, soort: 'dak', aandacht: true, titel: w.dak.titel(dak.eigenMeter ? dak.letter : null), tekst: w.dak.tekst(dak.minderPct, w.dak.wanneer[dak.wanneer], dak.eigenMeter), actie: { label: w.bekijk, href: 'energie.html#panelen' }, klaar: { titel: w.dak.klaar, tekst: w.dak.klaarTekst } };
     }));
   }
   // Sluipverbruik (besluit 192): één melding per reeks hoge nachten, met de laatste nacht erin.

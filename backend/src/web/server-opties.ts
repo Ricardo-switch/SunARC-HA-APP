@@ -4,6 +4,7 @@
  * vandaan haalt. Alleen beschrijvingen; de webserver zelf staat in server.ts.
  */
 
+import type { Achter } from './meten-vlakken.js';
 import { VERSIE } from '../version.js';
 import type { Sluipverbruik } from './sluipverbruik.js';
 import type { CameraNu } from './cameras.js';
@@ -194,6 +195,8 @@ export interface WebOptions {
    * nog niet heeft (17 oktober 2026). Null als die statistiek er niet is.
    */
   readonly historie?: (vanMs: number, totMs: number) => Promise<{ zon: readonly PowerRow[]; net: readonly PowerRow[] } | null>;
+  /** De opbrengst per dakvlak over een periode (besluit 254, stap 5), of null zonder daken. */
+  readonly dakenOpbrengst?: (vanMs: number, totMs: number) => Promise<{ vlakken: readonly { letter: string; plek: string; aantal: number; kWh: number }[]; achter: Achter | null } | null>;
   /** Het sluipverbruik (besluit 192): de nachten uit de statistiek van Home Assistant. */
   readonly sluipverbruik?: Sluipverbruik;
   /**

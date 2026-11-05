@@ -1293,7 +1293,8 @@
       const kleur = KLEUR[l.toon] ?? KLEUR.zacht;
       // In het licht een wit kaartje met donkere tekst, zoals de rest van de app (besluit 181).
       const tl = licht ? (k) => TEKST_LICHT[k] ?? k : (k) => k;
-      labels.push(`<g class="sc-label">
+      // Een label om aan te tikken (besluit 254, stap 5): `tik` komt als data-tik op de groep.
+      labels.push(`<g class="sc-label"${l.tik ? ` data-tik="${esc(l.tik)}" role="button" tabindex="0" style="cursor: pointer"${l.tikLabel ? ` aria-label="${esc(l.tikLabel)}"` : ''}` : ''}>
         <polyline points="${a[0]},${a[1]} ${lx},${ly}" fill="none" stroke="${kleur}" stroke-opacity="0.55" stroke-width="1"/>
         <circle cx="${a[0]}" cy="${a[1]}" r="3" fill="${kleur}"/>
         <rect x="${bx}" y="${by}" width="${breedte}" height="${hoogte}" rx="12" fill="${licht ? '#ffffff' : '#0E1828'}" fill-opacity="${licht ? 0.88 : 0.78}" stroke="${kleur}" stroke-opacity="${licht ? 0.6 : 0.35}"/>

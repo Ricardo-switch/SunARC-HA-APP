@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.124.0';
+export const VERSIE = '0.125.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,24 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.125.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'Thuis: met meer dakvlakken een tik op de panelen voor De zon op je daken, met per vlak wat het nu levert en wat het bij heldere lucht zou leveren',
+      'Opbrengst: bij Je panelen een wissel Samen of Per dak, met per vlak de kWh en wat een paneel daar opleverde',
+      'Blijft een dakvlak achter, dan zegt SunArc het: bovenaan Daken en panelen met de lijn van de zonnige dagen, bij Opbrengst en, na drie zonnige dagen, in de bel. Met één omvormer zegt hij wanneer het dak minder geeft en welk vlak dan waarschijnlijk de zon heeft',
+    ],
+    beter: ['Met bewaarde daken vraagt de bel niet meer om de gemeten panelen te bevestigen'],
+    en: {
+      nieuw: [
+        'Home: with several roof planes, tap the panels for The sun on your roofs, with per plane what it delivers now and what it would with a clear sky',
+        'Yield: a Together or Per roof switch at Your panels, with per plane the kWh and what one panel delivered there',
+        'When a roof plane falls behind, SunArc says so: at the top of Roofs and panels with the line of the sunny days, in Yield and, after three sunny days, in the bell. With one inverter it says when the roof gives less and which plane probably has the sun then',
+      ],
+      beter: ['With saved roofs the bell no longer asks to confirm the measured panels'],
+    },
+  },
   {
     versie: '0.124.0',
     datum: '2026-11-05',

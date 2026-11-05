@@ -1392,6 +1392,8 @@
     // Een nieuwe versie die klaarstaat (21 oktober 2026): een pijl omlaag.
     update: ['blauw', iconen.binnen('update')],
     panelen: ['geel', iconen.binnen('panelen')],
+    // Een dakvlak dat achterblijft (besluit 254, stap 5).
+    dak: ['geel', iconen.binnen('panelen')],
     // Een rookmelder (21 oktober 2026): rook, koolmonoxide of hitte, of vervangen.
     rook: ['rood', iconen.binnen('rook')],
     goed: ['groen', iconen.binnen('goed')],

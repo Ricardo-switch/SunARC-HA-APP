@@ -87,7 +87,10 @@ function huisModel() {
   const labels = [];
   // Zonder slimme meter (besluit 196): bij de panelen wat er geschat over is, en geen label bij het net.
   const over = s.geschat && zonKw > 0.05 ? [t('thuis.label.overGeschat', { kw: getal(s.overKw ?? 0) })] : [];
-  if (zonKw > 0.05) labels.push({ bij: 'panelen', titel: `${getal(zonKw)} kW`, groot: true, toon: 'zon', regels: [t('thuis.label.panelen'), ...over], dx: 64, dy: -70 });
+  // Met meer dakvlakken (besluit 254, stap 5): een tik geeft per vlak wat het nu levert.
+  const daken = aansluiting?.daken?.vlakken?.length ?? 0;
+  const dakRegel = daken > 1 ? [t('thuis.label.daken', { n: daken })] : [];
+  if (zonKw > 0.05) labels.push({ bij: 'panelen', titel: `${getal(zonKw)} kW`, groot: true, toon: 'zon', regels: [t('thuis.label.panelen'), ...dakRegel, ...over], dx: 64, dy: -70, ...(daken > 1 ? { tik: 'daken', tikLabel: t('daken.nu.kop') } : {}) });
   // Van het net in violet, terug in groen: dezelfde kleur als de lijn (besluit 187).
   if (!s.geschat) labels.push({ bij: 'net', titel: netKw > 0.05 ? t('thuis.label.vanNet', { kw: getal(netKw) }) : netKw < -0.05 ? t('thuis.label.terug', { kw: getal(-netKw) }) : t('thuis.label.nietsNet'), toon: netKw > 0.05 ? 'violet' : 'mint', dx: 40, dy: 64 });
 
@@ -1201,4 +1204,25 @@ app.bijVerandering('bewoners', async () => {
 app.live((nieuw) => {
   state = nieuw;
   teken();
+});
+
+/* De zon op je daken (besluit 254, stap 5): een tik op de panelen geeft per vlak wat het nu levert. */
+function openDaken() {
+  const d = aansluiting?.daken;
+  if (!d?.vlakken?.length) return;
+  document.querySelector('[data-dakblad]')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `<div class="dk-bladachter" data-dakblad><section class="glas dk-blad" role="dialog" aria-modal="true" aria-label="${app.esc(t('daken.nu.kop'))}">${dakvlakken.nuBlad(d)}</section></div>`);
+  document.querySelector('[data-dakblad-sluit]')?.focus();
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-tik="daken"]')) return void openDaken();
+  const blad = document.querySelector('[data-dakblad]');
+  if (blad && (e.target.closest('[data-dakblad-sluit]') || e.target === blad)) blad.remove();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.querySelector('[data-dakblad]')?.remove();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest?.('[data-tik="daken"]')) {
+    e.preventDefault();
+    openDaken();
+  }
 });

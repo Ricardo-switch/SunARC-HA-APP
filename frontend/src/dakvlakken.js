@@ -43,8 +43,9 @@ const dakvlakken = (() => {
   const letter = (v, kleur) => `<span class="dk-letter" style="background: ${kleur}">${esc(v.letter)}</span>`;
 
   /** Het kopje boven de lijst: hoe zeker het samen is. */
-  function chip(vlakken) {
+  function chip(vlakken, achter) {
     if (!vlakken.length) return '';
+    if (achter) return `<span class="pan-chip dk-chipmis">${esc(t('daken.achter.chip'))}</span>`;
     if (vlakken.some((v) => v.bron === 'schatting')) return `<span class="pan-chip leert">${esc(t('daken.chip.schatting'))}</span>`;
     if (vlakken.every((v) => v.bron === 'gemeten')) return `<span class="pan-chip gemeten">${esc(t('panelen3.chip.gemeten'))}</span>`;
     return `<span class="pan-chip zelf">${esc(t('panelen3.chip.zelf'))}</span>`;
@@ -73,7 +74,9 @@ const dakvlakken = (() => {
           <div class="pan-feit"><small>${esc(t('daken.helderNu'))}</small><b>${helder == null ? '–' : `${esc((helder / 1000).toLocaleString(window.taal.locale, { maximumFractionDigits: 1 }))} kW`}</b></div>
         </div>`
       : `<div class="dk-leeg"><p>${esc(t(o.geen ? 'daken.geenZin' : 'daken.leeg'))}</p>${o.geen ? '' : `<button type="button" class="lig-link" data-dak-geen>${esc(t('daken.geenPanelen'))}</button>`}</div>`;
-    return `<div class="pan-kop3"><h3 class="kop-3">${esc(t('daken.waarKop'))}</h3>${vlakken.length < LETTERS.length ? `<button type="button" class="lig-link" data-dak-scherm="erbij">${esc(t('daken.erbij'))}</button>` : ''}</div>
+    // Een vlak dat achterblijft (stap 5): bovenaan, zolang het niet nagekeken is.
+    const zorg = o.achter ?? '';
+    return `${zorg}<div class="pan-kop3"><h3 class="kop-3">${esc(t('daken.waarKop'))}</h3>${vlakken.length < LETTERS.length ? `<button type="button" class="lig-link" data-dak-scherm="erbij">${esc(t('daken.erbij'))}</button>` : ''}</div>
       ${lijst}
       <div class="dk-voet"><span class="mini">${esc(t('daken.uitleg'))}</span><button type="button" class="lig-knop zacht" data-dak-scherm="meters">${esc(t('daken.meters'))}</button></div>`;
   }
@@ -463,11 +466,11 @@ const dakvlakken = (() => {
               ? gebouwScherm(d, s)
               : s.scherm === 'kandidaat'
                 ? kandidaatScherm()
-                : alle(d, o);
+                : alle(d, { ...o, achter: achterKaart(d, s) });
     // Van boven of het huis (besluit 254): standaard van boven.
     const wissel = `<span class="dk-wissel" role="group">${['boven', 'huis'].map((z) => `<button type="button" data-dak-zicht="${z}" aria-pressed="${(s.zicht ?? 'boven') === z}">${esc(t(`daken.zicht.${z}`))}</button>`).join('')}</span>`;
     return `<div class="pan3 dk">
-      <div class="pan-kop"><h2 class="kop-2">${esc(t('daken.titel'))}</h2>${chip(vlakken)}${d ? wissel : ''}</div>
+      <div class="pan-kop"><h2 class="kop-2">${esc(t('daken.titel'))}</h2>${chip(vlakken, d?.achter && s.achterGezien !== `${d.achter.letter}:${d.achter.wanneer}`)}${d ? wissel : ''}</div>
       <div class="pan-veld">
         ${d ? podium(d, s) : ''}
         <div class="pan-rechts">${rechts}</div>
@@ -527,6 +530,16 @@ const dakvlakken = (() => {
       return 'teken';
     }
     if (knop.hasAttribute('data-dak-geen')) return { geen: true };
+    // Ik kijk het na: de melding weg tot er iets anders achterblijft.
+    if (ds.dakGezien) {
+      s.achterGezien = ds.dakGezien;
+      try {
+        localStorage.setItem('sc-dak-gezien', ds.dakGezien);
+      } catch {
+        // Zonder opslag komt hij bij de volgende keer terug.
+      }
+      return 'teken';
+    }
     if (ds.dakZicht) {
       s.zicht = ds.dakZicht;
       return 'teken';
@@ -784,5 +797,76 @@ const dakvlakken = (() => {
   /** Voor de rij op Energie: "3 vlakken, 7,2 kWp". */
   const kortZin = (d) => (d?.vlakken?.length ? t('daken.zin', { n: d.vlakken.length, kwp: kWp(d.vlakken.reduce((s, v) => s + piek(v), 0)) }) : null);
 
-  return { vorm, klik, verander, oudeAntwoorden, opHetHuis, nietGetekend, kortZin, piek, panelen, vanKaart, gebouwenUit };
+  /** Wanneer, in woorden, voor een vlak dat achterblijft. */
+  const wanneerVan = (w) => t(`daken.wanneer.${w}`);
+
+  /**
+   * De zin bij een vlak dat achterblijft (stap 5): met een eigen meter per
+   * paneel vergeleken; met één meter "waarschijnlijk".
+   */
+  function achterZin(a) {
+    if (!a) return '';
+    if (a.eigenMeter && a.vergelijk) return t('daken.achter.vergelijk', { letter: a.letter ?? '?', pct: a.minderPct, ander: a.vergelijk });
+    if (a.letter) return t(a.eigenMeter ? 'daken.achter.zeker' : 'daken.achter.waarschijnlijk', { letter: a.letter, pct: a.minderPct, wanneer: wanneerVan(a.wanneer) });
+    return t('daken.achter.dak', { pct: a.minderPct, wanneer: wanneerVan(a.wanneer) });
+  }
+
+  /** De lijn van de zonnige dagen: verwacht gestippeld, gemeten in oranje, het deel van de dag gekleurd. */
+  function achterLijn(a) {
+    const l = a?.lijn ?? [];
+    if (l.length < 6) return '';
+    const W = 400;
+    const H = 96;
+    const van = Math.floor(l[0][0]);
+    const tot = Math.ceil(l.at(-1)[0]);
+    const top = Math.max(...l.map((p) => Math.max(p[1], p[2]))) * 1.05 || 1;
+    const X = (h) => ((h - van) / Math.max(1, tot - van)) * W;
+    const Y = (w) => H - 12 - (w / top) * (H - 16);
+    const pad = (k) => l.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[k]).toFixed(1)}`).join(' ');
+    const uren = [];
+    for (let h = Math.ceil(van / 3) * 3; h <= tot; h += 3) uren.push(h);
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(t('daken.achter.lijnAria'))}">
+      <path d="${pad(1)} L${X(l.at(-1)[0]).toFixed(1)},${H - 12} L${X(l[0][0]).toFixed(1)},${H - 12}Z" fill="rgba(255, 138, 107, 0.22)"/>
+      <path d="${pad(2)}" fill="none" stroke="var(--zacht)" stroke-width="1.8" stroke-dasharray="5 5"/>
+      <path d="${pad(1)}" fill="none" stroke="#ff8a6b" stroke-width="2.2"/>
+      <line x1="0" x2="${W}" y1="${H - 12}" y2="${H - 12}" stroke="rgb(255 255 255 / .2)"/>
+      ${uren.map((h) => `<text x="${X(h).toFixed(1)}" y="${H - 1}" font-size="9" text-anchor="middle" fill="var(--gedempt)">${h}:00</text>`).join('')}
+    </svg>`;
+  }
+
+  /** De melding bovenaan Daken en panelen (schets #klopt). */
+  function achterKaart(d, s) {
+    const a = d.achter;
+    if (!a || s.achterGezien === `${a.letter}:${a.wanneer}`) return '';
+    // Met één meter weet SunArc alleen wanneer het dak minder geeft: de kop noemt dan geen vlak.
+    const kop = a.letter && a.eigenMeter ? t('daken.achter.kop', { letter: a.letter, wanneer: wanneerVan(a.wanneer) }) : t('daken.achter.kopDak', { wanneer: wanneerVan(a.wanneer) });
+    return `<div class="dk-zorg"><h3>${esc(kop)}</h3>${achterLijn(a)}<div class="dk-legenda"><span><i style="background: var(--zacht)"></i>${esc(t('daken.achter.helder'))}</span><span><i style="background: #ff8a6b"></i>${esc(t('daken.achter.gemeten'))}</span></div>
+      <p>${esc(achterZin(a))} ${esc(t(a.wanneer === 'dag' ? 'daken.achter.uitlegDag' : 'daken.achter.uitlegDeel'))}</p>
+      <div class="dk-rij"><button type="button" class="lig-knop zacht" data-dak-gezien="${esc(`${a.letter}:${a.wanneer}`)}">${esc(t('daken.achter.nakijken'))}</button>${a.letter ? `<button type="button" class="lig-knop zacht" data-dak-open="${esc(a.letter)}">${esc(t('daken.achter.aanpassen'))}</button>` : ''}</div></div>`;
+  }
+
+  /** Het huis van boven met wat elk vlak nu levert, voor Thuis (stap 5). */
+  function nuBlad(d) {
+    const nu = d.nu ?? {};
+    const vlakken = d.vlakken ?? [];
+    const top = Math.max(1, ...vlakken.map((v) => Math.max(nu[v.letter]?.w ?? 0, nu[v.letter]?.helderW ?? 0)));
+    const kw = (w) => (w / 1000).toLocaleString(window.taal.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const som = vlakken.reduce((s, v) => s + (nu[v.letter]?.w ?? 0), 0);
+    const helder = vlakken.reduce((s, v) => s + (nu[v.letter]?.helderW ?? 0), 0);
+    const achter = d.achter?.letter;
+    const rijen = vlakken.map((v) => {
+      const n = nu[v.letter] ?? { w: null, helderW: 0 };
+      const kleur = achter === v.letter ? '#ff8a6b' : '#f7b548';
+      return `<div class="dk-nurij"><span class="dk-letter" style="background: ${kleur}">${esc(v.letter)}</span><span>${esc(naam(v))}</span><span class="dk-staaf"><i style="width: ${(((n.w ?? 0) / top) * 100).toFixed(1)}%; background: ${kleur}"></i><em style="left: ${((n.helderW / top) * 100).toFixed(1)}%"></em></span><b>${n.w == null ? '–' : `${kw(n.w)} kW`}</b></div>`;
+    }).join('');
+    const svg = d.tekening ? bovenSvg(d, { scherm: 'alle', zicht: 'boven' }).replaceAll('dkid-', 'dkthuis-') : '';
+    return `<div class="dk-bladkop"><h2>${esc(t('daken.nu.kop'))}</h2><button type="button" class="dk-sluit" data-dakblad-sluit aria-label="${esc(t('algemeen.sluiten'))}">×</button></div>
+      <p class="klein">${esc(t('daken.nu.zin', { nu: kw(som), helder: kw(helder) }))}</p>
+      <div class="dk-bladboven">${svg}</div>
+      <div class="dk-nurijen">${rijen}</div>
+      <p class="klein">${esc(t('daken.nu.streep'))}</p>
+      ${d.achter ? `<p class="dk-opval">${esc(achterZin(d.achter))}</p>` : ''}`;
+  }
+
+  return { vorm, klik, verander, oudeAntwoorden, opHetHuis, nietGetekend, kortZin, piek, panelen, vanKaart, gebouwenUit, nuBlad, achterZin };
 })();

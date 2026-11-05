@@ -13,7 +13,7 @@ import { clearSkyOnPlaneWm2, sunPosition } from '../src/core/sun.js';
 import type { DakVlak } from '../src/web/daken.js';
 import type { Geometry } from '../src/core/model.js';
 import { kiesLigging } from '../src/web/ligging.js';
-import { meetVlakken, metMeting, verdeelDag } from '../src/web/meten-vlakken.js';
+import { achterblijven, meetVlakken, metMeting, nuPerVlak, opbrengstPerVlak, verdeelDag } from '../src/web/meten-vlakken.js';
 import { naOmvormers, omvormersSamenW } from '../src/web/omvormers.js';
 import type { PowerRow } from '../src/web/today.js';
 
@@ -163,5 +163,57 @@ describe('de grens per omvormer', () => {
       { id: 'sensor.garage', maxW: 3600 },
     ]);
     expect(g.geometry.solarPlanes.map((p) => p.inverter)).toEqual(['sensor.huis', 'sensor.garage']);
+  });
+});
+
+describe('per vlak (stap 5)', () => {
+  const A = vlak({ letter: 'A', azimuthDeg: 90, tiltDeg: 45 });
+  const B = vlak({ letter: 'B', azimuthDeg: 270, tiltDeg: 45 });
+  const OW = [
+    { azimuthDeg: 90, tiltDeg: 45, peakW: 2340 },
+    { azimuthDeg: 270, tiltDeg: 45, peakW: 2340 },
+  ];
+
+  it('verdeelt wat de meter nu meet, en zegt wat helder zou zijn', () => {
+    const ochtend = sunPosition(Date.UTC(2026, 5, 21, 7), PLEK.latDeg, PLEK.lonDeg);
+    const nu = nuPerVlak([{ vlakken: [A, B], meterW: 2000 }], ochtend);
+    expect(nu.A!.w! + nu.B!.w!).toBeCloseTo(2000, -1);
+    expect(nu.A!.w!).toBeGreaterThan(nu.B!.w!);
+    expect(nu.A!.helderW).toBeGreaterThan(nu.B!.helderW);
+  });
+
+  it('telt de opbrengst per vlak op, samen wat de meter mat', () => {
+    const uren = Array.from({ length: 24 }, (_, h) => ({ startMs: Date.UTC(2026, 5, 21, h), meanW: h >= 5 && h <= 19 ? 1000 : 0 }));
+    const k = opbrengstPerVlak([{ vlakken: [A, B], rows: uren }], PLEK);
+    expect(k.A! + k.B!).toBeCloseTo(15, 0);
+  });
+
+  it('ziet een dak dat elke zonnige ochtend achterblijft, en noemt het oostvlak', () => {
+    const rows = opbrengst(OW, [1, 3, 5, 8]).map((r) => (new Date(r.startMs).getUTCHours() < 9 ? { ...r, meanW: r.meanW * 0.55 } : r));
+    const a = achterblijven([{ id: 'sensor.omvormer', vlakken: [A, B], rows, grensW: null }], PLEK, 'UTC')!;
+    expect(a).not.toBeNull();
+    expect(a).toMatchObject({ letter: 'A', wanneer: 'ochtend', eigenMeter: false });
+    expect(a.minderPct).toBeGreaterThan(25);
+    expect(a.dagen).toBeGreaterThanOrEqual(3);
+  });
+
+  it('meldt niets als het dak de hele dag past', () => {
+    expect(achterblijven([{ id: 'sensor.omvormer', vlakken: [A, B], rows: opbrengst(OW, [1, 3, 5, 8]), grensW: null }], PLEK, 'UTC')).toBeNull();
+  });
+
+  it('vergelijkt vlakken met een eigen meter per paneel', () => {
+    const zuid = (factor: number) => opbrengst([{ azimuthDeg: 180, tiltDeg: 35, peakW: 2340 * factor }], [2, 4, 7]);
+    const C = vlak({ letter: 'C', azimuthDeg: 180, tiltDeg: 35 });
+    const D = vlak({ letter: 'D', azimuthDeg: 180, tiltDeg: 35 });
+    const a = achterblijven(
+      [
+        { id: 'sensor.c', vlakken: [C], rows: zuid(0.7), grensW: null },
+        { id: 'sensor.d', vlakken: [D], rows: zuid(1), grensW: null },
+      ],
+      PLEK,
+      'UTC',
+    )!;
+    expect(a).toMatchObject({ letter: 'C', eigenMeter: true, vergelijk: 'D' });
+    expect(a.minderPct).toBeGreaterThanOrEqual(25);
   });
 });

@@ -310,4 +310,21 @@ describe('de melding', () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it('meldt een dakvlak dat achterblijft (besluit 254, stap 5), met wanneer en hoeveel', async () => {
+    const { mkdtemp, rm } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = await mkdtemp(join(tmpdir(), 'hems-dak-'));
+    try {
+      const s = new MeldingenStore({ logDir: dir });
+      s.bij(bron({ dak: { letter: 'A', wanneer: 'ochtend', minderPct: 35, eigenMeter: false } }));
+      const m = s.lijst(Date.UTC(2026, 9, 17, 14)).actief[0]!;
+      expect([m.id, m.titel, m.actie?.href]).toEqual(['dak:A:ochtend', 'Je dak levert minder', 'energie.html#panelen']);
+      expect(m.tekst).toContain("'s ochtends 35% minder");
+      expect(m.tekst).toContain('waarschijnlijk door schaduw');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });

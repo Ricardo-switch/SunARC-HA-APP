@@ -18,6 +18,9 @@ const keuze = { soort: 'maand', datum: null };
 let data = null;
 let melding = null;
 let zon = null;
+/** Per dak (besluit 254, stap 5): de vlakken van deze periode, en of Per dak aan staat. */
+let daken = null;
+let perDak = false;
 
 const getal = (n) => nl(n, Math.abs(n) >= 100 ? 0 : 1);
 /** Een meternaam zoals de bewoner hem zegt: "Airco woonkamer", niet "Airconditioning woonkamer". */
@@ -54,6 +57,13 @@ async function laad() {
     melding = t('kamer.geenVerbinding');
   }
   teken();
+  // Per dak (besluit 254, stap 5): dezelfde periode, los; zonder daken blijft het leeg.
+  haal(`api/opbrengst/daken?${q}`).then((x) => {
+    daken = x;
+    teken();
+  }).catch(() => {
+    daken = null;
+  });
 }
 
 /* ------------------------------------------------------------ de delen */
@@ -121,8 +131,24 @@ function panelen(r) {
   if (!r.zon || r.geschat) return '';
   const z = r.zon;
   const zelf = z.opgewektKwh > 0 ? (z.zelfKwh / z.opgewektKwh) * 100 : 0;
+  // Samen of per dak (besluit 254, stap 5): bij meer dakvlakken.
+  const vlakken = daken?.vlakken ?? [];
+  const wissel = vlakken.length > 1 ? `<div class="blik" role="group" aria-label="${esc(t('opbrengst.daken.wissel'))}" style="margin-top: 8px"><button type="button" data-perdak="0" aria-pressed="${!perDak}">${esc(t('opbrengst.daken.samen'))}</button><button type="button" data-perdak="1" aria-pressed="${perDak}">${esc(t('opbrengst.daken.perDak'))}</button></div>` : '';
+  if (perDak && vlakken.length > 1) {
+    const top = Math.max(1, ...vlakken.map((v) => v.kWh));
+    const achter = daken.achter?.letter;
+    const rij = (v) => `<div class="dakrij"><span class="dakletter" style="background: ${achter === v.letter ? '#ff8a6b' : 'var(--zon)'}">${esc(v.letter)}</span><span class="daknaam">${esc(t(`daken.plek.${v.plek}`))}<span class="dakstaaf"><i style="width: ${((v.kWh / top) * 100).toFixed(1)}%; background: ${achter === v.letter ? '#ff8a6b' : 'var(--zon)'}"></i></span></span><b>${getal(v.kWh)} kWh<small>${esc(t('opbrengst.daken.perPaneel', { kwh: nl(v.aantal ? v.kWh / v.aantal : 0, 1) }))}</small></b></div>`;
+    return `<section class="glas kaart">
+    <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="kop-3">${esc(t('opbrengst.panelen'))}</h2><span class="getal zon-t" style="font-size: 22px">${getal(z.opgewektKwh)} kWh</span></div>
+    ${wissel}
+    <div class="dakrijen">${vlakken.map(rij).join('')}</div>
+    <p class="mini" style="margin: 8px 0 0">${esc(t('opbrengst.daken.uitleg'))}</p>
+    ${daken.achter ? `<p class="dakopval">${esc(dakvlakken.achterZin(daken.achter))}</p>` : ''}
+  </section>`;
+  }
   return `<section class="glas kaart">
     <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="kop-3">${esc(t('opbrengst.panelen'))}</h2><span class="getal zon-t" style="font-size: 22px">${getal(z.opgewektKwh)} kWh</span></div>
+    ${wissel}
     <div class="verdeel" style="height: 10px; margin-top: 12px"><i style="width: ${zelf.toFixed(1)}%; background: var(--zon)"></i><i style="width: ${(100 - zelf).toFixed(1)}%; background: var(--mint)"></i></div>
     <div class="klein" style="margin-top: 8px; display: flex; justify-content: space-between"><span>${z.opgewektKwh > 0 ? taal.html('opbrengst.zelfPct', { kwh: getal(z.zelfKwh), pct: Math.round(zelf) }) : esc(t('opbrengst.zelf', { kwh: getal(z.zelfKwh) }))}</span><span>${esc(t('opbrengst.naarNet', { kwh: getal(z.terugKwh) }))}</span></div>
     ${z.besteDag ? `<p class="mini" style="margin: 8px 0 0">${esc(t('opbrengst.besteDag', { dag: z.besteDag.label, kwh: getal(z.besteDag.kwh) }))}</p>` : ''}
@@ -274,6 +300,12 @@ document.addEventListener('click', (e) => {
   const staaf = e.target.closest('[data-staaf]');
   if (staaf) {
     grafiek.gekozen = Number(staaf.dataset.staaf);
+    teken();
+    return;
+  }
+  const pd = e.target.closest('[data-perdak]');
+  if (pd) {
+    perDak = pd.dataset.perdak === '1';
     teken();
     return;
   }

@@ -179,3 +179,177 @@ export function metMeting(d: Daken, gemeten: Readonly<Record<string, VlakStand>>
     }),
   };
 }
+
+/* ------------------------------------------------------------ per vlak (stap 5) */
+
+/** Een meter met zijn vlakken (zoals de berekening ze kent) en zijn opbrengst. */
+export interface MeterGroep {
+  /** De sensor, of '' voor alle omvormers samen. */
+  readonly id: string;
+  readonly vlakken: readonly DakVlak[];
+  readonly rows: readonly PowerRow[];
+  readonly grensW: number | null;
+}
+
+/** Per vlak zijn deel van wat de meter nu meet, naar de heldere lucht per vlak. */
+function delenNu(vlakken: readonly DakVlak[], sun: SunPosition): number[] {
+  const helder = vlakken.map((v) => modelVan([v], [{ azimuthDeg: v.azimuthDeg, tiltDeg: v.tiltDeg }])(sun) * piekVan(v));
+  const som = helder.reduce((s, x) => s + x, 0);
+  return som > 0 ? helder.map((x) => x / som) : vlakken.map(() => 1 / vlakken.length);
+}
+
+/**
+ * Wat elk vlak nu levert (stap 5): wat zijn meter meet, verdeeld naar de
+ * heldere lucht per vlak; en wat het bij heldere lucht zou leveren, met het
+ * rendement van een gewone dag (85%). Null als de meter niets zegt.
+ */
+export function nuPerVlak(groepen: readonly { readonly vlakken: readonly DakVlak[]; readonly meterW: number | null }[], sun: SunPosition): Record<string, { readonly w: number | null; readonly helderW: number }> {
+  const uit: Record<string, { w: number | null; helderW: number }> = {};
+  for (const g of groepen) {
+    const delen = delenNu(g.vlakken, sun);
+    g.vlakken.forEach((v, i) => {
+      const helderW = Math.round((modelVan([v], [{ azimuthDeg: v.azimuthDeg, tiltDeg: v.tiltDeg }])(sun) / 1000) * piekVan(v) * 0.85);
+      uit[v.letter] = { w: g.meterW == null ? null : Math.round(Math.max(0, g.meterW) * delen[i]!), helderW: Math.max(0, helderW) };
+    });
+  }
+  return uit;
+}
+
+/**
+ * De opbrengst per vlak over een periode (stap 5): per uur wat de meter
+ * gemiddeld mat, verdeeld naar de heldere lucht per vlak, opgeteld in kWh.
+ */
+export function opbrengstPerVlak(groepen: readonly { readonly vlakken: readonly DakVlak[]; readonly rows: readonly PowerRow[] }[], location: Location, uurMs = 3_600_000): Record<string, number> {
+  const uit: Record<string, number> = {};
+  for (const g of groepen) {
+    for (const v of g.vlakken) uit[v.letter] = 0;
+    for (const r of g.rows) {
+      if (!Number.isFinite(r.meanW) || r.meanW <= 0) continue;
+      const sun = sunPosition(r.startMs + uurMs / 2, location.latDeg, location.lonDeg);
+      const delen = delenNu(g.vlakken, sun);
+      g.vlakken.forEach((v, i) => (uit[v.letter]! += (r.meanW * delen[i]! * uurMs) / 3_600_000 / 1000));
+    }
+  }
+  return Object.fromEntries(Object.entries(uit).map(([l, k]) => [l, Math.round(k * 10) / 10]));
+}
+
+export type Wanneer = 'ochtend' | 'middag' | 'avond' | 'dag';
+
+/** Een vlak dat achterblijft (stap 5), met wanneer en hoeveel. */
+export interface Achter {
+  /** Het vlak, of null als het niet aan één vlak ligt. */
+  readonly letter: string | null;
+  /** De meter waar het om gaat ('' is alle omvormers samen). */
+  readonly meter: string;
+  readonly wanneer: Wanneer;
+  /** Hoeveel minder, in procent. */
+  readonly minderPct: number;
+  /**
+   * `true`: vergeleken met een vlak met een eigen meter, per paneel. `false`:
+   * één meter; SunArc ziet alleen wanneer het hele dak minder geeft, en noemt
+   * het vlak dat dan de zon heeft ("waarschijnlijk").
+   */
+  readonly eigenMeter: boolean;
+  /** Het vlak waarmee het vergeleken is, bij eigen meters. */
+  readonly vergelijk: string | null;
+  /** Op hoeveel verschillende zonnige dagen het te zien was. */
+  readonly dagen: number;
+  /** De bovenkant van die meter per tijdstip: het uur, gemeten en verwacht, in W. */
+  readonly lijn: readonly (readonly [number, number, number])[];
+}
+
+const WINDOW: Record<Exclude<Wanneer, 'dag'>, (az: number) => boolean> = {
+  ochtend: (az) => az < 140,
+  middag: (az) => az >= 140 && az <= 220,
+  avond: (az) => az > 220,
+};
+const mediaan = (xs: readonly number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length ? s[Math.floor(s.length / 2)]! : NaN;
+};
+
+/** Per meter: hoe hij tegen zijn vlakken afsteekt, en of een deel van de dag achterblijft. */
+function meterOordeel(g: MeterGroep, location: Location, timeZone: string) {
+  const boven = bovenkant(g.rows, location, g.grensW);
+  if (!boven || !g.vlakken.length) return null;
+  const stand = g.vlakken.map((v) => ({ azimuthDeg: v.azimuthDeg, tiltDeg: v.tiltDeg }));
+  const model = modelVan(g.vlakken, stand);
+  const r = beoordeel(boven.punten, model, 0, Infinity);
+  if (!r) return null;
+  const piek = g.vlakken.reduce((s, v) => s + piekVan(v), 0);
+  const pts = boven.punten.map((p) => ({ p, m: model(p.sun) }));
+  const mmax = Math.max(...pts.map((x) => x.m));
+  const goed = pts.filter((x) => x.m >= 0.25 * mmax && x.p.sun.elevationDeg > 10).map((x) => ({ ...x, q: x.p.w / ((x.m * r.peakW) / 1000) }));
+  const uurVan = (t: number) => {
+    const d = partsIn(t, timeZone);
+    return d.h + d.mi / 60;
+  };
+  const dagVan = (t: number) => {
+    const d = partsIn(t, timeZone);
+    return `${d.y}-${d.m}-${d.d}`;
+  };
+  const per = (Object.keys(WINDOW) as Exclude<Wanneer, 'dag'>[]).map((w) => {
+    const in_ = goed.filter((x) => WINDOW[w](x.p.sun.azimuthDeg));
+    return { w, in_, med: in_.length >= 6 ? mediaan(in_.map((x) => x.q)) : NaN };
+  });
+  const ref = Math.max(...per.map((x) => x.med).filter(Number.isFinite));
+  let tekort: { w: Exclude<Wanneer, 'dag'>; pct: number; dagen: number; letter: string | null } | null = null;
+  for (const x of per) {
+    if (!Number.isFinite(x.med) || !(x.med < 0.75 * ref)) continue;
+    const pct = Math.round((1 - x.med / ref) * 100);
+    if (tekort && pct <= tekort.pct) continue;
+    // Het vlak dat in dat deel van de dag de meeste zon heeft.
+    const aandeel = g.vlakken.map((_v, i) => x.in_.reduce((s, y) => s + delenNu(g.vlakken, y.p.sun)[i]!, 0));
+    const beste = aandeel.indexOf(Math.max(...aandeel));
+    // Op hoeveel zonnige dagen: dagen waarop het beste deel van de dag helder was en dit deel achterbleef.
+    const refW = per.find((y) => y.med === ref)!.w;
+    const perDag = new Map<string, { win: number[]; ref: number[] }>();
+    for (const row of g.rows) {
+      if (!(row.meanW > 0)) continue;
+      const sun = sunPosition(row.startMs + 150_000, location.latDeg, location.lonDeg);
+      const m = model(sun);
+      if (m < 0.25 * mmax || sun.elevationDeg <= 10) continue;
+      const q = row.meanW / ((m * r.peakW) / 1000);
+      const dag = perDag.get(dagVan(row.startMs)) ?? { win: [], ref: [] };
+      if (WINDOW[x.w](sun.azimuthDeg)) dag.win.push(q);
+      else if (WINDOW[refW](sun.azimuthDeg)) dag.ref.push(q);
+      perDag.set(dagVan(row.startMs), dag);
+    }
+    const dagen = [...perDag.values()].filter((d) => d.win.length >= 3 && d.ref.length >= 3 && mediaan(d.ref) >= 0.8 * ref && mediaan(d.win) < 0.8 * mediaan(d.ref)).length;
+    tekort = { w: x.w, pct, dagen, letter: g.vlakken.length === 1 ? g.vlakken[0]!.letter : (g.vlakken[beste]?.letter ?? null) };
+  }
+  const lijn = [...boven.punten]
+    .map((p): [number, number, number] => [Math.round(uurVan(p.t) * 100) / 100, Math.round(p.w), Math.round((model(p.sun) * r.peakW) / 1000)])
+    .sort((a, b) => a[0] - b[0]);
+  return { ratio: r.peakW / Math.max(1, piek), tekort, lijn };
+}
+
+/**
+ * Blijft er een vlak achter (stap 5)? Met een eigen meter per vlak: per paneel
+ * vergeleken met het beste (18% minder of meer telt). Met één meter: blijft het
+ * dak in een deel van de dag op zonnige dagen een kwart of meer achter bij de
+ * rest van de dag, dan het vlak dat dan de zon heeft. Null als alles klopt.
+ */
+export function achterblijven(groepen: readonly MeterGroep[], location: Location, timeZone: string): Achter | null {
+  const oordelen = groepen.map((g) => ({ g, o: meterOordeel(g, location, timeZone) })).filter((x): x is { g: MeterGroep; o: NonNullable<ReturnType<typeof meterOordeel>> } => x.o != null);
+  if (oordelen.length >= 2) {
+    const beste = oordelen.reduce((a, b) => (b.o.ratio > a.o.ratio ? b : a));
+    const slechtste = oordelen.reduce((a, b) => (b.o.ratio < a.o.ratio ? b : a));
+    if (slechtste !== beste && slechtste.o.ratio < 0.82 * beste.o.ratio) {
+      return {
+        letter: slechtste.g.vlakken.length === 1 ? slechtste.g.vlakken[0]!.letter : (slechtste.o.tekort?.letter ?? null),
+        meter: slechtste.g.id,
+        wanneer: slechtste.o.tekort?.w ?? 'dag',
+        minderPct: Math.round((1 - slechtste.o.ratio / beste.o.ratio) * 100),
+        eigenMeter: true,
+        vergelijk: beste.g.vlakken.length === 1 ? beste.g.vlakken[0]!.letter : null,
+        dagen: slechtste.o.tekort?.dagen ?? 0,
+        lijn: slechtste.o.lijn,
+      };
+    }
+  }
+  const metTekort = oordelen.filter((x) => x.o.tekort).sort((a, b) => b.o.tekort!.pct - a.o.tekort!.pct)[0];
+  if (!metTekort) return null;
+  const t = metTekort.o.tekort!;
+  return { letter: t.letter, meter: metTekort.g.id, wanneer: t.w, minderPct: t.pct, eigenMeter: false, vergelijk: null, dagen: t.dagen, lijn: metTekort.o.lijn };
+}

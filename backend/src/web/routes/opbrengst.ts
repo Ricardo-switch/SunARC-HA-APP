@@ -32,6 +32,34 @@ export async function opbrengstRoutes(d: Diensten, v: Verzoek): Promise<boolean>
   }
 
   /*
+   * Per dak (besluit 254, stap 5): per vlak de kWh van dezelfde periode als
+   * Opbrengst, en wat een paneel daar opleverde.
+   */
+  if (path === '/api/opbrengst/daken') {
+    const config = d.config();
+    const settings = d.options.energy?.store.current;
+    const soort = (url.searchParams.get('soort') ?? 'maand') as PeriodKind;
+    if (config == null || d.options.dakenOpbrengst == null || !PERIODS.includes(soort)) {
+      sendJson(res, 503, { wachten: 'Per dak staat niet aan' });
+      return true;
+    }
+    const p = partsIn(Date.now(), config.timezone);
+    const datum = url.searchParams.get('datum') ?? `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
+    const range = periodRange(soort, datum, config.timezone, yearStartOf(settings?.prijzen.contractStart ?? null));
+    if (range == null) {
+      sendJson(res, 400, { fout: 'datum is een dag als "2026-10-07"' });
+      return true;
+    }
+    try {
+      const uit = await d.options.dakenOpbrengst(range.startMs, range.endMs);
+      sendJson(res, 200, { vlakken: uit?.vlakken ?? [], achter: uit?.achter ?? null });
+    } catch {
+      sendJson(res, 502, { fout: 'De statistiek van Home Assistant gaf geen antwoord.' });
+    }
+    return true;
+  }
+
+  /*
    * De goedkope uren van vandaag (besluit 196): de daluren van het contract,
    * per uur, met beide prijzen. Leeg zonder daltarief.
    */
