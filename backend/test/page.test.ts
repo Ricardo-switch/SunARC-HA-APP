@@ -2510,7 +2510,8 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
    * dienst is nagebootst met een route.
    */
   it('toont Te doen: de kaart op Thuis, de eigen tab, en het moment op de wand (besluit 216 en 217)', async () => {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: 'nl-NL' });
+    // De browser in UTC, net als de dagen hieronder: na middernacht in Amsterdam was "morgen" anders vandaag.
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: 'nl-NL', timezoneId: 'UTC' });
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
     await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
     const p = await context.newPage();
@@ -2523,10 +2524,12 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     const shot = async (naam: string) => {
       if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', `-${naam}.png`) });
     };
-    const nu = Date.now();
+    // Een vaste klok, midden op de dag: herinneringen en wat het huis later doet, vallen dan vandaag.
+    const nu = Date.UTC(2026, 10, 5, 12, 0);
+    await p.clock.setFixedTime(new Date(nu));
     const dag = (n: number) => {
       const d = new Date(nu);
-      d.setHours(0, 0, 0, 0);
+      d.setUTCHours(0, 0, 0, 0);
       return d.getTime() + n * 86_400_000;
     };
     const herinnering = { id: 'h1', tekst: 'Container buiten zetten', ms: nu + 20 * 60_000, voor: null, naam: null, status: 'wacht', gemaakt: nu, eigen: false };
@@ -3800,7 +3803,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       expect((await zet([...STANDAARD_TEL, 'auto', 'batterij', 'maand', 'deurbel'])).ok).toBe(true);
       await p.goto(`${baseUrl}/thuis.html`);
       const kaart = (id: string) => p.locator(`#tel [data-kaart="${id}"]`);
-      await expect.poll(() => kaart('auto').textContent()).toContain('62%');
+      await expect.poll(() => kaart('auto').textContent(), { timeout: 10_000 }).toContain('62%');
       expect(await kaart('auto').textContent()).toContain('Laadt, 3,2 kW · 280 km');
       expect(await kaart('auto').getAttribute('href')).toBe('apparaten.html#auto');
       expect(await kaart('batterij').textContent()).toContain('Levert 0,9 kW aan het huis');

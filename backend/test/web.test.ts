@@ -209,7 +209,8 @@ describe('te doen (besluit 216)', () => {
     expect((await post(melk.opdracht!.body)).status).toBe(200);
     expect(gedaan).toEqual(['toevoegen Melk op todo.shopping_list']);
     const oven = await vraag('herinner me over tien minuten aan de oven');
-    expect(oven.antwoord).toMatch(/^Goed, ik herinner je vandaag om \d\d:\d\d aan de oven\.$/);
+    // Rond middernacht is over tien minuten morgen (de CI faalde om 23:53).
+    expect(oven.antwoord).toMatch(/^Goed, ik herinner je (vandaag|morgen) om \d\d:\d\d aan de oven\.$/);
     expect((await post(oven.opdracht!.body)).status).toBe(200);
     expect((await herinneringen.lijst()).map((h) => h.tekst)).toEqual(['De oven']);
     // Zonder tijd: hoe laat, met keuzes.
