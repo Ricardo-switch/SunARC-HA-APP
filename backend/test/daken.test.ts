@@ -59,6 +59,14 @@ describe('lezen', () => {
     expect('daken' in r && r.daken?.vlakken[0]?.bron).toBe('bewoner');
   });
 
+  it('neemt een eigen naam over, zonder spaties eromheen, en hooguit 30 tekens (5 november 2026)', () => {
+    const r = leesDaken({ vlakken: [{ ...vlak(), naam: '  Garage   achter ' }], voorgevelDeg: 180, omvormerW: null });
+    expect('daken' in r && r.daken?.vlakken[0]?.naam).toBe('Garage achter');
+    const leeg = leesDaken({ vlakken: [{ ...vlak(), naam: ' ' }], voorgevelDeg: 180, omvormerW: null });
+    expect('daken' in leeg && leeg.daken?.vlakken[0]).not.toHaveProperty('naam');
+    expect(leesDaken({ vlakken: [{ ...vlak(), naam: 'x'.repeat(31) }], voorgevelDeg: 180, omvormerW: null })).toHaveProperty('fout');
+  });
+
   it('zonder vlakken is niet bewaard', () => {
     expect(leesDaken({ vlakken: [] })).toEqual({ daken: null });
     expect(leesDaken(null)).toEqual({ daken: null });

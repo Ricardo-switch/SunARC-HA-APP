@@ -160,6 +160,12 @@
   #tel .dk-noot { display: none; }
 
   /* Het huis van boven (besluit 254, stap 2a). */
+  /* De naam van een vlak, als kop zelf in te vullen (5 november 2026). */
+  .dk-naamveld { display: block; width: 100%; min-width: 0; margin: 0 0 1px; padding: 2px 6px; border-radius: 8px; border: 1px dashed rgb(var(--wit) / 0.18); background: transparent; color: var(--tekst); font: 700 15px var(--kop); }
+  .dk-naamveld::placeholder { color: var(--tekst); opacity: 1; }
+  .dk-naamveld:focus { outline: none; border-style: solid; border-color: var(--ijs-t); background: rgb(var(--wit) / 0.06); }
+  .dk-naamveld:focus::placeholder { color: var(--gedempt); }
+  .dk-nieuw { display: block; font-size: 11.5px; color: var(--ijs-t); font-weight: 700; }
   .dk-vraag { width: 34px; height: 34px; padding: 0; justify-content: center; font-weight: 800; color: var(--zacht); margin-left: 8px; flex: none; }
   .dk-wissel { margin-left: auto; display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--wit) / 0.06); }
   .dk-wissel button { height: 30px; padding: 0 12px; border-radius: 999px; border: 0; background: none; color: var(--zacht); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }

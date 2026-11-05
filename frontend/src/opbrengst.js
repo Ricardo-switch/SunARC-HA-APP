@@ -127,6 +127,21 @@ function cijfers(r, klein = false) {
   return `${stroom}${kosten}${gas}`;
 }
 
+/**
+ * De naam van een dakvlak (Ricardo, 5 november 2026), zoals bij Daken en
+ * panelen: de eigen naam, of de plek; met meer vlakken op dezelfde plek de
+ * richting erbij ("Hoofddak oost").
+ */
+const RICHTINGEN = ['n', 'no', 'o', 'zo', 'z', 'zw', 'w', 'nw'];
+function dakNaam(v, alle) {
+  if (v.naam) return v.naam;
+  const plek = t(`daken.plek.${v.plek}`);
+  if (v.azimuthDeg == null || !alle.some((x) => x.letter !== v.letter && x.plek === v.plek && !x.naam)) return plek;
+  const kort = (d) => t(`panelen3.kort.${RICHTINGEN[Math.round((((d % 360) + 360) % 360) / 45) % 8]}`);
+  const richting = v.opstelling === 'plat' ? t('daken.opstelling.plat') : v.opstelling === 'oostwest' ? `${kort(v.azimuthDeg)}-${kort(v.azimuthDeg + 180)}` : kort(v.azimuthDeg);
+  return `${plek} ${richting.toLowerCase()}`;
+}
+
 function panelen(r) {
   if (!r.zon || r.geschat) return '';
   const z = r.zon;
@@ -137,7 +152,7 @@ function panelen(r) {
   if (perDak && vlakken.length > 1) {
     const top = Math.max(1, ...vlakken.map((v) => v.kWh));
     const achter = daken.achter?.letter;
-    const rij = (v) => `<div class="dakrij"><span class="dakletter" style="background: ${achter === v.letter ? '#ff8a6b' : 'var(--zon)'}">${esc(v.letter)}</span><span class="daknaam">${esc(t(`daken.plek.${v.plek}`))}<span class="dakstaaf"><i style="width: ${((v.kWh / top) * 100).toFixed(1)}%; background: ${achter === v.letter ? '#ff8a6b' : 'var(--zon)'}"></i></span></span><b>${getal(v.kWh)} kWh<small>${esc(t('opbrengst.daken.perPaneel', { kwh: nl(v.aantal ? v.kWh / v.aantal : 0, 1) }))}</small></b></div>`;
+    const rij = (v) => `<div class="dakrij"><span class="dakletter" style="background: ${achter === v.letter ? '#ff8a6b' : 'var(--zon)'}">${esc(v.letter)}</span><span class="daknaam">${esc(dakNaam(v, vlakken))}<span class="dakstaaf"><i style="width: ${((v.kWh / top) * 100).toFixed(1)}%; background: ${achter === v.letter ? '#ff8a6b' : 'var(--zon)'}"></i></span></span><b>${getal(v.kWh)} kWh<small>${esc(t('opbrengst.daken.perPaneel', { kwh: nl(v.aantal ? v.kWh / v.aantal : 0, 1) }))}</small></b></div>`;
     return `<section class="glas kaart">
     <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="kop-3">${esc(t('opbrengst.panelen'))}</h2><span class="getal zon-t" style="font-size: 22px">${getal(z.opgewektKwh)} kWh</span></div>
     ${wissel}
@@ -211,7 +226,7 @@ function stroomModel(r) {
   const vlakken = (daken?.vlakken ?? []).filter((v) => v.kWh > 0);
   const dakSom = vlakken.reduce((t, v) => t + v.kWh, 0);
   const zonDelen = vlakken.length > 1 && dakSom > 0 && !r.geschat
-    ? vlakken.map((v, i) => ({ id: `dak-${v.letter}`, naam: `${v.letter} · ${t(`daken.plek.${v.plek}`)}`, deel: v.kWh / dakSom, kleur: DAKKLEUR[i % DAKKLEUR.length] }))
+    ? vlakken.map((v, i) => ({ id: `dak-${v.letter}`, naam: `${v.letter} · ${dakNaam(v, daken?.vlakken ?? [])}`, deel: v.kWh / dakSom, kleur: DAKKLEUR[i % DAKKLEUR.length] }))
     : [{ id: 'zon', naam: t('vandaag.zon'), deel: 1, kleur: ZON }];
   const st = stroom.flatMap((s) => (s.van === 'zon' ? zonDelen.map((z) => ({ van: z.id, naar: s.naar, kwh: s.kwh * z.deel })) : [s]));
   const van = (id, kant) => st.filter((s) => s[kant] === id).reduce((t, s) => t + s.kwh, 0);

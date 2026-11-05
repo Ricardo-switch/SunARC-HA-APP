@@ -1423,7 +1423,7 @@ function dakVoorstelStap(dk) {
   const gemeten = dk.vlakken.some((v) => v.bron === 'gemeten');
   const rijen = dk.vlakken.map((v) => {
     const n = dakvlakken.panelen(v);
-    return `<a class="kp-vlak" href="energie.html#panelen"><span class="kp-letter" style="background: ${dakvlakken.STANDKLEUR[v.bron] ?? dakvlakken.STANDKLEUR.schatting}">${esc(v.letter)}</span><span><b>${esc(t(`daken.plek.${v.plek}`))}</b><small>${esc(dakvlakken.waar(v))} · ${esc(t(`daken.stand.${v.bron}`))}</small></span><em>${esc(t('inr.dak.nPanelen', { n }))}</em></a>`;
+    return `<a class="kp-vlak" href="energie.html#panelen"><span class="kp-letter" style="background: ${dakvlakken.STANDKLEUR[v.bron] ?? dakvlakken.STANDKLEUR.schatting}">${esc(v.letter)}</span><span><b>${esc(dakvlakken.naam(v, dk.vlakken))}</b><small>${esc(dakvlakken.waar(v))} · ${esc(t(`daken.stand.${v.bron}`))}</small></span><em>${esc(t('inr.dak.nPanelen', { n }))}</em></a>`;
   });
   // Eén omvormer voor meer vlakken: wat hij meet, gaat naar wat elk vlak bij heldere lucht levert.
   const perMeter = new Map();

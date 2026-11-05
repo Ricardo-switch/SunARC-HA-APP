@@ -12030,6 +12030,17 @@ met het huis, en het tuinhuis staat er niet in.
 Ricardo 44° tegen 53°), met Neem over. Dat raakt de vlakken zelf, dus eerst
 nagaan hoeveel het in de verwachting scheelt.
 
+*Nagekomen, versie 0.128.1* (Ricardo, dezelfde avond): "Hoofddak A en
+hoofddak B" zegt niets, bijvoorbeeld bij Opbrengst, waar geen tekening is.
+
+- **Een eigen naam per vlak** (`naam`, hooguit 30 tekens): de kop van een
+  open vlak is zelf in te vullen, en Bewaar bewaart hem. Alleen een naam
+  veranderen houdt het vlak gemeten of geschat.
+- **Zonder eigen naam de richting erbij** als er meer vlakken op dezelfde plek
+  liggen: "Hoofddak oost" en "Hoofddak west". Overal hetzelfde: Daken en
+  panelen, Per dak en het stroombeeld bij Opbrengst, De zon op je daken op
+  Thuis, en Inrichten.
+
 ---
 
 ## Wat nog een besluit wacht

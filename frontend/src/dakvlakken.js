@@ -39,7 +39,18 @@ const dakvlakken = (() => {
     if (v.opstelling === 'oostwest') return t('daken.waar.oostwest', { richting: `${kort(v.azimuthDeg)}-${kort(v.azimuthDeg + 180)}`.toLowerCase(), a: g, b: `${norm(v.azimuthDeg + 180)}°`, helling: h });
     return t(v.opstelling === 'rek' ? 'daken.waar.rek' : 'daken.waar.schuin', { richting: kort(v.azimuthDeg).toLowerCase(), graden: g, helling: h });
   }
-  const naam = (v) => t(`daken.plek.${v.plek}`);
+  /**
+   * De naam van een vlak (Ricardo, 5 november 2026): de eigen naam, of de plek;
+   * liggen er meer vlakken op dezelfde plek, dan met de richting erbij
+   * ("Hoofddak oost"), zodat je ze ook zonder tekening uit elkaar houdt.
+   */
+  function naam(v, alle = []) {
+    if (v.naam) return v.naam;
+    const plek = t(`daken.plek.${v.plek}`);
+    if (!alle.some((x) => x.letter !== v.letter && x.plek === v.plek && !x.naam)) return plek;
+    const richting = v.opstelling === 'plat' ? t('daken.opstelling.plat') : v.opstelling === 'oostwest' ? `${kort(v.azimuthDeg)}-${kort(v.azimuthDeg + 180)}` : kort(v.azimuthDeg);
+    return `${plek} ${richting.toLowerCase()}`;
+  }
   const letter = (v, kleur) => `<span class="dk-letter" style="background: ${kleur}">${esc(v.letter)}</span>`;
 
   /** Het kopje boven de lijst: hoe zeker het samen is. */
@@ -53,10 +64,10 @@ const dakvlakken = (() => {
 
   /* ---------------------------------------------- de schermen */
 
-  function kaartje(v) {
-    return `<button type="button" class="dk-vlak" data-dak-open="${esc(v.letter)}" aria-label="${esc(t('daken.open', { letter: v.letter, naam: naam(v) }))}">
+  function kaartje(v, _i, alle) {
+    return `<button type="button" class="dk-vlak" data-dak-open="${esc(v.letter)}" aria-label="${esc(t('daken.open', { letter: v.letter, naam: naam(v, alle) }))}">
       ${letter(v, STANDKLEUR[v.bron])}
-      <span><b>${esc(naam(v))}</b><small>${esc(waar(v))} · <em class="dk-stand ${v.bron}">${esc(t(`daken.stand.${v.bron}`))}</em></small></span>
+      <span><b>${esc(naam(v, alle))}</b><small>${esc(waar(v))} · <em class="dk-stand ${v.bron}">${esc(t(`daken.stand.${v.bron}`))}</em></small></span>
       <span class="dk-rechts"><b>${esc(kWp(piek(v)))}</b> kWp<br>${esc(t('daken.nKeer', { n: panelen(v), wp: wp(v.wpPerPaneel) }))}</span>
     </button>`;
   }
@@ -157,7 +168,10 @@ const dakvlakken = (() => {
     const kanten = v.opstelling === 'oostwest'
       ? `${veld(kort(v.azimuthDeg), stapper('aantal', v.aantal, kort(v.azimuthDeg)))}${veld(kort(v.azimuthDeg + 180), stapper('aantal2', v.aantal2 ?? 0, kort(v.azimuthDeg + 180)))}`
       : veld(t('daken.aantal'), stapper('aantal', v.aantal, t('daken.aantal')));
-    return `<div class="dk-vlak open">${letter(v, STANDKLEUR[v.bron])}<span><b>${esc(nieuw ? t('daken.nieuw', { naam: naam(v) }) : naam(v))}</b><small>${esc(waar(v))}</small></span><span class="dk-rechts"><b>${esc(kWp(piek(v)))}</b> kWp</span></div>
+    // De kop is de naam, zelf in te vullen (5 november 2026); leeg is de plek met de richting.
+    const anderen = [...d.vlakken.filter((x) => x.letter !== v.letter), { ...v, naam: '' }];
+    const naamVeld = `<input class="dk-naamveld" type="text" maxlength="30" data-dak-naam value="${esc(v.naam ?? '')}" placeholder="${esc(naam({ ...v, naam: '' }, anderen))}" aria-label="${esc(t('daken.naamLabel'))}" title="${esc(t('daken.naamLabel'))}">`;
+    return `<div class="dk-vlak open">${letter(v, STANDKLEUR[v.bron])}<span>${nieuw ? `<small class="dk-nieuw">${esc(t('daken.nieuwKort'))}</small>` : ''}${naamVeld}<small>${esc(waar(v))}</small></span><span class="dk-rechts"><b>${esc(kWp(piek(v)))}</b> kWp</span></div>
       ${ligtOp(d, v)}
       ${veld(t('daken.hoeLiggen'), `<div class="dk-opstel" role="group" aria-label="${esc(t('daken.hoeLiggen'))}">${OPSTELLINGEN.map((o) => `<button type="button" data-dak-opstel="${o}" aria-pressed="${v.opstelling === o}" class="${v.opstelling === o ? 'aan' : ''}"><svg viewBox="0 0 90 38" aria-hidden="true">${OPSTEL_BEELD[o]}</svg>${esc(t(`daken.opstelling.${o}`))}</button>`).join('')}</div>`)}
       ${v.opstelling === 'plat' ? '' : `<div class="dk-richting">${kompas(v)}
@@ -372,7 +386,7 @@ const dakvlakken = (() => {
       ${veld(t('daken.dakvormKop'), `<div class="dk-opstel" role="group" aria-label="${esc(t('daken.dakvormKop'))}">${DAKVORMEN.map((v) => `<button type="button" data-dak-dakvorm="${v}" aria-pressed="${g.dakvorm === v}" class="${g.dakvorm === v ? 'aan' : ''}"><svg viewBox="0 0 30 22" aria-hidden="true">${VORM_BEELD[v]}</svg>${esc(t(`daken.dakvorm.${v}`))}</button>`).join('')}</div>`)}
       ${nok ? `<div class="dk-rij">${nok}</div>` : ''}
       <p class="mini">${esc(t('daken.gebouwUitleg'))}</p>
-      ${op.length ? `<div class="dk-lijst">${op.map(kaartje).join('')}</div>` : ''}
+      ${op.length ? `<div class="dk-lijst">${op.map((v, i) => kaartje(v, i, d.vlakken)).join('')}</div>` : ''}
       <div class="dk-voet"><button type="button" class="lig-knop zacht" data-dak-scherm="alle">${esc(t('daken.alle'))}</button>${g.soort !== 'hoofdhuis' && g.bron === 'kaart' ? `<button type="button" class="lig-link dk-weg" data-dak-gebouwweg="${esc(g.id)}">${esc(t('daken.hoortNiet'))}</button>` : ''}</div>`;
   }
 
@@ -788,6 +802,13 @@ const dakvlakken = (() => {
     const c = s.concept;
     if (!c) return null;
     const n = Math.round(Number(el.value));
+    // Een eigen naam: alleen in het concept, Bewaar bewaart hem; leeg is weer de plek.
+    if (el.hasAttribute('data-dak-naam')) {
+      const x = el.value.trim().replace(/\s+/g, ' ').slice(0, 30);
+      if (x) c.naam = x;
+      else delete c.naam;
+      return null;
+    }
     if (el.hasAttribute('data-dak-draai')) c.azimuthDeg = norm(n);
     else if (el.hasAttribute('data-dak-hellingzelf') && el.value !== '' && n >= 0 && n <= 90) c.tiltDeg = n;
     else return null;
@@ -920,7 +941,7 @@ const dakvlakken = (() => {
     const rijen = vlakken.map((v) => {
       const n = nu[v.letter] ?? { w: null, helderW: 0 };
       const kleur = achter === v.letter ? '#ff8a6b' : '#f7b548';
-      return `<div class="dk-nurij"><span class="dk-letter" style="background: ${kleur}">${esc(v.letter)}</span><span>${esc(naam(v))}</span><span class="dk-staaf"><i style="width: ${(((n.w ?? 0) / top) * 100).toFixed(1)}%; background: ${kleur}"></i><em style="left: ${((n.helderW / top) * 100).toFixed(1)}%"></em></span><b>${n.w == null ? '–' : `${kw(n.w)} kW`}</b></div>`;
+      return `<div class="dk-nurij"><span class="dk-letter" style="background: ${kleur}">${esc(v.letter)}</span><span>${esc(naam(v, vlakken))}</span><span class="dk-staaf"><i style="width: ${(((n.w ?? 0) / top) * 100).toFixed(1)}%; background: ${kleur}"></i><em style="left: ${((n.helderW / top) * 100).toFixed(1)}%"></em></span><b>${n.w == null ? '–' : `${kw(n.w)} kW`}</b></div>`;
     }).join('');
     const svg = d.tekening ? bovenSvg(d, { scherm: 'alle', zicht: 'boven' }).replaceAll('dkid-', 'dkthuis-') : '';
     return `<div class="dk-bladkop"><h2>${esc(t('daken.nu.kop'))}</h2><button type="button" class="dk-sluit" data-dakblad-sluit aria-label="${esc(t('algemeen.sluiten'))}">×</button></div>
@@ -1053,5 +1074,5 @@ const dakvlakken = (() => {
     { plek: 'daken', id: 'dakMeters', doel: ['#wand [data-dak-scherm="meters"]', '#tel [data-dak-scherm="meters"]'], klaar: true },
   ];
 
-  return { kaartVenster, zonderVenster, zonderKaart, RONDJE, vorm, klik, verander, oudeAntwoorden, opHetHuis, nietGetekend, kortZin, piek, panelen, vanKaart, gebouwenUit, nuBlad, achterZin, KORT_PLEKKEN, STANDKLEUR, kortVan, kortNaar, kantNaam, kaal, waar };
+  return { naam, kaartVenster, zonderVenster, zonderKaart, RONDJE, vorm, klik, verander, oudeAntwoorden, opHetHuis, nietGetekend, kortZin, piek, panelen, vanKaart, gebouwenUit, nuBlad, achterZin, KORT_PLEKKEN, STANDKLEUR, kortVan, kortNaar, kantNaam, kaal, waar };
 })();

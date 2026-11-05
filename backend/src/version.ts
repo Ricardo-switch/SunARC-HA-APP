@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.128.0';
+export const VERSIE = '0.128.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,16 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.128.1',
+    datum: '2026-11-05',
+    nieuw: ['Geef een dakvlak een eigen naam: tik op de naam bovenaan een open vlak'],
+    beter: ['Liggen er meer vlakken op dezelfde plek, dan staat de richting erbij, zoals Hoofddak oost en Hoofddak west, ook bij Opbrengst'],
+    en: {
+      nieuw: ['Give a roof plane its own name: tap the name at the top of an open plane'],
+      beter: ['If several planes are in the same place, the direction is added, like Main roof east and Main roof west, also in Yield'],
+    },
+  },
   {
     versie: '0.128.0',
     datum: '2026-11-05',

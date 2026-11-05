@@ -197,7 +197,7 @@ export interface WebOptions {
    */
   readonly historie?: (vanMs: number, totMs: number) => Promise<{ zon: readonly PowerRow[]; net: readonly PowerRow[] } | null>;
   /** De opbrengst per dakvlak over een periode (besluit 254, stap 5), of null zonder daken. */
-  readonly dakenOpbrengst?: (vanMs: number, totMs: number) => Promise<{ vlakken: readonly { letter: string; plek: string; aantal: number; kWh: number }[]; achter: Achter | null } | null>;
+  readonly dakenOpbrengst?: (vanMs: number, totMs: number) => Promise<{ vlakken: readonly { letter: string; plek: string; naam?: string | null; azimuthDeg?: number; opstelling?: string; aantal: number; kWh: number }[]; achter: Achter | null } | null>;
   /** Het sluipverbruik (besluit 192): de nachten uit de statistiek van Home Assistant. */
   readonly sluipverbruik?: Sluipverbruik;
   /**

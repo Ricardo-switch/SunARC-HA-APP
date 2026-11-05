@@ -53,6 +53,8 @@ export interface DakVlak {
    */
   readonly gebouw?: string;
   readonly kant?: number | null;
+  /** Een eigen naam (Ricardo, 5 november 2026), zoals "Voorkant" of "Garage achter"; weg: de plek, met de richting erbij. */
+  readonly naam?: string;
 }
 
 /** Wat voor gebouw (stap 2); `grond` is een rek in de tuin. */
@@ -214,6 +216,9 @@ export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: strin
     const kant = v['kant'];
     if (gebouw != null && (typeof gebouw !== 'string' || !gebouwen.some((g) => g.id === gebouw))) return { fout: `vlak ${letter}: onbekend gebouw` };
     if (kant != null && !getal(kant, 0, 360)) return { fout: `vlak ${letter}: de kant is 0 tot 360°` };
+    const naamRaw = v['naam'] ?? null;
+    if (naamRaw !== null && (typeof naamRaw !== 'string' || naamRaw.trim().length > 30)) return { fout: `vlak ${letter}: de naam is hooguit 30 tekens` };
+    const naam = typeof naamRaw === 'string' ? naamRaw.trim().replace(/\s+/g, ' ') : '';
     vlakken.push({
       letter,
       plek: v['plek'] as DakPlek,
@@ -226,6 +231,7 @@ export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: strin
       meter: meter as string | null,
       bron: bron as VlakBron,
       ...(typeof gebouw === 'string' ? { gebouw, kant: (kant as number | null | undefined) ?? null } : {}),
+      ...(naam ? { naam } : {}),
     });
   }
   return {

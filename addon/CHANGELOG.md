@@ -1,5 +1,27 @@
 # Wat is er nieuw · What is new
 
+## 0.128.1
+
+*5 november 2026*
+
+**Nieuw**
+
+- Geef een dakvlak een eigen naam: tik op de naam bovenaan een open vlak
+
+**Beter**
+
+- Liggen er meer vlakken op dezelfde plek, dan staat de richting erbij, zoals Hoofddak oost en Hoofddak west, ook bij Opbrengst
+
+*English*
+
+**New**
+
+- Give a roof plane its own name: tap the name at the top of an open plane
+
+**Improved**
+
+- If several planes are in the same place, the direction is added, like Main roof east and Main roof west, also in Yield
+
 ## 0.128.0
 
 *5 november 2026*

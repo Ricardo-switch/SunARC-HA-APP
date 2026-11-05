@@ -700,6 +700,17 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await expect.poll(() => connStore.current?.daken?.gebouwen?.find((g) => g.id === 'huis')?.dakvorm, { timeout: 5_000 }).toBe('schild');
     await wand.locator('[data-dak-scherm="alle"]').click();
     // Een vlak erbij: eerst wat voor dak, dan hoe ze liggen.
+    // Een naam per vlak (Ricardo, 5 november 2026): zonder eigen naam de richting erbij, en een eigen naam bewaar je met het vlak.
+    await wand.locator('[data-dak-open="B"] b', { hasText: 'Hoofddak west' }).waitFor();
+    await wand.locator('[data-dak-open="A"]').click();
+    await wand.locator('[data-dak-naam]').fill('Voorkant');
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-daknaam.png') });
+    await wand.locator('[data-dak-naam]').press('Tab');
+    await wand.locator('[data-dak-bewaar]').click();
+    await expect.poll(() => connStore.current?.daken?.vlakken.find((v) => v.letter === 'A'), { timeout: 5_000 }).toMatchObject({ naam: 'Voorkant', bron: 'schatting' });
+    await wand.locator('[data-dak-open="A"] b', { hasText: 'Voorkant' }).waitFor();
+    // B is nu het enige hoofddak zonder eigen naam: dan gewoon Hoofddak.
+    expect(await wand.locator('[data-dak-open="B"] b').first().textContent()).toBe('Hoofddak');
     await wand.locator('[data-dak-scherm="erbij"]').click();
     await wand.locator('[data-dak-plek="uitbouw"]').click();
     await wand.locator('[data-dak-opstel="oostwest"][aria-pressed="true"]').waitFor();

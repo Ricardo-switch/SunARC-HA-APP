@@ -1444,8 +1444,8 @@ const historieVan = (vanMs: number, totMs: number) => historie.van(vanMs, totMs)
  * elke meter gemiddeld mat, uit de statistiek van Home Assistant, verdeeld naar
  * de heldere lucht per vlak. Een half uur bewaard per periode.
  */
-const dakenOpbrengstBewaard = new Map<string, { at: number; uit: { vlakken: { letter: string; plek: string; aantal: number; kWh: number }[]; achter: Achter | null } }>();
-async function dakenOpbrengst(vanMs: number, totMs: number): Promise<{ vlakken: { letter: string; plek: string; aantal: number; kWh: number }[]; achter: Achter | null } | null> {
+const dakenOpbrengstBewaard = new Map<string, { at: number; uit: { vlakken: { letter: string; plek: string; naam: string | null; azimuthDeg: number; opstelling: string; aantal: number; kWh: number }[]; achter: Achter | null } }>();
+async function dakenOpbrengst(vanMs: number, totMs: number): Promise<{ vlakken: { letter: string; plek: string; naam: string | null; azimuthDeg: number; opstelling: string; aantal: number; kWh: number }[]; achter: Achter | null } | null> {
   const a = connectionStore?.current;
   const ids = siteConfig?.solarProduction ? [siteConfig.solarProduction.id, ...(siteConfig.solarExtra ?? []).map((p) => p.id)] : [];
   if (!a?.daken?.vlakken.length || !location || !ids.length) return null;
@@ -1498,7 +1498,7 @@ async function dakenOpbrengst(vanMs: number, totMs: number): Promise<{ vlakken: 
     }),
     location,
   );
-  const uit = { vlakken: d.vlakken.map((v) => ({ letter: v.letter, plek: v.plek, aantal: panelenVan(v), kWh: kWh[v.letter] ?? 0 })), achter: vlakMetingNu()?.achter ?? null };
+  const uit = { vlakken: d.vlakken.map((v) => ({ letter: v.letter, plek: v.plek, naam: v.naam ?? null, azimuthDeg: v.azimuthDeg, opstelling: v.opstelling, aantal: panelenVan(v), kWh: kWh[v.letter] ?? 0 })), achter: vlakMetingNu()?.achter ?? null };
   dakenOpbrengstBewaard.set(sleutel, { at: Date.now(), uit });
   return uit;
 }
