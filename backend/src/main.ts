@@ -2309,6 +2309,8 @@ if (webPort != null) {
               (id) => allStates.get(id),
               (id) => houseRegisters?.entities.find((e) => e.entity_id === id)?.platform ?? null,
               () => allStates.values(),
+              // Opgewekt uit de omvormers (5 november 2026); een meetpunt met een attribuut heeft geen statistiek.
+              () => (siteConfig?.solarProduction ? [siteConfig.solarProduction, ...(siteConfig.solarExtra ?? [])].filter((p) => !p.attribute).map((p) => p.id) : []),
             ),
           },
         } : {}),

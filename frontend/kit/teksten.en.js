@@ -851,7 +851,7 @@
 
   // Energy (opbrengst.js)
   'opbrengst.periode': 'Period',
-  'opbrengst.breedte': 'the width is the amount',
+  'opbrengst.breedte': 'thick is a lot',
   'opbrengst.nietBeschikbaar': 'The energy figures are not available right now.',
   'opbrengst.eigenPanelen': '{pct}% of your electricity came from your own panels',
   'opbrengst.gebruikte': 'You used {kwh} kWh of electricity',
@@ -4241,6 +4241,11 @@
   'daken.nu.streep': 'The white mark: what the plane would deliver now with a clear sky.',
   'thuis.label.daken': { one: '1 roof · tap for each roof', other: '{n} roofs · tap for each roof' },
   'opbrengst.daken.wissel': 'Together or per roof',
+  'opbrengst.stromen.altijd': 'Always on',
+  'opbrengst.stromen.overig': 'Other',
+  'opbrengst.stromen.kwhZon': '{kwh} kWh · {pct}% sun',
+  'opbrengst.stromen.gas': '**Gas** to the heating',
+  'opbrengst.stromen.gasZin': 'apart: on the same scale it would push everything aside',
   'opbrengst.daken.samen': 'Together',
   'opbrengst.daken.perDak': 'Per roof',
   'opbrengst.daken.perPaneel': '{kwh} per panel',

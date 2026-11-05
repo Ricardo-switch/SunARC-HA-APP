@@ -395,9 +395,13 @@ export async function yieldReport(
   const terugDal = tm.perMeter ? sumBy(rows, s.net.teruglevering.filter((id) => tm.dal.has(id))) : null;
   const stap = fine === 'hour' ? 3_600_000 : 86_400_000;
   const gebruik = { afNormaal: 0, afDal: 0, terugNormaal: 0, terugDal: 0, terugNa: 0 };
-  const zon = sumBy(rows, s.zon);
+  // Opgewekt uit de omvormers als die er zijn (Ricardo, 5 november 2026): een
+  // zonnemeter in kWh kan achterlopen; zelf gebruikt kan per uur nooit meer zijn
+  // dan wat hij zegt. Zonder omvormer de zonnemeter, zoals altijd.
+  const uitOmvormer = await (source.opgewekt?.(range.startMs, range.endMs, fine) ?? Promise.resolve(null)).catch(() => null);
+  const zon = uitOmvormer ? new Map(uitOmvormer.map((r) => [r.startMs, r.change])) : sumBy(rows, s.zon);
   const gas = s.gas ? sumBy(rows, [s.gas]) : new Map<number, number>();
-  const hasSun = s.zon.length > 0;
+  const hasSun = s.zon.length > 0 || uitOmvormer != null;
   const basisKwh = (BASIS_ZONDER_METER_W / 1000) * (stap / 3_600_000);
   let terugGeschat = 0;
 
@@ -618,7 +622,9 @@ async function compareSeries(source: EnergySource, s: EnergySettings, kind: Peri
   const ids = [...s.net.afname, ...s.net.teruglevering, ...s.zon, ...(s.gas ? [s.gas] : []), ...(dyn ? [...dyn.afname, ...dyn.terug] : [])];
   const from = kind === 'jaar' ? starts[0]!.ms : yearBack(starts[0]!.ms);
   const rows = await source.changes(ids, from, range.endMs, period);
-  const sums = { afname: sumBy(rows, s.net.afname), terug: sumBy(rows, s.net.teruglevering), zon: sumBy(rows, s.zon), gas: s.gas ? sumBy(rows, [s.gas]) : new Map<number, number>() };
+  // Opgewekt uit de omvormers per dag, als die er zijn (5 november 2026).
+  const uitOmvormer = await (source.opgewekt?.(from, range.endMs, 'day') ?? Promise.resolve(null)).catch(() => null);
+  const sums = { afname: sumBy(rows, s.net.afname), terug: sumBy(rows, s.net.teruglevering), zon: uitOmvormer ? new Map(uitOmvormer.map((r) => [r.startMs, r.change])) : sumBy(rows, s.zon), gas: s.gas ? sumBy(rows, [s.gas]) : new Map<number, number>() };
   const kostSums = dyn ? { af: sumKost(rows, dyn.afname), terug: dyn.terug.length ? sumKost(rows, dyn.terug) : null } : null;
   const tm = tariefMeters(s);
   const dalSums = tm.perMeter ? { afname: sumBy(rows, s.net.afname.filter((id) => tm.dal.has(id))), terug: sumBy(rows, s.net.teruglevering.filter((id) => tm.dal.has(id))) } : null;

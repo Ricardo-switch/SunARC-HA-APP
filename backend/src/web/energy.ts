@@ -117,6 +117,12 @@ export interface EnergySource {
   entityNumber?(entityId: string): number | null;
   /** Sensoren met een prijs per kWh, zoals van Zonneplan, Tibber of Frank (issue 119). */
   prijsSensoren?(): readonly PrijsSensor[];
+  /**
+   * Wat de omvormers opwekten, per uur of per dag in kWh, uit hun vermogen
+   * (Ricardo, 5 november 2026: een zonnemeter in kWh kan achterlopen). Null
+   * zonder omvormer; dan telt de zonnemeter.
+   */
+  opgewekt?(startMs: number, endMs: number, period: 'hour' | 'day'): Promise<readonly { readonly startMs: number; readonly change: number }[] | null>;
   /** Per meter het verbruik per periode, in kWh en m³. */
   changes(
     ids: readonly string[],

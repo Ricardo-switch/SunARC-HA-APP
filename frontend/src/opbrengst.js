@@ -168,31 +168,111 @@ function verwachtRegel(v, soort) {
   return `<p class="mini" style="margin: 6px 0 0">${esc(zin)}</p>`;
 }
 
-function sankeyVan(r, breedte, hoogte, links, rechts, vul = false) {
-  const stroom = r.stromen.filter((s) => s.van !== 'gas' && s.kwh > 0.05);
-  if (!stroom.length) return `<p class="klein">${esc(t('opbrengst.nietsGemeten'))}</p>`;
-  const namen = new Map(r.apparaten.map((a) => [a.id, a.rest ? t('opbrengst.rest') : kort(a.naam)]));
-  const doelen = [...new Set(stroom.map((s) => s.naar))].map((id, i) => ({
-    id,
-    naam: id === 'terug' ? (r.geschat ? t('opbrengst.naarHetNetGeschat') : t('opbrengst.naarHetNet')) : namen.get(id) ?? id,
-    kleur: id === 'terug' ? TERUG : id === 'rest' ? NET : KLEUREN[i % KLEUREN.length],
-  }));
+/** De kleuren van de dakvlakken, zoals bij Per dak. */
+const DAKKLEUR = ['#F7B548', '#F3D48A', '#D98C3A', '#FFC970'];
+
+/** Wat een paar kostenregels samen zijn, of null zonder prijs. */
+function kostenVan(r, soorten) {
+  const l = r.kosten.regels.filter((x) => soorten.includes(x.soort) && x.euro != null);
+  return l.length ? l.reduce((s, x) => s + x.euro, 0) : null;
+}
+
+/**
+ * Altijd aan (sluipverbruik, besluit 192): het gewone verbruik 's nachts over
+ * de uren van de periode, uit de rest van het huis. Een schatting: hooguit 90%
+ * van de rest.
+ */
+function altijdAan(r) {
+  const rest = r.apparaten.find((a) => a.rest);
+  if (!sluip?.gewoonW || !rest || rest.kwh <= 0 || r.geschat) return null;
+  const uren = Math.max(0, (Math.min(r.periode.totMs, Date.now()) - r.periode.vanMs) / 3_600_000);
+  const kwh = Math.min(rest.kwh * 0.9, (sluip.gewoonW * uren) / 1000);
+  return kwh > 0.05 ? { kwh, deel: kwh / rest.kwh } : null;
+}
+
+/**
+ * Het stroombeeld (schets Wand-Opbrengst-Stromen, 5 november 2026): de zon per
+ * dakvlak als die er zijn, het net met wat het kostte; rechts de apparaten, de
+ * rest van het huis, Altijd aan en terug met wat het opbracht. Wat kleiner is
+ * dan 2%, samen onder Overig.
+ */
+function stroomModel(r) {
+  let stroom = r.stromen.filter((s) => s.van !== 'gas' && s.kwh > 0.05);
+  if (!stroom.length) return null;
+  const altijd = altijdAan(r);
+  if (altijd) stroom = stroom.flatMap((s) => (s.naar === 'rest' ? [{ ...s, kwh: s.kwh * (1 - altijd.deel) }, { ...s, naar: 'altijd', kwh: s.kwh * altijd.deel }] : [s]));
+  const totaal = stroom.reduce((t, s) => t + s.kwh, 0);
+  const perDoel = new Map();
+  for (const s of stroom) perDoel.set(s.naar, (perDoel.get(s.naar) ?? 0) + s.kwh);
+  const klein = new Set([...perDoel].filter(([id, k]) => !['terug', 'rest', 'altijd'].includes(id) && k < totaal * 0.02).map(([id]) => id));
+  if (klein.size === 1) klein.clear();
+  stroom = stroom.map((s) => (klein.has(s.naar) ? { ...s, naar: 'overig' } : s));
+  // De zon per dakvlak, naar hun aandeel in deze periode (besluit 254).
+  const vlakken = (daken?.vlakken ?? []).filter((v) => v.kWh > 0);
+  const dakSom = vlakken.reduce((t, v) => t + v.kWh, 0);
+  const zonDelen = vlakken.length > 1 && dakSom > 0 && !r.geschat
+    ? vlakken.map((v, i) => ({ id: `dak-${v.letter}`, naam: `${v.letter} · ${t(`daken.plek.${v.plek}`)}`, deel: v.kWh / dakSom, kleur: DAKKLEUR[i % DAKKLEUR.length] }))
+    : [{ id: 'zon', naam: t('vandaag.zon'), deel: 1, kleur: ZON }];
+  const st = stroom.flatMap((s) => (s.van === 'zon' ? zonDelen.map((z) => ({ van: z.id, naar: s.naar, kwh: s.kwh * z.deel })) : [s]));
+  const van = (id, kant) => st.filter((s) => s[kant] === id).reduce((t, s) => t + s.kwh, 0);
+  const zonIn = (id) => st.filter((s) => s.naar === id && s.van !== 'net').reduce((t, s) => t + s.kwh, 0);
+  const netEuro = kostenVan(r, ['stroom', 'normaal', 'dal']);
+  const terugEuro = kostenVan(r, ['terug', 'terug-na']);
   const bronnen = [
-    ...(stroom.some((s) => s.van === 'zon') ? [{ id: 'zon', naam: t('vandaag.zon'), kleur: ZON }] : []),
-    ...(stroom.some((s) => s.van === 'net') ? [{ id: 'net', naam: t('opbrengst.net'), kleur: NET }] : []),
+    ...zonDelen.map((z) => ({ ...z, regels: [{ t: `${getal(van(z.id, 'van'))} kWh` }] })),
+    { id: 'net', naam: t('opbrengst.net'), kleur: NET, regels: [{ t: `${getal(van('net', 'van'))} kWh` }, ...(netEuro != null ? [{ t: euro(netEuro), vet: true }] : [])] },
   ];
-  const schema = sankey.svg({ breedte, hoogte, links, rechts, vul, bronnen, doelen, stromen: stroom, beschrijving: t('opbrengst.sankey') });
+  const namen = new Map(r.apparaten.map((a) => [a.id, a.rest ? t('opbrengst.rest') : kort(a.naam)]));
+  const zonRegel = (id) => {
+    const k = van(id, 'naar');
+    const pct = k > 0 ? Math.round((zonIn(id) / k) * 100) : 0;
+    return [{ t: r.heeft.zon && !r.geschat ? t('opbrengst.stromen.kwhZon', { kwh: getal(k), pct }) : `${getal(k)} kWh` }];
+  };
+  const ids = [...new Set(st.map((s) => s.naar))];
+  const volgorde = (id) => (id === 'terug' ? 4 : id === 'altijd' ? 3 : id === 'rest' ? 2 : id === 'overig' ? 1 : 0);
+  ids.sort((a, b) => volgorde(a) - volgorde(b) || van(b, 'naar') - van(a, 'naar'));
+  const doelen = ids.map((id, i) => {
+    if (id === 'terug') {
+      return { id, naam: r.geschat ? t('opbrengst.naarHetNetGeschat') : t('opbrengst.naarHetNet'), kleur: TERUG, regels: [{ t: `${getal(van(id, 'naar'))} kWh` }, ...(terugEuro != null && terugEuro < 0 ? [{ t: `+ ${euro(-terugEuro)}`, vet: true, kleur: 'var(--mint-t)' }] : [])] };
+    }
+    if (id === 'altijd') return { id, naam: t('opbrengst.stromen.altijd'), kleur: '#FFB39F', regels: zonRegel(id) };
+    if (id === 'overig') return { id, naam: t('opbrengst.stromen.overig'), kleur: 'rgba(233,239,246,0.55)', regels: zonRegel(id) };
+    return { id, naam: namen.get(id) ?? id, kleur: id === 'rest' ? NET : KLEUREN[i % KLEUREN.length], regels: zonRegel(id) };
+  });
+  return { bronnen, doelen, stromen: st };
+}
+
+function sankeyVan(r, breedte, hoogte, links = 104, rechts = 136) {
+  const m = stroomModel(r);
+  if (!m) return `<p class="klein">${esc(t('opbrengst.nietsGemeten'))}</p>`;
+  const schema = stromen.svg({ breedte, hoogte, links, rechts, id: `st${breedte}`, beschrijving: t('opbrengst.sankey'), ...m });
   // Zonder meter (besluit 196): zeggen hoe het geschat is.
   return r.geschat ? `${schema}<p class="mini" style="margin: 14px 0 0">${esc(t('opbrengst.geschatUitleg'))}</p>` : schema;
 }
 
+/** Gas apart onder het stroombeeld: op dezelfde schaal zou het alles wegdrukken. */
+function gasRegel(r) {
+  if (!r.gas || !(r.gas.m3 > 0)) return '';
+  const e = kostenVan(r, ['gas']);
+  return `<div class="gasregel"><svg viewBox="0 0 24 24" fill="none" stroke="#ff8a6b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1 1.5 2 1.5 3 1.5-1.5 1.5-5 1.5-8z"/></svg><span>${taal.html('opbrengst.stromen.gas')}<small>${esc(t('opbrengst.stromen.gasZin'))}</small></span><b>${getal(r.gas.m3)} m³${e != null ? `<small>${euro(e)}</small>` : ''}</b></div>`;
+}
+
 function perApparaat(r) {
   // Zonder meter (besluit 196) is van de rest van het huis alleen de zon bekend: die staat in het schema, niet hier.
-  const lijst = r.apparaten.filter((a) => (a.kwh >= 0.05 || a.rest) && !(a.rest && r.geschat));
+  const altijd = altijdAan(r);
+  const lijst = r.apparaten
+    .filter((a) => (a.kwh >= 0.05 || a.rest) && !(a.rest && r.geschat))
+    .flatMap((a) => (a.rest && altijd
+      ? [
+          { ...a, kwh: a.kwh - altijd.kwh, zonKwh: a.zonKwh * (1 - altijd.deel), netKwh: a.netKwh * (1 - altijd.deel), kosten: a.kosten == null ? null : a.kosten * (1 - altijd.deel) },
+          { ...a, id: 'altijd', naam: t('opbrengst.stromen.altijd'), rest: false, kwh: altijd.kwh, zonKwh: a.zonKwh * altijd.deel, netKwh: a.netKwh * altijd.deel, kosten: a.kosten == null ? null : a.kosten * altijd.deel },
+        ]
+      : [a]))
+    .sort((x, y) => y.kwh - x.kwh);
   if (!lijst.length) return `<h2 class="kop-3">${esc(t('opbrengst.perApparaat'))}</h2><p class="mini" style="margin: 6px 0 0">${esc(t('opbrengst.geenMeters'))}</p>`;
   const rij = (a) => {
     const zonPct = a.kwh > 0 ? (a.zonKwh / a.kwh) * 100 : 0;
-    return `<div class="rij"><div class="boven"><b>${esc(a.rest ? t('opbrengst.rest') : kort(a.naam))}</b><span>${getal(a.kwh)} kWh${a.kosten != null ? `, ${euro(a.kosten)}` : ''}</span></div><div class="verdeel"><i style="width: ${zonPct.toFixed(1)}%; background: var(--zon)"></i><i style="width: ${(100 - zonPct).toFixed(1)}%; background: ${NET}"></i></div></div>`;
+    return `<div class="rij"><div class="boven"><b>${esc(a.rest ? t('opbrengst.rest') : a.id === 'altijd' ? a.naam : kort(a.naam))}</b><span>${getal(a.kwh)} kWh${a.kosten != null ? `, ${euro(a.kosten)}` : ''}</span></div><div class="verdeel"><i style="width: ${zonPct.toFixed(1)}%; background: var(--zon)"></i><i style="width: ${(100 - zonPct).toFixed(1)}%; background: ${NET}"></i></div></div>`;
   };
   return `<h2 class="kop-3" style="margin-bottom: 4px">${esc(t('opbrengst.perApparaat'))}</h2>${lijst.map(rij).join('')}
     <p class="mini legenda">${legendaZonNet(r)}</p>`;
@@ -271,20 +351,22 @@ function tekenNu() {
     $$('[data-titel]').forEach((el) => (el.textContent = melding ? t('nav.opbrengst') : t('algemeen.laden')));
     document.querySelector('[data-links]').innerHTML = tekst + sluipIngang();
     document.querySelector('[data-telinhoud]').innerHTML = tekst + sluipIngang();
-    ['[data-sankey]', '[data-apparaten]', '[data-perdag]'].forEach((s) => (document.querySelector(s).innerHTML = ''));
+    ['[data-sankey]', '[data-gas]', '[data-apparaten]', '[data-perdag]'].forEach((s) => (document.querySelector(s).innerHTML = ''));
     $$('[data-periode]').forEach((el) => (el.innerHTML = ''));
     return;
   }
   const r = data;
   $$('[data-titel]').forEach((el) => (el.textContent = titel(r)));
   $$('[data-periode]').forEach((el) => (el.innerHTML = periode(r)));
-  document.querySelector('[data-links]').innerHTML = `${cijfers(r)}${panelen(r)}${sluipIngang()}${erbijKaart(r)}`;
-  document.querySelector('[data-sankey]').innerHTML = sankeyVan(r, 500, 540, 70, 230);
+  document.querySelector('[data-links]').innerHTML = `<div class="cijfers">${cijfers(r)}</div>${panelen(r)}${sluipIngang()}${erbijKaart(r)}`;
+  document.querySelector('[data-sankey]').innerHTML = sankeyVan(r, 380, 470);
+  document.querySelector('[data-gas]').innerHTML = gasRegel(r);
   zet('[data-waarheen]', t(r.geschat ? 'opbrengst.waarHeenZon' : 'opbrengst.waarHeen'));
   document.querySelector('[data-apparaten]').innerHTML = perApparaat(r);
   document.querySelector('[data-perdag]').innerHTML = perDag(r);
-  document.querySelector('[data-telinhoud]').innerHTML = `${cijfers(r, true)}${panelen(r)}${sluipIngang()}${erbijKaart(r)}
-    <section class="glas kaart"><h2 class="kop-3">${esc(t(r.geschat ? 'opbrengst.waarHeenZon' : 'opbrengst.waarHeen'))}</h2><div style="margin-top: 10px">${sankeyVan(r, 380, 340, 0, 200, true)}</div></section>
+  document.querySelector('[data-telinhoud]').innerHTML = `${cijfers(r, true)}
+    <section class="glas kaart"><h2 class="kop-3">${esc(t(r.geschat ? 'opbrengst.waarHeenZon' : 'opbrengst.waarHeen'))}</h2><div class="telstromen">${sankeyVan(r, 358, 400, 96, 128)}</div>${gasRegel(r)}</section>
+    ${panelen(r)}${sluipIngang()}${erbijKaart(r)}
     <section class="glas kaart">${perApparaat(r)}</section>
     <section class="glas kaart">${perDag(r)}</section>`;
 }

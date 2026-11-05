@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.125.0';
+export const VERSIE = '0.126.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,22 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.126.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'Opbrengst in drie gelijke kolommen, met een nieuw stroombeeld: de zon per dakvlak, het net met wat het kostte, terug met wat het opbracht, Altijd aan (je sluipverbruik) apart, en kleine stromen samen',
+      'Gas staat apart onder het stroombeeld, met m³ en euro’s',
+    ],
+    opgelost: ['Opgewekt komt uit je omvormer als die er is: een zonnemeter die achterliep, gaf te weinig, en dan klopten zelf gebruikt en terug niet'],
+    en: {
+      nieuw: [
+        'Yield in three equal columns, with a new flow picture: the sun per roof plane, the grid with what it cost, export with what it earned, Always on (your standby use) apart, and small flows together',
+        'Gas sits apart under the flow picture, with m³ and euros',
+      ],
+      opgelost: ['Generated now comes from your inverter when there is one: a solar meter that lagged gave too little, and then self-use and export did not add up'],
+    },
+  },
   {
     versie: '0.125.0',
     datum: '2026-11-05',

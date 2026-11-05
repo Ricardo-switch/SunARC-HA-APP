@@ -1,5 +1,29 @@
 # Wat is er nieuw · What is new
 
+## 0.126.0
+
+*5 november 2026*
+
+**Nieuw**
+
+- Opbrengst in drie gelijke kolommen, met een nieuw stroombeeld: de zon per dakvlak, het net met wat het kostte, terug met wat het opbracht, Altijd aan (je sluipverbruik) apart, en kleine stromen samen
+- Gas staat apart onder het stroombeeld, met m³ en euro’s
+
+**Opgelost**
+
+- Opgewekt komt uit je omvormer als die er is: een zonnemeter die achterliep, gaf te weinig, en dan klopten zelf gebruikt en terug niet
+
+*English*
+
+**New**
+
+- Yield in three equal columns, with a new flow picture: the sun per roof plane, the grid with what it cost, export with what it earned, Always on (your standby use) apart, and small flows together
+- Gas sits apart under the flow picture, with m³ and euros
+
+**Fixed**
+
+- Generated now comes from your inverter when there is one: a solar meter that lagged gave too little, and then self-use and export did not add up
+
 ## 0.125.0
 
 *5 november 2026*

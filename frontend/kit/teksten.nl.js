@@ -856,7 +856,7 @@
 
   // Opbrengst (opbrengst.js)
   'opbrengst.periode': 'Periode',
-  'opbrengst.breedte': 'de breedte is de hoeveelheid',
+  'opbrengst.breedte': 'dik is veel',
   'opbrengst.nietBeschikbaar': 'De opbrengst is nu niet beschikbaar.',
   'opbrengst.eigenPanelen': '{pct}% van je stroom kwam van je eigen panelen',
   'opbrengst.gebruikte': 'Je gebruikte {kwh} kWh stroom',
@@ -4246,6 +4246,11 @@
   'daken.nu.streep': 'Het witte streepje: wat het vlak nu bij heldere lucht zou leveren.',
   'thuis.label.daken': { one: '1 dak · tik voor elk dak', other: '{n} daken · tik voor elk dak' },
   'opbrengst.daken.wissel': 'Samen of per dak',
+  'opbrengst.stromen.altijd': 'Altijd aan',
+  'opbrengst.stromen.overig': 'Overig',
+  'opbrengst.stromen.kwhZon': '{kwh} kWh · {pct}% zon',
+  'opbrengst.stromen.gas': '**Gas** naar de verwarming',
+  'opbrengst.stromen.gasZin': 'apart: op dezelfde schaal zou het alles wegdrukken',
   'opbrengst.daken.samen': 'Samen',
   'opbrengst.daken.perDak': 'Per dak',
   'opbrengst.daken.perPaneel': '{kwh} per paneel',

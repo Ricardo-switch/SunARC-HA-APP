@@ -249,6 +249,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [244. Een taak als één zin, en + Nieuw op Te doen](#244-een-taak-als-één-zin-en--nieuw-op-te-doen)
 - [245. Te doen in drie kolommen, witgoed altijd aan te tikken](#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken)
 - [247. Eén iconenset, duotoon](#247-eén-iconenset-duotoon)
+- [255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer](#255-opbrengst-het-stroombeeld-vertelt-meer-opgewekt-uit-de-omvormer)
 
 **Veiligheid**
 
@@ -11901,9 +11902,44 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
   kijk het na / Invoer aanpassen), onder Per dak bij Opbrengst, en in de bel
   zodra het op drie zonnige dagen te zien was.
 
-- **Nog niet:** de meter verdeelt nog niets (stap 4 en 5), en de omvormer
-  kapt alle vlakken samen af op één vermogen, ook als een garage een eigen
-  omvormer heeft.
+---
+
+## 255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer
+
+*Onderwerp: weergave · Status: geldig*
+
+5 november 2026. Na Daken en panelen vond Ricardo "Waar je stroom heen
+ging" toe aan een nieuw ontwerp: het middelste vak was te groot en liet de
+nieuwe dingen niet zien. Op zijn scherm klopten de getallen ook niet: "Je
+panelen 3,8 kWh", terwijl 3,8 zelf gebruikt en 3,4 naar het net samen 7,2
+is. De zonnemeter in kWh (`sensor.solaredge_produced_energy`) liep achter,
+en zelf gebruikt kan per uur nooit meer zijn dan wat die meter zegt.
+
+*Besluit (schets `design/app2/Wand-Opbrengst-Stromen.html` en
+`Tel-Opbrengst-Stromen.html`, gebouwd in 0.126.0):*
+
+- **Drie gelijke kolommen.** Links de cijfers als drie tegels, Je panelen
+  (Samen of Per dak) en het sluipverbruik; in het midden het stroombeeld als
+  één kaart; rechts Per apparaat en Per dag. Op de telefoon het stroombeeld
+  meteen onder de cijfers.
+- **Het stroombeeld** (`frontend/kit/stromen.js`): links de zon per dakvlak
+  (naar hun aandeel uit Per dak) en het net met wat het kostte; rechts de
+  apparaten met hun deel zon, de rest van het huis, **Altijd aan** en terug
+  naar het net met wat het opbracht. Altijd aan is het gewone sluipverbruik
+  's nachts (besluit 192) over de uren van de periode, hooguit 90% van de
+  rest; ook bij Per apparaat staat het apart. Wat kleiner is dan 2% gaat samen
+  onder Overig. Elke band loopt van de kleur van de bron naar die van de
+  bestemming; de namen schuiven uit elkaar. Gas staat er apart onder, met m³
+  en euro's: 11 m³ is ruim 100 kWh warmte en zou op dezelfde schaal alles
+  wegdrukken. De accu en de auto komen erbij zodra de opbrengst ze kent.
+- **Opgewekt uit de omvormer** (Ricardo): als er omvormers zijn, telt
+  Opbrengst de opgewekte zon uit hun vermogen per uur (per dag in de
+  vergelijking), uit de statistiek van Home Assistant (`EnergySource.opgewekt`).
+  De zonnemeter in kWh telt alleen zonder omvormer. Zo zijn opgewekt, zelf
+  gebruikt en terug weer samen één getal.
+- Het sluipverbruik, Per dak en de rest van Opbrengst blijven zoals ze waren.
+- **Uitrol:** samen met Daken en panelen (besluit 254) in één grote release;
+  tot dan op beta.
 
 ---
 
