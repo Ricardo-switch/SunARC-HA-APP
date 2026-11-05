@@ -511,7 +511,7 @@
       voortuin: tek.voortuin,
       garage: tek.garage && e.garage ? { ...tek.garage, panelen: e.garage } : tek.garage,
       // Hoe het huis ligt (besluit 205): de nok en de helling, en de voorgevel voor de zon.
-      ...(tek.ligging ? { dak: { nok: tek.ligging.nok, ...(tek.ligging.hellingDeg ? { hellingDeg: tek.ligging.hellingDeg } : {}) }, voorgevelDeg: tek.ligging.voorgevelDeg } : {}),
+      ...(tek.ligging ? { dak: { nok: tek.ligging.nok, ...(tek.ligging.hellingDeg ? { hellingDeg: tek.ligging.hellingDeg } : {}), ...(tek.ligging.plat ? { plat: true } : {}) }, voorgevelDeg: tek.ligging.voorgevelDeg } : {}),
     };
   }
 

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Geometry } from '../src/core/model.js';
 import { connectionView, validateConnection, type FoundPower } from '../src/web/aansluiting.js';
-import { dakenUitOud, leesDaken, piekVan, zonnevlakken, type DakVlak, type Daken } from '../src/web/daken.js';
+import { dakenUitOud, hoofddakPlat, leesDaken, piekVan, zonnevlakken, type DakVlak, type Daken } from '../src/web/daken.js';
 import { dakenNu, kiesLigging, type LiggingInput, type Meting } from '../src/web/ligging.js';
 import { exampleSite } from './site.js';
 
@@ -49,6 +49,18 @@ describe('een vlak', () => {
   it('laat een kant zonder panelen weg', () => {
     const d: Daken = { ...wendy, vlakken: [{ ...wendy.vlakken[0]!, aantal2: 0 }] };
     expect(zonnevlakken(d).map((p) => p.id)).toEqual(['vlak-a']);
+  });
+});
+
+describe('een plat dak op het hoofdhuis (issue 131)', () => {
+  it('volgt de dakvorm van het hoofdhuis, anders de vlakken, anders het oude antwoord', () => {
+    const huis = (dakvorm: 'plat' | 'zadel') => ({ id: 'huis', soort: 'hoofdhuis' as const, bron: 'schatting' as const, omtrek: [[0, 0], [10, 0], [10, 9], [0, 9]] as [number, number][], dakvorm, nokDeg: 0 });
+    expect(hoofddakPlat({ vlakken: [], voorgevelDeg: 180, omvormerW: null, gebouwen: [huis('plat')] }, null)).toBe(true);
+    expect(hoofddakPlat({ vlakken: [], voorgevelDeg: 180, omvormerW: null, gebouwen: [huis('zadel')] }, 'plat')).toBe(false);
+    expect(hoofddakPlat({ vlakken: [vlak({ opstelling: 'oostwest', aantal2: 4 })], voorgevelDeg: 180, omvormerW: null }, null)).toBe(true);
+    expect(hoofddakPlat({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null }, 'plat')).toBe(false);
+    expect(hoofddakPlat(null, 'plat')).toBe(true);
+    expect(hoofddakPlat(null, 'voorkant')).toBe(false);
   });
 });
 

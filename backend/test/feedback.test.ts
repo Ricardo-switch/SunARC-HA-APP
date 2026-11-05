@@ -23,6 +23,16 @@ async function log(extra: { now?: () => number; perTenMinutes?: number } = {}) {
 }
 
 describe('gevoel en toelichting (besluit 84)', () => {
+  it('kent de zones van nu: een kamer die er later bij kwam telt meteen mee (issue 133)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'hems-gevoel-'));
+    cleanup.push(dir);
+    let zones = ['woonkamer'];
+    const l = new FeedbackLog({ logDir: dir, zoneIds: () => zones });
+    expect(await l.add({ zoneId: 'zolder', gevoel: 'goed' })).toMatchObject({ ok: false, status: 400 });
+    zones = ['woonkamer', 'zolder'];
+    expect(await l.add({ zoneId: 'zolder', gevoel: 'goed' })).toMatchObject({ ok: true });
+  });
+
   it('legt een gevoel en een toelichting vast, met tijd en zone', async () => {
     let t = 1_000;
     const { dir, log: l } = await log({ now: () => t });

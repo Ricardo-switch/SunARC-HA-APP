@@ -347,4 +347,17 @@ export function dakenUitOud(o: OudeDaken): Daken {
   };
 }
 
+/**
+ * Heeft het hoofdhuis een plat dak (issue 131)? Zoals de bewoner het opgaf: de
+ * dakvorm van het hoofdhuis bij Daken en panelen, anders de vlakken van het
+ * hoofddak (allemaal op rekken, oost-west of plat), anders het oude antwoord.
+ */
+export function hoofddakPlat(daken: Daken | null | undefined, ligging: string | null | undefined): boolean {
+  const huis = daken?.gebouwen?.find((g) => g.soort === 'hoofdhuis');
+  if (huis) return huis.dakvorm === 'plat';
+  const hoofd = (daken?.vlakken ?? []).filter((v) => v.plek === 'hoofddak');
+  if (hoofd.length) return hoofd.every((v) => v.opstelling !== 'schuin');
+  return ligging === 'plat';
+}
+
 export const heeftElders = (e: EldersAantal | null | undefined) => Object.values(e ?? {}).some((n) => (n ?? 0) > 0);

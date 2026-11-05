@@ -1,5 +1,23 @@
 # Wat is er nieuw · What is new
 
+## 0.129.2
+
+*5 november 2026*
+
+**Opgelost**
+
+- Hoe voelt het huis gaf "Niet gelukt" voor een kamer die er via Inrichten bij kwam; nu telt hij meteen mee
+- Meten met: een meter uitzetten blijft uit, ook de meter die de app zelf koos; de app neemt geen watertemperatuur van een boiler of warmtepomp als kamertemperatuur
+- Een huis met een plat dak krijgt op Thuis een plat dak, met de panelen erop in rijen
+
+*English*
+
+**Fixed**
+
+- How does the house feel said "Did not work" for a room added in Setup; it now counts straight away
+- Measure with: switching a meter off stays off, also the meter the app picked itself; the app no longer takes a water temperature of a boiler or heat pump as the room temperature
+- A house with a flat roof gets a flat roof on Home, with the panels on it in rows
+
 ## 0.129.1
 
 *5 november 2026*

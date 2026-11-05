@@ -51,7 +51,11 @@ export type FeedbackResult =
 
 export interface FeedbackOptions {
   readonly logDir: string;
-  readonly zoneIds: readonly string[];
+  /**
+   * De zones die meetellen. Een functie geeft de zones van nu (issue 133): een
+   * kamer die er via Inrichten bij kwam, telt meteen mee, niet pas na een herstart.
+   */
+  readonly zoneIds: readonly string[] | (() => readonly string[]);
   readonly now?: () => number;
   /** Zoveel per tien minuten, voor alle zones samen. */
   readonly perTenMinutes?: number;
@@ -61,14 +65,16 @@ const WINDOW_MS = 10 * 60_000;
 
 export class FeedbackLog {
   readonly #path: string;
-  readonly #zones: ReadonlySet<string>;
+  readonly #zones: () => ReadonlySet<string>;
   readonly #now: () => number;
   readonly #limit: number;
   #recent: number[] = [];
 
   constructor(options: FeedbackOptions) {
     this.#path = join(options.logDir, FEEDBACK_FILE);
-    this.#zones = new Set(options.zoneIds);
+    const zones = options.zoneIds;
+    const vast = typeof zones === 'function' ? null : new Set(zones);
+    this.#zones = typeof zones === 'function' ? () => new Set(zones()) : () => vast!;
     this.#now = options.now ?? Date.now;
     this.#limit = options.perTenMinutes ?? 30;
   }
@@ -80,7 +86,7 @@ export class FeedbackLog {
     }
     const b = body as Record<string, unknown>;
     const zoneId = b['zoneId'];
-    if (typeof zoneId !== 'string' || !this.#zones.has(zoneId)) {
+    if (typeof zoneId !== 'string' || !this.#zones().has(zoneId)) {
       return { ok: false, status: 400, reden: 'onbekende zone' };
     }
     const gevoel = b['gevoel'];

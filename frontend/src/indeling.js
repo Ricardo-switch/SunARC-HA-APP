@@ -796,15 +796,23 @@ function metenKeuze(k) {
   if (k.etage === 'buiten' || huismodel.isBuiten({ id: k.etage }, k)) return '';
   const bronnen = temperatuurBronnen();
   const gekozen = new Set(k.meten ?? []);
+  // Wat de app zelf koos, als er niets gekozen is (issue 134): die staat aan, zodat je hem kunt uitzetten.
+  const ruimte = ruimteVan(k.id);
+  const auto = k.meten == null && !k.regelzone ? bronnen.find((b) => b.kamerId === k.id && b.naam === ruimte?.gemetenDoor) ?? null : null;
+  const geen = Array.isArray(k.meten) && k.meten.length === 0;
   const hier = bronnen.filter((b) => b.kamerId === k.id || gekozen.has(b.id));
   const elders = bronnen.filter((b) => b.kamerId !== k.id && !gekozen.has(b.id));
   const graad = (c) => `${nl(Math.round(c * 10) / 10, Number.isInteger(Math.round(c * 10) / 10) ? 0 : 1)}°`;
-  const chip = (b) => `<button type="button" class="chip${gekozen.has(b.id) ? '' : ' uitchip'}" data-meten="${esc(b.id)}" aria-pressed="${gekozen.has(b.id)}">${esc(b.naam)}${b.kamerId !== k.id ? ` (${esc(b.kamer)})` : ''} · ${graad(b.c)}</button>`;
-  const uitleg = t(!gekozen.size ? (k.regelzone ? 'indeling.meten.zoals' : 'indeling.meten.app') : k.regelzone ? 'indeling.meten.telt' : 'indeling.meten.gemiddelde');
+  const aan = (b) => gekozen.has(b.id) || auto?.id === b.id;
+  const chip = (b) => `<button type="button" class="chip${aan(b) ? '' : ' uitchip'}" data-meten="${esc(b.id)}" aria-pressed="${aan(b)}">${esc(b.naam)}${b.kamerId !== k.id ? ` (${esc(b.kamer)})` : ''} · ${graad(b.c)}</button>`;
+  const uitleg = geen
+    ? t(k.meedoenMet ? 'indeling.meten.geenMeedoen' : 'indeling.meten.geen')
+    : t(auto ? 'indeling.meten.auto' : !gekozen.size ? (k.regelzone ? 'indeling.meten.zoals' : 'indeling.meten.app') : k.regelzone ? 'indeling.meten.telt' : 'indeling.meten.gemiddelde');
+  const terug = geen || (gekozen.size && !k.regelzone) ? ` <button type="button" class="knop-tekst" data-meten-auto>${esc(t('indeling.meten.laatKiezen'))}</button>` : '';
   return `<div><span class="label">${esc(t('zoek.meten'))}</span>
     <div class="chips" role="group" aria-label="${esc(t('zoek.meten'))}">${hier.length ? hier.map(chip).join('') : `<span class="mini">${esc(t('indeling.geenThermometer'))}</span>`}</div>
     ${elders.length ? `<select class="veld" data-actie="meten-erbij" aria-label="${esc(t('indeling.sensorElders'))}" style="margin-top: 6px"><option value="">${esc(t('indeling.sensorElders'))}…</option>${elders.map((b) => `<option value="${esc(b.id)}">${esc(b.naam)} (${esc(b.kamer)}) · ${graad(b.c)}</option>`).join('')}</select>` : ''}
-    <p class="mini" style="margin: 6px 0 0">${esc(uitleg)}</p></div>`;
+    <p class="mini" style="margin: 6px 0 0">${esc(uitleg)}${terug}</p></div>`;
 }
 
 function soortKeuze(k) {
@@ -1076,11 +1084,22 @@ document.addEventListener('click', async (e) => {
     const next = concept();
     const k = next.kamers.find((x) => x.id === keuze.kamer);
     if (!k) return;
+    // Wat de app zelf koos, uitzetten (issue 134): dan geen meter, niet weer dezelfde.
+    const auto = k.meten == null && !k.regelzone && ruimteVan(k.id)?.gemetenDoor;
     const lijst = new Set(k.meten ?? []);
     if (lijst.has(el.dataset.meten)) lijst.delete(el.dataset.meten);
-    else lijst.add(el.dataset.meten);
+    else if (!(auto && temperatuurBronnen().find((b) => b.id === el.dataset.meten)?.naam === auto)) lijst.add(el.dataset.meten);
+    // Leeg: bij een kamer met regeling meet de regeling zoals ingesteld; anders bewust geen meter.
     if (lijst.size) k.meten = [...lijst].slice(0, 6);
-    else delete k.meten;
+    else if (k.regelzone) delete k.meten;
+    else k.meten = [];
+    await bewaar(next, t('indeling.metenBewaard'));
+  } else if (el.hasAttribute('data-meten-auto')) {
+    // Weer laten kiezen (issue 134): niets gekozen, dan neemt de app een meter in de kamer.
+    const next = concept();
+    const k = next.kamers.find((x) => x.id === keuze.kamer);
+    if (!k) return;
+    delete k.meten;
     await bewaar(next, t('indeling.metenBewaard'));
   } else if (el.dataset.buiten) {
     // Wat een buitenruimte is (besluit 109).

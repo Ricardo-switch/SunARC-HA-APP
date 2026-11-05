@@ -875,7 +875,9 @@
       z0 = z1;
     }
 
-    const dak = !model.zonderDak && !appartement;
+    // Een plat dak op het hoofdhuis (issue 131): geen puntdak, maar een plaat met een rand, en de panelen erop in rijen.
+    const platDak = !model.zonderDak && !appartement && model.dak?.plat === true;
+    const dak = !model.zonderDak && !appartement && !platDak;
     // De zoldervloer (zv) en de dakvoet (zt): daartussen het knieschot, als de zolder gebruikt wordt.
     const zv = z0;
     const zt = z0 + (dak ? g.knie : 0);
@@ -1161,6 +1163,24 @@
     } else {
       huis.push(line([[0, D, 0], [0, D, zt], [W, D, zt], [W, D, 0]], `stroke="#C9D6E2" stroke-opacity="0.55" stroke-width="2.2" stroke-linejoin="round"`));
       huis.push(line([[0, D, zt], [0, 0, zt], [W, 0, zt], [W, D, zt]], `stroke="#C9D6E2" stroke-opacity="0.3" stroke-width="1.4" stroke-linejoin="round"`));
+    }
+    // Een plat dak op het hoofdhuis (issue 131): een plaat met een rand, de panelen erop in rijen, zoals op de garage.
+    if (platDak) {
+      const sneeuw = model.weer === 'sneeuw';
+      const plaat = [[-0.06, -0.06, zt], [W + 0.06, -0.06, zt], [W + 0.06, D + 0.06, zt], [-0.06, D + 0.06, zt]];
+      huis.push(poly(plaat, `fill="${sneeuw ? '#eef3f8' : '#55626f'}"`));
+      huis.push(poly([[-0.06, D + 0.06, zt], [W + 0.06, D + 0.06, zt], [W + 0.06, D + 0.06, zt + 0.12], [-0.06, D + 0.06, zt + 0.12]], 'fill="#3d4957"'));
+      huis.push(poly([[W + 0.06, -0.06, zt], [W + 0.06, D + 0.06, zt], [W + 0.06, D + 0.06, zt + 0.12], [W + 0.06, -0.06, zt + 0.12]], 'fill="#46525f"'));
+      const n = (model.zon?.panelen ?? 0) + (model.zon?.panelenLinks ?? 0);
+      if (n > 0 && !sneeuw) {
+        plaatPanelen(0.2, 0.15, W - 0.4, D - 0.3, zt + 0.13, n, huis);
+        plek.panelen = [W / 2, D / 2, zt + 0.4];
+      }
+      // Een tik op de panelen (besluit 254, stap 5), net als op een schuin dak.
+      if (n > 0 && model.zon?.tik && opts.tik) {
+        const aria = esc(model.zon.tikLabel ?? '');
+        tikkenBoven.push(poly(plaat, `class="sc-tik" data-tik="${esc(model.zon.tik)}" fill="transparent" role="button" tabindex="0"${aria ? ` aria-label="${aria}"` : ''}`));
+      }
     }
     // Schoorsteen of afvoer van de cv, als die er is.
     if (model.cv && dak && !nokLangs) {

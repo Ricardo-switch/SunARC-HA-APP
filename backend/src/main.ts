@@ -76,7 +76,7 @@ import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.j
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
 import { sunPosition } from './core/sun.js';
-import { panelenVan, type DakVlak } from './web/daken.js';
+import { hoofddakPlat, panelenVan, type DakVlak } from './web/daken.js';
 import { aanvullenUitMeter, achterblijven, meetVlakken, metMeting, opbrengstPerVlak, verdeelDag, type Achter, type MeterGroep, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
 import { findHeatStores } from './web/buffers-vinden.js';
 import { kiesLigging, meetLigging, omvormerUitType, type Meting, type PanelenAntwoord } from './web/ligging.js';
@@ -1540,8 +1540,11 @@ const huisNu = (lang: Lang) => {
         lang,
       )
     : null;
-  huisBewaard.set(lang, { sleutel, atMs: Date.now(), huis });
-  return huis;
+  // Een plat dak op het hoofdhuis (issue 131): zoals de bewoner het opgaf bij Daken en panelen.
+  const a = connectionStore?.current;
+  const plat = huis?.ligging && hoofddakPlat(a?.daken, a?.panelen?.ligging) ? { ...huis, ligging: { ...huis.ligging, plat: true } } : huis;
+  huisBewaard.set(lang, { sleutel, atMs: Date.now(), huis: plat });
+  return plat;
 };
 /** Het huis, met de stand in woorden in de taal van de app; zonder taal Nederlands. */
 const houseReport = (lang: Lang = 'nl') => {
@@ -2103,7 +2106,7 @@ if (webPort != null) {
     // Gevoel en toelichting (besluit 84): alleen als er gelogd wordt, want ze
     // horen bij de dataset, en alleen naar een eigen bestand in de logmap.
     ...(logDir !== '' && site
-      ? { feedback: new FeedbackLog({ logDir, zoneIds: site.config.zones.map((z) => z.id) }) }
+      ? { feedback: new FeedbackLog({ logDir, zoneIds: () => (siteConfig ?? site.config).zones.map((z) => z.id) }) }
       : {}),
     ...(uitstelStore ? { uitstel: uitstelStore } : {}),
     ...(bufferStore ? { buffers: bufferStore } : {}),

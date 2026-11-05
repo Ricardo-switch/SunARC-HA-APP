@@ -113,7 +113,8 @@ describe('de indeling toetsen', () => {
       expect(validateLayout({ ...good, kamers: [{ ...kamer, meten }, ...good.kamers.slice(1)] }, known).ok, JSON.stringify(meten)).toBe(false);
     }
     const leeg = validateLayout({ ...good, kamers: [{ ...kamer, meten: [] }, ...good.kamers.slice(1)] }, known);
-    expect(leeg.ok && 'meten' in leeg.layout.kamers[0]!).toBe(false);
+    // Leeg is een keuze (issue 134): geen meter, en dat blijft bewaard.
+    expect(leeg.ok && leeg.layout.kamers[0]!.meten).toEqual([]);
   });
 
   it('bewaart wat voor kamer het is, alleen binnen (besluit 119)', () => {

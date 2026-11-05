@@ -251,6 +251,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [245. Te doen in drie kolommen, witgoed altijd aan te tikken](#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken)
 - [247. Eén iconenset, duotoon](#247-eén-iconenset-duotoon)
 - [255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer](#255-opbrengst-het-stroombeeld-vertelt-meer-opgewekt-uit-de-omvormer)
+- [257. Drie fouten van testers: het gevoel, Meten met, en een plat dak](#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak)
 
 **Veiligheid**
 
@@ -12053,6 +12054,33 @@ hoofddak B" zegt niets, bijvoorbeeld bij Opbrengst, waar geen tekening is.
   liggen: "Hoofddak oost" en "Hoofddak west". Overal hetzelfde: Daken en
   panelen, Per dak en het stroombeeld bij Opbrengst, De zon op je daken op
   Thuis, en Inrichten.
+
+---
+
+## 257. Drie fouten van testers: het gevoel, Meten met, en een plat dak
+
+*Onderwerp: weergave · Status: geldig*
+
+5 november 2026, uit de meldingen van testers (issues 131, 133 en 134).
+
+*Besluit (versie 0.129.2):*
+
+- **Het gevoel (133):** "Niet gelukt" bij Hoe voelt het huis kwam doordat het
+  logboek van het gevoel alleen de zones van het opstarten kende. Een kamer met
+  een regeling die er via Inrichten bij kwam, was "onbekende zone" tot de
+  volgende start. Nu kent het de zones van nu.
+- **Meten met (134):** een lege keuze is "geen meter", en blijft bewaard;
+  eerst viel hij terug op "automatisch", en dat pakte weer dezelfde sensor. De
+  meter die de app zelf koos, staat in Meten met aan, zodat je hem kunt
+  uitzetten; "Laat de app kiezen" zet het terug. Doet een kamer zonder eigen
+  meter mee met een andere, dan toont hij de temperatuur van die regeling. En
+  de app kiest zelf geen watertemperatuur als kamermeter: niets boven 35°, en
+  niet de boiler, het tapwater of de aanvoer en retour van een warmtepomp.
+- **Een plat dak (131):** het hoofdhuis op Thuis krijgt een plat dak als de
+  bewoner dat opgaf (de dakvorm van het hoofdhuis bij Daken en panelen, anders
+  de vlakken van het hoofddak, anders het oude antwoord "plat"): een plaat met
+  een rand, en de panelen erop in rijen, zoals op de garage. Een tik erop opent
+  De zon op je daken.
 
 ---
 

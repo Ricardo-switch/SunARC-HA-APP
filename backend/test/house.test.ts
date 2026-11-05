@@ -311,6 +311,26 @@ describe('het voorstel uit Home Assistant', () => {
     expect(kamer.gemetenDoor).toBeNull();
   });
 
+  it('neemt geen meter als je die uitzette, en kiest zelf geen watertemperatuur (issue 134)', () => {
+    const eigen = proposeLayout(config, registers, states);
+    // Een kamer zonder regeling waar de app zelf een meter koos.
+    const h0 = buildHouse(config, registers, states, snapshot, eigen);
+    const kamer0 = h0.etages.flatMap((e) => e.ruimtes).find((r) => r.zoneId == null && r.gemetenDoor != null)!;
+    expect(kamer0).toBeDefined();
+    const meter = kamer0.apparaten.find((d) => d.naam === kamer0.gemetenDoor)!;
+    // Uitgezet: een lege keuze is geen meter, niet weer dezelfde.
+    const zonder = buildHouse(config, registers, states, snapshot, { ...eigen, kamers: eigen.kamers.map((k) => (k.id === kamer0.id ? { ...k, meten: [] } : k)) });
+    const kamer = zonder.etages.flatMap((e) => e.ruimtes).find((r) => r.id === kamer0.id)!;
+    expect(kamer.temperatuurC).toBeNull();
+    expect(kamer.gemetenDoor).toBeNull();
+    expect(kamer.meetMet).toEqual([]);
+    // Zegt die meter 52°, dan is het water en geen kamer: de app kiest hem niet zelf.
+    const metStand = new Map(states);
+    metStand.set(meter.id, { ...states.get(meter.id)!, state: '52' });
+    const heet = buildHouse(config, registers, metStand, snapshot, eigen).etages.flatMap((e) => e.ruimtes).find((r) => r.id === kamer0.id)!;
+    expect(heet.gemetenDoor).not.toBe(meter.naam);
+  });
+
   it('zet de batterij bij het apparaat, en geeft alle batterijen met de leegste eerst (besluit 122)', () => {
     const basis = states.get('cover.screen')!;
     const metAccu = {
