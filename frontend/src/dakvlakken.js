@@ -242,6 +242,15 @@ const dakvlakken = (() => {
       const br = gebouwNaam(g).length * fs * 0.5 + fs;
       return [[x - br / 2, y + fs], [x + br / 2, y + fs]];
     });
+    // De straat voor de voorgevel past er ook in.
+    const huis0 = tk.gebouwen.find((g) => g.soort === 'hoofdhuis');
+    if (huis0 && d.voorgevelDeg != null) {
+      const c = midden(huis0.omtrek);
+      const F = [Math.sin((d.voorgevelDeg * Math.PI) / 180), Math.cos((d.voorgevelDeg * Math.PI) / 180)];
+      const voor = Math.max(...huis0.omtrek.map((p) => (p[0] - c[0]) * F[0] + (p[1] - c[1]) * F[1]));
+      const s0 = [c[0] + F[0] * (voor + fs * 2.6), c[1] + F[1] * (voor + fs * 2.6)];
+      extra.push([s0[0] - fs * 2.2, s0[1] - fs], [s0[0] + fs * 2.2, s0[1] + fs]);
+    }
     const b = doos([...pts, ...extra]);
     const w0 = b.x1 - b.x0;
     const h0 = b.y1 - b.y0;
@@ -284,7 +293,7 @@ const dakvlakken = (() => {
         const op = per.get(k) ?? [];
         const hier = open && op.some((v) => v.letter === open.letter);
         const richting = dv.kant == null ? t('daken.platDak') : t('daken.dakvlakKant', { richting: kort(dv.kant).toLowerCase() });
-        svg += `<polygon class="dk-dv${op.length ? ' vol' : ''}${hier ? ' open' : ''}" points="${poly(dv.punten)}" stroke-width="${sw}" data-dak-dakvlak="${esc(k)}" role="button" tabindex="0" aria-label="${esc(t('daken.dakvlakAria', { richting, gebouw: gebouwNaam(g) }))}"${op.length ? ' style="fill: url(#dkid-paneel)"' : ''}/>`;
+        svg += `<polygon class="dk-dv${op.length ? ' vol' : ''}${hier ? ' open' : ''}" points="${poly(dv.punten)}" stroke-width="${sw}" data-dak-dakvlak="${esc(k)}" role="button" tabindex="0" aria-label="${esc(t('daken.dakvlakAria', { richting, gebouw: gebouwNaam(g) }))}"/>`;
       }
       svg += '</g>';
       if (g.nok) svg += `<line class="dk-nok" x1="${g.nok[0][0]}" y1="${-g.nok[0][1]}" x2="${g.nok[1][0]}" y2="${-g.nok[1][1]}" stroke-width="${sw * 1.4}"/>`;
@@ -294,15 +303,24 @@ const dakvlakken = (() => {
       const br = tekst.length * fs * 0.5 + fs;
       svg += `<g class="dk-gnaam" data-dak-gebouw="${esc(g.id)}" role="button" tabindex="0" aria-label="${esc(`${tekst}, ${t(`daken.dakvorm.${g.dakvorm}`)}`)}" transform="translate(${top[0].toFixed(2)} ${(-top[1]).toFixed(2)})"><rect x="${(-br / 2).toFixed(2)}" y="${(-fs * 0.8).toFixed(2)}" width="${br.toFixed(2)}" height="${(fs * 1.3).toFixed(2)}" rx="${(fs * 0.4).toFixed(2)}"/><text font-size="${(fs * 0.78).toFixed(2)}" text-anchor="middle" y="${(fs * 0.12).toFixed(2)}">${esc(tekst)}</text></g>`;
     }
+    // De panelen zelf, zoveel als er zijn (het open vlak zoals het nu bewaard is).
+    for (const [, rects] of Object.entries(tk.panelen ?? {})) {
+      svg += rects.map((r) => `<polygon class="dk-paneel" points="${poly(r)}" stroke-width="${(sw * 0.6).toFixed(3)}"/>`).join('');
+    }
     // De letters, met een pijl naar waar het dakvlak kijkt.
     for (const g of tk.gebouwen) {
       for (const dv of g.dakvlakken) {
         const op = per.get(`${g.id}|${sleutelVan(dv.kant)}`) ?? [];
         if (!op.length) continue;
-        const c = midden(dv.punten);
+        // De letter naast de panelen van het eerste vlak, aan de kant waar het dakvlak naartoe kijkt.
+        const eigen = (tk.panelen?.[op[0].letter] ?? []).flat();
+        const pm = midden(eigen.length ? eigen : dv.punten);
+        const kant = dv.kant ?? op[0].azimuthDeg;
+        const K = [Math.sin((kant * Math.PI) / 180), Math.cos((kant * Math.PI) / 180)];
+        const ver = eigen.length ? Math.max(...eigen.map((p) => (p[0] - pm[0]) * K[0] + (p[1] - pm[1]) * K[1])) : 0;
+        const c = [pm[0] + K[0] * (ver + fs * 0.9), pm[1] + K[1] * (ver + fs * 0.9)];
         if (dv.kant != null) {
-          const a = (dv.kant * Math.PI) / 180;
-          svg += `<line class="dk-pijl" x1="${c[0].toFixed(2)}" y1="${(-c[1]).toFixed(2)}" x2="${(c[0] + Math.sin(a) * fs * 1.7).toFixed(2)}" y2="${(-c[1] - Math.cos(a) * fs * 1.7).toFixed(2)}" stroke-width="${sw * 3}"/>`;
+          svg += `<line class="dk-pijl" x1="${(c[0] + K[0] * fs * 0.75).toFixed(2)}" y1="${(-c[1] - K[1] * fs * 0.75).toFixed(2)}" x2="${(c[0] + K[0] * fs * 1.9).toFixed(2)}" y2="${(-c[1] - K[1] * fs * 1.9).toFixed(2)}" stroke-width="${sw * 3}"/>`;
         }
         op.forEach((v, i) => {
           const x = c[0] + (i - (op.length - 1) / 2) * fs * 1.6;

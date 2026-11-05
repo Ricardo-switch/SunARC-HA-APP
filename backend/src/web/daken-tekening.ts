@@ -12,7 +12,7 @@
  * De tekening verandert niets aan de berekening: die rekent met de richting
  * en de helling van elk vlak (daken.ts).
  */
-import type { DakPlek, DakVlak, Daken, Dakvorm, Gebouw, GebouwSoort, Xy } from './daken.js';
+import { panelenVan, type DakPlek, type DakVlak, type Daken, type Dakvorm, type Gebouw, type GebouwSoort, type Xy } from './daken.js';
 
 const RAD = Math.PI / 180;
 const norm = (deg: number) => ((deg % 360) + 360) % 360;
@@ -253,20 +253,171 @@ export function binnenOmtrek(p: Xy, omtrek: readonly Xy[]): boolean {
   return erin;
 }
 
+/* ------------------------------------------------------------ omtrek in blokken */
+
+/** De oppervlakte van een omtrek, in m². */
+export function oppervlak(omtrek: readonly Xy[]): number {
+  let s = 0;
+  for (let i = 0; i < omtrek.length; i++) {
+    const a = omtrek[i]!;
+    const b = omtrek[(i + 1) % omtrek.length]!;
+    s += a[0] * b[1] - b[0] * a[1];
+  }
+  return Math.abs(s) / 2;
+}
+
+/**
+ * Een omtrek in blokken (5 november 2026): OpenStreetMap heeft het huis met
+ * een aangebouwde garage of uitbouw vaak als één gebouw. Is de omtrek geen
+ * rechthoek, dan in rechthoeken langs zijn as, de grootste eerst: dat is het
+ * huis, de rest zijn delen om aan te tikken. Null als het al een rechthoek is.
+ */
+export function inBlokken(omtrek: readonly Xy[]): { hoofd: Xy[]; rest: Xy[][] } | null {
+  const r = rechthoekOm(omtrek);
+  if (oppervlak(omtrek) >= 0.9 * r.lengte * r.breedte) return null;
+  const U = richting(r.asDeg);
+  const V = richting(r.asDeg + 90);
+  const uv: Xy[] = omtrek.map((p) => [p[0] * U[0] + p[1] * U[1], p[0] * V[0] + p[1] * V[1]]);
+  // De lijnen van het raster: elke hoek, wat dicht bij elkaar ligt samen.
+  const lijnen = (waarden: number[]) => {
+    const uit: number[] = [];
+    for (const w of [...waarden].sort((a, b) => a - b)) if (!uit.length || w - uit.at(-1)! > 0.4) uit.push(w);
+    return uit;
+  };
+  const us = lijnen(uv.map((p) => p[0]));
+  const vs = lijnen(uv.map((p) => p[1]));
+  const nI = us.length - 1;
+  const nJ = vs.length - 1;
+  if (nI < 1 || nJ < 1 || nI > 40 || nJ > 40) return null;
+  const vrij = Array.from({ length: nI }, (_, i) => Array.from({ length: nJ }, (_, j) => binnenOmtrek([(us[i]! + us[i + 1]!) / 2, (vs[j]! + vs[j + 1]!) / 2], uv)));
+  const blokken: Xy[][] = [];
+  for (let n = 0; n < 5; n++) {
+    // Telling per hoek, om snel te zien of een rechthoek van vakjes helemaal vrij is.
+    const som = Array.from({ length: nI + 1 }, () => new Array<number>(nJ + 1).fill(0));
+    for (let i = 0; i < nI; i++) for (let j = 0; j < nJ; j++) som[i + 1]![j + 1] = (vrij[i]![j] ? 1 : 0) + som[i]![j + 1]! + som[i + 1]![j]! - som[i]![j]!;
+    const telling = (i0: number, j0: number, i1: number, j1: number) => som[i1 + 1]![j1 + 1]! - som[i0]![j1 + 1]! - som[i1 + 1]![j0]! + som[i0]![j0]!;
+    let beste: { i0: number; j0: number; i1: number; j1: number; opp: number } | null = null;
+    for (let i0 = 0; i0 < nI; i0++) {
+      for (let j0 = 0; j0 < nJ; j0++) {
+        for (let i1 = i0; i1 < nI; i1++) {
+          for (let j1 = j0; j1 < nJ; j1++) {
+            if (telling(i0, j0, i1, j1) !== (i1 - i0 + 1) * (j1 - j0 + 1)) break;
+            const opp = (us[i1 + 1]! - us[i0]!) * (vs[j1 + 1]! - vs[j0]!);
+            if (beste == null || opp > beste.opp) beste = { i0, j0, i1, j1, opp };
+          }
+        }
+      }
+    }
+    // Kleiner dan 6 m² is een stoep of een erker: geen eigen blok.
+    if (beste == null || beste.opp < 6) break;
+    for (let i = beste.i0; i <= beste.i1; i++) for (let j = beste.j0; j <= beste.j1; j++) vrij[i]![j] = false;
+    const terug = (u: number, v: number): Xy => [rond(u * U[0] + v * V[0]), rond(u * U[1] + v * V[1])];
+    const [u0, u1, v0, v1] = [us[beste.i0]!, us[beste.i1 + 1]!, vs[beste.j0]!, vs[beste.j1 + 1]!];
+    blokken.push([terug(u0, v0), terug(u1, v0), terug(u1, v1), terug(u0, v1)]);
+  }
+  if (blokken.length < 2) return null;
+  return { hoofd: blokken[0]!, rest: blokken.slice(1) };
+}
+
+/* ------------------------------------------------------------ de panelen zelf */
+
+/** Een paneel van boven: 1 meter breed, 1,7 meter lang, op de helling korter. */
+const PANEEL = { breed: 1.0, lang: 1.7, tussen: 0.04, rand: 0.3 } as const;
+
+/**
+ * Zoveel panelen als er zijn, in rijen op het dakvlak (5 november 2026): niet
+ * het hele dakvlak vol. Vanaf de nok naar beneden; een rij die niet vol is,
+ * in het midden. Meer vlakken op één dakvlak delen de rijen, op letter.
+ */
+export function panelenOp(dv: Dakvlakje, vlakken: readonly DakVlak[]): Record<string, Xy[][]> {
+  const eerste = vlakken[0];
+  if (!eerste) return {};
+  const kant = dv.kant ?? eerste.azimuthDeg;
+  const K = richting(kant);
+  const A = richting(kant + 90);
+  const ak = dv.punten.map((p): Xy => [p[0] * A[0] + p[1] * A[1], p[0] * K[0] + p[1] * K[1]]);
+  const a0 = Math.min(...ak.map((p) => p[0])) + PANEEL.rand;
+  const a1 = Math.max(...ak.map((p) => p[0])) - PANEEL.rand;
+  const k0 = Math.min(...ak.map((p) => p[1])) + PANEEL.rand;
+  const k1 = Math.max(...ak.map((p) => p[1])) - PANEEL.rand;
+  const cos = Math.cos((eerste.tiltDeg * Math.PI) / 180);
+  // Op rekken staan de rijen uit elkaar, voor de schaduw; oost-west zijn twee panelen per rug.
+  const diep = eerste.opstelling === 'oostwest' ? 2 * PANEEL.lang * cos : PANEEL.lang * cos;
+  const stap = diep + (eerste.opstelling === 'rek' ? 0.8 : PANEEL.tussen);
+  const perVak = eerste.opstelling === 'oostwest' ? 2 : 1;
+  const rijen: [number, number][][] = [];
+  for (let k = k0; k + diep <= k1 + 1e-6; k += stap) {
+    const rij: [number, number][] = [];
+    for (let a = a0; a + PANEEL.breed <= a1 + 1e-6; a += PANEEL.breed + PANEEL.tussen) {
+      const hoeken: Xy[] = [[a, k], [a + PANEEL.breed, k], [a + PANEEL.breed, k + diep], [a, k + diep]];
+      if (hoeken.every((h) => binnenOmtrek(h, ak))) rij.push([a, k]);
+    }
+    if (rij.length) rijen.push(rij);
+  }
+  const nodig = vlakken.map((v) => Math.ceil(panelenVan(v) / perVak));
+  let over = nodig.reduce((s, n) => s + n, 0);
+  const vakken: [number, number][] = [];
+  for (const rij of rijen) {
+    if (over <= 0) break;
+    const n = Math.min(over, rij.length);
+    const van = Math.floor((rij.length - n) / 2);
+    vakken.push(...rij.slice(van, van + n));
+    over -= n;
+  }
+  const naarWereld = (a: number, k: number): Xy => [rond(a * A[0] + k * K[0]), rond(a * A[1] + k * K[1])];
+  const uit: Record<string, Xy[][]> = {};
+  let i = 0;
+  vlakken.forEach((v, j) => {
+    uit[v.letter] = vakken.slice(i, i + nodig[j]!).map(([a, k]) => [naarWereld(a, k), naarWereld(a + PANEEL.breed, k), naarWereld(a + PANEEL.breed, k + diep), naarWereld(a, k + diep)]);
+    i += nodig[j]!;
+  });
+  return uit;
+}
+
 export interface Tekening {
   readonly gebouwen: readonly (Gebouw & GebouwVanBoven)[];
   /** De gebouwen eromheen die nog niet bij het huis horen. */
   readonly omgeving: readonly (readonly Xy[])[];
   readonly plaats: Readonly<Record<string, VlakPlaats>>;
+  /** Per vlak zijn panelen van boven, zoveel als er zijn. */
+  readonly panelen: Readonly<Record<string, readonly (readonly Xy[])[]>>;
 }
 
-/** Alles wat de pagina nodig heeft om het huis van boven te tekenen. */
+/** De kleinste afstand tussen de hoeken van twee omtrekken, in meters. */
+const afstandTussen = (a: readonly Xy[], b: readonly Xy[]) => Math.min(...a.flatMap((p) => b.map((q) => Math.hypot(p[0] - q[0], p[1] - q[1]))));
+
+/**
+ * Alles wat de pagina nodig heeft om het huis van boven te tekenen. Een
+ * gebouw uit de kaart dat geen rechthoek is, wordt het grootste blok; de rest
+ * komt grijs ernaast, om aan te tikken. Van de omgeving alleen wat binnen 12
+ * meter van het huis staat, hooguit acht.
+ */
 export function tekening(d: Daken): Tekening {
-  const gebouwen = gebouwenNu(d);
-  const omgeving = (d.omgeving ?? []).filter((o) => !gebouwen.some((g) => binnenOmtrek(middenVan(o), g.omtrek)));
-  return {
-    gebouwen: gebouwen.map((g) => ({ ...g, ...vanBoven(g) })),
-    omgeving,
-    plaats: plaatsVlakken(d.vlakken, gebouwen),
-  };
+  const delen: Xy[][] = [];
+  const gebouwen = gebouwenNu(d).map((g) => {
+    if (g.bron !== 'kaart') return g;
+    const b = inBlokken(g.omtrek);
+    if (!b) return g;
+    delen.push(...b.rest);
+    return { ...g, omtrek: b.hoofd };
+  });
+  const huis = gebouwen.find((g) => g.soort === 'hoofdhuis')!;
+  const vrij = (o: readonly Xy[]) => !gebouwen.some((g) => binnenOmtrek(middenVan(o), g.omtrek));
+  const buren = (d.omgeving ?? [])
+    .filter((o) => vrij(o) && !delen.some((x) => binnenOmtrek(middenVan(x), o)))
+    .map((o) => ({ o, af: afstandTussen(o, huis.omtrek) }))
+    .filter((x) => x.af <= 12)
+    .sort((a, b) => a.af - b.af)
+    .slice(0, 8)
+    .map((x) => x.o);
+  const plaats = plaatsVlakken(d.vlakken, gebouwen);
+  const boven = gebouwen.map((g) => ({ ...g, ...vanBoven(g) }));
+  const panelen: Record<string, Xy[][]> = {};
+  for (const g of boven) {
+    for (const dv of g.dakvlakken) {
+      const op = d.vlakken.filter((v) => plaats[v.letter]?.getekend && plaats[v.letter]?.gebouw === g.id && plaats[v.letter]?.kant === dv.kant);
+      Object.assign(panelen, panelenOp(dv, op));
+    }
+  }
+  return { gebouwen: boven, omgeving: [...delen.filter(vrij), ...buren], plaats, panelen };
 }

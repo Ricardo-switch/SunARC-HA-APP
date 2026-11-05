@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { dakvormVoorstel, gebouwenNu, plaatsVlakken, rechthoekOm, tekening, vanBoven } from '../src/web/daken-tekening.js';
+import { dakvormVoorstel, gebouwenNu, inBlokken, oppervlak, panelenOp, plaatsVlakken, rechthoekOm, tekening, vanBoven } from '../src/web/daken-tekening.js';
 import type { DakVlak, Daken, Gebouw, Xy } from '../src/web/daken.js';
 
 /** Een rechthoek van `l` bij `w` meter met de lange kant langs `asDeg`, om `m`. */
@@ -108,8 +108,45 @@ describe('de vlakken op de tekening', () => {
   });
 
   it('laat de omgeving weg die al een gebouw is', () => {
-    const t = tekening({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [huis], omgeving: [rechthoek(4, 4, 0), rechthoek(4, 4, 0, [20, 0])] });
+    const t = tekening({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [huis], omgeving: [rechthoek(4, 4, 0), rechthoek(4, 4, 0, [12, 0])] });
     expect(t.omgeving).toHaveLength(1);
     expect(t.gebouwen[0]!.dakvlakken).toHaveLength(2);
+  });
+});
+
+describe('een omtrek in blokken en de panelen zelf (5 november 2026)', () => {
+  // Een huis van 10 bij 8 met een garage van 4 bij 6 ertegenaan: in de kaart één gebouw.
+  const metGarage: Xy[] = [[-5, -4], [5, -4], [5, -1], [9, -1], [9, 5], [5, 5], [5, 4], [-5, 4]];
+
+  it('laat een rechthoek heel', () => {
+    expect(inBlokken(rechthoek(10, 8, 30))).toBeNull();
+  });
+
+  it('maakt van huis met garage twee blokken, het grootste eerst', () => {
+    const b = inBlokken(metGarage)!;
+    expect(oppervlak(b.hoofd)).toBeCloseTo(80, 0);
+    expect(b.rest).toHaveLength(1);
+    expect(oppervlak(b.rest[0]!)).toBeCloseTo(24, 0);
+  });
+
+  it('tekent het huis als blok en zet de garage grijs ernaast, om aan te tikken', () => {
+    const t = tekening({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [gebouw({ omtrek: metGarage })] });
+    expect(oppervlak(t.gebouwen[0]!.omtrek)).toBeCloseTo(80, 0);
+    expect(t.omgeving).toHaveLength(1);
+  });
+
+  it('tekent zoveel panelen als er zijn, binnen het dakvlak', () => {
+    const dv = vanBoven(gebouw()).dakvlakken.find((x) => x.kant === 180)!;
+    const p = panelenOp(dv, [vlak({ aantal: 6 }), vlak({ letter: 'B', aantal: 3 })]);
+    expect(p.A).toHaveLength(6);
+    expect(p.B).toHaveLength(3);
+    // Alle hoeken op het dakvlak aan de zuidkant (y onder de nok).
+    expect(p.A!.flat().every((q) => q[1] <= 0.01 && q[1] >= -4.01)).toBe(true);
+  });
+
+  it('houdt van de omgeving alleen wat dichtbij staat, hooguit acht', () => {
+    const ver = Array.from({ length: 12 }, (_, i) => rechthoek(4, 4, 0, [9 + i * 0.1, 0]));
+    const t = tekening({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [gebouw()], omgeving: [...ver, rechthoek(4, 4, 0, [60, 0])] });
+    expect(t.omgeving).toHaveLength(8);
   });
 });

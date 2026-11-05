@@ -1,5 +1,23 @@
 # Wat is er nieuw · What is new
 
+## 0.123.1
+
+*5 november 2026*
+
+**Beter**
+
+- Van boven tekent SunArc zoveel panelen als je invulde, in rijen vanaf de nok, in plaats van het hele dakvlak vol
+- Heeft de kaart je huis en garage als één gebouw, dan wordt het grootste blok het huis met de dakvorm; de rest staat grijs ernaast, om aan te tikken als garage of uitbouw
+- Van de gebouwen ernaast alleen wat binnen 12 meter staat, hooguit acht
+
+*English*
+
+**Improved**
+
+- From above, SunArc draws as many panels as you entered, in rows from the ridge, instead of filling the whole roof plane
+- If the map has your house and garage as one building, the largest block becomes the house with the roof shape; the rest is grey beside it, to tap as garage or extension
+- Of the buildings around, only those within 12 metres, eight at most
+
 ## 0.123.0
 
 *5 november 2026*

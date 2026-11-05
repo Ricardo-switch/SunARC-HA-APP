@@ -11843,6 +11843,12 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
   een tik het; een leeg dakvlak aantikken maakt een nieuw vlak. Gebouwen
   binnen 35 meter staan grijs; aantikken maakt er een garage, uitbouw,
   carport, schuur of ander gebouw van.
+- **Blokken en panelen** (0.123.1, Ricardo 5 november): de kaart heeft huis
+  en garage vaak als één gebouw. Is de omtrek geen rechthoek (minder dan 90%
+  van de rechthoek eromheen), dan in rechthoeken langs de as; de grootste is
+  het huis, de rest staat grijs ernaast om aan te tikken. Van boven staan
+  zoveel panelen als er zijn, in rijen vanaf de nok, niet het hele dakvlak
+  vol. Van de omgeving alleen wat binnen 12 meter staat, hooguit acht.
 - **Van boven of het huis:** van boven is standaard, Het huis toont het
   3D-huis zoals in stap 1.
 - De tekening verandert niets aan de berekening: die rekent met de richting
