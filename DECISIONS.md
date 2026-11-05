@@ -11754,7 +11754,7 @@ al met elk aantal `solarPlanes`; de app kent alleen voorkant, achterkant,
 beide of plat met één helling, garage, carport en tuinhuis tellen niet mee in
 de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 
-*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, stap 4 in 0.124.0, stap 5 in 0.125.0; 2b en 3 nog niet):*
+*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, stap 4 in 0.124.0, stap 5 in 0.125.0, stap 3 in 0.127.0; 2b nog niet):*
 
 - **Elk dakvlak apart,** met een letter, een plek (hoofddak, dwarskap,
   uitbouw, garage, carport, tuinhuis of schuur, de grond, gevel of balkon), een
@@ -11901,6 +11901,35 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 - **Waar:** bovenaan Daken en panelen met de lijn van de zonnige dagen (Ik
   kijk het na / Invoer aanpassen), onder Per dak bij Opbrengst, en in de bel
   zodra het op drie zonnige dagen te zien was.
+
+*Stap 3 gebouwd (0.127.0, 5 november 2026), keuzes van Ricardo:*
+
+- **Inrichten › Energie › Daken** (schets `Wand-Inrichten-Daken.html`): de
+  plekken hoofddak, uitbouw, garage, op de grond, carport, tuinhuis en gevel,
+  elk aan te tikken met een teller. Bij het hoofddak: hoeveel kanten met
+  panelen (1, 2, 3 of meer, weet ik niet), en bij twee of meer **per kant een
+  teller** (voorkant, achterkant, opzij). "Weet ik niet" is één teller; de
+  meting zoekt de kanten.
+- **Bewaard als dakvlakken**, geschat (`kortNaar` in dakvlakken.js): elke
+  plek wordt meteen een vlak bij Daken en panelen, gericht als de zonnigste
+  kant; de meting zet richting en helling daarna vanzelf goed (stap 4). Wat de
+  bewoner bij Daken en panelen al instelde, blijft; alleen het aantal
+  verandert. Inrichten en Energie tonen zo precies hetzelfde.
+- **Links het huis dat meegroeit**, zoals de rest van Inrichten. De stap
+  daarna, Hoe ze liggen, laat de vlakken zien met hun letter op het huis:
+  "Je vlakken, nog geschat" tot de meting er één vindt, dan "Zo liggen ze,
+  denken we" met Klopt. **Aanpassen opent Daken en panelen**; terug brengt je
+  op dezelfde stap (besluit 227).
+- **Alle vlakken weg is geen panelen**, ook als het instellingenbestand een
+  dak heeft: eerst kwamen ze daaruit terug (Ricardo, 5 november). Geen
+  zonnepanelen in Inrichten haalt ook de vlakken weg.
+- **Hoe de panelen liggen** in Wat je huis kan en de zonnewaaier: zolang alle
+  vlakken geschat zijn "leert" het huis; met meer vlakken staat er hoeveel,
+  met hun vermogen samen.
+- **Een eigen rondleiding** de eerste keer Daken en panelen opent: vijf stops
+  op de pagina (van boven, elk vlak apart, van boven of het huis, een vlak
+  erbij, omvormers en meters). `rondleiding.eigen` kan dat voor elke pagina;
+  wat gezien is, onthoudt de browser per rondleiding.
 
 ---
 

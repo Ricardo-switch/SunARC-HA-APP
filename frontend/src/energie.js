@@ -29,6 +29,8 @@ let zelf = null;
  */
 const ligStaat = { aanpassen: false, concept: null, zelf: false, na: () => teken() };
 /** Daken en panelen (besluit 254, dakvlakken.js): welk scherm, en het vlak dat open staat. */
+/** Of de rondleiding van Daken en panelen al geprobeerd is, op deze pagina. */
+let rondjeGeprobeerd = false;
 const dakStaat = { scherm: 'alle', concept: null, origineel: null, genomen: false, zicht: 'boven', gebouw: null, kandidaat: null, kaart: null, achterGezien: (() => {
   try {
     return localStorage.getItem('sc-dak-gezien');
@@ -429,6 +431,11 @@ function tekenNu() {
   $$('[data-vorm]').forEach((el, i) => (el.innerHTML = vorm.replaceAll('dkid-', `dk${i}-`)));
   $$('[data-naast]').forEach((el) => (el.innerHTML = naast(nu)));
   if (nu === 'panelen') tekenPanelenHuis();
+  // De eerste keer Daken en panelen (besluit 254): een eigen korte rondleiding, als de vlakken er staan.
+  if (open === 'panelen' && aInfo?.daken && dakStaat.scherm === 'alle' && !rondjeGeprobeerd) {
+    rondjeGeprobeerd = true;
+    window.rondleiding?.eigen('daken', dakvlakken.RONDJE);
+  }
 }
 
 /* ------------------------------------------------------------ bewaren */

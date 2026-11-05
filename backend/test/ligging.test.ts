@@ -15,6 +15,7 @@ import { validateConnection } from '../src/web/aansluiting.js';
 import {
   dakUitAanpassing,
   dakUitMeting,
+  dakenNu,
   kiesLigging,
   liggingView,
   meetLigging,
@@ -225,6 +226,19 @@ describe('welke ligging geldt', () => {
 
   it('zonder panelen geen ligging', () => {
     expect(kiesLigging({ ...basis, panelen: { ligging: 'geen', aantal: null, voorkant: null, achterkant: null } })).toBeNull();
+  });
+
+  it('alle vlakken weg is geen panelen, ook met een dak in het bestand', () => {
+    const geen = { ligging: 'geen' as const, aantal: null, voorkant: null, achterkant: null };
+    expect(kiesLigging({ ...basis, configuratie: config, panelen: geen, daken: null })).toBeNull();
+    expect(dakenNu({ ...basis, configuratie: config, panelen: geen, daken: null }).daken.vlakken).toEqual([]);
+  });
+
+  it('dakvlakken die nog geschat zijn: het huis leert, tot de meting er één vindt', () => {
+    const vlak = { letter: 'A', plek: 'hoofddak' as const, opstelling: 'schuin' as const, azimuthDeg: 180, tiltDeg: 35, aantal: 10, wpPerPaneel: 400, meter: null };
+    const daken = (bron: 'schatting' | 'gemeten') => ({ vlakken: [{ ...vlak, bron }], voorgevelDeg: 180, omvormerW: null });
+    expect(liggingView({ ...basis, daken: daken('schatting') }).stand).toBe('wachten');
+    expect(liggingView({ ...basis, daken: daken('gemeten') }).stand).toBe('bevestigd');
   });
 
   it('aanpassen: de vlakken volgen uit de kant en het aantal per kant', () => {

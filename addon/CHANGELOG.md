@@ -1,5 +1,37 @@
 # Wat is er nieuw · What is new
 
+## 0.127.0
+
+*5 november 2026*
+
+**Nieuw**
+
+- Inrichten vraagt kort waar je panelen liggen: tik de plekken aan met hoeveel, bij het hoofddak per kant; elke plek wordt een dakvlak dat SunArc daarna zelf goed zet
+- De eerste keer Daken en panelen krijg je een korte rondleiding
+
+**Beter**
+
+- Wat je huis kan en de zonnewaaier zeggen dat het huis nog leert zolang alle dakvlakken geschat zijn, en noemen hoeveel vlakken je hebt
+
+**Opgelost**
+
+- Alle dakvlakken weghalen betekent nu echt geen panelen, ook als het instellingenbestand nog een dak had
+
+*English*
+
+**New**
+
+- Setup asks briefly where your panels are: tap the places with how many, per side for the main roof; each place becomes a roof plane that SunArc then sets right itself
+- The first time you open Roofs and panels you get a short tour
+
+**Improved**
+
+- What your house can do and the sun fan say the house is still learning while all roof planes are estimated, and name how many planes you have
+
+**Fixed**
+
+- Removing all roof planes now really means no panels, even if the settings file still had a roof
+
 ## 0.126.1
 
 *5 november 2026*

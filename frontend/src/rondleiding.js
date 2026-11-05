@@ -119,6 +119,12 @@
     },
   ];
   const STOPS = ALLE_STOPS.filter((s) => !s.alleenInHA || (global.app.inHA() && global.app.volledigGekozen()));
+  /**
+   * Welke reeks er loopt: de grote rondleiding, of een eigen korte op één
+   * pagina (Daken en panelen, besluit 254), met zijn eigen "gezien".
+   */
+  const HOOFD = { stops: STOPS, gezien: GEZIEN, eigen: false };
+  let reeks = HOOFD;
 
   const pagina = () => location.pathname.split('/').pop() || 'thuis.html';
   const lees = (opslag, sleutel) => {
@@ -192,8 +198,8 @@
   function stop(klaar = true) {
     opruimen();
     nu = -1;
-    schrijf(sessionStorage, WAAR, null);
-    if (klaar) schrijf(localStorage, GEZIEN, '1');
+    if (!reeks.eigen) schrijf(sessionStorage, WAAR, null);
+    if (klaar) schrijf(localStorage, reeks.gezien, '1');
   }
 
   function toets(e) {
@@ -203,7 +209,7 @@
   /** De kaart naast het licht: rechts als het past, anders links, anders eronder of erboven. */
   function plaats() {
     if (nu < 0 || !kaart) return;
-    const s = STOPS[nu];
+    const s = reeks.stops[nu];
     const v = vlak(s);
     const tel = document.documentElement.classList.contains('tel-stand');
     if (!v) {
@@ -237,10 +243,10 @@
 
   function toon(i) {
     nu = i;
-    schrijf(sessionStorage, WAAR, String(i));
-    const s = STOPS[i];
+    if (!reeks.eigen) schrijf(sessionStorage, WAAR, String(i));
+    const s = reeks.stops[i];
     // Een andere pagina: daarheen, en daar verder.
-    if (s.pagina !== pagina()) {
+    if (!reeks.eigen && s.pagina !== pagina()) {
       opruimen();
       location.href = s.pagina;
       return;
@@ -273,12 +279,16 @@
       addEventListener('resize', plaats);
       addEventListener('keydown', toets);
     }
-    const genummerd = STOPS.length - 1;
-    const stippen = STOPS.slice(0, genummerd).map((_, n) => `<i class="${n === i ? 'aan' : ''}"></i>`).join('');
+    // Een eigen reeks telt al zijn stops; de laatste heeft Klaar in plaats van Volgende.
+    const genummerd = reeks.eigen ? reeks.stops.length : reeks.stops.length - 1;
+    const stippen = reeks.stops.slice(0, genummerd).map((_, n) => `<i class="${n === i ? 'aan' : ''}"></i>`).join('');
     const t = global.t;
-    kaart.setAttribute('aria-label', s.klaar ? t('rond.klaarLabel') : t('rond.stopLabel', { nr: i + 1, van: genummerd }));
-    kaart.innerHTML = `<span class="plek">${s.klaar ? '' : `<b>${i + 1}</b>`}${esc(t(`rond.plek.${s.plek}`))}</span><h2>${esc(t(`rond.${s.id}.kop`))}</h2><p>${esc(t(`rond.${s.id}.tekst`))}</p>
-      <div class="onder">${s.klaar
+    const slot = s.klaar && !reeks.eigen;
+    kaart.setAttribute('aria-label', slot ? t('rond.klaarLabel') : t('rond.stopLabel', { nr: i + 1, van: genummerd }));
+    kaart.innerHTML = `<span class="plek">${slot ? '' : `<b>${i + 1}</b>`}${esc(t(`rond.plek.${s.plek}`))}</span><h2>${esc(t(`rond.${s.id}.kop`))}</h2><p>${esc(t(`rond.${s.id}.tekst`))}</p>
+      <div class="onder">${reeks.eigen && i === reeks.stops.length - 1
+        ? `<span class="stippen" aria-hidden="true">${stippen}</span><button type="button" data-rl-klaar>${esc(t('algemeen.klaar'))}</button>`
+        : s.klaar
         ? `${global.film ? `<button type="button" class="licht" data-rl-film>${esc(t('rond.film'))}</button>` : '<span></span>'}<button type="button" data-rl-klaar>${esc(t('algemeen.klaar'))}</button>`
         : `<span class="stippen" aria-hidden="true">${stippen}</span><span><button type="button" class="licht" data-rl-overslaan>${esc(t('rond.overslaan'))}</button><button type="button" data-rl-volgende>${esc(t('rond.volgende'))}</button></span>`}</div>`;
     // Wat buiten beeld staat, eerst in beeld: in een kolom die scrolt, of op de telefoon.
@@ -294,7 +304,7 @@
   function zodraKlaar(i) {
     const begin = Date.now();
     const kijk = () => {
-      const s = STOPS[i];
+      const s = reeks.stops[i];
       if (!s.doel || vlak(s) || Date.now() - begin > 4000) toon(i);
       else setTimeout(kijk, 150);
     };
@@ -303,6 +313,7 @@
 
   /** Vanaf de eerste stop op deze pagina (de hulp op elke tab, besluit 187), of van het begin. */
   function start() {
+    reeks = HOOFD;
     zodraKlaar(Math.max(0, STOPS.findIndex((s) => s.pagina === pagina())));
   }
 
@@ -322,7 +333,21 @@
     if (!gezien() && !/\/voorbeeld\//.test(location.pathname)) zodraKlaar(0);
   }
 
-  global.rondleiding = { start, stop, STOPS, actief: () => nu >= 0 };
+  /**
+   * Een eigen korte rondleiding op deze pagina, de eerste keer (of altijd met
+   * `altijd`). Niet als er al een loopt, en niet in het voorbeeldhuis. Geeft
+   * terug of hij begon.
+   */
+  function eigen(id, stops, altijd = false) {
+    const sleutel = `sc-rond-${id}-gezien`;
+    if (nu >= 0 || !stops.length || /\/voorbeeld\//.test(location.pathname)) return false;
+    if (!altijd && lees(localStorage, sleutel) === '1') return false;
+    reeks = { stops, gezien: sleutel, eigen: true };
+    zodraKlaar(0);
+    return true;
+  }
+
+  global.rondleiding = { start, stop, eigen, STOPS, actief: () => nu >= 0 };
   if (document.readyState === 'loading') addEventListener('DOMContentLoaded', bijLaden);
   else bijLaden();
 })(window);

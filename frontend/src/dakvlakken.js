@@ -868,5 +868,124 @@ const dakvlakken = (() => {
       ${d.achter ? `<p class="dk-opval">${esc(achterZin(d.achter))}</p>` : ''}`;
   }
 
-  return { vorm, klik, verander, oudeAntwoorden, opHetHuis, nietGetekend, kortZin, piek, panelen, vanKaart, gebouwenUit, nuBlad, achterZin };
+  /*
+   * De korte stap in Inrichten (besluit 254, stap 3; schets
+   * Wand-Inrichten-Daken): per plek hoeveel panelen, en bij het hoofddak
+   * hoeveel kanten. Elke plek wordt meteen een vlak, geschat: de meting zet
+   * richting en helling daarna vanzelf goed (stap 4). Wat de bewoner bij Daken
+   * en panelen al instelde, blijft staan; alleen het aantal verandert.
+   */
+  const KORT_PLEKKEN = ['hoofddak', 'uitbouw', 'garage', 'grond', 'carport', 'tuinhuis', 'gevel'];
+  const isHoofd = (v) => v.plek === 'hoofddak' || v.plek === 'dwarskap';
+  /** De kanten van het hoofddak: per kant het vlak en welk aantal (oost-west zijn er twee). */
+  const kantenVan = (vlakken) => vlakken.filter(isHoofd).flatMap((v) => (v.opstelling === 'oostwest' ? [[v, 'aantal'], [v, 'aantal2']] : [[v, 'aantal']]));
+
+  /** Wat de korte stap laat zien: per plek het aantal, en de kanten van het hoofddak. */
+  function kortVan(d) {
+    const vl = d?.vlakken ?? [];
+    const aan = {};
+    for (const p of KORT_PLEKKEN) {
+      const n = vl.filter((v) => (p === 'hoofddak' ? isHoofd(v) : v.plek === p)).reduce((s, v) => s + panelen(v), 0);
+      if (n > 0) aan[p] = n;
+    }
+    const kanten = kantenVan(vl);
+    return { aan, kanten: Math.min(3, kanten.length), perKant: kanten.slice(0, 3).map(([v, k]) => v[k] ?? 0) };
+  }
+
+  /** Zet het aantal van een vlak; oost-west houdt zijn verhouding. */
+  function zetTotaal(v, n) {
+    if (v.opstelling !== 'oostwest') {
+      v.aantal = Math.max(1, Math.min(200, n));
+      return;
+    }
+    const tot = panelen(v) || 1;
+    v.aantal = Math.min(200, Math.round((n * v.aantal) / tot));
+    v.aantal2 = Math.min(200, Math.max(0, n - v.aantal));
+    if (v.aantal + v.aantal2 < 1) v.aantal = 1;
+  }
+
+  /**
+   * De vlakken na één wijziging in de korte stap: `{ plek, n }` (0 haalt de
+   * plek weg), `{ kanten }` (1 tot 3) of `{ kant, n }`. Zonder `peakW`, zoals
+   * de dienst ze leest.
+   */
+  function kortNaar(d, w) {
+    let vl = (d?.vlakken ?? []).map((v) => ({ ...kaal(v) }));
+    const voor = d?.voorgevelDeg ?? null;
+    // De zonnigste kant van het huis, zolang de meting het niet weet.
+    const zonnig = voor == null ? 180 : hoek(voor, 180) <= 90 ? norm(voor) : norm(voor + 180);
+    const nieuw = (plek, extra) => {
+      const v = nieuwVlak({ ...d, vlakken: vl }, plek);
+      Object.assign(v, { bron: 'schatting' }, extra);
+      if (v.opstelling !== 'oostwest') delete v.aantal2;
+      vl.push(v);
+      return v;
+    };
+    const n = Math.max(0, Math.min(200, Math.round(w.n ?? 0)));
+    if (w.plek && w.plek !== 'hoofddak') {
+      const hier = vl.filter((v) => v.plek === w.plek);
+      if (!n) vl = vl.filter((v) => v.plek !== w.plek);
+      else if (!hier.length) zetTotaal(nieuw(w.plek, {}), n);
+      // Meer vlakken op één plek: de eerste krijgt het verschil.
+      else zetTotaal(hier[0], n - hier.slice(1).reduce((s, v) => s + panelen(v), 0));
+      return vl;
+    }
+    if (w.plek === 'hoofddak' && !n) return vl.filter((v) => !isHoofd(v));
+    let kanten = kantenVan(vl);
+    if (w.plek === 'hoofddak') {
+      if (!kanten.length) nieuw('hoofddak', { azimuthDeg: zonnig, aantal: Math.max(1, n) });
+      else if (kanten.length === 1) zetTotaal(kanten[0][0], n);
+      return vl;
+    }
+    if (w.kanten != null) {
+      const k = Math.max(1, Math.min(3, w.kanten));
+      // Minder kanten: vlakken van achteren weg, een oost-west wordt een rek naar één kant.
+      while (kanten.length > k) {
+        const [v, sleutel] = kanten[kanten.length - 1];
+        if (sleutel === 'aantal2') {
+          v.opstelling = 'rek';
+          v.aantal += v.aantal2 ?? 0;
+          delete v.aantal2;
+        } else vl = vl.filter((x) => x !== v);
+        kanten = kantenVan(vl);
+      }
+      const eerste = kanten[0]?.[0];
+      const basis = eerste ? eerste.azimuthDeg : zonnig;
+      const tal = eerste ? eerste[kanten[0][1]] || 1 : 8;
+      for (let i = kanten.length; i < k; i++) nieuw('hoofddak', { azimuthDeg: norm(basis + [0, 180, 90][i]), aantal: tal, tiltDeg: eerste?.tiltDeg ?? 40 });
+      return vl;
+    }
+    if (w.kant != null && kanten[w.kant]) {
+      const [v, sleutel] = kanten[w.kant];
+      if (v.opstelling === 'oostwest') {
+        v[sleutel] = n;
+        if (v.aantal + (v.aantal2 ?? 0) < 1) v[sleutel] = 1;
+      } else v.aantal = Math.max(1, n);
+    }
+    return vl;
+  }
+
+  /** De kant bij het huis: voorkant, achterkant of opzij, als de voorgevel bekend is. */
+  function kantNaam(d, i) {
+    const v = kantenVan(d?.vlakken ?? [])[i];
+    const voor = d?.voorgevelDeg;
+    if (!v || voor == null) return t('inr.dak.kantN', { n: i + 1 });
+    const az = v[1] === 'aantal2' ? v[0].azimuthDeg + 180 : v[0].azimuthDeg;
+    const h = hoek(az, voor);
+    return t(h <= 45 ? 'energie.kant.voorkant' : h >= 135 ? 'energie.kant.achterkant' : 'inr.dak.opzij');
+  }
+
+  /*
+   * De rondleiding de eerste keer dat Daken en panelen opent (besluit 254):
+   * vijf stops op de pagina zelf, met rondleiding.eigen.
+   */
+  const RONDJE = [
+    { plek: 'daken', id: 'dakBoven', doel: ['#wand .dk-boven, #wand [data-pan-podium]', '#tel .dk-boven, #tel [data-pan-podium]'] },
+    { plek: 'daken', id: 'dakLijst', doel: ['#wand .pan-rechts .dk-lijst', '#tel .pan-rechts .dk-lijst'] },
+    { plek: 'daken', id: 'dakZicht', doel: ['#wand .dk-wissel', '#tel .dk-wissel'] },
+    { plek: 'daken', id: 'dakErbij', doel: ['#wand [data-dak-scherm="erbij"]', '#tel [data-dak-scherm="erbij"]'] },
+    { plek: 'daken', id: 'dakMeters', doel: ['#wand [data-dak-scherm="meters"]', '#tel [data-dak-scherm="meters"]'], klaar: true },
+  ];
+
+  return { RONDJE, vorm, klik, verander, oudeAntwoorden, opHetHuis, nietGetekend, kortZin, piek, panelen, vanKaart, gebouwenUit, nuBlad, achterZin, KORT_PLEKKEN, STANDKLEUR, kortVan, kortNaar, kantNaam, kaal, waar };
 })();

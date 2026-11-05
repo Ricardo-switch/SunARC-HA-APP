@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.126.1';
+export const VERSIE = '0.127.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,24 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.127.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'Inrichten vraagt kort waar je panelen liggen: tik de plekken aan met hoeveel, bij het hoofddak per kant; elke plek wordt een dakvlak dat SunArc daarna zelf goed zet',
+      'De eerste keer Daken en panelen krijg je een korte rondleiding',
+    ],
+    beter: ['Wat je huis kan en de zonnewaaier zeggen dat het huis nog leert zolang alle dakvlakken geschat zijn, en noemen hoeveel vlakken je hebt'],
+    opgelost: ['Alle dakvlakken weghalen betekent nu echt geen panelen, ook als het instellingenbestand nog een dak had'],
+    en: {
+      nieuw: [
+        'Setup asks briefly where your panels are: tap the places with how many, per side for the main roof; each place becomes a roof plane that SunArc then sets right itself',
+        'The first time you open Roofs and panels you get a short tour',
+      ],
+      beter: ['What your house can do and the sun fan say the house is still learning while all roof planes are estimated, and name how many planes you have'],
+      opgelost: ['Removing all roof planes now really means no panels, even if the settings file still had a roof'],
+    },
+  },
   {
     versie: '0.126.1',
     datum: '2026-11-05',

@@ -252,7 +252,7 @@ verwijzing bestaat.
   de app, met een woordzoeker ([115]).
 - **Het jaar in Opbrengst** begint op de startdatum van het contract ([116]).
 - **Een prijs per uur** (Zonneplan, Tibber): Opbrengst rekent met de kostentellers van Home Assistant, en Energie toont de prijs van nu ([251]).
-- **Daken en panelen, elk vlak apart** (op beta, nog niet op main): van boven met de omtrek uit de kaart, dakvorm per gebouw, de meting per vlak, een grens per omvormer, per vlak op Thuis en in Opbrengst, en een vlak dat achterblijft ([254]).
+- **Daken en panelen, elk vlak apart** (op beta, nog niet op main): van boven met de omtrek uit de kaart, dakvorm per gebouw, de meting per vlak, een grens per omvormer, per vlak op Thuis en in Opbrengst, een vlak dat achterblijft, een korte stap in Inrichten en een eigen rondleiding ([254]).
 - **Opbrengst in drie kolommen**, met een stroombeeld dat de zon per dakvlak, de kosten, terug, Altijd aan en gas apart laat zien; opgewekt komt uit de omvormer ([255]).
 - **De hoofdzekering** stel je in de app in, en die gaat voor de configuratie
   ([117]). Sinds [248] ook de netmeter (één sensor, of afname en teruglevering

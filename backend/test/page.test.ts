@@ -644,6 +644,18 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await wand.locator('.dk h3', { hasText: 'Waar de panelen liggen' }).waitFor();
     await wand.locator('svg.dk-boven .dk-gebouw').first().waitFor();
     expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
+    // De eerste keer een eigen rondleiding (besluit 254): vijf stops op de pagina, dan Klaar; daarna niet meer.
+    const rond = p.locator('.rl-kaart');
+    await rond.locator('h2', { hasText: 'Je huis van boven' }).waitFor({ timeout: 5_000 });
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-rond-daken1.png') });
+    for (const kop of ['Elk vlak apart', 'Van boven of het huis', 'Een vlak erbij', 'Omvormers en meters']) {
+      await rond.locator('[data-rl-volgende]').click();
+      await rond.locator('h2', { hasText: kop }).waitFor();
+      if (process.env.HEMS_PAGE_SHOT) await p.waitForTimeout(500).then(() => p.screenshot({ path: process.env.HEMS_PAGE_SHOT!.replace('.png', `-rond-${kop.split(' ')[0]}.png`) }));
+    }
+    await rond.locator('[data-rl-klaar]').click();
+    await rond.waitFor({ state: 'detached' });
+    expect(await p.evaluate(() => localStorage.getItem('sc-rond-daken-gezien'))).toBe('1');
     // De wissel naar het huis in 3D, en terug.
     await wand.locator('[data-dak-zicht="huis"]').click();
     await wand.locator('[data-pan-podium] svg.sc-huis').waitFor();
@@ -1342,7 +1354,10 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     expect(zon.baan.length).toBeGreaterThan(30);
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'Europe/Amsterdam', locale: 'nl-NL' });
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
-    await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
+    await context.addInitScript(() => {
+      localStorage.setItem('sc-rondleiding-gezien', '1');
+      localStorage.setItem('sc-rond-daken-gezien', '1');
+    });
     await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
     const p = await context.newPage();
     const fouten: string[] = [];
@@ -2213,14 +2228,33 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await kaart.locator('[data-netmeter="afname"]').waitFor();
     await shot('vermogen');
     await kaart.locator('[data-volgende]').click();
-    await kaart.locator('h1', { hasText: 'Je zonnepanelen' }).waitFor();
-    await kaart.locator('[data-panelen="ja"]').click();
-    await kaart.locator('[data-dakkant="beide"]').click();
-    await kaart.locator('[data-aantal="voorkant"]').waitFor({ timeout: 5000 });
+    // De korte stap Daken (besluit 254, stap 3): plekken aantikken, bij het hoofddak de kanten; elke plek wordt een vlak.
+    await kaart.locator('h1', { hasText: 'Waar liggen je panelen?' }).waitFor();
+    await shot('daken-vraag');
+    // Wat SunArc al afleidt staat er: het hoofddak met twee kanten. Drie kanten en terug, dan de garage erbij.
+    await kaart.locator('[data-kort-kanten="3"]').click();
+    await kaart.locator('input[data-kort-kant="2"]').waitFor({ timeout: 5000 });
+    await kaart.locator('[data-kort-kanten="2"]').click();
+    await expect.poll(() => kaart.locator('input[data-kort-kant]').count(), { timeout: 5000 }).toBe(2);
+    await kaart.locator('[data-kort-plek="garage"]').click();
+    await kaart.locator('input[data-kort-n="garage"]').waitFor({ timeout: 5000 });
+    // Wat er al stond (een eerdere test bewaarde een uitbouw) blijft; het hoofddak heeft twee kanten, de garage is er geschat bij.
+    const dakVlakken = async () => ((await (await fetch(`${baseUrl}/api/aansluiting`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json()) as { antwoorden?: { daken?: { vlakken: { plek: string; bron: string }[] } | null } }).antwoorden?.daken?.vlakken.map((v) => `${v.plek}:${v.bron}`);
+    await expect.poll(async () => (await dakVlakken())?.filter((v) => v.startsWith('hoofddak:')).length, { timeout: 5000 }).toBe(2);
+    expect(await dakVlakken()).toContain('garage:schatting');
+    // Ook met alle plekken aan valt niets buiten de kaart: de wand schuift nooit.
+    while ((await kaart.locator('button[data-kort-plek]').count()) > 0) {
+      const voor = await kaart.locator('button[data-kort-plek]').count();
+      await kaart.locator('button[data-kort-plek]').first().click();
+      await expect.poll(() => kaart.locator('button[data-kort-plek]').count(), { timeout: 5000 }).toBeLessThan(voor);
+    }
+    expect(await kaart.locator('.midden').evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(2);
     await shot('zon');
     await kaart.locator('[data-volgende]').click();
-    // Hoe ze liggen (besluit 157): door met Volgende, of met Klopt bij een voorstel.
+    // Hoe ze liggen: de vlakken, nog geschat tot de meting ze vindt; Aanpassen gaat naar Daken en panelen.
     await kaart.locator('.waar', { hasText: '5. Energie · Hoe ze liggen' }).waitFor();
+    expect(await kaart.locator('.kp-vlak').count()).toBeGreaterThanOrEqual(3);
+    await kaart.locator('a[href="energie.html#panelen"]', { hasText: 'Aanpassen' }).waitFor();
     await kaart.locator('[data-volgende], [data-lig-klopt]').first().waitFor();
     await shot('ligging');
     await kaart.locator('[data-volgende], [data-lig-klopt]').first().click();

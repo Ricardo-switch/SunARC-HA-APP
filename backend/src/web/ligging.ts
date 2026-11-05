@@ -569,8 +569,9 @@ function hoofddak(i: LiggingInput): { geometry: Geometry; bron: LiggingBron } | 
     const source: GeometrySource = i.dak.bron === 'gemeten' ? 'gemeten' : 'bewoner';
     return { bron: 'app', geometry: { facades: gevels(i.dak.voorgevelDeg, source), solarPlanes: vlakkenVan(i.dak.vlakken, source), ...omvormer(i.dak.omvormerW ?? i.omvormerGevonden) } };
   }
-  if (i.configuratie) return { bron: 'configuratie', geometry: i.configuratie };
+  // Geen panelen gaat ook boven het bestand (5 november 2026): wie alle vlakken weghaalt, zag ze anders terugkomen.
   if (i.panelen?.ligging === 'geen') return null;
+  if (i.configuratie) return { bron: 'configuratie', geometry: i.configuratie };
   const panelen = i.panelen ?? { ligging: null, aantal: null, voorkant: null, achterkant: null };
   if (i.meting) {
     return {
@@ -745,8 +746,11 @@ export function liggingView(i: LiggingInput, lang: Lang = 'nl'): LiggingView {
       : aantal != null
         ? w.panelen(aantal)
         : null;
+  // Dakvlakken die allemaal nog geschat zijn (besluit 254, stap 3): het huis leert nog, tot de meting er één vindt.
+  const vlakken = i.daken?.vlakken ?? [];
+  const dakStand = vlakken.length === 0 ? null : vlakken.every((v) => v.bron === 'schatting') ? 'wachten' : 'bevestigd';
   return {
-    stand: i.dak || (i.daken?.vlakken.length ?? 0) > 0 ? 'bevestigd' : i.meting ? 'voorstel' : i.configuratie ? 'configuratie' : 'wachten',
+    stand: i.dak ? 'bevestigd' : (dakStand ?? (i.meting ? 'voorstel' : i.configuratie ? 'configuratie' : 'wachten')),
     aantal,
     vraagVoorkant: vraagVoorkant(i, panelen),
     nu,

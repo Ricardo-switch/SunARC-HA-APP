@@ -470,6 +470,8 @@
   #tel .podium { height: 250px; margin: 4px 0 -6px; }
   #tel .kaart { padding: 4px 18px 0; gap: 10px; overflow: visible; background: none; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
   #tel .kaart > .midden { overflow: visible; gap: 10px; }
+  /* De korte stap Daken op de telefoon: de plekken onder elkaar, zodat de teller past. */
+  #tel .kp-plekken { grid-template-columns: 1fr; }
   #tel .kaart h1 { font-size: 27px !important; line-height: 1.1 !important; }
   #tel .kaart .uitleg { font-size: 14.5px; }
   /* Onderaan vast in beeld, over de hele breedte: de knoppen blijven staan terwijl de vraag schuift. */
@@ -481,6 +483,35 @@
   #tel .bewerk { grid-column: 1; grid-template-columns: 1fr; }
   #tel .rij.breed { grid-template-columns: 1fr; }
   #tel .rondom { grid-template-columns: 1fr; }
+  /* De korte stap Daken (besluit 254, stap 3; schets Wand-Inrichten-Daken). */
+  .midden > [class^="kp-"] { flex-shrink: 0; }
+  .kp-onder { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: -6px; }
+  .kp-geen { margin: 0; font-size: 13.5px; color: var(--zacht); }
+  .kp-plekken { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+  .kp-plaats { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 2px 10px; align-items: center; height: 55px; padding: 7px 10px; border-radius: 14px; background: rgb(var(--wit) / 0.05); border: 1.5px solid transparent; color: inherit; font: inherit; text-align: left; }
+  button.kp-plaats { cursor: pointer; }
+  .kp-plaats svg { grid-row: 1 / 3; width: 38px; height: 32px; }
+  .kp-plaats b { font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kp-plaats.aan { border-color: var(--zon); background: rgb(247 181 72 / 0.07); }
+  .kp-niet, .kp-som { font-size: 12px; color: var(--gedempt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kp-teller { display: inline-flex; align-items: center; gap: 4px; }
+  .kp-teller button { width: 28px; height: 28px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgb(var(--wit) / 0.1); color: inherit; font: 800 15px var(--kop); cursor: pointer; }
+  .kp-teller input { width: 40px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: inherit; font: 600 15px var(--kop); text-align: center; }
+  /* Even hoog met of zonder teller: de stap past altijd, hoeveel plekken er ook aan staan. */
+  .kp-plaats .kp-teller button { width: 22px; height: 22px; font-size: 14px; }
+  .kp-plaats .kp-teller input { height: 22px; }
+  .kp-teller input:focus { background: rgb(var(--wit) / 0.08); outline: none; }
+  .kp-kanten { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .kp-kanten > b { width: 100%; font-size: 13px; font-weight: 700; }
+  .kp-perkant { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .kp-kant { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 8px 0 12px; border-radius: 12px; background: rgb(var(--wit) / 0.05); font-size: 14px; font-weight: 600; }
+  .kp-tip { padding: 10px 13px; border-radius: 14px; background: rgb(111 211 255 / 0.07); border: 1px solid rgb(111 211 255 / 0.2); font-size: 13px; color: var(--zacht); line-height: 1.45; }
+  .kp-vlakken { display: flex; flex-direction: column; gap: 6px; }
+  .kp-vlak { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 0 10px; align-items: center; padding: 8px 10px; border-radius: 13px; background: rgb(var(--wit) / 0.05); color: inherit; text-decoration: none; }
+  .kp-vlak b { display: block; font-size: 14px; }
+  .kp-vlak small { display: block; font-size: 12px; color: var(--gedempt); }
+  .kp-vlak em { font-style: normal; font: 600 14px var(--kop); white-space: nowrap; }
+  .kp-letter { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font: 800 13px var(--kop); color: #0b1424; }
 </style>
 </head>
 <body class="lucht lucht-dag">
@@ -512,6 +543,7 @@
   <script src="film.js"></script>
   <script src="qrcode.js"></script>
   <script src="panelen.js"></script>
+  <script src="dakvlakken.js"></script>
   <script src="vermogens.js"></script>
   <script src="inrichten.js"></script>
 </body>

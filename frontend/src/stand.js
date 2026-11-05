@@ -319,6 +319,8 @@
     };
     const opZonAan = (x) => d.aansluiting?.antwoorden?.opZon?.[x.id] === true || (d.aansluiting?.configuratie?.apparaten ?? []).some((a) => a.id === x.id);
     const lig = d.aansluiting?.ligging;
+    // Meer dakvlakken (besluit 254): hoeveel en samen hoeveel, zoals bij Daken en panelen.
+    const dakVlakken = d.aansluiting?.daken?.bewaard ? (d.aansluiting.daken.vlakken ?? []) : [];
     const ligStand = !lig || !panelen ? null : lig.stand === 'wachten' ? 'leert' : lig.stand === 'voorstel' ? 'mis' : 'werkt';
 
     const lijst = [
@@ -345,7 +347,7 @@
       // Wat het huis eerst leert (besluit 187): ook hoe de panelen liggen.
       ...(ligStand ? [{
         ...teksten('ligging'), groep: 'leert', stand: ligStand, label: ligStand === 'mis' ? t('kan.ligging.klopt') : null,
-        nu: ligStand === 'leert' ? t('kan.ligging.wacht') : lig.nu ? `${lig.nu.richting}, ${lig.nu.vermogenKort ?? lig.nu.vermogen}` : t('kan.ligging.voorstel'), href: 'energie.html#panelen',
+        nu: ligStand === 'leert' ? t('kan.ligging.wacht') : dakVlakken.length > 1 ? t('daken.zin', { n: dakVlakken.length, kwp: (dakVlakken.reduce((s, v) => s + (v.peakW ?? 0), 0) / 1000).toLocaleString(global.taal.locale, { maximumFractionDigits: 1 }) }) : lig.nu ? `${lig.nu.richting}, ${lig.nu.vermogenKort ?? lig.nu.vermogen}` : t('kan.ligging.voorstel'), href: 'energie.html#panelen',
       }] : []),
       // Op zon
       ...(airco ? [{
