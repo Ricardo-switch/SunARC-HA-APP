@@ -21,7 +21,7 @@
  */
 
 import type { Lang } from './assistant.js';
-import { SALDEREN_TOT_MS, dalAandeel, kostenVan, metKostentellers, raadDal, type Gebruik, type KostenRegel } from './tarief.js';
+import { SALDEREN_TOT_MS, dalAandeel, kostenVan, metKostentellers, raadDal, type Gebruik, type Kosten, type KostenRegel } from './tarief.js';
 import { BASIS_ZONDER_METER_W, type EnergySettings, type EnergySource } from './energy.js';
 import { partsIn, zonedMidnight } from './today.js';
 
@@ -280,6 +280,13 @@ function sumBy(rows: Rows, ids: readonly string[]): Map<number, number> {
   return out;
 }
 
+/** Zoals sumBy, maar een stap omlaag telt mee: een kostenteller daalt in een uur met een negatieve prijs. */
+function sumKost(rows: Rows, ids: readonly string[]): Map<number, number> {
+  const out = new Map<number, number>();
+  for (const id of ids) for (const r of rows[id] ?? []) out.set(r.startMs, (out.get(r.startMs) ?? 0) + r.change);
+  return out;
+}
+
 const total = (m: Map<number, number>) => [...m.values()].reduce((a, b) => a + b, 0);
 
 /** De sleutel van het vak in de grafiek: uur, dag of maand in de tijdzone van het huis. */
@@ -326,12 +333,32 @@ export function verdeel(
   return { afNormaal: af - ad, afDal: ad, terugNormaal: na ? 0 : terug - td, terugDal: na ? 0 : td, terugNa: na ? terug : 0 };
 }
 
+/** Wat de kostentellers van Home Assistant in een periode telden; null zonder teller of zonder meting. */
+interface Tellers {
+  readonly af: number | null;
+  readonly terug: number | null;
+}
+
+/**
+ * De kosten van een periode. Bij een prijs per uur met de kostentellers van
+ * Home Assistant (testerronde, november 2026); wat zonder teller telt, zoals
+ * gesaldeerde teruglevering, telt dan tegen de gemiddelde uurprijs van die
+ * periode. Een vaste stroomprijs is daarbij niet nodig (issue 126).
+ */
+function kostenMet(s: EnergySettings, g: Gebruik, tellers: Tellers | null, afKwh: number, terugKwh: number, lang: Lang): Kosten {
+  const heeft = { net: s.net.afname.length > 0, terug: s.net.teruglevering.length > 0, gas: s.gas != null };
+  if (tellers?.af == null) return kostenVan(s.prijzen, g, heeft, lang);
+  const gemiddeld = afKwh > 0 ? tellers.af / afKwh : s.prijzen.stroom;
+  const berekend = kostenVan({ ...s.prijzen, stroom: gemiddeld, stroomDal: null }, g, heeft, lang);
+  return metKostentellers(berekend, tellers.af, tellers.terug, afKwh, terugKwh, lang);
+}
+
 /** Wat stroom en gas samen kosten in een periode, de vaste posten erbij. */
-function costOf(s: EnergySettings, g: Gebruik): number | null {
+function costOf(s: EnergySettings, g: Gebruik, tellers: Tellers | null, afKwh: number, terugKwh: number): number | null {
   // Alleen het bedrag telt hier: de namen van de regels doen er niet toe.
   const p = s.prijzen;
-  if (p.stroom == null && p.gas == null) return null;
-  const k = kostenVan(p, g, { net: s.net.afname.length > 0, terug: s.net.teruglevering.length > 0, gas: s.gas != null });
+  if (p.stroom == null && p.gas == null && tellers?.af == null) return null;
+  const k = kostenMet(s, g, tellers, afKwh, terugKwh, 'nl');
   return k.variabel == null ? null : r2(k.variabel + (k.vast ?? 0));
 }
 
@@ -438,11 +465,10 @@ export async function yieldReport(
   const dagen = (totMs - vanMs) / 86_400_000;
   const vanP = partsIn(vanMs + 3 * 3_600_000, tz);
   const dekking = vanMs > range.startMs ? { vanaf: iso(vanP.y, vanP.m, vanP.d), dagen: Math.round(dagen), vanDagen: Math.round((totMs - range.startMs) / 86_400_000) } : null;
-  const berekend = kostenVan(s.prijzen, { ...gebruik, gasM3, dagen: Math.max(0, dagen), heelJaar: kind === 'jaar' }, { net: s.net.afname.length > 0, terug: s.net.teruglevering.length > 0, gas: s.gas != null }, lang);
   // Met de kostentellers van Home Assistant, als die er zijn; een uur met een negatieve prijs telt ook mee.
   const teller = (ids: readonly string[]) => (ids.some((id) => (rows[id] ?? []).length) ? ids.reduce((som, id) => som + (rows[id] ?? []).reduce((a, r) => a + r.change, 0), 0) : null);
-  const afKost = dyn ? teller(dyn.afname) : null;
-  const kosten = dyn && afKost != null ? metKostentellers(berekend, afKost, teller(dyn.terug), afnameKwh, terugKwh, lang) : berekend;
+  const tellers = dyn ? { af: teller(dyn.afname), terug: teller(dyn.terug) } : null;
+  const kosten = kostenMet(s, { ...gebruik, gasM3, dagen: Math.max(0, dagen), heelJaar: kind === 'jaar' }, tellers, afnameKwh, terugKwh, lang);
   const stroomPrijs = kosten.stroomPerKwh;
 
   // Vakken in de grafiek: ook de lege, zodat een dag zonder meting een gat is.
@@ -507,7 +533,8 @@ export async function yieldReport(
       vorigeNaam: range.prevName,
     },
     dekking,
-    heeft: { net: s.net.afname.length > 0, zon: hasSun, gas: s.gas != null, prijzen: p.stroom != null || p.gas != null },
+    // Een prijs per uur telt ook als prijs (issue 126), zonder vaste stroomprijs.
+    heeft: { net: s.net.afname.length > 0, zon: hasSun, gas: s.gas != null, prijzen: p.stroom != null || p.gas != null || tellers?.af != null },
     geschat,
     stroom: {
       verbruikKwh: r1(use),
@@ -586,10 +613,13 @@ async function compareSeries(source: EnergySource, s: EnergySettings, kind: Peri
     return zonedMidnight(p.y - 1, p.m, p.d, tz);
   };
   const period = kind === 'dag' ? 'day' : kind === 'week' ? 'week' : 'month';
-  const ids = [...s.net.afname, ...s.net.teruglevering, ...s.zon, ...(s.gas ? [s.gas] : [])];
+  // Bij een prijs per uur ook de kostentellers van Home Assistant (issue 126).
+  const dyn = s.prijzen.dynamisch ?? null;
+  const ids = [...s.net.afname, ...s.net.teruglevering, ...s.zon, ...(s.gas ? [s.gas] : []), ...(dyn ? [...dyn.afname, ...dyn.terug] : [])];
   const from = kind === 'jaar' ? starts[0]!.ms : yearBack(starts[0]!.ms);
   const rows = await source.changes(ids, from, range.endMs, period);
   const sums = { afname: sumBy(rows, s.net.afname), terug: sumBy(rows, s.net.teruglevering), zon: sumBy(rows, s.zon), gas: s.gas ? sumBy(rows, [s.gas]) : new Map<number, number>() };
+  const kostSums = dyn ? { af: sumKost(rows, dyn.afname), terug: dyn.terug.length ? sumKost(rows, dyn.terug) : null } : null;
   const tm = tariefMeters(s);
   const dalSums = tm.perMeter ? { afname: sumBy(rows, s.net.afname.filter((id) => tm.dal.has(id))), terug: sumBy(rows, s.net.teruglevering.filter((id) => tm.dal.has(id))) } : null;
 
@@ -616,7 +646,7 @@ async function compareSeries(source: EnergySource, s: EnergySettings, kind: Peri
       stroom: af == null ? null : r1(af + self),
       zon: zo == null ? null : r1(zo),
       gas: ga == null ? null : r2(ga),
-      kosten: af == null && ga == null ? null : costOf(s, { ...v, gasM3: ga ?? 0, dagen: (b - a) / 86_400_000, heelJaar: kind === 'jaar' }),
+      kosten: af == null && ga == null ? null : costOf(s, { ...v, gasM3: ga ?? 0, dagen: (b - a) / 86_400_000, heelJaar: kind === 'jaar' }, kostSums ? { af: between(kostSums.af, a, b), terug: kostSums.terug ? between(kostSums.terug, a, b) : null } : null, af ?? 0, tr),
     };
   };
   const ends = [...starts.slice(1).map((x) => x.ms), range.endMs];

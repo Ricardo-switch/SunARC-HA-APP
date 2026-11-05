@@ -33,7 +33,8 @@
     if (d.energie && (e == null || ((e.net?.afname ?? []).length === 0 && !(geenP1 && ((e.zon ?? []).length || (e.apparaten ?? []).length))))) {
       uit.push({ id: 'meters', groep: 'energie', wat: t('stand.meters'), waarom: t('stand.metersZin'), knop: t('stand.kiezen'), href: 'energie.html#meters' });
     }
-    if (e && p?.stroom == null) {
+    // Een prijs per uur is ook een stroomprijs (issue 126).
+    if (e && p?.stroom == null && !p?.dynamisch) {
       uit.push({ id: 'stroomprijs', groep: 'energie', wat: t('stand.stroomprijs'), waarom: t('stand.stroomprijsZin'), knop: t('stand.invullen'), href: 'energie.html#prijzen' });
     }
     if (e && e.gas && p?.gas == null) {
@@ -303,7 +304,7 @@
     const geenP1 = d.site?.meter === false;
     const geschat = geenP1 && (e?.zon ?? []).length > 0;
     const zonderMeter = d.energie && (e?.net?.afname ?? []).length === 0 && !geschat;
-    const zonderPrijs = d.energie && !zonderMeter && p?.stroom == null;
+    const zonderPrijs = d.energie && !zonderMeter && p?.stroom == null && !p?.dynamisch;
     // Waar het werkt (besluit 132).
     const geregeld = binnen(d).filter((r) => r.zoneId);
     const perKamer = binnen(d).filter(warmtPerKamer);

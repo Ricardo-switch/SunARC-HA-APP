@@ -479,5 +479,23 @@ describe('een prijs per uur (testerronde, november 2026)', () => {
     // Het gas blijft met zijn eigen prijs.
     expect(r.kosten.regels.find((x) => x.soort === 'gas')!.euro).toBeCloseTo(0.26, 2);
   });
+
+  /*
+   * Issue 126: bij een prijs per uur is een vaste stroomprijs niet nodig. Telt
+   * Home Assistant de teruglevering niet per uur, dan telt die gesaldeerd
+   * tegen de gemiddelde uurprijs van de periode, niet als "prijs ontbreekt".
+   */
+  it('rekent zonder vaste stroomprijs, en de teruglevering tegen de gemiddelde uurprijs', async () => {
+    const dyn = { ...SETTINGS, prijzen: { ...SETTINGS.prijzen, stroom: null, gas: null, dynamisch: { prijsEntiteit: 'sensor.prijs', afname: ['sensor.afname_cost'], terug: [] } } };
+    const r = (await yieldReport(fakeSource(), dyn, 'dag', '2026-09-15', TZ, Date.UTC(2026, 9, 7, 12)))!;
+    expect(r.heeft.prijzen).toBe(true);
+    expect(r.kosten.regels.find((x) => x.soort === 'stroom')!.euro).toBeCloseTo(1.06, 2);
+    // 1,06 euro voor 6,8 kWh van het net: gemiddeld 0,156 per kWh, en 7 kWh terug.
+    const terug = r.kosten.regels.find((x) => x.soort === 'terug')!;
+    expect(terug.euro).toBeCloseTo(-(7 * 1.06) / 6.8, 2);
+    expect(r.kosten.totaal).toBeCloseTo(1.06 - (7 * 1.06) / 6.8, 2);
+    // Ook de vergelijking met eerdere dagen rekent met de tellers, niet met alleen het gas.
+    expect(r.vergelijk.kosten.at(-1)!.nu).toBeCloseTo(1.06 - (7 * 1.06) / 6.8, 1);
+  });
 });
 

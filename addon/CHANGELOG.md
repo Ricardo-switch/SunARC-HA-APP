@@ -1,5 +1,21 @@
 # Wat is er nieuw · What is new
 
+## 0.121.2
+
+*5 november 2026*
+
+**Opgelost**
+
+- Met een prijs per uur vraagt Contract en prijzen niet meer om een vaste stroomprijs of een dalprijs; Per uur werd bij Normaal en dal zelfs niet bewaard
+- Teruglevering telt bij een prijs per uur ook per uur, zoals Home Assistant het bijhoudt; telt Home Assistant dat nog niet, dan staat er wat je daar zet
+
+*English*
+
+**Fixed**
+
+- With an hourly price, Contract and prices no longer asks for a fixed electricity price or an off-peak price; with Peak and off-peak, Per hour was not even saved
+- With an hourly price, export also counts per hour, as Home Assistant tracks it; if Home Assistant does not count it yet, it says what to set there
+
 ## 0.121.1
 
 *4 november 2026*
