@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.122.1';
+export const VERSIE = '0.122.2';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,18 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.122.2',
+    datum: '2026-11-05',
+    beter: [
+      'Daken en panelen: onder Omvormers en meters heet de knop nu Dakvlakken instellen, met een zin wat je daar doet',
+    ],
+    opgelost: ['Daken en panelen opent weer bij de dakvlakken, ook als je eerder bij Omvormers en meters was'],
+    en: {
+      beter: ['Roofs and panels: under Inverters and meters the button is now called Set up roof planes, with a line on what you do there'],
+      opgelost: ['Roofs and panels opens on the roof planes again, even if you were at Inverters and meters before'],
+    },
+  },
   {
     versie: '0.122.1',
     datum: '2026-11-05',

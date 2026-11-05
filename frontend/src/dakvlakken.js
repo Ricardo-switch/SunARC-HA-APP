@@ -189,7 +189,7 @@ const dakvlakken = (() => {
       <p class="mini">${esc(t('daken.metersUitleg'))}</p>
       ${o.omvormers}
       ${o.sensor}
-      <div class="dk-voet"><button type="button" class="lig-knop zacht" data-dak-scherm="alle">${esc(t('daken.alle'))}</button></div>`;
+      <div class="dk-voet"><span class="mini">${esc(t('daken.naarVlakkenZin'))}</span><button type="button" class="lig-knop" data-dak-scherm="alle">${esc(t('daken.naarVlakken'))}</button></div>`;
   }
 
   /**

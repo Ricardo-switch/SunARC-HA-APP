@@ -30,6 +30,8 @@ let zelf = null;
 const ligStaat = { aanpassen: false, concept: null, zelf: false, na: () => teken() };
 /** Daken en panelen (besluit 254, dakvlakken.js): welk scherm, en het vlak dat open staat. */
 const dakStaat = { scherm: 'alle', concept: null, origineel: null, genomen: false };
+/** Het deel dat het laatst getekend werd: wie Daken en panelen opent, begint bij de vlakken. */
+let vorigDeel = null;
 
 const leeg = () => ({ versie: 1, bron: 'zelf', net: { afname: [], teruglevering: [] }, zon: [], gas: null, apparaten: [], prijzen: { stroom: null, teruglevering: null, gas: null, vastPerMaand: null } });
 /** Tarief 1 van een slimme meter is het daltarief (zelfde regel als de dienst, tarief.ts). */
@@ -389,6 +391,10 @@ function tekenNu() {
   // Niet onder de vinger opnieuw opbouwen.
   if (document.activeElement?.matches('input:not([type="date"]):not([type="range"])')) return;
   const nu = groep.tekenDelen(delen());
+  // Op de telefoon is de lijst zonder deel in het adres: dan staat er geen deel open.
+  const open = location.hash.length > 1 ? nu : null;
+  if (open === 'panelen' && vorigDeel !== 'panelen') Object.assign(dakStaat, { scherm: 'alle', concept: null, origineel: null, genomen: false });
+  vorigDeel = open;
   const wacht = `<p class="klein">${esc(t('algemeen.laden'))}…</p>`;
   const vorm = {
     panelen: () => (a ? panelenVorm() : wacht),

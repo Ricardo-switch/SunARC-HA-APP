@@ -4217,6 +4217,8 @@
   'daken.meting.zegt': 'De meting zegt {richting}, helling {helling}.',
   'daken.meting.neem': 'Neem over',
   'daken.alle': '‹ Alle vlakken',
+  'daken.naarVlakken': 'Dakvlakken instellen',
+  'daken.naarVlakkenZin': 'Per dakvlak de richting, de helling en het aantal panelen.',
   'daken.weg': 'Haal weg',
   'daken.bewaar': 'Bewaar',
   'daken.stap1': 'Wat voor dak',

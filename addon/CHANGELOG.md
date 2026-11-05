@@ -1,5 +1,27 @@
 # Wat is er nieuw · What is new
 
+## 0.122.2
+
+*5 november 2026*
+
+**Beter**
+
+- Daken en panelen: onder Omvormers en meters heet de knop nu Dakvlakken instellen, met een zin wat je daar doet
+
+**Opgelost**
+
+- Daken en panelen opent weer bij de dakvlakken, ook als je eerder bij Omvormers en meters was
+
+*English*
+
+**Improved**
+
+- Roofs and panels: under Inverters and meters the button is now called Set up roof planes, with a line on what you do there
+
+**Fixed**
+
+- Roofs and panels opens on the roof planes again, even if you were at Inverters and meters before
+
 ## 0.122.1
 
 *5 november 2026*

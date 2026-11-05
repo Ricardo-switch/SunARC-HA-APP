@@ -4212,6 +4212,8 @@
   'daken.meting.zegt': 'The measurement says {richting}, tilt {helling}.',
   'daken.meting.neem': 'Use it',
   'daken.alle': '‹ All planes',
+  'daken.naarVlakken': 'Set up roof planes',
+  'daken.naarVlakkenZin': 'For each roof plane the direction, the tilt and the number of panels.',
   'daken.weg': 'Remove',
   'daken.bewaar': 'Save',
   'daken.stap1': 'What kind of roof',
