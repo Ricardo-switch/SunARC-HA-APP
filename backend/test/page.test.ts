@@ -2869,6 +2869,43 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await context.close();
   }, 30_000);
 
+  it('laat Daken en panelen op de telefoon de tekening vrij: de kaart eronder, het vraagteken rechts (5 november 2026)', async () => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'UTC', locale: 'nl-NL' });
+    await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
+    await context.addInitScript(() => {
+      localStorage.setItem('sc-rondleiding-gezien', '1');
+      localStorage.setItem('sc-rond-daken-gezien', '1');
+    });
+    await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    const p = await context.newPage();
+    const fouten: string[] = [];
+    p.on('pageerror', (e) => fouten.push(e.message));
+    await p.goto(`${baseUrl}/energie.html#panelen`);
+    const tel = p.locator('#tel');
+    const boven = tel.locator('svg.dk-boven');
+    await boven.waitFor({ timeout: 10_000 });
+    // Het vraagteken rechts in de kop.
+    const kop = await tel.locator('.pan-kop').boundingBox();
+    const vraag = await tel.locator('[data-dak-uitleg]').boundingBox();
+    expect(kop!.x + kop!.width - (vraag!.x + vraag!.width)).toBeLessThan(4);
+    // De kaart: de melding als blad, daarna de balk onder de tekening, niet erover.
+    await tel.locator('[data-dak-kaart]').click();
+    await p.locator('.kk-venster [data-kk-kaart]').click();
+    const balk = tel.locator('.kk-balk');
+    await balk.waitFor({ timeout: 5_000 });
+    const b = await boven.boundingBox();
+    expect((await balk.boundingBox())!.y).toBeGreaterThanOrEqual(b!.y + b!.height - 1);
+    expect(b!.height).toBeGreaterThan(200);
+    expect(await p.evaluate<boolean>('document.documentElement.scrollWidth <= innerWidth + 1')).toBe(true);
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-daken-tel.png'), fullPage: true });
+    // En weer zonder kaart, zoals het was.
+    await tel.locator('[data-dak-zonderkaart]').click();
+    await p.locator('.kk-venster [data-kk-zonder]').click();
+    await tel.locator('[data-dak-kaart]').waitFor({ timeout: 5_000 });
+    expect(fouten).toEqual([]);
+    await context.close();
+  }, 30_000);
+
   it('toont bij Opbrengst Nu: het huis van dit moment, live (5 november 2026)', async () => {
     const context = await browser.newContext({ viewport: { width: 1340, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);

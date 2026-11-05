@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.129.1
+
+*5 november 2026*
+
+**Beter**
+
+- Daken en panelen op de telefoon: de kaart en de uitleg staan onder de tekening, en het vraagteken staat klein rechts naast de titel
+
+*English*
+
+**Improved**
+
+- Roofs and panels on the phone: the map and the explanation are below the drawing, and the question mark sits small to the right of the title
+
 ## 0.129.0
 
 *5 november 2026*

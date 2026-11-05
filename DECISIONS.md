@@ -12034,6 +12034,10 @@ met het huis, en het tuinhuis staat er niet in.
   kaart**. Dat vraagt het even, en zet dan de gebouwen en de omgeving weg: het
   huis is weer een rechthoek langs de voorgevel, de dakvlakken blijven.
 - Elk gebouw onthoudt uit welke kaart het kwam (`kaart: 'bag3d' | 'osm'`).
+- **Op de telefoon** (0.129.1, Ricardo): de uitleg en de balk van de kaart
+  staan onder de tekening, niet eroverheen; de tekening houdt 250 px. Het
+  vraagteken is klein en rustig, rechts naast de titel, zonder rand die na een
+  tik blijft staan.
 
 *Nog niet:* de helling per dakvlak uit 3D BAG naast de meting leggen (bij
 Ricardo 44° tegen 53°), met Neem over. Dat raakt de vlakken zelf, dus eerst

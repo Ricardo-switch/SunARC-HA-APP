@@ -166,7 +166,16 @@
   .dk-naamveld:focus { outline: none; border-style: solid; border-color: var(--ijs-t); background: rgb(var(--wit) / 0.06); }
   .dk-naamveld:focus::placeholder { color: var(--gedempt); }
   .dk-nieuw { display: block; font-size: 11.5px; color: var(--ijs-t); font-weight: 700; }
-  .dk-vraag { width: 34px; height: 34px; padding: 0; justify-content: center; font-weight: 800; color: var(--zacht); margin-left: 8px; flex: none; }
+  /* Het vraagteken (5 november 2026): rustig, rechts in de kop; geen rand die na een tik blijft staan. */
+  .dk-vraag { width: 30px; height: 30px; padding: 0; justify-content: center; font-weight: 700; font-size: 14px; color: var(--gedempt); background: rgb(var(--wit) / 0.05); border: 0; margin-left: 8px; flex: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .dk-vraag:hover { color: var(--zacht); background: rgb(var(--wit) / 0.09); }
+  .dk-vraag:focus { outline: none; }
+  .dk-vraag:focus-visible { outline: 2px solid var(--ijs-t); outline-offset: 2px; }
+  /* Op de telefoon rechts naast de titel; de rest van de kop op de regel eronder. */
+  #tel .dk .pan-kop > * { order: 2; }
+  #tel .dk .pan-kop > h2 { order: 0; }
+  #tel .dk .pan-kop > .dk-vraag { order: 1; margin-left: auto; }
+  #tel .dk .pan-kop > h2 + * { margin-left: 0; }
   .dk-wissel { margin-left: auto; display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--wit) / 0.06); }
   .dk-wissel button { height: 30px; padding: 0 12px; border-radius: 999px; border: 0; background: none; color: var(--zacht); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
   .dk-wissel button[aria-pressed="true"] { background: rgb(var(--wit) / 0.16); color: var(--tekst); }
@@ -199,8 +208,14 @@
   .dk-podium .dk-noot { bottom: auto; top: 10px; right: 56px; }
   .dk-ligt { margin: -4px 0 0; }
   .dk-gicoon svg { width: 22px; height: 16px; }
-  #tel .dk-podium { height: 300px; }
-  #tel .dk-podium .dk-noot { display: block; position: absolute; }
+  /* Op de telefoon (5 november 2026): de tekening houdt haar hoogte, de uitleg en de balk van de kaart staan eronder in plaats van erover. */
+  #tel .dk-podium { height: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 6px; }
+  #tel .dk-podium .dk-boven { position: relative; inset: auto; height: 250px; flex: none; }
+  #tel .dk-podium .dk-noot, #tel .dk-podium .dk-kaart { display: flex; position: static; margin: 0 6px; }
+  #tel .dk-podium .dk-noot { display: block; }
+  #tel .kk-balk { flex-wrap: wrap; row-gap: 8px; }
+  #tel .kk-balktekst { flex: 1 1 60%; }
+  #tel .kk-balk [data-dak-zonderkaart] { margin-left: auto; }
   #tel .pan-kop .dk-wissel { margin-left: 0; }
   /* De kaart is experimenteel (schets Wand-Daken-Kaart, 5 november 2026): de balk, en de melding over de hele pagina. */
   .kk-balk { gap: 10px; }
