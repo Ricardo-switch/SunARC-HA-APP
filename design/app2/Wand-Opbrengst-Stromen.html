@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Opbrengst, stromen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Opbrengst met de nieuwe stromen (schets, 5 november 2026). Het stroombeeld
+   * is niet meer het halve scherm, maar één kaart in drie gelijke kolommen. Het
+   * vertelt meer: de zon per dakvlak (A, B), het net met wat het kostte, wat
+   * terugging met wat het opbracht, de accu en de auto als ze er zijn, en kleine
+   * stromen samen. Gas staat eronder apart. De getallen: opbrengst-stromen.js.
+   *
+   * Standen: standaard november bij Ricardo, #zomer juli met accu en auto.
+   */
+  main { padding: 22px 26px 20px 22px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr); gap: 16px; height: 800px; min-width: 0; }
+  .kop { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: end; }
+  .wissel { display: inline-flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(255,255,255,0.06); }
+  .wissel button { height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: var(--zacht); font-weight: 600; font-size: 14px; }
+  .wissel button[aria-pressed='true'] { background: var(--tekst); color: #0b1424; }
+  .periode { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .periode button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--glas-rand); background: transparent; color: var(--tekst); font-size: 18px; }
+  .kolom { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .kaart { padding: 16px 18px; }
+  .cijfers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .cijfer { padding: 12px 12px 10px; border-radius: 16px; background: rgb(var(--wit) / 0.05); }
+  .cijfer .mini { font-size: 11.5px; }
+  .cijfer .getal { font: 600 26px var(--kop); line-height: 1.1; margin-top: 2px; white-space: nowrap; }
+  .cijfer .getal small { font: 500 12px var(--romp); color: var(--zacht); margin-left: 3px; }
+  .cijfer .klein { font-size: 11.5px; margin-top: 2px; }
+  h2.kop-3 { margin: 0; }
+  .kopregel { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .blik { display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--wit) / 0.06); }
+  .blik span { padding: 5px 11px; border-radius: 999px; font: 700 12.5px var(--romp); color: var(--zacht); }
+  .blik span.aan { background: rgb(var(--wit) / 0.16); color: var(--tekst); }
+  .verdeel { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(255,255,255,0.07); margin-top: 10px; }
+  .verdeel.dun { height: 6px; margin-top: 7px; }
+  .verdeel i { display: block; height: 100%; }
+  .tweezijdig { margin-top: 6px; display: flex; justify-content: space-between; }
+  .dakrij { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; margin-top: 10px; font-size: 13.5px; }
+  .letter { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font: 800 11.5px var(--kop); color: #0b1424; }
+  .staaf { height: 7px; border-radius: 4px; background: rgb(var(--wit) / 0.06); margin-top: 5px; overflow: hidden; }
+  .staaf i { display: block; height: 100%; border-radius: 4px; }
+  .dakrij b { text-align: right; font: 600 14px var(--kop); }
+  .dakrij b small { display: block; font: 600 11px var(--romp); color: var(--gedempt); }
+  .stromen { display: flex; flex-direction: column; min-height: 0; }
+  .stromen svg.sk { width: 100%; flex: 1; min-height: 0; display: block; margin-top: 6px; }
+  .gas { margin-top: 8px; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: rgba(255, 138, 107, 0.06); font-size: 13px; color: var(--zacht); }
+  .gas svg { width: 22px; height: 22px; }
+  .gas b { color: var(--tekst); font: 600 14px var(--kop); text-align: right; }
+  .gas span b { font: 700 13px var(--romp); }
+  .gas small { display: block; font-size: 11.5px; color: var(--gedempt); font-weight: 500; }
+  .rij { padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+  .rij:first-of-type { border-top: 0; }
+  .rij .boven { display: flex; justify-content: space-between; font-size: 13.5px; gap: 8px; }
+  .rij .boven span { color: var(--zacht); white-space: nowrap; }
+  .legenda { display: flex; gap: 12px; font-size: 11.5px; color: var(--gedempt); margin-top: 6px; }
+  .legenda i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  .dagen { display: flex; align-items: end; gap: 3px; height: 110px; margin-top: 12px; }
+  .dagen div { flex: 1; display: flex; flex-direction: column-reverse; border-radius: 3px 3px 0 0; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="wand lucht lucht-dag">
+  <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
+  <main>
+    <div class="kop">
+      <div>
+        <h1 class="kop-1" style="font-size: 38px" id="titel"></h1>
+        <div class="periode"><button aria-label="Vorige">‹</button><span class="kop-3" style="font-size: 17px" id="naam"></span><button aria-label="Volgende">›</button><span class="mini" id="vorige"></span></div>
+      </div>
+      <div class="wissel" role="group" aria-label="Periode"><button>Dag</button><button>Week</button><button aria-pressed="true">Maand</button><button>Jaar</button></div>
+    </div>
+
+    <div class="kolom">
+      <div class="cijfers" id="cijfers"></div>
+      <section class="glas kaart" id="panelen" style="flex: 1"></section>
+    </div>
+
+    <section class="glas kaart stromen">
+      <div class="kopregel"><h2 class="kop-3">Waar je stroom heen ging</h2><span class="mini">dik is veel</span></div>
+      <svg class="sk" id="sankey" viewBox="0 0 380 470" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Waar je stroom vandaan kwam en heen ging"></svg>
+      <div class="gas" id="gas"></div>
+    </section>
+
+    <div class="kolom">
+      <section class="glas kaart" id="apparaten"></section>
+      <section class="glas kaart" id="perdag" style="flex: 1"></section>
+    </div>
+  </main>
+</div>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script src="opbrengst-stromen.js"></script>
+<script>
+  nav.balk(document.getElementById('balk'), 'opbrengst');
+  addEventListener('hashchange', () => location.reload());
+  const o = opbrengstStromen;
+  const D = o.data();
+  document.getElementById('titel').textContent = D.titel;
+  document.getElementById('naam').textContent = D.naam;
+  document.getElementById('vorige').textContent = D.vorige;
+  document.getElementById('cijfers').innerHTML = o.cijfers(D);
+  document.getElementById('panelen').innerHTML = o.panelen(D);
+  document.getElementById('perdag').innerHTML = o.perDag(D);
+  document.getElementById('apparaten').innerHTML = o.apparaten(D);
+  document.getElementById('sankey').innerHTML = o.stromen(D, { breedte: 380, hoogte: 470, id: 'wand' });
+  document.getElementById('gas').innerHTML = o.gas(D);
+</script>
+</body>
+</html>

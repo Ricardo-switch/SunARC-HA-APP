@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telefoon · Opbrengst, stromen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Opbrengst met de nieuwe stromen op de telefoon (schets, 5 november 2026):
+   * Wand-Opbrengst-Stromen onder elkaar, op 390 breed. Het stroombeeld krijgt
+   * de hele breedte. Standen: standaard november, #zomer juli.
+   */
+  body { min-height: 844px; }
+  .inhoud { padding: 18px 16px 110px; display: flex; flex-direction: column; gap: 14px; }
+  .wissel { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(255,255,255,0.06); }
+  .wissel button { flex: 1; height: 34px; border: 0; border-radius: 10px; background: transparent; color: var(--zacht); font-weight: 600; font-size: 13.5px; }
+  .wissel button[aria-pressed='true'] { background: var(--tekst); color: #0b1424; }
+  .periode { display: flex; align-items: center; gap: 10px; }
+  .periode button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--glas-rand); background: transparent; color: var(--tekst); font-size: 17px; }
+  .kaart { padding: 16px; }
+  .cijfers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .cijfer { padding: 10px; border-radius: 14px; background: rgb(var(--wit) / 0.05); }
+  .cijfer .mini { font-size: 11px; }
+  .cijfer .getal { font: 600 21px var(--kop); line-height: 1.1; margin-top: 2px; white-space: nowrap; }
+  .cijfer .getal small { font: 500 11px var(--romp); color: var(--zacht); margin-left: 2px; }
+  .cijfer .klein { font-size: 10.5px; margin-top: 2px; }
+  h2.kop-3 { margin: 0; }
+  .kopregel { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .blik { display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--wit) / 0.06); }
+  .blik span { padding: 5px 11px; border-radius: 999px; font: 700 12.5px var(--romp); color: var(--zacht); }
+  .blik span.aan { background: rgb(var(--wit) / 0.16); color: var(--tekst); }
+  .verdeel { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(255,255,255,0.07); margin-top: 10px; }
+  .verdeel.dun { height: 6px; margin-top: 7px; }
+  .verdeel i { display: block; height: 100%; }
+  .tweezijdig { margin-top: 6px; display: flex; justify-content: space-between; }
+  .dakrij { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; margin-top: 10px; font-size: 13.5px; }
+  .letter { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font: 800 11.5px var(--kop); color: #0b1424; }
+  .staaf { height: 7px; border-radius: 4px; background: rgb(var(--wit) / 0.06); margin-top: 5px; overflow: hidden; }
+  .staaf i { display: block; height: 100%; border-radius: 4px; }
+  .dakrij b { text-align: right; font: 600 14px var(--kop); }
+  .dakrij b small { display: block; font: 600 11px var(--romp); color: var(--gedempt); }
+  svg.sk { width: 100%; height: auto; display: block; margin-top: 8px; }
+  .gas { margin-top: 8px; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: rgba(255, 138, 107, 0.06); font-size: 13px; color: var(--zacht); }
+  .gas svg { width: 22px; height: 22px; }
+  .gas b { color: var(--tekst); font: 600 14px var(--kop); text-align: right; }
+  .gas span b { font: 700 13px var(--romp); }
+  .gas small { display: block; font-size: 11.5px; color: var(--gedempt); font-weight: 500; }
+  .rij { padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+  .rij:first-of-type { border-top: 0; }
+  .rij .boven { display: flex; justify-content: space-between; font-size: 13.5px; gap: 8px; }
+  .rij .boven span { color: var(--zacht); white-space: nowrap; }
+  .legenda { display: flex; gap: 12px; font-size: 11.5px; color: var(--gedempt); margin-top: 6px; }
+  .legenda i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  .dagen { display: flex; align-items: end; gap: 3px; height: 90px; margin-top: 12px; }
+  .dagen div { flex: 1; display: flex; flex-direction: column-reverse; border-radius: 3px 3px 0 0; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="tel lucht lucht-dag">
+  <div class="inhoud">
+    <h1 class="kop-1" style="font-size: 30px" id="titel"></h1>
+    <div class="periode"><button aria-label="Vorige">‹</button><span class="kop-3" style="font-size: 16px" id="naam"></span><button aria-label="Volgende">›</button></div>
+    <div class="wissel" role="group" aria-label="Periode"><button>Dag</button><button>Week</button><button aria-pressed="true">Maand</button><button>Jaar</button></div>
+    <div class="cijfers" id="cijfers"></div>
+    <section class="glas kaart">
+      <div class="kopregel"><h2 class="kop-3">Waar je stroom heen ging</h2><span class="mini">dik is veel</span></div>
+      <svg class="sk" id="sankey" viewBox="0 0 358 400" role="img" aria-label="Waar je stroom vandaan kwam en heen ging"></svg>
+      <div class="gas" id="gas"></div>
+    </section>
+    <section class="glas kaart" id="panelen"></section>
+    <section class="glas kaart" id="apparaten"></section>
+    <section class="glas kaart" id="perdag"></section>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Hoofdmenu"></nav>
+</div>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script src="opbrengst-stromen.js"></script>
+<script>
+  if (nav.tabs) nav.tabs(document.getElementById('tabs'), 'opbrengst');
+  addEventListener('hashchange', () => location.reload());
+  const o = opbrengstStromen;
+  const D = o.data();
+  document.getElementById('titel').textContent = D.titel;
+  document.getElementById('naam').textContent = D.naam;
+  document.getElementById('cijfers').innerHTML = o.cijfers(D);
+  document.getElementById('panelen').innerHTML = o.panelen(D);
+  document.getElementById('perdag').innerHTML = o.perDag(D);
+  document.getElementById('apparaten').innerHTML = o.apparaten(D);
+  document.getElementById('sankey').innerHTML = o.stromen(D, { breedte: 358, hoogte: 400, links: 96, rechts: 128, id: 'tel' });
+  document.getElementById('gas').innerHTML = o.gas(D);
+</script>
+</body>
+</html>
