@@ -118,6 +118,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [246. Klaarzetten per niveau](#246-klaarzetten-per-niveau)
 - [248. De netmeter en de omvormers kies je in de app](#248-de-netmeter-en-de-omvormers-kies-je-in-de-app)
 - [254. Daken en panelen: elk dakvlak apart (ontwerp)](#254-daken-en-panelen-elk-dakvlak-apart-ontwerp)
+- [256. De kaart is experimenteel, met 3D BAG naast OpenStreetMap](#256-de-kaart-is-experimenteel-met-3d-bag-naast-openstreetmap)
 
 **Meten, data en analyse**
 
@@ -249,6 +250,8 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [244. Een taak als één zin, en + Nieuw op Te doen](#244-een-taak-als-één-zin-en--nieuw-op-te-doen)
 - [245. Te doen in drie kolommen, witgoed altijd aan te tikken](#245-te-doen-in-drie-kolommen-witgoed-altijd-aan-te-tikken)
 - [247. Eén iconenset, duotoon](#247-eén-iconenset-duotoon)
+- [255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer](#255-opbrengst-het-stroombeeld-vertelt-meer-opgewekt-uit-de-omvormer)
+- [257. Drie fouten van testers: het gevoel, Meten met, en een plat dak](#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak)
 
 **Veiligheid**
 
@@ -11753,7 +11756,7 @@ al met elk aantal `solarPlanes`; de app kent alleen voorkant, achterkant,
 beide of plat met één helling, garage, carport en tuinhuis tellen niet mee in
 de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 
-*Besluit (ontwerp, nog niet gebouwd):*
+*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, stap 4 in 0.124.0, stap 5 in 0.125.0, stap 3 in 0.127.0; 2b nog niet):*
 
 - **Elk dakvlak apart,** met een letter, een plek (hoofddak, dwarskap,
   uitbouw, garage, carport, tuinhuis of schuur, de grond, gevel of balkon), een
@@ -11785,6 +11788,299 @@ de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 - **Schetsen:** `design/app2/Wand-Daken.html` (`#vlak`, `#erbij`, `#meters`,
   `#klopt`, `#huis`), `Tel-Daken.html`, `Wand-Inrichten-Daken.html`,
   `Wand-Daken-Elders.html`; de tekening van boven staat in `daken.js`.
+
+*Stap 1 gebouwd (0.122.0, 4 november 2026):*
+
+- **Het datamodel** staat in `backend/src/web/daken.ts`: per vlak een
+  letter, een plek, een opstelling (`schuin`, `rek`, `oostwest`, `plat`), de
+  richting, de helling, het aantal (bij oost-west per kant), de Wp per
+  paneel, de meter en de bron. Het staat bij de antwoorden als `daken`; een
+  pagina die het niet meestuurt (Inrichten) laat het staan. Oost-west wordt
+  voor de berekening twee vlakken tegenover elkaar.
+- **Vanzelf vlakken:** zonder bewaarde daken volgen de vlakken uit wat er al
+  was (`dakenNu`, `dakenUitOud`): het hoofddak uit de ligging die gold (twee
+  bijna platte vlakken tegenover elkaar worden één vlak oost-west), en de
+  garage, carport en het tuinhuis een eigen vlak, gericht als het zonnigste
+  vlak, op een geschatte helling. Die tellen sindsdien mee. Komt de wattpiek
+  van het hoofddak uit de meting, dan zat de garage daar al in: dat deel gaat
+  eraf, zodat niets dubbel telt. Zonder andere daken blijft de ligging precies
+  zoals hij was. De pagina en de berekening gebruiken dezelfde vlakken.
+- **De pagina** (`frontend/src/dakvlakken.js`): de lijst met kaartjes, een
+  vlak openen (opstelling, richting met kompas, helling, aantal, Wp, meter),
+  erbij in twee stappen (wat voor dak, hoe liggen ze) en wat bij welke meter
+  hoort, met de omvormers die SunArc optelt. Links het huis zoals het nu
+  tekent, met de letters; wat het nog niet kan tekenen, staat eronder. Bij
+  het hoofddak staat wat de meting zegt, met Neem over. Bewaren zet ook de
+  oude antwoorden (`panelen`, `elders`) gelijk, voor Thuis en Inrichten.
+- **De meter per vlak** (0.122.1, Ricardo 5 november 2026): alleen de
+  omvormers die bij Omvormers en meters gekozen zijn, of Weet ik niet; elke
+  sensor met een vermogen was te veel en onoverzichtelijk. Meer vlakken aan
+  één omvormer kiezen allemaal die omvormer. Leest SunArc één omvormer, dan
+  staat die bij elk nog niet bewaard vlak, en Hoort bij zet hem bij alle
+  vlakken zonder meter.
+- **Stap 2 in tweeën** (Ricardo, 5 november 2026): 2a de tekening van boven
+  met de omtrek uit de kaart, een dakvorm per gebouw en vlakken aantikken;
+  2b blokken zelf schuiven, draaien en toevoegen.
+
+*Stap 2a gebouwd (0.123.0, 5 november 2026):*
+
+- **De kaart en je plek.** Naar OpenStreetMap gaat een vak van een vast
+  raster (0,004° bij 0,006°, ongeveer 450 bij 400 meter, met een rand), niet
+  de plek van het huis; SunArc kiest daarna in huis het gebouw waar de plek
+  in ligt (Ricardo: liever dit dan de plek zelf). De plek voor de zon is
+  sinds besluit 93 afgerond op 0,1°; daarmee wees de kaart nooit het eigen
+  huis aan, ook niet bij Op de kaart (21 oktober). Daarom vraagt SunArc de
+  precieze plek pas na de tik aan Home Assistant en bewaart hem niet; bewaard
+  worden alleen omtrekken in meters vanaf die plek. Op de kaart gebruikt nu
+  hetzelfde.
+- **De tekening** (`web/daken-tekening.ts`): de dakvlakken volgen uit de
+  kleinste rechthoek om de omtrek en de dakvorm (zadel 2, schild 4,
+  lessenaar en plat 1); de nok valt op de as van de rechthoek die het
+  dichtst bij de keuze ligt. Zonder kaart een blok van 10 bij 9 meter langs
+  de voorgevel, en voor een vlak op de uitbouw, garage, carport, het tuinhuis
+  of de grond een blok op een gangbare plek. De dakvorm is een voorstel uit
+  de vlakken (een schuin vlak: de nok haaks erop); de bewoner kiest.
+- **Vanzelf, tik om te wisselen:** elk vlak ligt op het dakvlak van zijn
+  gebouw dat dezelfde kant op kijkt; wijkt een schuin vlak meer dan 60° af,
+  dan staat het er niet in en zegt de pagina dat. Met een vlak open verplaatst
+  een tik het; een leeg dakvlak aantikken maakt een nieuw vlak. Gebouwen
+  binnen 35 meter staan grijs; aantikken maakt er een garage, uitbouw,
+  carport, schuur of ander gebouw van.
+- **Blokken en panelen** (0.123.1, Ricardo 5 november): de kaart heeft huis
+  en garage vaak als één gebouw. Is de omtrek geen rechthoek (minder dan 90%
+  van de rechthoek eromheen), dan in rechthoeken langs de as; de grootste is
+  het huis, de rest staat grijs ernaast om aan te tikken. Van boven staan
+  zoveel panelen als er zijn, in rijen vanaf de nok, niet het hele dakvlak
+  vol. Van de omgeving alleen wat binnen 12 meter staat, hooguit acht.
+- **Van boven of het huis:** van boven is standaard, Het huis toont het
+  3D-huis zoals in stap 1.
+- De tekening verandert niets aan de berekening: die rekent met de richting
+  en de helling per vlak.
+*Stap 4 gebouwd (0.124.0, 5 november 2026), keuzes van Ricardo:*
+
+- **De meting per dakvlak** (`web/meten-vlakken.ts`): per meter zijn eigen
+  opbrengst (de tien dagen per omvormer, niet meer alleen de som). Hij begint
+  bij de ingevulde vlakken en zoekt per vlak binnen 60° van de ingevulde
+  richting de richting en de helling die het best bij de heldere momenten
+  passen; de verhouding tussen de vlakken (aantal maal Wp) staat vast. Wat
+  niet 1% beter past dan de invoer, blijft de invoer. Vlakken zonder meter
+  horen bij de enige omvormer, of, als geen vlak een meter heeft, bij alle
+  omvormers samen. De bovenkant en het beoordelen zijn dezelfde als bij de
+  meting van besluit 157 (`bovenkant`, `beoordeel` in ligging.ts).
+- **Gemeten volgt vanzelf:** een vlak dat gemeten of geschat is, neemt de
+  meting over in de berekening en op de pagina (`metMeting`); wat de bewoner
+  zelf instelde, blijft staan en krijgt het voorstel met Neem over. Daarnaast
+  blijft het hele dak vrij gemeten, zodat een vlak aan de verkeerde kant
+  opvalt.
+- **De grens per omvormer:** een vlak met een meter hoort bij die omvormer
+  (`SolarPlane.inverter`), met zijn eigen grens (`Geometry.inverters`): wat de
+  bewoner invulde, anders uit het typenummer van het apparaat; met één
+  omvormer ook de oude grens. De heldere lucht en het leren kappen per
+  omvormer af (`web/omvormers.ts`).
+- **Verdelen:** wat één meter op de laatste hele dag mat, per vlak naar wat
+  elk vlak bij heldere lucht zou leveren; bij Omvormers en meters als
+  grafiek, als de meter meer vlakken meet.
+- **Nog niet:** alle vlakken weghalen valt nog terug op het
+  instellingenbestand (NAS en Pi).
+
+*Stap 5 gebouwd (0.125.0, 5 november 2026), keuzes van Ricardo:*
+
+- **Thuis:** met meer dakvlakken zegt het label bij de panelen "2 daken · tik
+  voor elk dak"; een tik geeft De zon op je daken: het huis van boven, per vlak
+  wat het nu levert (wat zijn meter meet, verdeeld naar de heldere lucht per
+  vlak) en een streepje voor wat het bij heldere lucht zou leveren.
+- **Opbrengst:** een wissel Samen / Per dak; per vlak de kWh van de gekozen
+  periode (per uur wat elke meter gemiddeld mat, uit de statistiek, verdeeld
+  naar de heldere lucht) en per paneel, zodat daken van verschillende grootte
+  te vergelijken zijn.
+- **Achterblijven** (`achterblijven` in meten-vlakken.ts): met een eigen meter
+  per vlak per paneel vergeleken met het beste (18% minder telt). Met één
+  meter: blijft het dak op zonnige dagen in een deel van de dag (ochtend,
+  middag, avond, naar de stand van de zon) een kwart of meer achter bij het
+  beste deel, dan noemt SunArc het vlak dat dan de meeste zon heeft, met
+  "waarschijnlijk", en zegt de kop niet welk vlak. Eerlijk: met één meter is
+  per vlak niets te meten, alleen wanneer het dak minder geeft.
+- **Waar:** bovenaan Daken en panelen met de lijn van de zonnige dagen (Ik
+  kijk het na / Invoer aanpassen), onder Per dak bij Opbrengst, en in de bel
+  zodra het op drie zonnige dagen te zien was.
+
+*Stap 3 gebouwd (0.127.0, 5 november 2026), keuzes van Ricardo:*
+
+- **Inrichten › Energie › Daken** (schets `Wand-Inrichten-Daken.html`): de
+  plekken hoofddak, uitbouw, garage, op de grond, carport, tuinhuis en gevel,
+  elk aan te tikken met een teller. Bij het hoofddak: hoeveel kanten met
+  panelen (1, 2, 3 of meer, weet ik niet), en bij twee of meer **per kant een
+  teller** (voorkant, achterkant, opzij). "Weet ik niet" is één teller; de
+  meting zoekt de kanten.
+- **Bewaard als dakvlakken**, geschat (`kortNaar` in dakvlakken.js): elke
+  plek wordt meteen een vlak bij Daken en panelen, gericht als de zonnigste
+  kant; de meting zet richting en helling daarna vanzelf goed (stap 4). Wat de
+  bewoner bij Daken en panelen al instelde, blijft; alleen het aantal
+  verandert. Inrichten en Energie tonen zo precies hetzelfde.
+- **Links het huis dat meegroeit**, zoals de rest van Inrichten. De stap
+  daarna, Hoe ze liggen, laat de vlakken zien met hun letter op het huis:
+  "Je vlakken, nog geschat" tot de meting er één vindt, dan "Zo liggen ze,
+  denken we" met Klopt. **Aanpassen opent Daken en panelen**; terug brengt je
+  op dezelfde stap (besluit 227).
+- **Alle vlakken weg is geen panelen**, ook als het instellingenbestand een
+  dak heeft: eerst kwamen ze daaruit terug (Ricardo, 5 november). Geen
+  zonnepanelen in Inrichten haalt ook de vlakken weg.
+- **Hoe de panelen liggen** in Wat je huis kan en de zonnewaaier: zolang alle
+  vlakken geschat zijn "leert" het huis; met meer vlakken staat er hoeveel,
+  met hun vermogen samen.
+- **Een eigen rondleiding** de eerste keer Daken en panelen opent: vijf stops
+  op de pagina (van boven, elk vlak apart, van boven of het huis, een vlak
+  erbij, omvormers en meters). `rondleiding.eigen` kan dat voor elke pagina;
+  wat gezien is, onthoudt de browser per rondleiding.
+
+*Nagekomen, versie 0.127.1* (Ricardo, dezelfde dag): een vraagteken bovenin
+Daken en panelen laat de rondleiding opnieuw zien, zoals op Thuis; en een
+stop bij het huis, waarvoor de rondleiding de wissel zelf omzet en daarna
+terug.
+
+---
+
+## 255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer
+
+*Onderwerp: weergave · Status: geldig*
+
+5 november 2026. Na Daken en panelen vond Ricardo "Waar je stroom heen
+ging" toe aan een nieuw ontwerp: het middelste vak was te groot en liet de
+nieuwe dingen niet zien. Op zijn scherm klopten de getallen ook niet: "Je
+panelen 3,8 kWh", terwijl 3,8 zelf gebruikt en 3,4 naar het net samen 7,2
+is. De zonnemeter in kWh (`sensor.solaredge_produced_energy`) liep achter,
+en zelf gebruikt kan per uur nooit meer zijn dan wat die meter zegt.
+
+*Besluit (schets `design/app2/Wand-Opbrengst-Stromen.html` en
+`Tel-Opbrengst-Stromen.html`, gebouwd in 0.126.0):*
+
+- **Drie gelijke kolommen.** Links de cijfers als drie tegels, Je panelen
+  (Samen of Per dak) en het sluipverbruik; in het midden het stroombeeld als
+  één kaart; rechts Per apparaat en Per dag. Op de telefoon het stroombeeld
+  meteen onder de cijfers.
+- **Het stroombeeld** (`frontend/kit/stromen.js`): links de zon per dakvlak
+  (naar hun aandeel uit Per dak) en het net met wat het kostte; rechts de
+  apparaten met hun deel zon, de rest van het huis, **Altijd aan** en terug
+  naar het net met wat het opbracht. Altijd aan is het gewone sluipverbruik
+  's nachts (besluit 192) over de uren van de periode, hooguit 90% van de
+  rest; ook bij Per apparaat staat het apart. Wat kleiner is dan 2% gaat samen
+  onder Overig. Elke band loopt van de kleur van de bron naar die van de
+  bestemming; de namen schuiven uit elkaar. Gas staat er apart onder, met m³
+  en euro's: 11 m³ is ruim 100 kWh warmte en zou op dezelfde schaal alles
+  wegdrukken. De accu en de auto komen erbij zodra de opbrengst ze kent.
+- **Opgewekt uit de omvormer** (Ricardo): als er omvormers zijn, telt
+  Opbrengst de opgewekte zon uit hun vermogen per uur (per dag in de
+  vergelijking), uit de statistiek van Home Assistant (`EnergySource.opgewekt`).
+  De zonnemeter in kWh telt alleen zonder omvormer. Zo zijn opgewekt, zelf
+  gebruikt en terug weer samen één getal.
+- Het sluipverbruik, Per dak en de rest van Opbrengst blijven zoals ze waren.
+- **Uitrol:** samen met Daken en panelen (besluit 254) in één grote release;
+  tot dan op beta.
+
+*Nagekomen, versie 0.127.1* (Ricardo, 5 november, op beta): het stroombeeld
+liet over het contractjaar 0% zon zien, en Per dak 212 kWh in plaats van ruim
+3.700. Het vermogen van zijn omvormer (`sensor.solaredge_i1_ac_power`, via
+Modbus) heeft in Home Assistant pas een statistiek sinds 1 oktober 2026. Nu
+telt per uur (of dag) de omvormer waar hij er is, en anders de zonnemeter
+(`opgewektPerVak` in yield.ts); Per dak vult de uren zonder omvormer aan uit de
+zonnemeter in kWh (`aanvullenUitMeter`), als één meter alle vlakken meet. Ook
+gezien: de zonnemeter van de cloudkoppeling (`sensor.solaredge_produced_energy`)
+telt sinds 2 november niet meer; daar vangt de omvormer het nu op.
+
+*Nagekomen, versie 0.129.0* (Ricardo, dezelfde avond): **Nu** naast dag,
+week, maand en jaar, live. Links de zon, het huis en het net in kW, en per
+dakvlak wat het nu levert met een streepje voor de heldere lucht. In het
+midden het stroombeeld van nu: de zon per dakvlak en het net naar de
+apparaten met een eigen meter die nu meer dan 30 W vragen (hooguit vijf), de
+rest van het huis, Altijd aan en terug. Rechts Nu aan; Per dag valt weg. Elke
+vijf tellen opnieuw (`api/state`, `api/huis`), de dakvlakken elke halve minuut
+(`api/aansluiting`), alleen zolang de pagina in beeld is.
+
+---
+
+## 256. De kaart is experimenteel, met 3D BAG naast OpenStreetMap
+
+*Onderwerp: configuratie en onboarding · Status: geldig*
+
+5 november 2026. Ricardo wilde een melding voordat iemand de kaart gebruikt
+(besluit 254, stap 2a): dat het experimenteel is, wat het doet, hoe de privacy
+geregeld is, en dat je altijd terug kunt. En 3D BAG naast OpenStreetMap, als
+dat kon. Een andere sessie ("Huisschets op basis van omtrek") zocht 3D BAG uit
+en haalde het vak van zijn wijk op: de omtrek valt op een halve meter samen met
+OpenStreetMap, het dak gaat naar 93° en 272° zoals zijn vlakken A en B, de
+helling is 43 à 44° (de meting zegt 53°), de garage is in de BAG één gebouw
+met het huis, en het tuinhuis staat er niet in.
+
+*Besluit (schets `design/app2/Wand-Daken-Kaart.html` en `Tel-Daken-Kaart.html`, gebouwd in 0.128.0):*
+
+- **Eerst een melding**, elke keer dat je "Omtrek uit de kaart" tikt: "Je huis
+  uit de kaart", met Experimenteel. Wat het doet (de omtrek, het dak in 3D in
+  Nederland, een voorstel, nog niet af), je privacy (de kaartdiensten zien
+  alleen de wijk; je plek blijft in huis; één keer, alleen vormen in meters),
+  en Altijd terug. Knoppen: Niet nu, en "Ik begrijp het, haal de kaart". Op de
+  telefoon een blad van onderen.
+- **3D BAG in Nederland** (`web/bag3d.ts`): SunArc rekent de plek uit Home
+  Assistant om naar RD, en vraagt de kaartvakken van 3D BAG van fijn (ongeveer
+  500 m) naar grof tot er één bestaat (0,5 tot 2 km, 0,3 tot 2 MB, CityJSON).
+  Daarin zoekt hij zelf het gebouw waar de plek in ligt. Het huis en de buren
+  komen uit LoD 0, het dak uit de dakvlakken in LoD 2.2: zadel, schild,
+  lessenaar of plat, met de richting van de nok. Versie `v20250903`; de link
+  naar de nieuwste versie werkt niet, dus die gaat met de hand mee.
+- **OpenStreetMap ernaast**, zoals het was: daarbuiten alleen OpenStreetMap,
+  en in Nederland vult het aan wat 3D BAG mist, zoals een tuinhuis. Een gebouw
+  dat in allebei staat, telt één keer.
+- **Op de tekening** onder het huis: Experimenteel, "Omtrek uit de kaart", de
+  bronnen met hun link ("© 3DBAG by tudelft3d and 3DGI, vorm aangepast",
+  "© OpenStreetMap-bijdragers"; CC BY 4.0 en ODbL vragen dat), en **Zonder
+  kaart**. Dat vraagt het even, en zet dan de gebouwen en de omgeving weg: het
+  huis is weer een rechthoek langs de voorgevel, de dakvlakken blijven.
+- Elk gebouw onthoudt uit welke kaart het kwam (`kaart: 'bag3d' | 'osm'`).
+- **Op de telefoon** (0.129.1, Ricardo): de uitleg en de balk van de kaart
+  staan onder de tekening, niet eroverheen; de tekening houdt 250 px. Het
+  vraagteken is klein en rustig, rechts naast de titel, zonder rand die na een
+  tik blijft staan.
+
+*Nog niet:* de helling per dakvlak uit 3D BAG naast de meting leggen (bij
+Ricardo 44° tegen 53°), met Neem over. Dat raakt de vlakken zelf, dus eerst
+nagaan hoeveel het in de verwachting scheelt.
+
+*Nagekomen, versie 0.128.1* (Ricardo, dezelfde avond): "Hoofddak A en
+hoofddak B" zegt niets, bijvoorbeeld bij Opbrengst, waar geen tekening is.
+
+- **Een eigen naam per vlak** (`naam`, hooguit 30 tekens): de kop van een
+  open vlak is zelf in te vullen, en Bewaar bewaart hem. Alleen een naam
+  veranderen houdt het vlak gemeten of geschat.
+- **Zonder eigen naam de richting erbij** als er meer vlakken op dezelfde plek
+  liggen: "Hoofddak oost" en "Hoofddak west". Overal hetzelfde: Daken en
+  panelen, Per dak en het stroombeeld bij Opbrengst, De zon op je daken op
+  Thuis, en Inrichten.
+
+---
+
+## 257. Drie fouten van testers: het gevoel, Meten met, en een plat dak
+
+*Onderwerp: weergave · Status: geldig*
+
+5 november 2026, uit de meldingen van testers (issues 131, 133 en 134).
+
+*Besluit (versie 0.129.2):*
+
+- **Het gevoel (133):** "Niet gelukt" bij Hoe voelt het huis kwam doordat het
+  logboek van het gevoel alleen de zones van het opstarten kende. Een kamer met
+  een regeling die er via Inrichten bij kwam, was "onbekende zone" tot de
+  volgende start. Nu kent het de zones van nu.
+- **Meten met (134):** een lege keuze is "geen meter", en blijft bewaard;
+  eerst viel hij terug op "automatisch", en dat pakte weer dezelfde sensor. De
+  meter die de app zelf koos, staat in Meten met aan, zodat je hem kunt
+  uitzetten; "Laat de app kiezen" zet het terug. Doet een kamer zonder eigen
+  meter mee met een andere, dan toont hij de temperatuur van die regeling. En
+  de app kiest zelf geen watertemperatuur als kamermeter: niets boven 35°, en
+  niet de boiler, het tapwater of de aanvoer en retour van een warmtepomp.
+- **Een plat dak (131):** het hoofdhuis op Thuis krijgt een plat dak als de
+  bewoner dat opgaf (de dakvorm van het hoofdhuis bij Daken en panelen, anders
+  de vlakken van het hoofddak, anders het oude antwoord "plat"): een plaat met
+  een rand, en de panelen erop in rijen, zoals op de garage. Een tik erop opent
+  De zon op je daken.
 
 ---
 

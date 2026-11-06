@@ -477,6 +477,13 @@ const ORDER: Readonly<Record<DeviceKind, number>> = { klimaat: 0, screen: 1, lic
 /** Wat geen kamer meet: het weer, telefoons, schijven, de buitenkant van een apparaat. */
 const NOT_A_ROOM = /\b(weather|weer|buiten|outdoor|outside|grond|gevoels|gevoelstemperatuur|battery|batterij|body|basal|cpu|processor|schijf|schijftemperatuur|disk|drive|nas|track)\b/i;
 
+/**
+ * Een watertemperatuur, geen kamertemperatuur (issue 134): de boiler, het tapwater,
+ * de aanvoer en retour van een warmtepomp. Zo'n sensor blijft in de kamer staan,
+ * maar SunArc kiest hem niet zelf als meter van de kamer.
+ */
+const WATERTEMP = /boiler|tapwater|warm ?water|dhw|water ?heater|aanvoer|retour|leaving|flow|zwembad|jacuzzi|altherma|warmtepomp|heat ?pump/i;
+
 /** De stand van een apparaat als vaste code (besluit 185); de woorden staan in `WOORDEN`. */
 export type StandCode =
   | 'geen-verbinding'
@@ -1855,6 +1862,8 @@ export interface HuisLigging {
   readonly nok: 'langs' | 'haaks';
   /** De helling van het schuine dak, of null bij een plat dak of zonder panelen. */
   readonly hellingDeg: number | null;
+  /** Een plat dak op het hoofdhuis (issue 131), zoals de bewoner het opgaf; dan tekent de app geen puntdak. */
+  readonly plat?: boolean;
 }
 
 /**
@@ -1974,8 +1983,13 @@ export function buildHouse(
     const pz = zone ? snapshot?.explanation.perZone.find((z) => z.zoneId === zone.id) : undefined;
     // Zonder regelgebied meet een meter in de kamer, zoals in de hal of op zolder.
     // Zonder meter meet het klimaatapparaat, zoals de thermostaat in de badkamer.
-    const meterTemp = devices.find((d) => d.soort === 'meter' && d.meting?.temperatuurC != null)
-      ?? devices.find((d) => d.soort === 'klimaat' && d.meting?.temperatuurC != null);
+    // Geen meter gekozen (issue 134): dan ook niet zelf een kiezen. En zelf kiezen alleen een
+    // kamertemperatuur: niet het water van een boiler of warmtepomp, en niets boven 35°.
+    const geenMeter = k.meten != null && k.meten.length === 0;
+    const kamerTemp = (d: HouseDevice) => d.meting?.temperatuurC != null && d.meting.temperatuurC <= 35 && !WATERTEMP.test(`${d.naam} ${d.id}`);
+    const meterTemp = geenMeter
+      ? undefined
+      : (devices.find((d) => d.soort === 'meter' && kamerTemp(d)) ?? devices.find((d) => d.soort === 'klimaat' && d.meting?.temperatuurC != null));
     // Meten met (besluit 123): het gemiddelde van de gekozen sensoren. Met een
     // regeling rekent de regeling er na de volgende start zelf mee.
     // Een apparaat van de regeling staat er onder zijn eigen id; de stand hoort bij de entiteit erachter.

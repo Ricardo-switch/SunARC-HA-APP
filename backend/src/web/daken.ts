@@ -1,0 +1,363 @@
+/*
+ * Daken en panelen (besluit 254, stap 1): elk dakvlak apart.
+ *
+ * Een huis heeft niet één dak met twee kanten: een hoofddak met meer vlakken,
+ * een uitbouw met een plat dak (oost-west, zoals idee #121), een garage,
+ * panelen op de grond. Elk vlak heeft een letter, een plek, een opstelling,
+ * een richting, een helling, een aantal panelen en de Wp per paneel, en de
+ * meter (omvormer, string of micro-omvormers) die zijn opbrengst meet.
+ *
+ * Wat de bewoner bewaarde, staat bij de antwoorden (`daken`). Zonder dat
+ * volgen de vlakken uit wat er al was: de ligging van het hoofddak (gemeten,
+ * bevestigd, de configuratie of een schatting) en de panelen op de garage,
+ * carport of het tuinhuis (besluit 187). Die tellen sindsdien mee.
+ */
+import type { Geometry, GeometrySource, SolarPlane } from '../core/model.js';
+
+export const DAK_PLEKKEN = ['hoofddak', 'dwarskap', 'uitbouw', 'garage', 'carport', 'tuinhuis', 'grond', 'gevel'] as const;
+export type DakPlek = (typeof DAK_PLEKKEN)[number];
+
+/**
+ * Hoe de panelen liggen: `schuin` op een schuin dak, `rek` op rekken naar één
+ * kant (plat dak of de grond), `oostwest` in ruggen met de helft naar elke
+ * kant, `plat` plat liggend.
+ */
+export const OPSTELLINGEN = ['schuin', 'rek', 'oostwest', 'plat'] as const;
+export type Opstelling = (typeof OPSTELLINGEN)[number];
+
+/** Waar de richting en de helling vandaan komen; dezelfde woorden als de configuratie. */
+export type VlakBron = GeometrySource;
+const VLAK_BRONNEN: readonly VlakBron[] = ['bewoner', 'gemeten', 'schatting'];
+
+export interface DakVlak {
+  /** A tot Z, vast zolang het vlak bestaat. */
+  readonly letter: string;
+  readonly plek: DakPlek;
+  readonly opstelling: Opstelling;
+  /** Waar het vlak naartoe kijkt; bij oost-west de eerste kant, de tweede kijkt er tegenover. */
+  readonly azimuthDeg: number;
+  /** 0 is plat, 90 staat rechtop. */
+  readonly tiltDeg: number;
+  /** De panelen op dit vlak; bij oost-west op de eerste kant. */
+  readonly aantal: number;
+  /** Bij oost-west de panelen op de andere kant. */
+  readonly aantal2?: number;
+  readonly wpPerPaneel: number;
+  /** De sensor die de opbrengst van dit vlak meet, of null als de bewoner het niet weet. */
+  readonly meter: string | null;
+  readonly bron: VlakBron;
+  /**
+   * Op welk gebouw en welk dakvlak het ligt (stap 2): het gebouw en de richting
+   * van dat dakvlak, null bij een plat dak. Weg: SunArc zoekt het zelf, naar
+   * de plek en de richting.
+   */
+  readonly gebouw?: string;
+  readonly kant?: number | null;
+  /** Een eigen naam (Ricardo, 5 november 2026), zoals "Voorkant" of "Garage achter"; weg: de plek, met de richting erbij. */
+  readonly naam?: string;
+}
+
+/** Wat voor gebouw (stap 2); `grond` is een rek in de tuin. */
+export const GEBOUW_SOORTEN = ['hoofdhuis', 'uitbouw', 'garage', 'carport', 'tuinhuis', 'grond', 'anders'] as const;
+export type GebouwSoort = (typeof GEBOUW_SOORTEN)[number];
+export const DAKVORMEN = ['zadel', 'schild', 'lessenaar', 'plat'] as const;
+export type Dakvorm = (typeof DAKVORMEN)[number];
+
+/** Een punt in meters vanaf de plek van het huis in Home Assistant: x naar het oosten, y naar het noorden. */
+export type Xy = readonly [number, number];
+
+/**
+ * Een gebouw van boven (besluit 254, stap 2): de omtrek, de dakvorm en de nok.
+ * Bij een zadel- of schilddak is `nokDeg` de richting van de nok, bij een
+ * lessenaar de kant waar het dak naartoe kijkt; bij plat telt hij niet.
+ */
+export interface Gebouw {
+  readonly id: string;
+  readonly soort: GebouwSoort;
+  /** `kaart`: de omtrek uit OpenStreetMap; `schatting`: een blok op een gangbare plek. */
+  readonly bron: 'kaart' | 'schatting';
+  readonly omtrek: readonly Xy[];
+  readonly dakvorm: Dakvorm;
+  readonly nokDeg: number;
+  /** Uit welke kaart de omtrek kwam (5 november 2026): 3D BAG of OpenStreetMap, voor de naamsvermelding. */
+  readonly kaart?: 'bag3d' | 'osm';
+}
+
+export interface Daken {
+  readonly vlakken: readonly DakVlak[];
+  /** Waar de voorkant naartoe kijkt; voor de gevels. Null: zoals de ligging hem vond. */
+  readonly voorgevelDeg: number | null;
+  /** Wat de omvormer hooguit levert; null als het niet bekend is. */
+  readonly omvormerW: number | null;
+  /** De gebouwen van boven (stap 2). Weg: SunArc zet ze zelf neer. */
+  readonly gebouwen?: readonly Gebouw[];
+  /** De gebouwen eromheen uit de kaart, om aan te tikken wat erbij hoort. */
+  readonly omgeving?: readonly (readonly Xy[])[];
+  /** Wat elke omvormer hooguit levert, als de bewoner het invulde (stap 4), in W per sensor. */
+  readonly grenzen?: Readonly<Record<string, number>>;
+}
+
+/** Panelen op een ander dak (besluit 187), zoals bij de antwoorden. */
+export type EldersAantal = Partial<Record<'garage' | 'carport' | 'tuinhuis', number>>;
+
+export const MAX_VLAKKEN = 26;
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+const norm = (deg: number) => ((deg % 360) + 360) % 360;
+const hoekVerschil = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180);
+
+/** Wattpiek van een vlak: alle panelen, bij oost-west beide kanten. */
+export function piekVan(v: DakVlak): number {
+  return (v.aantal + (v.opstelling === 'oostwest' ? (v.aantal2 ?? 0) : 0)) * v.wpPerPaneel;
+}
+
+export function panelenVan(v: DakVlak): number {
+  return v.aantal + (v.opstelling === 'oostwest' ? (v.aantal2 ?? 0) : 0);
+}
+
+/** De vlakken zoals de berekening ze kent; oost-west wordt twee vlakken. */
+export function zonnevlakken(d: Daken): SolarPlane[] {
+  const uit: SolarPlane[] = [];
+  for (const v of d.vlakken) {
+    const id = `vlak-${v.letter.toLowerCase()}`;
+    const kanten: [number, number, string][] =
+      v.opstelling === 'oostwest' ? [[v.azimuthDeg, v.aantal, id], [v.azimuthDeg + 180, v.aantal2 ?? 0, `${id}-2`]] : [[v.azimuthDeg, v.aantal, id]];
+    for (const [az, n, kantId] of kanten) {
+      const peakW = Math.round(n * v.wpPerPaneel);
+      if (peakW > 0) uit.push({ id: kantId, azimuthDeg: Math.round(norm(az)), tiltDeg: Math.round(v.tiltDeg), peakW, source: v.bron, ...(v.meter ? { inverter: v.meter } : {}) });
+    }
+  }
+  return uit;
+}
+
+/* ------------------------------------------------------------ lezen */
+
+const getal = (v: unknown, min: number, max: number) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
+const heel = (v: unknown, min: number, max: number) => Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
+
+/**
+ * De daken zoals de pagina of het bestand ze geeft. Null of zonder vlakken:
+ * niet bewaard, dan volgen ze uit wat er al was.
+ */
+/** Een omtrek in meters: 3 tot 200 punten, binnen 500 meter van het huis. */
+function leesOmtrek(x: unknown): Xy[] | null {
+  if (!Array.isArray(x) || x.length < 3 || x.length > 200) return null;
+  const uit: Xy[] = [];
+  for (const p of x) {
+    if (!Array.isArray(p) || p.length !== 2 || !getal(p[0], -500, 500) || !getal(p[1], -500, 500)) return null;
+    uit.push([Math.round((p[0] as number) * 100) / 100, Math.round((p[1] as number) * 100) / 100]);
+  }
+  return uit;
+}
+
+function leesGebouwen(x: unknown): Gebouw[] | { fout: string } {
+  if (x == null) return [];
+  if (!Array.isArray(x) || x.length > 12) return { fout: 'de gebouwen zijn tot 12 stuks' };
+  const ids = new Set<string>();
+  const uit: Gebouw[] = [];
+  for (const g of x) {
+    const r = (typeof g === 'object' && g != null && !Array.isArray(g) ? g : {}) as Record<string, unknown>;
+    const id = r['id'];
+    const omtrek = leesOmtrek(r['omtrek']);
+    if (typeof id !== 'string' || !/^[a-z]{2,12}(-\d{1,2})?$/.test(id) || ids.has(id)) return { fout: 'elk gebouw heeft een eigen naam' };
+    ids.add(id);
+    if (!GEBOUW_SOORTEN.includes(r['soort'] as GebouwSoort) || !DAKVORMEN.includes(r['dakvorm'] as Dakvorm) || (r['bron'] !== 'kaart' && r['bron'] !== 'schatting') || !getal(r['nokDeg'], 0, 360) || !omtrek) {
+      return { fout: `gebouw ${id}: een soort, een dakvorm, de nok en een omtrek in meters` };
+    }
+    const kaart = r['kaart'] === 'bag3d' || r['kaart'] === 'osm' ? r['kaart'] : null;
+    uit.push({ id, soort: r['soort'] as GebouwSoort, bron: r['bron'] as Gebouw['bron'], omtrek, dakvorm: r['dakvorm'] as Dakvorm, nokDeg: r['nokDeg'] as number, ...(kaart && r['bron'] === 'kaart' ? { kaart } : {}) });
+  }
+  return uit;
+}
+
+export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: string } {
+  if (raw == null) return { daken: null };
+  if (typeof raw !== 'object' || Array.isArray(raw)) return { fout: 'onbekende daken' };
+  const r = raw as Record<string, unknown>;
+  const lijst = r['vlakken'];
+  if (!Array.isArray(lijst) || lijst.length > MAX_VLAKKEN) return { fout: `de daken zijn tot ${MAX_VLAKKEN} vlakken` };
+  const gebouwen = leesGebouwen(r['gebouwen']);
+  if ('fout' in gebouwen) return gebouwen;
+  const omgevingRaw = r['omgeving'] ?? [];
+  const omgeving = Array.isArray(omgevingRaw) && omgevingRaw.length <= 20 ? omgevingRaw.map(leesOmtrek) : null;
+  if (!omgeving || omgeving.some((o) => o == null)) return { fout: 'de omgeving is tot 20 gebouwen met een omtrek in meters' };
+  if (lijst.length === 0 && gebouwen.length === 0) return { daken: null };
+  const grenzenRaw = r['grenzen'] ?? {};
+  if (typeof grenzenRaw !== 'object' || Array.isArray(grenzenRaw) || Object.entries(grenzenRaw as object).some(([k, w]) => !/^sensor\.[a-z0-9_]{1,160}$/.test(k) || !getal(w, 100, 100_000))) {
+    return { fout: 'de grens per omvormer is 100 tot 100.000 W' };
+  }
+  const grenzen = grenzenRaw as Record<string, number>;
+  const voorgevel = r['voorgevelDeg'] ?? null;
+  if (voorgevel !== null && !getal(voorgevel, 0, 360)) return { fout: 'de voorkant is 0 tot 360°' };
+  const omvormerW = r['omvormerW'] ?? null;
+  if (omvormerW !== null && !getal(omvormerW, 100, 100_000)) return { fout: 'de omvormer is 100 tot 100.000 W' };
+  const letters = new Set<string>();
+  const vlakken: DakVlak[] = [];
+  for (const x of lijst) {
+    if (typeof x !== 'object' || x == null || Array.isArray(x)) return { fout: 'een vlak is een object' };
+    const v = x as Record<string, unknown>;
+    const letter = v['letter'];
+    if (typeof letter !== 'string' || letter.length !== 1 || !LETTERS.includes(letter) || letters.has(letter)) return { fout: 'elk vlak heeft een eigen letter van A tot Z' };
+    letters.add(letter);
+    if (!DAK_PLEKKEN.includes(v['plek'] as DakPlek)) return { fout: `onbekende plek voor vlak ${letter}` };
+    if (!OPSTELLINGEN.includes(v['opstelling'] as Opstelling)) return { fout: `onbekende opstelling voor vlak ${letter}` };
+    if (!getal(v['azimuthDeg'], 0, 360) || !getal(v['tiltDeg'], 0, 90)) return { fout: `vlak ${letter}: de richting is 0 tot 360°, de helling 0 tot 90°` };
+    const ow = v['opstelling'] === 'oostwest';
+    const aantal2 = ow ? (v['aantal2'] ?? 0) : null;
+    if (!heel(v['aantal'], ow ? 0 : 1, 200) || (ow && !heel(aantal2, 0, 200)) || (ow && (v['aantal'] as number) + (aantal2 as number) < 1)) {
+      return { fout: `vlak ${letter}: het aantal panelen is een heel getal van 1 tot 200` };
+    }
+    if (!getal(v['wpPerPaneel'], 50, 1000)) return { fout: `vlak ${letter}: een paneel is 50 tot 1000 Wp` };
+    const meter = v['meter'] ?? null;
+    if (meter !== null && (typeof meter !== 'string' || !/^sensor\.[a-z0-9_]{1,160}$/.test(meter))) return { fout: `vlak ${letter}: de meter is een sensor uit Home Assistant` };
+    const bron = v['bron'] ?? 'bewoner';
+    if (!VLAK_BRONNEN.includes(bron as VlakBron)) return { fout: `vlak ${letter}: onbekende bron` };
+    const gebouw = v['gebouw'];
+    const kant = v['kant'];
+    if (gebouw != null && (typeof gebouw !== 'string' || !gebouwen.some((g) => g.id === gebouw))) return { fout: `vlak ${letter}: onbekend gebouw` };
+    if (kant != null && !getal(kant, 0, 360)) return { fout: `vlak ${letter}: de kant is 0 tot 360°` };
+    const naamRaw = v['naam'] ?? null;
+    if (naamRaw !== null && (typeof naamRaw !== 'string' || naamRaw.trim().length > 30)) return { fout: `vlak ${letter}: de naam is hooguit 30 tekens` };
+    const naam = typeof naamRaw === 'string' ? naamRaw.trim().replace(/\s+/g, ' ') : '';
+    vlakken.push({
+      letter,
+      plek: v['plek'] as DakPlek,
+      opstelling: v['opstelling'] as Opstelling,
+      azimuthDeg: norm(v['azimuthDeg'] as number),
+      tiltDeg: v['tiltDeg'] as number,
+      aantal: v['aantal'] as number,
+      ...(ow ? { aantal2: aantal2 as number } : {}),
+      wpPerPaneel: v['wpPerPaneel'] as number,
+      meter: meter as string | null,
+      bron: bron as VlakBron,
+      ...(typeof gebouw === 'string' ? { gebouw, kant: (kant as number | null | undefined) ?? null } : {}),
+      ...(naam ? { naam } : {}),
+    });
+  }
+  return {
+    daken: {
+      vlakken,
+      voorgevelDeg: voorgevel as number | null,
+      omvormerW: omvormerW as number | null,
+      ...(gebouwen.length ? { gebouwen } : {}),
+      ...(omgeving.length ? { omgeving: omgeving as Xy[][] } : {}),
+      ...(Object.keys(grenzen).length ? { grenzen: { ...grenzen } } : {}),
+    },
+  };
+}
+
+/* ------------------------------------------------------------ uit wat er al was */
+
+/** Waar panelen op een ander dak liggen, zolang de bewoner het niet zei. */
+const ELDERS: Record<keyof EldersAantal, { opstelling: Opstelling; tiltDeg: number }> = {
+  garage: { opstelling: 'rek', tiltDeg: 15 },
+  carport: { opstelling: 'schuin', tiltDeg: 10 },
+  tuinhuis: { opstelling: 'schuin', tiltDeg: 25 },
+};
+
+export interface OudeDaken {
+  /** De ligging van het hoofddak zoals hij nu geldt, of null. */
+  readonly geometry: Geometry | null;
+  /** Het aantal panelen op het huis, als de bewoner het zei. */
+  readonly aantal: number | null;
+  /** Lag het dak plat (de kant "plat" in Inrichten)? */
+  readonly plat: boolean;
+  readonly elders: EldersAantal | null;
+  /**
+   * De wattpiek van het hoofddak komt uit de meting van alle panelen samen
+   * (ook die op de garage): dan gaat het deel van de andere daken eraf.
+   */
+  readonly gemetenTotaal: boolean;
+}
+
+/** Een aantal over de vlakken verdeeld naar hun wattpiek, elk minstens één. */
+function verdeel(totaal: number, delen: readonly number[]): number[] {
+  const som = delen.reduce((s, d) => s + d, 0) || 1;
+  const ruw = delen.map((d) => (totaal * d) / som);
+  const uit = ruw.map((x) => Math.max(1, Math.floor(x)));
+  let rest = totaal - uit.reduce((s, n) => s + n, 0);
+  const volgorde = ruw.map((x, i) => [x - Math.floor(x), i] as const).sort((a, b) => b[0] - a[0]);
+  for (let k = 0; rest > 0 && volgorde.length; k++, rest--) uit[volgorde[k % volgorde.length]![1]]! += 1;
+  return uit;
+}
+
+/**
+ * De vlakken uit wat er al was (besluit 254: vanzelf vlakken). Het hoofddak
+ * krijgt de vlakken van de ligging; twee bijna platte vlakken tegenover
+ * elkaar zijn één vlak oost-west. De garage, de carport en het tuinhuis
+ * krijgen een eigen vlak, gericht als het zonnigste vlak van het huis.
+ */
+export function dakenUitOud(o: OudeDaken): Daken {
+  const planes = o.geometry?.solarPlanes.filter((p) => p.peakW > 0) ?? [];
+  const elders = (Object.keys(ELDERS) as (keyof EldersAantal)[]).filter((p) => (o.elders?.[p] ?? 0) > 0);
+  const eldersN = elders.reduce((s, p) => s + (o.elders?.[p] ?? 0), 0);
+  const schaal = o.gemetenTotaal && o.aantal && eldersN ? o.aantal / (o.aantal + eldersN) : 1;
+
+  // Twee bijna platte vlakken tegenover elkaar: één vlak oost-west.
+  type Groep = { planes: SolarPlane[]; ow: boolean };
+  const groepen: Groep[] =
+    planes.length === 2 && planes.every((p) => p.tiltDeg < 20) && hoekVerschil(planes[0]!.azimuthDeg, planes[1]!.azimuthDeg + 180) <= 15
+      ? [{ planes: [...planes], ow: true }]
+      : planes.map((p) => ({ planes: [p], ow: false }));
+  const aantallen = o.aantal ? verdeel(o.aantal, planes.map((p) => p.peakW)) : planes.map((p) => Math.max(1, Math.round(p.peakW / 400)));
+  const nVan = (p: SolarPlane) => aantallen[planes.indexOf(p)]!;
+  const totaalPiek = planes.reduce((s, p) => s + p.peakW, 0) * schaal;
+  const totaalN = planes.reduce((s, p) => s + nVan(p), 0);
+  const gemWp = totaalN ? totaalPiek / totaalN : 400;
+
+  const vlakken: DakVlak[] = [];
+  const letter = () => LETTERS[vlakken.length]!;
+  for (const g of groepen) {
+    const [a, b] = g.planes;
+    const n = nVan(a!);
+    const n2 = b ? nVan(b) : 0;
+    const piek = g.planes.reduce((s, p) => s + p.peakW, 0) * schaal;
+    vlakken.push({
+      letter: letter(),
+      plek: 'hoofddak',
+      opstelling: g.ow ? 'oostwest' : o.plat || a!.tiltDeg < 10 ? 'rek' : 'schuin',
+      azimuthDeg: norm(a!.azimuthDeg),
+      tiltDeg: a!.tiltDeg,
+      aantal: n,
+      ...(g.ow ? { aantal2: n2 } : {}),
+      wpPerPaneel: piek / (n + n2),
+      meter: null,
+      bron: a!.source,
+    });
+  }
+  // Het zonnigste vlak: het dichtst bij het zuiden.
+  const zuid = [...planes].sort((x, y) => hoekVerschil(x.azimuthDeg, 180) - hoekVerschil(y.azimuthDeg, 180))[0];
+  for (const p of elders) {
+    vlakken.push({
+      letter: letter(),
+      plek: p,
+      opstelling: ELDERS[p].opstelling,
+      azimuthDeg: norm(zuid?.azimuthDeg ?? 180),
+      tiltDeg: ELDERS[p].tiltDeg,
+      aantal: o.elders![p]!,
+      wpPerPaneel: gemWp,
+      meter: null,
+      bron: 'schatting',
+    });
+  }
+  return {
+    vlakken,
+    voorgevelDeg: o.geometry?.facades.find((f) => f.id === 'voorgevel')?.azimuthDeg ?? null,
+    omvormerW: o.geometry?.inverterMaxW ?? null,
+  };
+}
+
+/**
+ * Heeft het hoofdhuis een plat dak (issue 131)? Zoals de bewoner het opgaf: de
+ * dakvorm van het hoofdhuis bij Daken en panelen, anders de vlakken van het
+ * hoofddak (allemaal op rekken, oost-west of plat), anders het oude antwoord.
+ */
+export function hoofddakPlat(daken: Daken | null | undefined, ligging: string | null | undefined): boolean {
+  const huis = daken?.gebouwen?.find((g) => g.soort === 'hoofdhuis');
+  if (huis) return huis.dakvorm === 'plat';
+  const hoofd = (daken?.vlakken ?? []).filter((v) => v.plek === 'hoofddak');
+  if (hoofd.length) return hoofd.every((v) => v.opstelling !== 'schuin');
+  return ligging === 'plat';
+}
+
+export const heeftElders = (e: EldersAantal | null | undefined) => Object.values(e ?? {}).some((n) => (n ?? 0) > 0);

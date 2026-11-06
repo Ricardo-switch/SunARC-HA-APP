@@ -39,6 +39,7 @@ Te bekijken als overzicht op claude.ai (privé): <https://claude.ai/artifact/19g
 | `Wand-Apparaten` | `Apparaten` |
 | `Wand-Kamer`, `Wand-Bedienen` (screen, airco, thermostaat) | `Lamp` |
 | `Wand-Opbrengst` | `Opbrengst` |
+| `Wand-Opbrengst-Stromen` (drie gelijke kolommen; het stroombeeld met de daken per vlak, het net met de kosten, terug met de opbrengst, accu en auto, kleine stromen samen, gas apart; `#zomer` juli met accu en auto; schets 5 november 2026, nog niet gebouwd); de getallen en het stroombeeld staan in `opbrengst-stromen.js` | `Tel-Opbrengst-Stromen` (`#zomer`) |
 | `Wand-Huis-groeit` (wat je huis kan) | `Instellingen`, `Onboarding-Zon` |
 | `Wand-Assistent` | |
 | `Wand-Indeling` (kamers en indeling, de bewerkstand) | |
@@ -47,6 +48,7 @@ Te bekijken als overzicht op claude.ai (privé): <https://claude.ai/artifact/19g
 | `Wand-Uitleg` (de rondleiding de eerste keer) | |
 | `Wand-Inrichten-Panelen` (hoe de panelen liggen: voorstel, `#aanpassen`, `#wachten`; besluit 157) | `Panelen-Tel` |
 | `Wand-Daken` (daken en panelen van boven, elk vlak een letter; `#vlak` de uitbouw oost-west, `#erbij`, `#meters` wat bij welke meter hoort, `#klopt` een vlak dat minder levert, `#huis` naast de 3D-tekening; schets 4 november 2026, nog niet besloten), `Wand-Inrichten-Daken` (de korte stap: waar liggen ze en hoeveel; `#voorstel`), `Wand-Daken-Elders` (per vlak op Thuis en `#opbrengst`); de tekening staat in `daken.js` | `Tel-Daken` (`#vlak` als blad, `#klopt`) |
+| `Wand-Daken-Kaart` (de kaart is experimenteel: de melding met wat het doet, de privacy en altijd terug, 3D BAG naast OpenStreetMap; `#kaart` na het ophalen met Zonder kaart, `#terug` de vraag; op de echte pagina als achtergrond, 1340 breed; besluit 256, gebouwd in 0.128.0) | `Tel-Daken-Kaart` (de melding als blad) |
 | `Wand-Inrichten-Klimaat` (wat elk apparaat kan, per koppeling; `#badkamer`, `#keuken`, `#ir`; schets, nog niet besloten) | |
 | `Wand-Sluipverbruik` (Opbrengst › Sluipverbruik: `#maanden`, en `#kaarten` met de tegel, de melding, de assistent en Wat je huis kan; schets, nog niet besloten) | `Tel-Sluipverbruik` |
 | `Wand-Huis-Zonder` (een huis met minder: `#zonderpanelen`, `#verbruik`, `#zondermeter`, `#zondermeter-opbrengst`; schets, nog niet besloten) | |

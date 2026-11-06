@@ -131,6 +131,38 @@ describe('een dag terugkijken', () => {
     expect(from('zon')).toBeCloseTo(14);
   });
 
+  it('neemt opgewekt uit de omvormer als de zonnemeter te weinig zegt (5 november 2026)', async () => {
+    // De zonnemeter telt maar een kwart; de omvormer geeft per uur wat er echt was.
+    const bron = fakeSource();
+    const echt = bron.changes.bind(bron);
+    bron.changes = async (ids, startMs, endMs, period) => {
+      const uit = await echt(ids, startMs, endMs, period);
+      const zon = uit['sensor.zon'];
+      return zon ? { ...uit, 'sensor.zon': zon.map((r) => ({ ...r, change: r.change / 4 })) } : uit;
+    };
+    const zonder = (await yieldReport(bron, SETTINGS, 'dag', '2026-09-15', TZ, Date.UTC(2026, 9, 7, 12)))!;
+    expect(zonder.zon!.opgewektKwh).toBe(3.5);
+    bron.opgewekt = async (startMs, endMs) => {
+      const rows: { startMs: number; change: number }[] = [];
+      for (let t = startMs; t < endMs; t += 3_600_000) rows.push({ startMs: t, change: HOURLY['sensor.zon']!(partsIn(t, TZ).h) });
+      return rows;
+    };
+    const r = (await yieldReport(bron, SETTINGS, 'dag', '2026-09-15', TZ, Date.UTC(2026, 9, 7, 12)))!;
+    expect(r.zon).toMatchObject({ opgewektKwh: 14, zelfKwh: 7, terugKwh: 7, zelfPct: 50 });
+  });
+
+  it('vult uren zonder omvormer aan uit de zonnemeter: het vermogen staat er pas sinds de koppeling (5 november 2026)', async () => {
+    // De omvormer heeft pas vanaf 12 uur een statistiek; daarvoor telt de zonnemeter.
+    const bron = fakeSource();
+    bron.opgewekt = async (startMs, endMs) => {
+      const rows: { startMs: number; change: number }[] = [];
+      for (let t = startMs; t < endMs; t += 3_600_000) if (partsIn(t, TZ).h >= 12) rows.push({ startMs: t, change: HOURLY['sensor.zon']!(partsIn(t, TZ).h) });
+      return rows;
+    };
+    const r = (await yieldReport(bron, SETTINGS, 'dag', '2026-09-15', TZ, Date.UTC(2026, 9, 7, 12)))!;
+    expect(r.zon).toMatchObject({ opgewektKwh: 14, zelfKwh: 7, terugKwh: 7, zelfPct: 50 });
+  });
+
   it('zonder zonnepanelen geen zon, en alles van het net', async () => {
     const r = (await yieldReport(fakeSource(), { ...SETTINGS, zon: [], net: { afname: ['sensor.afname'], teruglevering: [] } }, 'dag', '2026-09-15', TZ, Date.UTC(2026, 9, 7)))!;
     expect(r.zon).toBeNull();

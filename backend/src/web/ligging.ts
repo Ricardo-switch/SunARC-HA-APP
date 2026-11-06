@@ -33,6 +33,7 @@ import type { Facade, Geometry, GeometrySource, SolarPlane } from '../core/model
 import { clearSkyOnPlaneWm2, sunPosition, type SunPosition } from '../core/sun.js';
 import type { Lang } from './assistant.js';
 import type { Location } from './sun.js';
+import { dakenUitOud, heeftElders, zonnevlakken, type Daken, type EldersAantal } from './daken.js';
 import { partsIn, type PowerRow } from './today.js';
 
 /** De kant van het dak, zoals Inrichten hem vraagt (`aansluiting.ts`). */
@@ -159,11 +160,79 @@ interface Proef {
   readonly vlakken: readonly { readonly azimuthDeg: number; readonly tiltDeg: number; readonly deel: number; readonly kant: 'voorkant' | 'achterkant' | null }[];
 }
 
-interface Punt {
+export interface Punt {
   readonly t: number;
   readonly w: number;
   readonly sun: SunPosition;
 }
+
+/**
+ * De bovenkant van de opbrengst: per tijdstip van de dag (vijf minuten) de
+ * hoogste over alle dagen; één heldere dag in tien is genoeg. Zonder wat bij
+ * de omvormer is afgekapt of bijna niets is. Null zonder genoeg metingen.
+ */
+export function bovenkant(rows: readonly PowerRow[], location: Location, omvormerW: number | null | undefined): { punten: Punt[]; maxW: number; geldig: PowerRow[] } | null {
+  const geldig = rows.filter((r) => Number.isFinite(r.meanW) && r.meanW >= 0);
+  if (geldig.length < 24) return null;
+  const maxW = Math.max(...geldig.map((r) => r.meanW));
+  if (maxW < 100) return null;
+  const bins = new Map<number, PowerRow[]>();
+  for (const r of geldig) {
+    const b = Math.floor((((r.startMs % DAY_MS) + DAY_MS) % DAY_MS) / BIN_MS);
+    const l = bins.get(b);
+    if (l) l.push(r);
+    else bins.set(b, [r]);
+  }
+  const clip = 0.97 * (omvormerW ?? maxW);
+  const punten: Punt[] = [];
+  for (const lijst of bins.values()) {
+    const p = lijst.reduce((a, b) => (b.meanW > a.meanW ? b : a));
+    if (p.meanW <= 0.08 * maxW || p.meanW >= clip) continue;
+    const t = p.startMs + BIN_MS / 2;
+    punten.push({ t, w: p.meanW, sun: sunPosition(t, location.latDeg, location.lonDeg) });
+  }
+  if (punten.length < 24) return null;
+  return { punten, maxW, geldig };
+}
+
+export interface Beoordeling {
+  /** De spreiding op de heldere momenten, gedeeld door het deel dat past: lager is beter. */
+  readonly fout: number;
+  readonly deel: number;
+  readonly span: number;
+  readonly peakW: number;
+}
+
+/**
+ * Hoe goed een model voor heldere lucht (W/m² per Wp, per zonnestand) bij de
+ * bovenkant past. Wat ver onder het model blijft, is wolk of schaduw. Null als
+ * te weinig past, of de wattpiek buiten `laag` en `hoog` valt.
+ */
+export function beoordeel(punten: readonly Punt[], model: (sun: SunPosition) => number, laag: number, hoog: number): Beoordeling | null {
+  const pts = punten.map((x) => ({ x, y: Math.log(x.w), m: model(x.sun) })).filter((q) => q.m > 20);
+  if (pts.length < 24) return null;
+  // Wat ver onder het vlak blijft, is wolk of schaduw: vier keer weglaten en opnieuw.
+  let use = pts;
+  let ls = 0;
+  for (let i = 0; i < 4; i++) {
+    ls = use.reduce((s, q) => s + q.y - Math.log(q.m), 0) / use.length;
+    const nu = pts.filter((q) => q.y - Math.log(q.m) - ls > -0.25);
+    if (nu.length < 12) return null;
+    use = nu;
+  }
+  ls = use.reduce((s, q) => s + q.y - Math.log(q.m), 0) / use.length;
+  // Het vermogen uit het midden: een wolkenrand die de zon even versterkt, telt zo niet mee.
+  const midden = use.map((q) => q.y - Math.log(q.m)).sort((a, b) => a - b)[Math.floor(use.length / 2)]!;
+  const peakW = Math.exp(midden) * 1000;
+  if (peakW < laag || peakW > hoog) return null;
+  const spreiding = Math.sqrt(use.reduce((s, q) => s + (q.y - Math.log(q.m) - ls) ** 2, 0) / use.length);
+  const deel = use.length / pts.length;
+  const uren = use.map((q) => ((q.x.t % DAY_MS) + DAY_MS) % DAY_MS);
+  return { fout: spreiding / deel, deel, span: Math.max(...uren) - Math.min(...uren), peakW };
+}
+
+/** Is de beste goed genoeg om een meting te heten? */
+export const goedGenoeg = (r: Beoordeling) => r.fout <= MAX_FOUT && r.deel >= MIN_DEEL && r.span >= MIN_SPAN_MS;
 
 /** Het model voor een heldere lucht op de vlakken, per W/m² wattpiek. */
 const modelOp = (p: Proef, sun: SunPosition) => p.vlakken.reduce((s, v) => s + clearSkyOnPlaneWm2(sun, v) * v.deel, 0);
@@ -220,68 +289,26 @@ export function meetLigging(
   opts: { readonly timeZone: string; readonly omvormerW?: number | null },
 ): Meting | null {
   if (panelen.ligging === 'geen') return null;
-  const geldig = rows.filter((r) => Number.isFinite(r.meanW) && r.meanW >= 0);
-  if (geldig.length < 24) return null;
-  const maxW = Math.max(...geldig.map((r) => r.meanW));
-  if (maxW < 100) return null;
-
-  // De bovenkant: per tijdstip van de dag de hoogste. Eén heldere dag in tien is genoeg.
-  const bins = new Map<number, PowerRow[]>();
-  for (const r of geldig) {
-    const b = Math.floor((((r.startMs % DAY_MS) + DAY_MS) % DAY_MS) / BIN_MS);
-    const l = bins.get(b);
-    if (l) l.push(r);
-    else bins.set(b, [r]);
-  }
-  const clip = 0.97 * (opts.omvormerW ?? maxW);
-  const punten: Punt[] = [];
-  for (const lijst of bins.values()) {
-    const p = lijst.reduce((a, b) => (b.meanW > a.meanW ? b : a));
-    if (p.meanW <= 0.08 * maxW || p.meanW >= clip) continue;
-    const t = p.startMs + BIN_MS / 2;
-    punten.push({ t, w: p.meanW, sun: sunPosition(t, location.latDeg, location.lonDeg) });
-  }
-  if (punten.length < 24) return null;
+  const boven = bovenkant(rows, location, opts.omvormerW);
+  if (!boven) return null;
+  const { punten, maxW, geldig } = boven;
 
   const aantal = panelen.ligging === 'beide' && panelen.voorkant != null && panelen.achterkant != null ? panelen.voorkant + panelen.achterkant : panelen.aantal;
   const laag = Math.max(maxW * 0.9, aantal ? aantal * WP_MIN : 0);
   const hoog = Math.min(maxW * 4, aantal ? aantal * WP_MAX : Infinity);
 
-  const beoordeel = (p: Proef) => {
-    const pts = punten.map((x) => ({ x, y: Math.log(x.w), m: modelOp(p, x.sun) })).filter((q) => q.m > 20);
-    if (pts.length < 24) return null;
-    // Wat ver onder het vlak blijft, is wolk of schaduw: vier keer weglaten en opnieuw.
-    let use = pts;
-    let ls = 0;
-    for (let i = 0; i < 4; i++) {
-      ls = use.reduce((s, q) => s + q.y - Math.log(q.m), 0) / use.length;
-      const nu = pts.filter((q) => q.y - Math.log(q.m) - ls > -0.25);
-      if (nu.length < 12) return null;
-      use = nu;
-    }
-    ls = use.reduce((s, q) => s + q.y - Math.log(q.m), 0) / use.length;
-    // Het vermogen uit het midden: een wolkenrand die de zon even versterkt, telt zo niet mee.
-    const midden = use.map((q) => q.y - Math.log(q.m)).sort((a, b) => a - b)[Math.floor(use.length / 2)]!;
-    const peakW = Math.exp(midden) * 1000;
-    if (peakW < laag || peakW > hoog) return null;
-    const spreiding = Math.sqrt(use.reduce((s, q) => s + (q.y - Math.log(q.m) - ls) ** 2, 0) / use.length);
-    const deel = use.length / pts.length;
-    const uren = use.map((q) => (((q.x.t % DAY_MS) + DAY_MS) % DAY_MS));
-    return { fout: spreiding / deel, deel, span: Math.max(...uren) - Math.min(...uren), peakW };
-  };
-
-  let best: { p: Proef; r: NonNullable<ReturnType<typeof beoordeel>> } | null = null;
+  let best: { p: Proef; r: Beoordeling } | null = null;
   const probeer = (lijst: Proef[]) => {
     for (const p of lijst) {
-      const r = beoordeel(p);
+      const r = beoordeel(punten, (sun) => modelOp(p, sun), laag, hoog);
       if (r && (best == null || r.fout < best.r.fout)) best = { p, r };
     }
   };
   probeer(proeven(panelen, 5));
   if (best == null) return null;
   probeer(proeven(panelen, 1, (best as { p: Proef }).p));
-  const b = best as { p: Proef; r: NonNullable<ReturnType<typeof beoordeel>> };
-  if (b.r.fout > MAX_FOUT || b.r.deel < MIN_DEEL || b.r.span < MIN_SPAN_MS) return null;
+  const b = best as { p: Proef; r: Beoordeling };
+  if (!goedGenoeg(b.r)) return null;
 
   const vlakken: GemetenVlak[] = b.p.vlakken.map((v) => ({ azimuthDeg: v.azimuthDeg, tiltDeg: v.tiltDeg, peakW: Math.round((b.r.peakW * v.deel) / 10) * 10, kant: v.kant }));
   const peakW = vlakken.reduce((s, v) => s + v.peakW, 0);
@@ -452,6 +479,12 @@ export interface LiggingInput {
   readonly voorkantZon: VoorkantZon | null;
   /** De omvormer uit zijn typenummer in Home Assistant. */
   readonly omvormerGevonden: number | null;
+  /** Daken en panelen (besluit 254): elk vlak apart, zoals de bewoner ze bewaarde. */
+  readonly daken?: Daken | null;
+  /** Panelen op de garage, carport of het tuinhuis (besluit 187); tellen mee sinds besluit 254. */
+  readonly elders?: EldersAantal | null;
+  /** Wat elke omvormer hooguit levert, uit zijn typenummer (stap 4), per sensor. */
+  readonly grenzen?: Readonly<Record<string, number>> | null;
 }
 
 const KOMPAS: Readonly<Record<Lang, readonly string[]>> = {
@@ -481,17 +514,64 @@ function vlakkenVan(vlakken: readonly { azimuthDeg: number; tiltDeg: number; pea
 }
 
 /**
- * Welke ligging geldt, en waarvandaan: wat de bewoner bevestigde, anders de
- * configuratie, anders de meting, anders de schatting.
+ * Welke ligging geldt, en waarvandaan (besluit 254): de daken die de bewoner
+ * bewaarde. Anders zoals het hoofddak al gold (wat de bewoner bevestigde, de
+ * configuratie, de meting, de schatting), met de panelen op de garage,
+ * carport of het tuinhuis erbij.
  */
 export function kiesLigging(i: LiggingInput): { geometry: Geometry; bron: LiggingBron } | null {
+  const oud = hoofddak(i);
+  if (i.daken && i.daken.vlakken.length > 0) {
+    const facades = i.daken.voorgevelDeg != null ? gevels(i.daken.voorgevelDeg, 'bewoner') : (oud?.geometry.facades ?? []);
+    const omvormerW = i.daken.omvormerW ?? i.omvormerGevonden;
+    // Per omvormer zijn eigen grens (stap 4): wat de bewoner invulde, anders uit het typenummer; met één omvormer ook de oude grens.
+    const meters = [...new Set(i.daken.vlakken.map((v) => v.meter).filter((m): m is string => m != null))];
+    const inverters = meters
+      .map((id) => ({ id, maxW: i.daken!.grenzen?.[id] ?? i.grenzen?.[id] ?? (meters.length === 1 ? omvormerW : null) }))
+      .filter((x): x is { id: string; maxW: number } => x.maxW != null);
+    return {
+      bron: 'app',
+      geometry: { facades, solarPlanes: zonnevlakken(i.daken), ...(omvormerW != null ? { inverterMaxW: omvormerW } : {}), ...(inverters.length ? { inverters } : {}) },
+    };
+  }
+  // Zonder andere daken precies zoals het was.
+  if (!heeftElders(i.elders)) return oud;
+  const d = dakenUitOud(oudeDaken(i, oud));
+  const omvormerW = oud?.geometry.inverterMaxW ?? i.omvormerGevonden;
+  return { bron: oud?.bron ?? 'schatting', geometry: { facades: oud?.geometry.facades ?? [], solarPlanes: zonnevlakken(d), ...(omvormerW != null ? { inverterMaxW: omvormerW } : {}) } };
+}
+
+/** Wat er al was, voor de vlakken zonder bewaarde daken. */
+function oudeDaken(i: LiggingInput, oud: { geometry: Geometry; bron: LiggingBron } | null) {
+  const aantal = i.panelen ? (aantalVan(i.panelen)?.totaal ?? null) : null;
+  // De meting ziet alle panelen samen; een bevestigde meting ook.
+  const gemetenTotaal = oud?.bron === 'gemeten' || (oud?.bron === 'app' && i.dak?.bron === 'gemeten');
+  return { geometry: oud?.geometry ?? null, aantal, plat: i.panelen?.ligging === 'plat', elders: i.elders ?? null, gemetenTotaal };
+}
+
+/**
+ * De daken voor Energie › Daken en panelen (besluit 254): wat de bewoner
+ * bewaarde, of de vlakken uit wat er al was. Zo laat de pagina precies zien
+ * waar de berekening mee rekent.
+ */
+export function dakenNu(i: LiggingInput): { daken: Daken; bewaard: boolean } {
+  if (i.daken && i.daken.vlakken.length > 0) return { daken: i.daken, bewaard: true };
+  // Gebouwen zonder vlakken (stap 2): de tekening blijft, de vlakken volgen uit wat er al was.
+  const oud = dakenUitOud(oudeDaken(i, hoofddak(i)));
+  const { gebouwen, omgeving } = i.daken ?? {};
+  return { daken: { ...oud, ...(gebouwen ? { gebouwen } : {}), ...(omgeving ? { omgeving } : {}) }, bewaard: false };
+}
+
+/** Het hoofddak zoals vóór besluit 254: bevestigd, de configuratie, de meting, de schatting. */
+function hoofddak(i: LiggingInput): { geometry: Geometry; bron: LiggingBron } | null {
   const omvormer = (w: number | null | undefined) => (w != null ? { inverterMaxW: w } : {});
   if (i.dak) {
     const source: GeometrySource = i.dak.bron === 'gemeten' ? 'gemeten' : 'bewoner';
     return { bron: 'app', geometry: { facades: gevels(i.dak.voorgevelDeg, source), solarPlanes: vlakkenVan(i.dak.vlakken, source), ...omvormer(i.dak.omvormerW ?? i.omvormerGevonden) } };
   }
-  if (i.configuratie) return { bron: 'configuratie', geometry: i.configuratie };
+  // Geen panelen gaat ook boven het bestand (5 november 2026): wie alle vlakken weghaalt, zag ze anders terugkomen.
   if (i.panelen?.ligging === 'geen') return null;
+  if (i.configuratie) return { bron: 'configuratie', geometry: i.configuratie };
   const panelen = i.panelen ?? { ligging: null, aantal: null, voorkant: null, achterkant: null };
   if (i.meting) {
     return {
@@ -631,7 +711,7 @@ const momentVan = (az: number): Exclude<VoorkantZon, 'weetniet'> | null => {
 };
 
 function vraagVoorkant(i: LiggingInput, panelen: PanelenAntwoord): readonly VoorkantZon[] | null {
-  if (i.dak || panelen.ligging === 'geen') return null;
+  if (i.dak || (i.daken?.vlakken.length ?? 0) > 0 || panelen.ligging === 'geen') return null;
   const vlakken = i.meting?.vlakken ?? [];
   // De meting weet het al: de panelen liggen aan een bekende kant.
   if (vlakken.some((v) => v.kant != null)) return null;
@@ -653,7 +733,7 @@ export function liggingView(i: LiggingInput, lang: Lang = 'nl'): LiggingView {
   const gekozen = kiesLigging(i);
   const geo = gekozen?.geometry;
   const voorgevel = geo?.facades.find((f) => f.id === 'voorgevel')?.azimuthDeg ?? null;
-  const zeker = gekozen?.bron === 'app' && i.dak?.bron === 'bewoner';
+  const zeker = gekozen?.bron === 'app' && (i.dak?.bron === 'bewoner' || (i.daken?.vlakken.length ?? 0) > 0);
   const nu = geo && geo.solarPlanes.length > 0 ? { ...woorden(geo.solarPlanes, voorgevel, geo.inverterMaxW ?? null, aantal, zeker || gekozen?.bron === 'configuratie', lang), bron: gekozen!.bron } : null;
   const voorstel = i.meting ? woorden(i.meting.vlakken, voorgevelVan(i.meting.vlakken, panelen, i.voorkantZon), i.omvormerGevonden, aantal, false, lang) : null;
   const d = i.meting?.dag;
@@ -666,8 +746,11 @@ export function liggingView(i: LiggingInput, lang: Lang = 'nl'): LiggingView {
       : aantal != null
         ? w.panelen(aantal)
         : null;
+  // Dakvlakken die allemaal nog geschat zijn (besluit 254, stap 3): het huis leert nog, tot de meting er één vindt.
+  const vlakken = i.daken?.vlakken ?? [];
+  const dakStand = vlakken.length === 0 ? null : vlakken.every((v) => v.bron === 'schatting') ? 'wachten' : 'bevestigd';
   return {
-    stand: i.dak ? 'bevestigd' : i.meting ? 'voorstel' : i.configuratie ? 'configuratie' : 'wachten',
+    stand: i.dak ? 'bevestigd' : (dakStand ?? (i.meting ? 'voorstel' : i.configuratie ? 'configuratie' : 'wachten')),
     aantal,
     vraagVoorkant: vraagVoorkant(i, panelen),
     nu,

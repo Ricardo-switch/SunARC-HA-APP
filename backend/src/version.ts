@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.121.2';
+export const VERSIE = '0.129.2';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,234 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.129.2',
+    datum: '2026-11-05',
+    opgelost: [
+      'Hoe voelt het huis gaf "Niet gelukt" voor een kamer die er via Inrichten bij kwam; nu telt hij meteen mee',
+      'Meten met: een meter uitzetten blijft uit, ook de meter die de app zelf koos; de app neemt geen watertemperatuur van een boiler of warmtepomp als kamertemperatuur',
+      'Een huis met een plat dak krijgt op Thuis een plat dak, met de panelen erop in rijen',
+    ],
+    en: {
+      opgelost: [
+        'How does the house feel said "Did not work" for a room added in Setup; it now counts straight away',
+        'Measure with: switching a meter off stays off, also the meter the app picked itself; the app no longer takes a water temperature of a boiler or heat pump as the room temperature',
+        'A house with a flat roof gets a flat roof on Home, with the panels on it in rows',
+      ],
+    },
+  },
+  {
+    versie: '0.129.1',
+    datum: '2026-11-05',
+    beter: ['Daken en panelen op de telefoon: de kaart en de uitleg staan onder de tekening, en het vraagteken staat klein rechts naast de titel'],
+    en: { beter: ['Roofs and panels on the phone: the map and the explanation are below the drawing, and the question mark sits small to the right of the title'] },
+  },
+  {
+    versie: '0.129.0',
+    datum: '2026-11-05',
+    nieuw: ['Opbrengst heeft Nu: live waar je stroom heen gaat, met de zon per dak, wat er aan staat en wat terug gaat naar het net'],
+    en: { nieuw: ['Yield has Now: live where your power goes, with the sun per roof, what is on and what goes back to the grid'] },
+  },
+  {
+    versie: '0.128.1',
+    datum: '2026-11-05',
+    nieuw: ['Geef een dakvlak een eigen naam: tik op de naam bovenaan een open vlak'],
+    beter: ['Liggen er meer vlakken op dezelfde plek, dan staat de richting erbij, zoals Hoofddak oost en Hoofddak west, ook bij Opbrengst'],
+    en: {
+      nieuw: ['Give a roof plane its own name: tap the name at the top of an open plane'],
+      beter: ['If several planes are in the same place, the direction is added, like Main roof east and Main roof west, also in Yield'],
+    },
+  },
+  {
+    versie: '0.128.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'In Nederland komt je huis uit 3D BAG: de omtrek en de vorm van het dak met de nok; OpenStreetMap vult aan wat er niet in staat, zoals een tuinhuis',
+      'Voor je de kaart gebruikt, zegt SunArc dat het experimenteel is, wat het doet en hoe je privacy geregeld is',
+      'Zonder kaart zet je huis altijd terug naar een rechthoek; je dakvlakken blijven staan',
+    ],
+    en: {
+      nieuw: [
+        'In the Netherlands your house comes from 3D BAG: the outline and the roof shape with its ridge; OpenStreetMap adds what is missing, like a garden shed',
+        'Before you use the map, SunArc says it is experimental, what it does and how your privacy is handled',
+        'Without map always puts your house back to a rectangle; your roof planes stay',
+      ],
+    },
+  },
+  {
+    versie: '0.127.1',
+    datum: '2026-11-05',
+    beter: ['Daken en panelen heeft bovenin een vraagteken om de rondleiding opnieuw te zien, en de rondleiding laat ook je huis met de panelen zien'],
+    opgelost: ['Opbrengst telde de zon alleen uit de omvormer, ook van vóór hij gekoppeld was: dan gaf het stroombeeld 0% zon en Per dak veel te weinig. Waar de omvormer nog niets meet, telt nu de zonnemeter'],
+    en: {
+      beter: ['Roofs and panels has a question mark at the top to see the tour again, and the tour also shows your house with the panels'],
+      opgelost: ['Yield counted the sun only from the inverter, also from before it was connected: the flow picture then showed 0% sun and Per roof far too little. Where the inverter does not measure yet, the solar meter counts now'],
+    },
+  },
+  {
+    versie: '0.127.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'Inrichten vraagt kort waar je panelen liggen: tik de plekken aan met hoeveel, bij het hoofddak per kant; elke plek wordt een dakvlak dat SunArc daarna zelf goed zet',
+      'De eerste keer Daken en panelen krijg je een korte rondleiding',
+    ],
+    beter: ['Wat je huis kan en de zonnewaaier zeggen dat het huis nog leert zolang alle dakvlakken geschat zijn, en noemen hoeveel vlakken je hebt'],
+    opgelost: ['Alle dakvlakken weghalen betekent nu echt geen panelen, ook als het instellingenbestand nog een dak had'],
+    en: {
+      nieuw: [
+        'Setup asks briefly where your panels are: tap the places with how many, per side for the main roof; each place becomes a roof plane that SunArc then sets right itself',
+        'The first time you open Roofs and panels you get a short tour',
+      ],
+      beter: ['What your house can do and the sun fan say the house is still learning while all roof planes are estimated, and name how many planes you have'],
+      opgelost: ['Removing all roof planes now really means no panels, even if the settings file still had a roof'],
+    },
+  },
+  {
+    versie: '0.126.1',
+    datum: '2026-11-05',
+    opgelost: [
+      'Thuis: een tik op de panelen opent De zon op je daken, niet meer de zolder',
+      'Een breed label op het huis valt niet meer buiten beeld, zoals bij de panelen op de telefoon',
+    ],
+    en: {
+      opgelost: [
+        'Home: tapping the panels opens The sun on your roofs, no longer the attic',
+        'A wide label on the house no longer falls off the screen, like the one at the panels on the phone',
+      ],
+    },
+  },
+  {
+    versie: '0.126.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'Opbrengst in drie gelijke kolommen, met een nieuw stroombeeld: de zon per dakvlak, het net met wat het kostte, terug met wat het opbracht, Altijd aan (je sluipverbruik) apart, en kleine stromen samen',
+      'Gas staat apart onder het stroombeeld, met m³ en euro’s',
+    ],
+    opgelost: ['Opgewekt komt uit je omvormer als die er is: een zonnemeter die achterliep, gaf te weinig, en dan klopten zelf gebruikt en terug niet'],
+    en: {
+      nieuw: [
+        'Yield in three equal columns, with a new flow picture: the sun per roof plane, the grid with what it cost, export with what it earned, Always on (your standby use) apart, and small flows together',
+        'Gas sits apart under the flow picture, with m³ and euros',
+      ],
+      opgelost: ['Generated now comes from your inverter when there is one: a solar meter that lagged gave too little, and then self-use and export did not add up'],
+    },
+  },
+  {
+    versie: '0.125.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'Thuis: met meer dakvlakken een tik op de panelen voor De zon op je daken, met per vlak wat het nu levert en wat het bij heldere lucht zou leveren',
+      'Opbrengst: bij Je panelen een wissel Samen of Per dak, met per vlak de kWh en wat een paneel daar opleverde',
+      'Blijft een dakvlak achter, dan zegt SunArc het: bovenaan Daken en panelen met de lijn van de zonnige dagen, bij Opbrengst en, na drie zonnige dagen, in de bel. Met één omvormer zegt hij wanneer het dak minder geeft en welk vlak dan waarschijnlijk de zon heeft',
+    ],
+    beter: ['Met bewaarde daken vraagt de bel niet meer om de gemeten panelen te bevestigen'],
+    en: {
+      nieuw: [
+        'Home: with several roof planes, tap the panels for The sun on your roofs, with per plane what it delivers now and what it would with a clear sky',
+        'Yield: a Together or Per roof switch at Your panels, with per plane the kWh and what one panel delivered there',
+        'When a roof plane falls behind, SunArc says so: at the top of Roofs and panels with the line of the sunny days, in Yield and, after three sunny days, in the bell. With one inverter it says when the roof gives less and which plane probably has the sun then',
+      ],
+      beter: ['With saved roofs the bell no longer asks to confirm the measured panels'],
+    },
+  },
+  {
+    versie: '0.124.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'De meting per dakvlak: SunArc begint bij wat je invulde en zoekt per vlak de richting en de helling die bij de zonnige dagen passen. Gemeten vlakken volgen de meting vanzelf; bij een vlak dat je zelf instelde staat het voorstel, met Neem over',
+      'Elke omvormer zijn eigen grens: uit het typenummer, of zelf in te vullen bij Omvormers en meters. Een garage met een eigen omvormer kapt niet meer af op die van het huis',
+      'Meet één omvormer meer vlakken, dan zie je bij Omvormers en meters de dag van gisteren, verdeeld per vlak',
+    ],
+    en: {
+      nieuw: [
+        'Measuring per roof plane: SunArc starts from what you entered and looks per plane for the direction and tilt that fit the sunny days. Measured planes follow the measurement by themselves; a plane you set yourself shows the suggestion, with Use it',
+        'Every inverter has its own limit: from the model number, or set yourself under Inverters and meters. A garage with its own inverter no longer clips at the limit of the house',
+        'When one inverter measures several planes, Inverters and meters shows yesterday, split per plane',
+      ],
+    },
+  },
+  {
+    versie: '0.123.1',
+    datum: '2026-11-05',
+    beter: [
+      'Van boven tekent SunArc zoveel panelen als je invulde, in rijen vanaf de nok, in plaats van het hele dakvlak vol',
+      'Heeft de kaart je huis en garage als één gebouw, dan wordt het grootste blok het huis met de dakvorm; de rest staat grijs ernaast, om aan te tikken als garage of uitbouw',
+      'Van de gebouwen ernaast alleen wat binnen 12 meter staat, hooguit acht',
+    ],
+    en: {
+      beter: [
+        'From above, SunArc draws as many panels as you entered, in rows from the ridge, instead of filling the whole roof plane',
+        'If the map has your house and garage as one building, the largest block becomes the house with the roof shape; the rest is grey beside it, to tap as garage or extension',
+        'Of the buildings around, only those within 12 metres, eight at most',
+      ],
+    },
+  },
+  {
+    versie: '0.123.0',
+    datum: '2026-11-05',
+    nieuw: [
+      'Daken en panelen: het huis van boven, met elk dakvlak om aan te tikken. Een leeg dakvlak aantikken legt er panelen op; met een vlak open verplaats je het naar een ander dakvlak',
+      'Per gebouw een dakvorm (zadeldak, schilddak, lessenaar of plat), met een voorstel uit de vlakken die er al zijn',
+      'De omtrek uit de kaart: OpenStreetMap krijgt alleen de wijk te zien, en SunArc kiest zelf je huis. Gebouwen ernaast staan grijs; tik er een aan als hij bij je huis hoort',
+      'Een wissel tussen Van boven en Het huis',
+    ],
+    opgelost: [
+      'Op de kaart (de voorkant opmeten) zocht bij de afgeronde plek van het huis, en vond zo niet je eigen huis',
+      'Na het verdraaien van een dakvlak zocht de meting nog maar één kant van het dak; nu zoekt hij weer vrij, en zegt een vlak wat de meting wel ziet',
+    ],
+    en: {
+      nieuw: [
+        'Roofs and panels: the house from above, with every roof plane to tap. Tapping an empty roof plane puts panels on it; with a plane open, you move it to another roof plane',
+        'A roof shape per building (gable, hip, lean-to or flat), suggested from the planes that are already there',
+        'The outline from the map: OpenStreetMap only gets to see the neighbourhood, and SunArc picks your house itself. Buildings next door are grey; tap one if it is part of your house',
+        'A switch between From above and The house',
+      ],
+      opgelost: [
+        'On the map (measuring the front) searched around the rounded location of the house, and so did not find your own house',
+        'After turning a roof plane the measurement only searched one side of the roof; now it searches freely again, and a plane says what the measurement does see',
+      ],
+    },
+  },
+  {
+    versie: '0.122.2',
+    datum: '2026-11-05',
+    beter: [
+      'Daken en panelen: onder Omvormers en meters heet de knop nu Dakvlakken instellen, met een zin wat je daar doet',
+    ],
+    opgelost: ['Daken en panelen opent weer bij de dakvlakken, ook als je eerder bij Omvormers en meters was'],
+    en: {
+      beter: ['Roofs and panels: under Inverters and meters the button is now called Set up roof planes, with a line on what you do there'],
+      opgelost: ['Roofs and panels opens on the roof planes again, even if you were at Inverters and meters before'],
+    },
+  },
+  {
+    versie: '0.122.1',
+    datum: '2026-11-05',
+    beter: [
+      'Daken en panelen: bij Gemeten door staan alleen de omvormers die je bij Omvormers en meters koos, in plaats van elke sensor met een vermogen',
+      'Liggen meer vlakken aan één omvormer, dan kies je hem bij elk vlak; met één omvormer staat hij er vanzelf, en Hoort bij zet hem bij alle vlakken zonder meter',
+    ],
+    en: {
+      beter: [
+        'Roofs and panels: Measured by only shows the inverters you chose under Inverters and meters, instead of every sensor with a power reading',
+        'When several planes share one inverter, you choose it at each plane; with one inverter it is filled in already, and Belongs to sets it for all planes without a meter',
+      ],
+    },
+  },
+  {
+    versie: '0.122.0',
+    datum: '2026-11-04',
+    nieuw: [
+      'Energie › Daken en panelen: elk dakvlak apart, met een letter. Een uitbouw met panelen oost-west, een garage, panelen op de grond of aan de gevel: elk vlak met zijn eigen richting, helling, aantal en omvormer',
+      'Panelen op de garage, de carport en het tuinhuis tellen nu mee in de verwachting van de zon',
+    ],
+    en: {
+      nieuw: [
+        'Energy › Roofs and panels: every roof plane on its own, with a letter. An extension with east-west panels, a garage, panels on the ground or on a wall: each plane with its own direction, tilt, number and inverter',
+        'Panels on the garage, carport and shed now count in the solar forecast',
+      ],
+    },
+  },
   {
     versie: '0.121.2',
     datum: '2026-11-05',

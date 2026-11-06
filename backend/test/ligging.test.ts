@@ -15,6 +15,7 @@ import { validateConnection } from '../src/web/aansluiting.js';
 import {
   dakUitAanpassing,
   dakUitMeting,
+  dakenNu,
   kiesLigging,
   liggingView,
   meetLigging,
@@ -227,6 +228,19 @@ describe('welke ligging geldt', () => {
     expect(kiesLigging({ ...basis, panelen: { ligging: 'geen', aantal: null, voorkant: null, achterkant: null } })).toBeNull();
   });
 
+  it('alle vlakken weg is geen panelen, ook met een dak in het bestand', () => {
+    const geen = { ligging: 'geen' as const, aantal: null, voorkant: null, achterkant: null };
+    expect(kiesLigging({ ...basis, configuratie: config, panelen: geen, daken: null })).toBeNull();
+    expect(dakenNu({ ...basis, configuratie: config, panelen: geen, daken: null }).daken.vlakken).toEqual([]);
+  });
+
+  it('dakvlakken die nog geschat zijn: het huis leert, tot de meting er één vindt', () => {
+    const vlak = { letter: 'A', plek: 'hoofddak' as const, opstelling: 'schuin' as const, azimuthDeg: 180, tiltDeg: 35, aantal: 10, wpPerPaneel: 400, meter: null };
+    const daken = (bron: 'schatting' | 'gemeten') => ({ vlakken: [{ ...vlak, bron }], voorgevelDeg: 180, omvormerW: null });
+    expect(liggingView({ ...basis, daken: daken('schatting') }).stand).toBe('wachten');
+    expect(liggingView({ ...basis, daken: daken('gemeten') }).stand).toBe('bevestigd');
+  });
+
   it('aanpassen: de vlakken volgen uit de kant en het aantal per kant', () => {
     const dak = dakUitAanpassing({ voorgevelDeg: 97, hellingDeg: 47, wpPerPaneel: 390, omvormerW: 3000 }, beide(), meting);
     expect(dak).toEqual({
@@ -306,6 +320,23 @@ describe('de melding', () => {
       s.bij(bron({ nu: Date.UTC(2026, 9, 17, 13), panelen: { voorstel: false } }));
       expect(s.lijst(Date.UTC(2026, 9, 17, 14)).actief).toEqual([]);
       expect(s.lijst(Date.UTC(2026, 9, 17, 14)).eerder[0]?.titel).toBe('Je panelen staan erin');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('meldt een dakvlak dat achterblijft (besluit 254, stap 5), met wanneer en hoeveel', async () => {
+    const { mkdtemp, rm } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = await mkdtemp(join(tmpdir(), 'hems-dak-'));
+    try {
+      const s = new MeldingenStore({ logDir: dir });
+      s.bij(bron({ dak: { letter: 'A', wanneer: 'ochtend', minderPct: 35, eigenMeter: false } }));
+      const m = s.lijst(Date.UTC(2026, 9, 17, 14)).actief[0]!;
+      expect([m.id, m.titel, m.actie?.href]).toEqual(['dak:A:ochtend', 'Je dak levert minder', 'energie.html#panelen']);
+      expect(m.tekst).toContain("'s ochtends 35% minder");
+      expect(m.tekst).toContain('waarschijnlijk door schaduw');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

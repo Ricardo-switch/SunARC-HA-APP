@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Daken en panelen, de kaart is experimenteel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * De kaart bij Daken en panelen is experimenteel (schets, 5 november 2026, met 3D BAG naast OpenStreetMap,
+   * Ricardo): voor de eerste keer een melding met wat het doet, hoe de privacy
+   * geregeld is en dat je altijd terug kunt. Daarna staat op de tekening dat
+   * de omtrek uit de kaart komt, met Zonder kaart.
+   * Standen: standaard de melding, #kaart na het ophalen, #terug de vraag bij Zonder kaart.
+   * Achtergrond: de echte pagina (paginatest, screens/Daken-achtergrond.png).
+   */
+  .scherm { position: relative; width: 1340px; height: 800px; overflow: hidden; background: #0b1424 url('screens/Daken-achtergrond.png') 0 0 / 1340px 800px no-repeat; }
+  .kk-dim { position: absolute; inset: 0; background: rgb(4 8 16 / 0.62); backdrop-filter: blur(2px); }
+  .kk-venster { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 780px; padding: 28px 30px 22px; border-radius: 26px; background: #16243a; border: 1px solid rgb(255 255 255 / 0.12); box-shadow: 0 30px 80px rgb(0 0 0 / 0.55); display: flex; flex-direction: column; gap: 16px; }
+  .kk-venster.kk-klein { width: 470px; }
+  .kk-kop { display: flex; align-items: center; gap: 12px; }
+  .kk-kop h1 { margin: 0; }
+  .kk-proef { height: 26px; padding: 0 11px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; background: rgb(169 156 255 / 0.16); color: #c9c1ff; font-size: 12.5px; font-weight: 800; letter-spacing: 0.02em; }
+  .kk-proef svg { width: 14px; height: 14px; }
+  .kk-lead { margin: -4px 0 0; font-size: 15.5px; line-height: 1.5; color: var(--zacht); }
+  .kk-twee { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .kk-blok { padding: 14px 16px; border-radius: 18px; background: rgb(255 255 255 / 0.05); display: flex; flex-direction: column; gap: 10px; }
+  .kk-blok h2 { margin: 0; font: 600 15px var(--kop); color: var(--tekst); }
+  .kk-regel { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 13.5px; line-height: 1.45; color: var(--zacht); }
+  .kk-regel b { color: var(--tekst); font-weight: 700; }
+  .kk-ik { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; }
+  .kk-ik svg { width: 16px; height: 16px; }
+  .kk-ik.kk-zon { background: rgb(247 181 72 / 0.16); color: #f7b548; }
+  .kk-ik.kk-mint { background: rgb(110 231 183 / 0.14); color: #6ee7b7; }
+  .kk-ik.kk-ijs { background: rgb(111 211 255 / 0.14); color: #6fd3ff; }
+  .kk-terug { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: center; padding: 12px 16px; border-radius: 16px; background: rgb(111 211 255 / 0.07); border: 1px solid rgb(111 211 255 / 0.2); font-size: 13.5px; line-height: 1.45; color: var(--zacht); }
+  .kk-terug b { color: var(--tekst); }
+  .kk-voet { display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding-top: 4px; }
+  .kk-zacht { color: var(--zacht); font-weight: 700; font-size: 14.5px; }
+  .knop.knop-licht { height: 46px; display: inline-flex; align-items: center; padding: 0 20px; }
+  /* Na het ophalen: op de tekening, onderaan, zoals de balk van de kaart nu. */
+  .kk-balk { position: absolute; left: 446px; top: 626px; width: 432px; padding: 10px 12px 10px 14px; border-radius: 16px; background: rgb(11 20 36 / 0.86); border: 1px solid rgb(255 255 255 / 0.12); display: flex; align-items: center; gap: 10px; }
+  .kk-balk span.kk-tekst { flex: 1; min-width: 0; font-size: 13px; color: var(--zacht); line-height: 1.35; }
+  .kk-balk span.kk-tekst b { color: var(--tekst); display: block; font-size: 13.5px; }
+  .kk-balk .kk-zonder { height: 34px; padding: 0 14px; border-radius: 12px; background: rgb(255 255 255 / 0.08); font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; white-space: nowrap; }
+  .kk-gebouw { position: absolute; border: 2px solid #9cc0e4; background: rgb(77 126 172 / 0.18); }
+</style>
+</head>
+<body>
+<div class="scherm">
+
+  <!-- De eerste keer: wat het doet, de privacy, en altijd terug. -->
+  <div data-stand="vraag">
+    <div class="kk-dim"></div>
+    <section class="kk-venster" role="dialog" aria-labelledby="kop">
+      <div class="kk-kop"><h1 class="kop-2" id="kop">Je huis uit de kaart</h1><span class="kk-proef"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/></svg>Experimenteel</span></div>
+      <p class="kk-lead">SunArc tekent je huis en de gebouwen ernaast op de echte maat. In Nederland uit 3D BAG, met de hoogte en de vorm van elk dak; daarbuiten uit OpenStreetMap.</p>
+      <div class="kk-twee">
+        <div class="kk-blok">
+          <h2>Wat het doet</h2>
+          <div class="kk-regel"><span class="kk-ik kk-zon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M9 5v12M15 7v12"/></svg></span><span><b>De omtrek ophalen</b> van je huis, de garage, de uitbouw en wat er binnen 12 meter staat.</span></div>
+          <div class="kk-regel"><span class="kk-ik kk-zon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13 9 7l6 4 6-5v12H3z"/><path d="M9 7v11M15 11v7"/></svg></span><span><b>Je daken in 3D</b> in Nederland: de vorm, de richting en de helling van elk dakvlak, uit 3D BAG.</span></div>
+          <div class="kk-regel"><span class="kk-ik kk-zon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12 12 4l9 8"/><path d="M6 10v10h12V10"/></svg></span><span><b>Een voorstel.</b> De dakvorm, de nok en welke gebouwen erbij horen, zet je daarna zelf goed.</span></div>
+          <div class="kk-regel"><span class="kk-ik kk-zon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5h.01"/></svg></span><span><b>Nog niet af.</b> Een omtrek kan ontbreken, of huis en garage zijn één blok.</span></div>
+        </div>
+        <div class="kk-blok">
+          <h2>Je privacy</h2>
+          <div class="kk-regel"><span class="kk-ik kk-mint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16" stroke-dasharray="2 2.5"/></svg></span><span><b>De kaartdiensten zien alleen de wijk:</b> 3D BAG en OpenStreetMap krijgen een vak van zo'n 450 bij 400 meter, nooit je adres of je huis.</span></div>
+          <div class="kk-regel"><span class="kk-ik kk-mint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span><b>Je precieze plek blijft in huis.</b> Die komt uit Home Assistant; SunArc zoekt daar zelf je gebouw mee.</span></div>
+          <div class="kk-regel"><span class="kk-ik kk-mint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span><b>Eén keer, alleen als je erom vraagt.</b> Bewaard worden de vormen in meters, geen plek.</span></div>
+        </div>
+      </div>
+      <div class="kk-terug"><span class="kk-ik kk-ijs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></span><span><b>Altijd terug.</b> Met Zonder kaart is je huis weer zoals nu: een rechthoek langs de voorgevel. Je dakvlakken blijven staan.</span></div>
+      <div class="kk-voet"><span class="kk-zacht">Niet nu</span><span class="knop knop-licht">Ik begrijp het, haal de kaart</span></div>
+    </section>
+  </div>
+
+  <!-- Na het ophalen: de omtrek staat erin, en de balk zegt waar hij vandaan komt. -->
+  <div data-stand="kaart terug">
+    <div class="kk-balk"><span class="kk-proef"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/></svg>Experimenteel</span><span class="kk-tekst"><b>Omtrek uit de kaart</b>Klopt hij niet, dan zet je hem terug.</span><span class="kk-zonder">Zonder kaart</span></div>
+  </div>
+
+  <!-- Zonder kaart: even vragen, en zeggen wat er blijft. -->
+  <div data-stand="terug">
+    <div class="kk-dim"></div>
+    <section class="kk-venster kk-klein" role="dialog" aria-labelledby="kop2">
+      <div class="kk-kop"><h1 class="kop-2" id="kop2">Terug naar zonder kaart?</h1></div>
+      <p class="kk-lead">Je huis is dan weer een rechthoek langs de voorgevel, en de gebouwen ernaast gaan weg. Je dakvlakken, hun richting en de meters blijven staan.</p>
+      <div class="kk-voet"><span class="kk-zacht">Annuleren</span><span class="knop knop-licht">Zonder kaart</span></div>
+    </section>
+  </div>
+</div>
+<script>
+  const toon = { '#kaart': 'kaart', '#terug': 'terug' }[location.hash] ?? 'vraag';
+  document.querySelectorAll('[data-stand]').forEach((el) => { if (!el.dataset.stand.split(' ').includes(toon)) el.remove(); });
+  addEventListener('hashchange', () => location.reload());
+</script>
+</body>
+</html>

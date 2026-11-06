@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { binnen, gevelsUitOmtrek, kiesGebouw, overpassVraag, voorkantUitKaart, type Punt } from '../src/web/kaart.js';
+import { binnen, gevelsUitOmtrek, huisEnOmgeving, kaartVak, kiesGebouw, overpassVraag, voorkantUitKaart, type Punt } from '../src/web/kaart.js';
 
 const LAT = 51.5;
 const LON = 5.0;
@@ -51,6 +51,31 @@ describe('de gevels op de kaart (21 oktober 2026)', () => {
     expect(kiesGebouw(antwoord, { lat: LAT, lon: LON })).toBe(eigen);
     expect(kiesGebouw(antwoord, { lat: LAT + 0.0002, lon: LON + 0.0001 })).toBe(buren);
     expect(kiesGebouw({ elements: [] }, { lat: LAT, lon: LON })).toBeNull();
-    expect(overpassVraag(LAT, LON)).toContain('way(around:40,51.500000,5.000000)["building"]');
+    // Verder dan 40 meter is het niet ons huis.
+    expect(kiesGebouw(antwoord, { lat: LAT + 0.002, lon: LON })).toBeNull();
+  });
+
+  it('vraagt OpenStreetMap om een vak van het raster, niet om de plek van het huis (besluit 254)', () => {
+    const vraag = overpassVraag(LAT + 0.00123, LON + 0.00234);
+    // Twee huizen in hetzelfde vak geven dezelfde vraag.
+    expect(overpassVraag(LAT + 0.0031, LON + 0.0011)).toBe(vraag);
+    expect(vraag).not.toContain('around');
+    expect(vraag).not.toContain(String(LAT + 0.00123));
+    const v = kaartVak(LAT + 0.00123, LON + 0.00234);
+    expect(v.noord - v.zuid).toBeCloseTo(0.0052, 6);
+    expect(LAT + 0.00123).toBeGreaterThan(v.zuid);
+    expect(LAT + 0.00123).toBeLessThan(v.noord);
+  });
+
+  it('geeft het huis en de gebouwen eromheen in meters vanaf de plek', () => {
+    const eigen = huis(92);
+    const buren = huis(92, 6, 10, LAT, LON + 0.0001);
+    const ver = huis(92, 6, 10, LAT + 0.003, LON);
+    const uit = huisEnOmgeving({ elements: [{ geometry: ver }, { geometry: buren }, { geometry: eigen }] }, { lat: LAT, lon: LON })!;
+    expect(uit.omgeving).toHaveLength(1);
+    // Het eigen huis ligt om de plek heen.
+    const xs = uit.huis.map((p) => p[0]);
+    expect(Math.min(...xs)).toBeLessThan(0);
+    expect(Math.max(...xs)).toBeGreaterThan(0);
   });
 });

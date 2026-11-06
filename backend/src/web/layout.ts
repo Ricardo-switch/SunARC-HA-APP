@@ -404,7 +404,8 @@ export function validateLayout(body: unknown, known: LayoutKnown): { ok: true; l
       if (!Array.isArray(me) || me.length > 6 || me.some((x) => typeof x !== 'string' || !known.deviceIds.has(x)) || new Set(me).size !== me.length) {
         return { ok: false, reden: `kamer ${id}: meten is een lijst van hooguit zes bekende sensoren` };
       }
-      if (me.length > 0) meten = me as string[];
+      // Leeg is een keuze (issue 133/134): geen meter in deze kamer, niet "laat de app kiezen".
+      meten = me as string[];
     }
     // Wat er verwarmt en koelt (besluit 132); buiten valt het weg. Een apparaat dat
     // het huis niet meer kent, valt weg, en daarmee op zon: anders kan de

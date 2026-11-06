@@ -4,6 +4,7 @@
  * vandaan haalt. Alleen beschrijvingen; de webserver zelf staat in server.ts.
  */
 
+import type { Achter } from './meten-vlakken.js';
 import { VERSIE } from '../version.js';
 import type { Sluipverbruik } from './sluipverbruik.js';
 import type { CameraNu } from './cameras.js';
@@ -24,6 +25,7 @@ import type { IntegratieStand } from './integratie.js';
 import type { ConnectionStore, ConnectionView, FoundAppliance, FoundPhase, FoundPower } from './aansluiting.js';
 import type { ApparaatGegevens } from './apparaat-gegevens.js';
 import type { EnergySource, EnergyStore } from './energy.js';
+import type { CityJson } from './bag3d.js';
 import type { Punt } from './kaart.js';
 import type { UpdateView } from './bijwerken.js';
 import type { KlaarPunt } from './klaarzetten.js';
@@ -194,6 +196,8 @@ export interface WebOptions {
    * nog niet heeft (17 oktober 2026). Null als die statistiek er niet is.
    */
   readonly historie?: (vanMs: number, totMs: number) => Promise<{ zon: readonly PowerRow[]; net: readonly PowerRow[] } | null>;
+  /** De opbrengst per dakvlak over een periode (besluit 254, stap 5), of null zonder daken. */
+  readonly dakenOpbrengst?: (vanMs: number, totMs: number) => Promise<{ vlakken: readonly { letter: string; plek: string; naam?: string | null; azimuthDeg?: number; opstelling?: string; aantal: number; kWh: number }[]; achter: Achter | null } | null>;
   /** Het sluipverbruik (besluit 192): de nachten uit de statistiek van Home Assistant. */
   readonly sluipverbruik?: Sluipverbruik;
   /**
@@ -336,6 +340,16 @@ export interface WebOptions {
   readonly location?: () => Location | null;
   /** De omtrek van het huis op de kaart (21 oktober 2026); anders OpenStreetMap. Voor de tests. */
   readonly omtrek?: (latDeg: number, lonDeg: number) => Promise<readonly Punt[] | null>;
+  /**
+   * De precieze plek van het huis uit Home Assistant (besluit 254, stap 2a),
+   * alleen gevraagd na een tik op de kaart en niet bewaard: daarmee kiest
+   * SunArc zelf het gebouw uit het vak dat naar OpenStreetMap ging.
+   */
+  readonly exacteLocatie?: () => Promise<Location | null>;
+  /** Het antwoord van OpenStreetMap voor een vak van het raster; anders Overpass. Voor de tests. */
+  readonly kaartAntwoord?: (latDeg: number, lonDeg: number) => Promise<unknown>;
+  /** Het kaartvak van 3D BAG (5 november 2026); anders het echte. Null: geen vak. Voor de tests. */
+  readonly bagVak?: (latDeg: number, lonDeg: number) => Promise<CityJson | null>;
   /**
    * Bijwerken vanuit de app (21 oktober 2026): wat er klaarstaat en wat er nieuw
    * is, en de add-on bijwerken. Alleen in de add-on.

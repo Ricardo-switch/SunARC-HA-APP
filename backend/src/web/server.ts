@@ -299,6 +299,8 @@ export class WebServer {
       (this.#d.options.connection != null && path === '/api/aansluiting') ||
       // De gevels op de kaart (21 oktober 2026): niets bewaren, alleen een vraag aan OpenStreetMap.
       (this.#d.options.location != null && path === '/api/gevel-kaart') ||
+      // Het huis van boven uit de kaart (besluit 254): alleen het vak gaat naar OpenStreetMap.
+      (this.#d.options.exacteLocatie != null && path === '/api/daken-kaart') ||
       // De add-on bijwerken (21 oktober 2026): update.install op de eigen add-on, en niets anders.
       (this.#d.options.bijwerken != null && path === '/api/update') ||
       // Zoeken naar updates en opnieuw starten (testerronde, november 2026), voor de beheerder.

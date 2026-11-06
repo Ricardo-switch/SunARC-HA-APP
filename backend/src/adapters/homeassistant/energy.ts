@@ -31,6 +31,8 @@ export function haEnergySource(
   platform: (entityId: string) => string | null = () => null,
   /** Alle entiteiten van nu: om sensoren met een prijs per kWh te vinden. */
   alle: () => Iterable<HaEntityState> = () => [],
+  /** De omvormers met hun vermogen van nu, waarmee de regeling rekent (5 november 2026). */
+  omvormers: () => readonly string[] = () => [],
 ): EnergySource {
   const friendly = (id: string) => {
     const n = state(id)?.attributes['friendly_name'];
@@ -70,6 +72,30 @@ export function haEnergySource(
           return { id: s.statistic_id, naam, soort, rol: meterRole(s.statistic_id, naam, soort, platform(s.statistic_id)) };
         })
         .sort((a, b) => a.naam.localeCompare(b.naam, 'nl'));
+    },
+    // Opgewekt uit het vermogen van de omvormers: het gemiddelde per uur of dag maal de uren.
+    async opgewekt(startMs, endMs, period) {
+      const ids = omvormers();
+      if (ids.length === 0) return null;
+      const raw = await client.query<Record<string, { start: number | string; mean?: number | null }[]>>('recorder/statistics_during_period', {
+        start_time: new Date(startMs).toISOString(),
+        end_time: new Date(endMs).toISOString(),
+        statistic_ids: [...ids],
+        period,
+        types: ['mean'],
+        units: { power: 'W' },
+      });
+      const uren = period === 'hour' ? 1 : 24;
+      const som = new Map<number, number>();
+      for (const id of ids) {
+        for (const r of raw?.[id] ?? []) {
+          if (typeof r.mean !== 'number' || !Number.isFinite(r.mean)) continue;
+          const t = toMs(r.start);
+          som.set(t, (som.get(t) ?? 0) + (Math.max(0, r.mean) * uren) / 1000);
+        }
+      }
+      if (som.size === 0) return null;
+      return [...som].sort((a, b) => a[0] - b[0]).map(([t, kwh]) => ({ startMs: t, change: kwh }));
     },
     async changes(ids, startMs, endMs, period) {
       if (ids.length === 0) return {};

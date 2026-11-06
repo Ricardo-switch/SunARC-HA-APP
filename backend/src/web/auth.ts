@@ -54,6 +54,7 @@ export const DOOR_ROLES: Readonly<Record<string, Role>> = {
   '/api/aansluiting': 'beheerder',
   // De gevels opmeten op de kaart (21 oktober 2026): stuurt de ligging naar OpenStreetMap.
   '/api/gevel-kaart': 'beheerder',
+  '/api/daken-kaart': 'beheerder',
   // De add-on bijwerken (21 oktober 2026): alleen de beheerder.
   '/api/update': 'beheerder',
   '/api/functies': 'beheerder',

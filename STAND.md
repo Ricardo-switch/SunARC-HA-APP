@@ -252,7 +252,9 @@ verwijzing bestaat.
   de app, met een woordzoeker ([115]).
 - **Het jaar in Opbrengst** begint op de startdatum van het contract ([116]).
 - **Een prijs per uur** (Zonneplan, Tibber): Opbrengst rekent met de kostentellers van Home Assistant, en Energie toont de prijs van nu ([251]).
-- **Daken en panelen, elk vlak apart** is ontworpen, nog niet gebouwd: van boven, dakvorm per gebouw, meting stelt voor, verdelen naar de heldere lucht ([254]).
+- **Daken en panelen, elk vlak apart** (op beta, nog niet op main): van boven met de omtrek uit de kaart, dakvorm per gebouw, de meting per vlak, een grens per omvormer, per vlak op Thuis en in Opbrengst, een vlak dat achterblijft, een korte stap in Inrichten en een eigen rondleiding ([254]); de kaart is experimenteel, met 3D BAG naast OpenStreetMap ([256]).
+- **Opbrengst in drie kolommen**, met een stroombeeld dat de zon per dakvlak, de kosten, terug, Altijd aan en gas apart laat zien; opgewekt komt uit de omvormer ([255]).
+- **Drie fouten van testers opgelost**: het gevoel kent de zones van nu, Meten met kan echt uit (en kiest geen watertemperatuur), en een plat dak op Thuis ([257]).
 - **De hoofdzekering** stel je in de app in, en die gaat voor de configuratie
   ([117]). Sinds [248] ook de netmeter (één sensor, of afname en teruglevering
   apart zoals DSMR) en de omvormers, die opgeteld worden; kW telt als W.
@@ -830,4 +832,7 @@ verwijzing bestaat.
 [252]: DECISIONS.md#252-terugzeggen-na-een-opgeloste-melding
 [253]: DECISIONS.md#253-het-logboek-delen-bij-een-melding
 [254]: DECISIONS.md#254-daken-en-panelen-elk-dakvlak-apart-ontwerp
+[255]: DECISIONS.md#255-opbrengst-het-stroombeeld-vertelt-meer-opgewekt-uit-de-omvormer
+[256]: DECISIONS.md#256-de-kaart-is-experimenteel-met-3d-bag-naast-openstreetmap
+[257]: DECISIONS.md#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak
 <!-- links:einde -->

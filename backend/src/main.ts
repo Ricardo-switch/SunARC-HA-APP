@@ -74,9 +74,12 @@ import type { TeDoenDienst } from './web/routes/tedoen.js';
 import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
-import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied } from './web/aansluiting.js';
+import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
+import { sunPosition } from './core/sun.js';
+import { hoofddakPlat, panelenVan, type DakVlak } from './web/daken.js';
+import { aanvullenUitMeter, achterblijven, meetVlakken, metMeting, opbrengstPerVlak, verdeelDag, type Achter, type MeterGroep, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
 import { findHeatStores } from './web/buffers-vinden.js';
-import { kiesLigging, meetLigging, omvormerUitType, type Meting } from './web/ligging.js';
+import { kiesLigging, meetLigging, omvormerUitType, type Meting, type PanelenAntwoord } from './web/ligging.js';
 import { alarmSensoren, vindRookmelders } from './web/rookmelders.js';
 import { eigenUpdate, updateView, type UpdateView } from './web/bijwerken.js';
 import { haEnergySource } from './adapters/homeassistant/energy.js';
@@ -1027,6 +1030,8 @@ if (scenePictures) setInterval(() => void scenePictures.refresh(), 10 * 60_000).
  * over het dak veranderen. Alleen lezen, met dezelfde vraag als Opbrengst.
  */
 let liggingRijen: { at: number; rijen: PowerRow[] } | null = null;
+/** Dezelfde tien dagen per omvormer, voor de meting per dakvlak (besluit 254, stap 4). */
+let liggingPerId = new Map<string, PowerRow[]>();
 async function leesLigging(): Promise<void> {
   // Met meer omvormers de som (testerronde, november 2026); een meetpunt met een attribuut heeft geen statistiek.
   const punten = siteConfig?.solarProduction ? [siteConfig.solarProduction, ...(siteConfig.solarExtra ?? [])] : [];
@@ -1045,6 +1050,7 @@ async function leesLigging(): Promise<void> {
     .filter((r) => typeof r.mean === 'number' && Number.isFinite(r.mean))
     .map((r) => ({ startMs: typeof r.start === 'number' ? r.start : Date.parse(r.start), meanW: r.mean as number }));
   // Alleen vakken waarin elke omvormer iets gaf: anders lijkt het dak minder sterk.
+  liggingPerId = new Map(ids.map((id) => [id, reeks(id)]));
   liggingRijen = { at: nu, rijen: somPerVak(ids.map(reeks), [], true) };
 }
 // Eerst kort na het verbinden, daarna om de drie uur; mislukt het, dan over tien minuten opnieuw.
@@ -1065,14 +1071,81 @@ function omvormerGevonden(): number | null {
   return alle.length === 1 ? alle[0]! : null;
 }
 
+/** Wat elke omvormer hooguit levert, uit het typenummer van zijn apparaat (besluit 254, stap 4). */
+function grenzenGevonden(): Record<string, number> {
+  const regs = houseRegisters;
+  if (!regs) return {};
+  const uit: Record<string, number> = {};
+  for (const p of siteConfig?.solarProduction ? [siteConfig.solarProduction, ...(siteConfig.solarExtra ?? [])] : []) {
+    const device = regs.entities.find((e) => e.entity_id === p.id)?.device_id;
+    const w = device ? omvormerUitType(regs.devices.find((d) => d.id === device)?.model) : null;
+    if (w != null) uit[p.id] = w;
+  }
+  return uit;
+}
+
+/**
+ * De meting per dakvlak (besluit 254, stap 4): per meter zijn vlakken uit zijn
+ * eigen opbrengst. Vlakken zonder meter horen bij de enige omvormer, of, als
+ * geen enkel vlak een meter heeft, bij alle omvormers samen. Bewaard tot er
+ * iets verandert.
+ */
+let vlakMetingBewaard: { sleutel: string; uit: { perLetter: Record<string, VlakStand>; verdeling: Record<string, Verdeling>; achter: Achter | null } } | null = null;
+function vlakMetingNu(): { perLetter: Record<string, VlakStand>; verdeling: Record<string, Verdeling>; achter: Achter | null } | null {
+  const d = connectionStore?.current?.daken;
+  const cfg = siteConfig;
+  if (!d?.vlakken.length || !location || !cfg || !liggingRijen) return null;
+  const ids = [...liggingPerId.keys()];
+  const grenzen = grenzenGevonden();
+  const sleutel = JSON.stringify([liggingRijen.at, location, d.vlakken, d.grenzen ?? null, grenzen]);
+  if (vlakMetingBewaard?.sleutel === sleutel) return vlakMetingBewaard.uit;
+  const zonderMeter = d.vlakken.every((v) => v.meter == null);
+  const groepen = new Map<string, DakVlak[]>();
+  for (const v of d.vlakken) {
+    const id = v.meter ?? (ids.length === 1 ? ids[0]! : zonderMeter ? '' : null);
+    if (id == null || (id !== '' && !liggingPerId.has(id))) continue;
+    groepen.set(id, [...(groepen.get(id) ?? []), v]);
+  }
+  const perLetter: Record<string, VlakStand> = {};
+  const verdeling: Record<string, Verdeling> = {};
+  const meterGroepen: MeterGroep[] = [];
+  for (const [id, vlakken] of groepen) {
+    const rijen = id === '' ? liggingRijen.rijen : liggingPerId.get(id)!;
+    const grens = id === '' ? omvormerGevonden() : (d.grenzen?.[id] ?? grenzen[id] ?? (ids.length === 1 ? (d.omvormerW ?? omvormerGevonden()) : null));
+    const m = meetVlakken(rijen, vlakken, location, grens);
+    if (m) Object.assign(perLetter, m.vlakken);
+    // Verdelen met de stand waar de berekening mee rekent.
+    const nu = metMeting({ ...d, vlakken }, perLetter).vlakken;
+    const v = verdeelDag(rijen, nu, location, cfg.timezone, Date.now());
+    if (v) verdeling[id || 'samen'] = v;
+    meterGroepen.push({ id, vlakken: nu, rows: rijen, grensW: grens });
+  }
+  // Een vlak dat achterblijft (stap 5): per meter, en per deel van de dag.
+  const achter = achterblijven(meterGroepen, location, cfg.timezone);
+  vlakMetingBewaard = { sleutel, uit: { perLetter, verdeling, achter } };
+  return vlakMetingBewaard.uit;
+}
+
 let metingBewaard: { sleutel: string; meting: Meting | null } | null = null;
 /** De ligging gemeten uit de opbrengst, of null zonder heldere dag; bewaard tot er iets verandert. */
+/**
+ * Wat de meting over het dak mag aannemen. Met bewaarde daken (besluit 254)
+ * zoekt hij vrij, één vlak of twee tegenover elkaar, met het aantal panelen op
+ * het hoofddak: anders stuurt wat de bewoner bij een vlak invulde de meting,
+ * en kan hij niet meer zeggen dat het anders ligt.
+ */
+function metingPanelen(a: ConnectionAnswers | null): PanelenAntwoord {
+  const hoofd = (a?.daken?.vlakken ?? []).filter((v) => v.plek === 'hoofddak' || v.plek === 'dwarskap');
+  if (hoofd.length) return { ligging: null, aantal: Math.min(200, hoofd.reduce((s, v) => s + panelenVan(v), 0)), voorkant: null, achterkant: null };
+  return a?.panelen ?? { ligging: null, aantal: null, voorkant: null, achterkant: null };
+}
+
 function metingNu(): Meting | null {
   const r = liggingRijen;
   const cfg = siteConfig;
   if (!r || !location || !cfg) return null;
   const a = connectionStore?.current ?? null;
-  const panelen = a?.panelen ?? { ligging: null, aantal: null, voorkant: null, achterkant: null };
+  const panelen = metingPanelen(a);
   const omvormerW = a?.dak?.omvormerW ?? omvormerGevonden();
   const sleutel = JSON.stringify([r.at, location, panelen, omvormerW]);
   if (metingBewaard?.sleutel !== sleutel) metingBewaard = { sleutel, meting: meetLigging(r.rijen, location, panelen, { timeZone: cfg.timezone, omvormerW }) };
@@ -1094,6 +1167,10 @@ function metLigging(c: SiteConfig): SiteConfig {
     panelen: a?.panelen ?? null,
     voorkantZon: a?.voorkantZon ?? null,
     omvormerGevonden: omvormerGevonden(),
+    // Daken en panelen (besluit 254): elk vlak apart, en de andere daken tellen mee; gemeten volgt de meting (stap 4).
+    daken: a?.daken ? metMeting(a.daken, vlakMetingNu()?.perLetter ?? {}) : null,
+    elders: a?.elders ?? null,
+    grenzen: grenzenGevonden(),
   };
   // Hetzelfde object zolang er niets verandert: de weercache kijkt ernaar.
   const sleutel = JSON.stringify(input);
@@ -1141,7 +1218,13 @@ function meldingenRonde(): void {
     huis: h,
     states: allStates,
     addOn: version.installatie === 'add-on',
-    panelenVoorstel: connectionStore?.current?.dak == null && metingNu() != null,
+    // Met bewaarde daken (besluit 254) is er niets meer te bevestigen.
+    panelenVoorstel: connectionStore?.current?.dak == null && !connectionStore?.current?.daken?.vlakken.length && metingNu() != null,
+    // Een vlak dat op minstens drie zonnige dagen achterbleef (stap 5).
+    dakAchter: (() => {
+      const a = vlakMetingNu()?.achter;
+      return a && a.dagen >= 3 ? { letter: a.letter, wanneer: a.wanneer, minderPct: a.minderPct, eigenMeter: a.eigenMeter } : null;
+    })(),
     winterdagen: analyse?.latest?.dataset?.seizoenen?.find((s) => s.seizoen === 'winter')?.dagen ?? null,
     profiel: runner?.latest?.explanation.profile ?? null,
     hoofd: bewonersStore ? hoofdVan(bewonersStore.current) : null,
@@ -1356,6 +1439,70 @@ const historie = new Historie({
 });
 const historieVan = (vanMs: number, totMs: number) => historie.van(vanMs, totMs);
 
+/**
+ * De opbrengst per dakvlak over een periode (besluit 254, stap 5): per uur wat
+ * elke meter gemiddeld mat, uit de statistiek van Home Assistant, verdeeld naar
+ * de heldere lucht per vlak. Een half uur bewaard per periode.
+ */
+const dakenOpbrengstBewaard = new Map<string, { at: number; uit: { vlakken: { letter: string; plek: string; naam: string | null; azimuthDeg: number; opstelling: string; aantal: number; kWh: number }[]; achter: Achter | null } }>();
+async function dakenOpbrengst(vanMs: number, totMs: number): Promise<{ vlakken: { letter: string; plek: string; naam: string | null; azimuthDeg: number; opstelling: string; aantal: number; kWh: number }[]; achter: Achter | null } | null> {
+  const a = connectionStore?.current;
+  const ids = siteConfig?.solarProduction ? [siteConfig.solarProduction.id, ...(siteConfig.solarExtra ?? []).map((p) => p.id)] : [];
+  if (!a?.daken?.vlakken.length || !location || !ids.length) return null;
+  const d = metMeting(a.daken, vlakMetingNu()?.perLetter ?? {});
+  const tot = Math.min(totMs, Date.now());
+  const sleutel = JSON.stringify([vanMs, tot - (tot % 1_800_000), d.vlakken]);
+  const b = dakenOpbrengstBewaard.get(sleutel);
+  if (b && Date.now() - b.at < 1_800_000) return b.uit;
+  const raw = await client.query<Record<string, { start: number | string; mean?: number | null }[]>>('recorder/statistics_during_period', {
+    start_time: new Date(vanMs).toISOString(),
+    end_time: new Date(tot).toISOString(),
+    statistic_ids: ids,
+    period: 'hour',
+    types: ['mean'],
+    units: { power: 'W' },
+  });
+  const reeks = (id: string): PowerRow[] => (raw?.[id] ?? [])
+    .filter((r) => typeof r.mean === 'number' && Number.isFinite(r.mean))
+    .map((r) => ({ startMs: typeof r.start === 'number' ? r.start : Date.parse(r.start), meanW: r.mean as number }));
+  const groepen = new Map<string, DakVlak[]>();
+  for (const v of d.vlakken) {
+    const id = v.meter ?? (ids.length === 1 ? ids[0]! : '');
+    groepen.set(id, [...(groepen.get(id) ?? []), v]);
+  }
+  // Eén meter voor alle vlakken: de uren van vóór de omvormer uit de zonnemeter in kWh (5 november 2026).
+  const meters = energyStore?.current?.zon ?? [];
+  let kwhPerUur = new Map<number, number>();
+  if (groepen.size === 1 && meters.length) {
+    const kwh = await client.query<Record<string, { start: number | string; change?: number | null }[]>>('recorder/statistics_during_period', {
+      start_time: new Date(vanMs).toISOString(),
+      end_time: new Date(tot).toISOString(),
+      statistic_ids: [...meters],
+      period: 'hour',
+      types: ['change'],
+      units: { energy: 'kWh' },
+    });
+    kwhPerUur = new Map();
+    for (const id of meters) {
+      for (const r of kwh?.[id] ?? []) {
+        if (typeof r.change !== 'number' || !Number.isFinite(r.change)) continue;
+        const t = typeof r.start === 'number' ? r.start : Date.parse(r.start);
+        kwhPerUur.set(t, (kwhPerUur.get(t) ?? 0) + Math.max(0, r.change));
+      }
+    }
+  }
+  const kWh = opbrengstPerVlak(
+    [...groepen].map(([id, vlakken]) => {
+      const rows = id ? reeks(id) : somPerVak(ids.map(reeks), [], true);
+      return { vlakken, rows: kwhPerUur.size ? aanvullenUitMeter(rows, kwhPerUur) : rows };
+    }),
+    location,
+  );
+  const uit = { vlakken: d.vlakken.map((v) => ({ letter: v.letter, plek: v.plek, naam: v.naam ?? null, azimuthDeg: v.azimuthDeg, opstelling: v.opstelling, aantal: panelenVan(v), kWh: kWh[v.letter] ?? 0 })), achter: vlakMetingNu()?.achter ?? null };
+  dakenOpbrengstBewaard.set(sleutel, { at: Date.now(), uit });
+  return uit;
+}
+
 /** Welke rookmelders nu iets zien, met hun kamer (21 oktober 2026). */
 function alarmNu(): AlarmMelder[] {
   const h = houseReport();
@@ -1393,8 +1540,11 @@ const huisNu = (lang: Lang) => {
         lang,
       )
     : null;
-  huisBewaard.set(lang, { sleutel, atMs: Date.now(), huis });
-  return huis;
+  // Een plat dak op het hoofdhuis (issue 131): zoals de bewoner het opgaf bij Daken en panelen.
+  const a = connectionStore?.current;
+  const plat = huis?.ligging && hoofddakPlat(a?.daken, a?.panelen?.ligging) ? { ...huis, ligging: { ...huis.ligging, plat: true } } : huis;
+  huisBewaard.set(lang, { sleutel, atMs: Date.now(), huis: plat });
+  return plat;
 };
 /** Het huis, met de stand in woorden in de taal van de app; zonder taal Nederlands. */
 const houseReport = (lang: Lang = 'nl') => {
@@ -1933,7 +2083,11 @@ if (webPort != null) {
         }
       : {}),
     location: () => location,
+    // De precieze plek alleen na een tik op de kaart (besluit 254); niet bewaard.
+    exacteLocatie: () =>
+      client.query<HaCoreConfig>('get_config').then((c) => (typeof c.latitude === 'number' && typeof c.longitude === 'number' ? { latDeg: c.latitude, lonDeg: c.longitude } : null)),
     historie: historieVan,
+    dakenOpbrengst,
     sluipverbruik,
     house: houseReport,
     ...(lightSwitch ? { lights: lightSwitch } : {}),
@@ -1952,7 +2106,7 @@ if (webPort != null) {
     // Gevoel en toelichting (besluit 84): alleen als er gelogd wordt, want ze
     // horen bij de dataset, en alleen naar een eigen bestand in de logmap.
     ...(logDir !== '' && site
-      ? { feedback: new FeedbackLog({ logDir, zoneIds: site.config.zones.map((z) => z.id) }) }
+      ? { feedback: new FeedbackLog({ logDir, zoneIds: () => (siteConfig ?? site.config).zones.map((z) => z.id) }) }
       : {}),
     ...(uitstelStore ? { uitstel: uitstelStore } : {}),
     ...(bufferStore ? { buffers: bufferStore } : {}),
@@ -2182,6 +2336,8 @@ if (webPort != null) {
               (id) => allStates.get(id),
               (id) => houseRegisters?.entities.find((e) => e.entity_id === id)?.platform ?? null,
               () => allStates.values(),
+              // Opgewekt uit de omvormers (5 november 2026); een meetpunt met een attribuut heeft geen statistiek.
+              () => (siteConfig?.solarProduction ? [siteConfig.solarProduction, ...(siteConfig.solarExtra ?? [])].filter((p) => !p.attribute).map((p) => p.id) : []),
             ),
           },
         } : {}),
@@ -2215,6 +2371,12 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
         answers: store.current,
         meting: metingNu(),
         omvormerGevonden: omvormerGevonden(),
+        // De omtrek uit de kaart kan zodra Home Assistant de plek gaf (besluit 254).
+        kaart: location != null,
+        // De meting per dakvlak en de grens per omvormer (stap 4); de zon van nu voor elk vlak nu (stap 5).
+        vlakMeting: vlakMetingNu(),
+        zonNu: location ? sunPosition(Date.now(), location.latDeg, location.lonDeg) : null,
+        grenzen: grenzenGevonden(),
         inGebruik: {
           netmeter: siteConfig?.power.gridPower ? { afname: siteConfig.power.gridPower.id, terug: siteConfig.power.gridExport?.id ?? null } : null,
           omvormers: siteConfig?.solarProduction ? [siteConfig.solarProduction.id, ...(siteConfig.solarExtra ?? []).map((p) => p.id)] : [],

@@ -87,9 +87,11 @@ function gedaan(id) {
   if (id === 'ha') return (d.klaar?.punten ?? []).length > 0 && d.klaar.punten.every((p) => p.stand !== 'mist');
   if (id === 'buiten') return d.huis?.rond != null;
   if (id === 'meten') return binnen().filter((r) => r.zoneId).every((r) => (r.meetMet ?? []).length > 0);
-  if (id === 'zon') return d.aans?.antwoorden?.panelen?.ligging != null;
-  // Hoe ze liggen (besluit 157): bevestigd, met de hand ingesteld, of geen panelen.
-  if (id === 'ligging') return ['bevestigd', 'configuratie'].includes(d.aans?.ligging?.stand) || d.aans?.antwoorden?.panelen?.ligging === 'geen';
+  if (id === 'zon') return d.aans?.antwoorden?.panelen?.ligging != null || !!d.aans?.daken?.bewaard;
+  // Hoe ze liggen (besluit 157): geen panelen, of met dakvlakken (besluit 254) geen vlak meer geschat.
+  if (d.aans?.antwoorden?.panelen?.ligging === 'geen' && id === 'ligging') return true;
+  if (id === 'ligging' && d.aans?.daken?.bewaard) return d.aans.daken.vlakken.some((v) => v.bron !== 'schatting');
+  if (id === 'ligging') return ['bevestigd', 'configuratie'].includes(d.aans?.ligging?.stand);
   if (id === 'zekering') return d.aans?.antwoorden?.zekering != null;
   // De netmeter (testerronde, november 2026): gekozen, of de regeling heeft er al een.
   if (id === 'vermogen') return vermogens.netNu(d.aans, null) != null;
@@ -232,7 +234,8 @@ function model(stap) {
     net: true,
     stromen: [],
     // Hoe ze liggen (besluit 157): op de panelen, zoals de schets.
-    labels: stap === 'ligging' && d.aans?.ligging?.nu ? [{ bij: 'panelen', titel: d.aans.ligging.nu.richting, toon: 'zon', regels: [`${Math.round(d.aans.ligging.nu.hellingDeg / 5) * 5}° · ${(d.aans.ligging.nu.peakW / 1000).toLocaleString(taal.locale, { maximumFractionDigits: 1 })} kWp`], dx: -40, dy: -60 }] : [],
+    // Met dakvlakken (besluit 254): per vlak zijn letter op het huis, zoals bij Daken en panelen.
+    labels: stap === 'ligging' && d.aans?.daken?.vlakken?.length && a.panelen.ligging !== 'geen' ? dakvlakken.opHetHuis(d.aans.daken, a, tek).labels : stap === 'ligging' && d.aans?.ligging?.nu ? [{ bij: 'panelen', titel: d.aans.ligging.nu.richting, toon: 'zon', regels: [`${Math.round(d.aans.ligging.nu.hellingDeg / 5) * 5}° · ${(d.aans.ligging.nu.peakW / 1000).toLocaleString(taal.locale, { maximumFractionDigits: 1 })} kWp`], dx: -40, dy: -60 }] : [],
   };
 }
 
@@ -1269,7 +1272,6 @@ async function bewaarComfort() {
 }
 
 /* De panelen (besluit 158): eerst of ze er zijn, dan de kant van het dak, dan hoeveel. */
-const DAKKANT = ['voorkant', 'achterkant', 'beide', 'plat', 'weetniet'].map((k) => [k, t(`energie.kant.${k}`)]);
 function antwoorden() {
   const x = d.aans?.antwoorden;
   return {
@@ -1287,36 +1289,77 @@ function antwoorden() {
     elders: { ...(x?.elders ?? {}) },
   };
 }
-let panelenJa = false;
+/** "Weet ik niet" bij de kanten van het hoofddak: één teller, en de meting zoekt de kanten. Alleen op deze pagina. */
+let kantenWeetNiet = false;
+/** Een plaatje per plek, zoals de schets Wand-Inrichten-Daken. */
+const KORT_BEELD = {
+  hoofddak: '<path d="M4 22 22 8l18 14"/><path d="M8 19v13h28V19"/><path d="M26 13l8 6" stroke-width="4" stroke="#4d7eac"/>',
+  uitbouw: '<path d="M4 18 16 8l12 10v14H4z"/><path d="M28 22h12v10H28z"/><path d="M29 21h10" stroke-width="3" stroke="#4d7eac"/>',
+  garage: '<path d="M5 14h34v18H5z"/><path d="M11 32V21h22v11"/><path d="M8 13h28" stroke-width="3" stroke="#4d7eac"/>',
+  grond: '<path d="M4 32h36"/><path d="M8 30 20 16h16L24 30" fill="#4d7eac" stroke="#9cc0e4"/>',
+  carport: '<path d="M5 12h34M8 12v20M36 12v20"/><path d="M7 10h30" stroke-width="3" stroke="#4d7eac"/>',
+  tuinhuis: '<path d="M8 18l14-9 14 9v14H8z"/><path d="M19 32v-8h6v8"/><path d="M24 12l9 6" stroke-width="3" stroke="#4d7eac"/>',
+  gevel: '<path d="M8 6h20v26H8z"/><path d="M28 14l8 3v10l-8-3z" fill="#4d7eac" stroke="#9cc0e4"/>',
+};
+/** Een teller: − het aantal + (het aantal is ook in te typen, voor 48 panelen). */
+const teller = (attr, n, naam) => `<span class="kp-teller"><button type="button" ${attr} data-kort-stap="-1" aria-label="${esc(t('inr.dak.minder', { naam }))}">−</button><input inputmode="numeric" ${attr} value="${n}" aria-label="${esc(t('inr.dak.aantalVan', { naam }))}"><button type="button" ${attr} data-kort-stap="1" aria-label="${esc(t('inr.dak.meer', { naam }))}">+</button></span>`;
+
+/*
+ * De korte stap (besluit 254, stap 3; schets Wand-Inrichten-Daken): alleen
+ * waar panelen liggen en hoeveel. Elke plek wordt een vlak bij Daken en
+ * panelen; richting en helling zoekt SunArc daarna op in wat ze leveren.
+ */
 function zonStap() {
   const a = antwoorden();
+  const dk = d.aans?.daken ?? null;
+  // Ook wat SunArc al afleidt (de meting, het bestand): dat telt nu al mee.
+  const kort = dakvlakken.kortVan(dk);
   const piekW = (d.zon?.panelen ?? []).reduce((som, p) => som + (p.wattpiek ?? 0), 0);
   const meter = (energieNu()?.zon ?? []).length > 0;
   const geen = a.panelen.ligging === 'geen';
-  const ja = !geen && (a.panelen.ligging != null || panelenJa);
-  const gevonden = piekW > 0 ? `<span class="chip gevonden">${esc(t('inr.kwpGevonden', { kwp: nl(piekW / 1000) }))}</span>` : meter ? `<span class="chip gevonden">${esc(t('inr.meterGevonden'))}</span>` : '';
-  const veld = (sleutel, label, waarde) => `<label class="invul"><span>${esc(label)}</span><span class="waarde"><input inputmode="numeric" data-aantal="${sleutel}" value="${waarde ?? ''}" placeholder="${esc(t('inr.invullen'))}" aria-label="${esc(label)}"></span></label>`;
-  const aantallen = !ja || !a.panelen.ligging
-    ? ''
-    : a.panelen.ligging === 'beide'
-      ? `<span class="vraagje">${esc(t('energie.aantal'))}</span><div class="paar">${veld('voorkant', t('energie.kant.voorkant'), a.panelen.voorkant)}${veld('achterkant', t('energie.kant.achterkant'), a.panelen.achterkant)}</div>`
-      : veld('aantal', t('energie.aantal'), a.panelen.aantal);
-  // Ook op een ander dak (besluit 187, 190): de garage, carport of het tuinhuis, als die er zijn.
-  const rond = huismodel.rondNu(d.huis);
-  const plekken = [['garage', t('soort.buiten.garage'), 'garage'], ['carport', t('soort.buiten.carport'), 'carport'], ['tuinhuis', rond.schuur ? t('inr.schuurtje') : t('inr.tuinhuis'), rond.schuur ? 'schuur' : 'tuinhuis']].filter(([w]) => rond[w]);
-  const elders = ja && plekken.length
-    ? `<span class="vraagje">${esc(t('inr.zon.elders'))}</span><div class="lijst">${plekken.map(([w, naam, icoon]) => regel({ ik: icoon, titel: naam, rechts: `<label class="getal"><input inputmode="numeric" data-elders="${w}" value="${a.elders[w] ?? ''}" placeholder="0" aria-label="${esc(t('inr.zon.eldersAantal', { naam }))}"></label>` })).join('')}</div>`
+  // Wat Home Assistant al weet, bij de uitleg (zonder eigen rij: de stap past zo zonder schuiven).
+  const gevonden = piekW > 0 ? ` <span class="chip gevonden">${esc(t('inr.kwpGevonden', { kwp: nl(piekW / 1000) }))}</span>` : meter ? ` <span class="chip gevonden">${esc(t('inr.meterGevonden'))}</span>` : '';
+  const ICOON = (p) => `<svg viewBox="0 0 44 36" fill="none" stroke="#f7b548" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${KORT_BEELD[p]}</svg>`;
+  const meerKanten = kort.kanten >= 2;
+  const plaats = (p) => {
+    const naam = t(p === 'grond' ? 'inr.dak.grond' : `daken.plek.${p}`);
+    const n = kort.aan[p];
+    if (!n) return `<button type="button" class="kp-plaats" data-kort-plek="${p}">${ICOON(p)}<b>${esc(naam)}</b><span class="kp-niet">${esc(t('inr.dak.tikAan'))}</span></button>`;
+    // Bij meer kanten telt het hoofddak per kant, eronder.
+    const onder = p === 'hoofddak' && meerKanten ? `<span class="kp-som">${esc(t('inr.dak.nPanelen', { n }))}</span>` : `${teller(`data-kort-n="${p}"`, n, naam)}`;
+    return `<div class="kp-plaats aan">${ICOON(p)}<b>${esc(naam)}</b>${onder}</div>`;
+  };
+  const hoofd = kort.aan.hoofddak > 0;
+  const kantKeuze = kantenWeetNiet ? 'weetniet' : String(Math.max(1, kort.kanten));
+  const kanten = hoofd
+    ? `<div class="kp-kanten"><b>${esc(t('inr.dak.kantenVraag'))}</b>${[['1', '1'], ['2', '2'], ['3', t('inr.dak.drieOfMeer')], ['weetniet', t('energie.kant.weetniet')]].map(([w, x]) => knop(`data-kort-kanten="${w}"`, x, kantKeuze === w)).join('')}</div>
+      ${meerKanten && !kantenWeetNiet ? `<div class="kp-perkant">${kort.perKant.map((n, i) => `<label class="kp-kant"><span>${esc(dakvlakken.kantNaam(dk, i))}</span>${teller(`data-kort-kant="${i}"`, n, dakvlakken.kantNaam(dk, i))}</label>`).join('')}</div>` : ''}`
     : '';
   return {
     waar: waarVan('zon'),
-    kop: t('inr.zonKop'),
-    uitleg: t('inr.zonZin'),
-    inhoud: `<div class="rijen">
-        ${rij(t('instellingen.panelen'), `${knop('data-panelen="ja"', t('functies.ja'), ja)}${knop('data-panelen="geen"', t('energie.kant.geen'), geen)}${gevonden}`)}
-        ${ja ? rij(t('energie.kantDak'), DAKKANT.map(([w, x]) => knop(`data-dakkant="${w}"`, x, a.panelen.ligging === w)).join('')) : ''}
-      </div>
-      ${aantallen}${elders}${aantallen ? `<p class="zacht" style="padding: 0; margin: 0">${esc(t('inr.nietVerplicht'))}</p>` : ''}`,
+    kop: t('inr.dak.kop'),
+    uitleg: t('inr.dak.zin'),
+    // Geen panelen: een regel onder de plekken; een plek aantikken zet ze weer aan.
+    inhoud: `<div class="kp-plekken">${dakvlakken.KORT_PLEKKEN.map(plaats).join('')}</div>
+      ${geen ? `<p class="kp-geen">${esc(t('inr.dak.geen'))}</p>` : `${kanten}<div class="kp-onder"><button type="button" class="lig-link" data-panelen="geen">${esc(t('daken.geenPanelen'))}</button>${gevonden}</div>`}
+      ${Object.keys(kort.aan).length ? '' : `<div class="kp-tip">${esc(t('inr.dak.tip'))}</div>`}`,
   };
+}
+
+/** Bewaar de vlakken uit de korte stap, met de oude antwoorden erbij voor het huis en Thuis (zoals Daken en panelen). */
+async function bewaarKort(wijziging) {
+  const dk = d.aans?.daken ?? null;
+  const vlakken = dakvlakken.kortNaar(dk ?? { vlakken: [] }, wijziging);
+  const a = antwoorden();
+  const oud = dakvlakken.oudeAntwoorden(vlakken, dk?.voorgevelDeg ?? null, a.panelen);
+  a.panelen = oud.panelen;
+  a.elders = oud.elders;
+  const gebouwen = dk?.tekening ? dakvlakken.gebouwenUit(dk) : [];
+  const grenzen = d.aans?.antwoorden?.daken?.grenzen;
+  const daken = vlakken.length || gebouwen.length
+    ? { vlakken, voorgevelDeg: dk?.voorgevelDeg ?? null, omvormerW: dk?.omvormerW ?? null, gebouwen, omgeving: dk?.tekening?.omgeving ?? [], ...(grenzen && Object.keys(grenzen).length ? { grenzen } : {}) }
+    : null;
+  await bewaarAansluiting(a, daken);
 }
 
 /*
@@ -1356,6 +1399,9 @@ function opzonStap() {
  */
 const ligStaat = { aanpassen: false, concept: null, na: () => teken() };
 function liggingStap() {
+  // Met dakvlakken (besluit 254, stap 3): het voorstel per vlak, Aanpassen opent Daken en panelen.
+  const dk = d.aans?.daken;
+  if (dk?.vlakken?.length && antwoorden().panelen.ligging !== 'geen') return dakVoorstelStap(dk);
   // De antwoorden zoals de stap ze kent, ook als er nog niets bewaard is (besluit 166).
   const k = ligging.kaart(d.aans?.ligging, antwoorden(), ligStaat);
   const rechts = `<span class="rechts lig-knoppen">${k.knoppen}${k.volgende ? `<button type="button" class="knop knop-licht" data-volgende>${esc(t('inr.volgende'))}</button>` : ''}</span>`;
@@ -1365,6 +1411,32 @@ function liggingStap() {
     uitleg: k.uitleg,
     inhoud: `<div class="rijen">${k.inhoud}</div>`,
     voet: [ligStaat.aanpassen ? '' : `<button type="button" class="zachtknop" data-terug>${esc(t('panelen.terug'))}</button>`, rechts],
+  };
+}
+
+/*
+ * Zo liggen ze, denken we (schets Wand-Inrichten-Daken #voorstel): elk vlak
+ * met zijn letter, in de kleur van waar het vandaan komt. Zolang de meting
+ * nog niets vond, zegt de stap dat en kun je door.
+ */
+function dakVoorstelStap(dk) {
+  const gemeten = dk.vlakken.some((v) => v.bron === 'gemeten');
+  const rijen = dk.vlakken.map((v) => {
+    const n = dakvlakken.panelen(v);
+    return `<a class="kp-vlak" href="energie.html#panelen"><span class="kp-letter" style="background: ${dakvlakken.STANDKLEUR[v.bron] ?? dakvlakken.STANDKLEUR.schatting}">${esc(v.letter)}</span><span><b>${esc(dakvlakken.naam(v, dk.vlakken))}</b><small>${esc(dakvlakken.waar(v))} · ${esc(t(`daken.stand.${v.bron}`))}</small></span><em>${esc(t('inr.dak.nPanelen', { n }))}</em></a>`;
+  });
+  // Eén omvormer voor meer vlakken: wat hij meet, gaat naar wat elk vlak bij heldere lucht levert.
+  const perMeter = new Map();
+  for (const v of dk.vlakken) if (v.meter) perMeter.set(v.meter, [...(perMeter.get(v.meter) ?? []), v.letter]);
+  const samen = [...perMeter.values()].find((l) => l.length > 1);
+  const tip = samen ? `<div class="kp-tip">${esc(t('inr.dak.eenMeter', { letters: lijstje(samen) }))}</div>` : '';
+  const rechts = `<span class="rechts"><a class="zachtknop" href="energie.html#panelen">${esc(t('inr.dak.aanpassen'))}</a><button type="button" class="knop knop-licht" data-volgende>${esc(t(gemeten ? 'inr.dak.klopt' : 'inr.volgende'))}</button></span>`;
+  return {
+    waar: waarVan('ligging'),
+    kop: t(gemeten ? 'inr.dak.voorstelKop' : 'inr.dak.wachtKop'),
+    uitleg: t(gemeten ? 'inr.dak.voorstelZin' : 'inr.dak.wachtZin'),
+    inhoud: `<div class="kp-vlakken">${rijen.join('')}</div>${tip}`,
+    voet: [`<button type="button" class="zachtknop" data-terug>${esc(t('panelen.terug'))}</button>`, rechts],
   };
 }
 
@@ -1725,10 +1797,11 @@ function inHuisOnder() {
       : `${ih.fout ? `<p class="mini fout">${esc(t('inr.as.fout', { fout: ih.fout }))}</p>` : ''}<button type="button" class="knop knop-licht" data-inhuis-maak ${kan ? '' : 'disabled'}>${esc(t(ih.fout ? 'inr.as.opnieuw' : 'inr.stem.maak'))}</button>${kan ? '' : `<p class="mini">${esc(t('inr.stem.eerst'))}</p>`}`;
   return `${rijen}${onder}`;
 }
-async function bewaarAansluiting(a) {
+/** `daken`: de vlakken van Daken en panelen (besluit 254); weggelaten blijven ze zoals ze waren, null haalt ze weg. */
+async function bewaarAansluiting(a, daken) {
   const opZon = Object.fromEntries(Object.entries(a.opZon).filter(([, v]) => typeof v === 'boolean'));
   // De netmeter en de omvormers alleen als ze gekozen zijn; anders houdt de dienst wat er stond.
-  const uit = await stuur('api/aansluiting', { panelen: a.panelen, zekering: a.zekering, tarief: a.tarief, verwarming: a.verwarming, voorkantZon: a.voorkantZon, dak: a.dak, elders: a.elders, opZon, opZonUit: a.opZonUit, netmeter: a.netmeter, omvormers: a.omvormers });
+  const uit = await stuur('api/aansluiting', { panelen: a.panelen, zekering: a.zekering, tarief: a.tarief, verwarming: a.verwarming, voorkantZon: a.voorkantZon, dak: a.dak, elders: a.elders, ...(daken !== undefined ? { daken } : {}), opZon, opZonUit: a.opZonUit, netmeter: a.netmeter, omvormers: a.omvormers });
   if (uit) {
     d.aans = uit;
     teken();
@@ -2392,26 +2465,37 @@ document.addEventListener('click', async (e) => {
     await bewaarAansluiting(a);
     return;
   }
-  if (el.dataset.panelen) {
+  if (el.dataset.panelen === 'geen') {
     const a = antwoorden();
-    if (el.dataset.panelen === 'geen') {
-      panelenJa = false;
-      a.panelen = { ligging: 'geen', aantal: null, voorkant: null, achterkant: null };
-      await bewaarAansluiting(a);
-    } else {
-      panelenJa = true;
-      // Van "geen" terug naar ja: de kant is weer open.
-      if (a.panelen.ligging === 'geen') {
-        a.panelen = { ...a.panelen, ligging: null };
-        await bewaarAansluiting(a);
-      } else teken();
+    a.panelen = { ligging: 'geen', aantal: null, voorkant: null, achterkant: null };
+    a.elders = {};
+    // Ook de vlakken van Daken en panelen weg (besluit 254): anders tellen ze nog.
+    await bewaarAansluiting(a, null);
+    return;
+  }
+  // De korte stap Daken (besluit 254, stap 3): een plek aantikken, een teller, de kanten van het hoofddak.
+  if (el.dataset.kortPlek) {
+    const p = el.dataset.kortPlek;
+    const piekW = (d.zon?.panelen ?? []).reduce((som, x) => som + (x.wattpiek ?? 0), 0);
+    const leeg = !Object.keys(dakvlakken.kortVan(d.aans?.daken).aan).length;
+    // Het hoofddak begint bij wat Home Assistant al weet, als het de eerste plek is.
+    const n = p === 'hoofddak' && leeg && piekW > 0 ? Math.max(1, Math.round(piekW / 430)) : p === 'hoofddak' ? 10 : 8;
+    await bewaarKort({ plek: p, n });
+    return;
+  }
+  if (el.dataset.kortStap) {
+    const kort = dakvlakken.kortVan(d.aans?.daken);
+    const stap = Number(el.dataset.kortStap);
+    if (el.dataset.kortN) await bewaarKort({ plek: el.dataset.kortN, n: (kort.aan[el.dataset.kortN] ?? 0) + stap });
+    else if (el.dataset.kortKant) {
+      const i = Number(el.dataset.kortKant);
+      await bewaarKort({ kant: i, n: (kort.perKant[i] ?? 0) + stap });
     }
     return;
   }
-  if (el.dataset.dakkant) {
-    const a = antwoorden();
-    a.panelen = { ...a.panelen, ligging: el.dataset.dakkant };
-    await bewaarAansluiting(a);
+  if (el.dataset.kortKanten) {
+    kantenWeetNiet = el.dataset.kortKanten === 'weetniet';
+    await bewaarKort({ kanten: kantenWeetNiet ? 1 : Number(el.dataset.kortKanten) });
     return;
   }
   if (el.dataset.contract) {
@@ -2647,24 +2731,14 @@ document.addEventListener('change', async (e) => {
   } else if (el.hasAttribute('data-dagvan') || el.hasAttribute('data-dagtot')) {
     comfortKeuze = { ...comfortNu(), [el.hasAttribute('data-dagvan') ? 'dag' : 'avond']: Number(el.value) };
     await bewaarComfort();
-  } else if (el.dataset.elders) {
-    // Panelen op een ander dak (besluit 187); leeg of 0 is geen.
+  } else if (el.matches('input[data-kort-n], input[data-kort-kant]')) {
+    // Een aantal getypt in de korte stap Daken; 0 of leeg haalt een plek weg.
     const v = el.value.trim();
     const n = v === '' ? 0 : Number(v);
     if (!(Number.isInteger(n) && n >= 0 && n <= 200)) return zeg(t('inr.aantal200'), true);
     el.blur();
-    const a = antwoorden();
-    if (n) a.elders[el.dataset.elders] = n;
-    else delete a.elders[el.dataset.elders];
-    await bewaarAansluiting(a);
-  } else if (el.dataset.aantal) {
-    const v = el.value.trim();
-    const n = v === '' ? null : Number(v);
-    if (n != null && !(Number.isInteger(n) && n >= 1 && n <= 200)) return zeg(t('inr.aantal200'), true);
-    el.blur();
-    const a = antwoorden();
-    a.panelen = { ...a.panelen, [el.dataset.aantal]: n };
-    await bewaarAansluiting(a);
+    if (el.dataset.kortN) await bewaarKort({ plek: el.dataset.kortN, n });
+    else await bewaarKort({ kant: Number(el.dataset.kortKant), n });
   } else if (el.dataset.prijs) {
     const v = el.value.trim().replace(',', '.');
     const n = v === '' ? null : Number(v);
@@ -2696,7 +2770,7 @@ document.addEventListener('input', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   if (e.target.matches?.('[data-nieuwnaam]')) document.querySelector(`${app.zicht()} [data-voegtoe]`)?.click();
-  else if (e.target.matches?.('[data-naam], [data-bnaam], [data-prijs], [data-aantal], [data-elders], [data-zonenaam], [data-nieuwezone]')) e.target.blur();
+  else if (e.target.matches?.('[data-naam], [data-bnaam], [data-prijs], [data-kort-n], [data-kort-kant], [data-zonenaam], [data-nieuwezone]')) e.target.blur();
 });
 
 addEventListener('standwissel', teken);

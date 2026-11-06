@@ -25,7 +25,11 @@ import type { HaDevice, HaRegistryEntity } from '../adapters/homeassistant/disco
 import type { SiteConfig } from '../core/model.js';
 import type { Lang } from './assistant.js';
 import { heatStoreConfig, type FoundHeatStore } from './buffers-vinden.js';
-import { VOORKANT_ZON, aantalVan, dakUitAanpassing, dakUitMeting, liggingView, type Dak, type LiggingView, type Meting, type VoorkantZon } from './ligging.js';
+import { tekening, type Tekening } from './daken-tekening.js';
+import { metMeting, nuPerVlak, type Achter, type VlakStand, type Verdeling } from './meten-vlakken.js';
+import type { SunPosition } from '../core/sun.js';
+import { leesDaken, piekVan, type Daken, type DakVlak } from './daken.js';
+import { VOORKANT_ZON, aantalVan, dakUitAanpassing, dakUitMeting, dakenNu, liggingView, type Dak, type LiggingView, type Meting, type VoorkantZon } from './ligging.js';
 
 export const CONNECTION_FILE = 'aansluiting.json';
 
@@ -110,6 +114,11 @@ export interface ConnectionAnswers {
    * van de ligging blijft over het huis gaan.
    */
   readonly elders?: Elders;
+  /**
+   * Daken en panelen (besluit 254): elk vlak apart. Weg of null: de vlakken
+   * volgen uit `panelen`, `dak` en `elders`. Bewaard gaat het daarvoor.
+   */
+  readonly daken?: Daken | null;
   /** De stroommeters zoals bij het bewaren gevonden, zodat de regeling ze bij het starten kent. */
   readonly fasen: readonly FoundPhase[];
   readonly apparaten: readonly (FoundAppliance & { readonly opZon: boolean })[];
@@ -571,6 +580,11 @@ export function validateConnection(
     return { ok: false, reden: 'de omvormers zijn tot acht verschillende sensoren met een vermogen' };
   }
 
+  // Daken en panelen (besluit 254): niet meegestuurd blijft zoals het was.
+  const dakenRaw = b['daken'] === undefined ? (vorige?.daken ?? null) : b['daken'];
+  const daken = leesDaken(dakenRaw);
+  if ('fout' in daken) return { ok: false, reden: daken.fout };
+
   return {
     ok: true,
     answers: {
@@ -582,6 +596,7 @@ export function validateConnection(
       voorkantZon: voorkantZon as VoorkantZon | null,
       dak,
       ...(Object.keys(elders).length ? { elders } : {}),
+      ...(daken.daken ? { daken: daken.daken } : {}),
       fasen: [...found.fasen],
       apparaten: found.apparaten.map((a) => ({ ...a, opZon: opZonRaw[a.id] === true })),
       ...((found.buffers ?? []).length ? { buffers: found.buffers!.map((b) => ({ ...b, opZon: opZonRaw[b.id] === true })) } : {}),
@@ -730,7 +745,14 @@ export interface ConnectionView {
     /** De netmeter en de omvormers die de bewoner koos (testerronde, november 2026). */
     readonly netmeter: Netmeter | null;
     readonly omvormers: readonly string[];
+    /** Daken en panelen zoals de bewoner ze bewaarde (besluit 254), of null. */
+    readonly daken: Daken | null;
   } | null;
+  /**
+   * Daken en panelen (besluit 254): elk vlak, bewaard of uit wat er al was,
+   * met wat de meting over het hoofddak zegt en de meters om uit te kiezen.
+   */
+  readonly daken: DakenView;
   /**
    * De sensoren met een vermogen van nu, om uit te kiezen, met wat ze nu zeggen;
    * en welke de regeling bij de laatste start gebruikte.
@@ -759,6 +781,71 @@ export interface ConnectionView {
   readonly volgendeStart: boolean;
 }
 
+/** Daken en panelen op de pagina (besluit 254). */
+export interface DakenView {
+  /** Bewaard door de bewoner, of nog uit wat er al was. */
+  readonly bewaard: boolean;
+  readonly vlakken: readonly (DakVlak & { readonly peakW: number })[];
+  readonly voorgevelDeg: number | null;
+  readonly omvormerW: number | null;
+  /** Wat de meting over het hoofddak zegt (besluit 157), om per vlak naast te leggen. */
+  readonly meting: readonly { readonly azimuthDeg: number; readonly tiltDeg: number; readonly peakW: number }[] | null;
+  /** De meters om uit te kiezen: alleen de omvormers die bij Omvormers en meters
+   * gekozen zijn (Ricardo, 5 november 2026), met hun naam en wat ze hooguit
+   * leveren (stap 4): zelf ingevuld, uit het typenummer, of onbekend.
+   */
+  readonly meters: readonly { readonly id: string; readonly naam: string; readonly grensW: number | null; readonly grensBron: 'zelf' | 'type' | null }[];
+  /** Wat de meting per vlak vond (stap 4), voor het voorstel bij een vlak dat de bewoner zelf instelde. */
+  readonly vlakMeting: Readonly<Record<string, VlakStand>>;
+  /** Per meter de laatste hele dag, verdeeld per vlak. */
+  readonly verdeling: Readonly<Record<string, Verdeling>>;
+  /** Wat elk vlak nu levert en bij heldere lucht zou leveren, in W (stap 5). */
+  readonly nu: Readonly<Record<string, { readonly w: number | null; readonly helderW: number }>>;
+  /** Een vlak dat achterblijft (stap 5), of null. */
+  readonly achter: Achter | null;
+  /** Het huis van boven (stap 2a): de gebouwen, hun dakvlakken en waar elk vlak ligt. */
+  readonly tekening: Tekening;
+  /** Kan SunArc de omtrek uit de kaart halen (is de plek van het huis bekend)? */
+  readonly kaart: boolean;
+}
+
+function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): DakenView {
+  const { daken, bewaard } = dakenNu(i);
+  const ids = c.answers?.omvormers?.length ? c.answers.omvormers : (c.inGebruik?.omvormers ?? []);
+  const naam = (id: string) => c.found.vermogens?.find((v) => v.id === id)?.naam ?? id;
+  // Leest SunArc één omvormer, dan meet die alles wat nog niet bewaard is.
+  const vanzelf = !bewaard && ids.length === 1 ? ids[0]! : null;
+  return {
+    bewaard,
+    vlakken: daken.vlakken.map((v) => ({ ...v, meter: v.meter ?? vanzelf, peakW: Math.round(piekVan(v)) })),
+    voorgevelDeg: daken.voorgevelDeg,
+    omvormerW: daken.omvormerW,
+    meting: c.meting ? c.meting.vlakken.map((v) => ({ azimuthDeg: Math.round(v.azimuthDeg) % 360, tiltDeg: Math.round(v.tiltDeg), peakW: v.peakW })) : null,
+    meters: ids.map((id) => {
+      const zelf = daken.grenzen?.[id];
+      const type = c.grenzen?.[id] ?? (ids.length === 1 ? (daken.omvormerW ?? c.omvormerGevonden ?? null) : null);
+      return { id, naam: naam(id), grensW: zelf ?? type ?? null, grensBron: zelf != null ? ('zelf' as const) : type != null ? ('type' as const) : null };
+    }),
+    vlakMeting: c.vlakMeting?.perLetter ?? {},
+    verdeling: c.vlakMeting?.verdeling ?? {},
+    // Per meter wat hij nu meet, verdeeld over zijn vlakken (stap 5).
+    nu: (() => {
+      if (!c.zonNu) return {};
+      const w = (id: string) => c.found.vermogens?.find((x) => x.id === id)?.w ?? null;
+      const groepen = new Map<string, DakVlak[]>();
+      for (const v of daken.vlakken) {
+        const id = v.meter ?? (ids.length === 1 ? ids[0]! : '');
+        groepen.set(id, [...(groepen.get(id) ?? []), v]);
+      }
+      const somW = ids.map(w).some((x) => x == null) ? null : ids.reduce((s, id) => s + (w(id) ?? 0), 0);
+      return nuPerVlak([...groepen].map(([id, vlakken]) => ({ vlakken, meterW: id ? w(id) : somW })), c.zonNu);
+    })(),
+    achter: c.vlakMeting?.achter ?? null,
+    tekening: tekening(daken),
+    kaart: c.kaart ?? false,
+  };
+}
+
 export interface ConnectionContext {
   /** De configuratie zoals in het bestand, zonder de antwoorden. */
   readonly base: SiteConfig;
@@ -774,10 +861,30 @@ export interface ConnectionContext {
   readonly meting?: Meting | null;
   /** De omvormer uit zijn typenummer in Home Assistant. */
   readonly omvormerGevonden?: number | null;
+  /** Kan de omtrek uit de kaart komen (besluit 254)? */
+  readonly kaart?: boolean;
+  /** De meting per dakvlak en wat elke meter gisteren mat, verdeeld per vlak (stap 4). */
+  readonly vlakMeting?: { readonly perLetter: Readonly<Record<string, VlakStand>>; readonly verdeling: Readonly<Record<string, Verdeling>>; readonly achter?: Achter | null } | null;
+  /** De zon van nu, voor wat elk vlak nu levert (stap 5). */
+  readonly zonNu?: SunPosition | null;
+  /** Wat elke omvormer hooguit levert, uit zijn typenummer, per sensor. */
+  readonly grenzen?: Readonly<Record<string, number>>;
 }
 
 export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): ConnectionView {
   const grid = c.base.grid;
+  const liggingIn = {
+    configuratie: c.base.geometry,
+    dak: c.answers?.dak ?? null,
+    meting: c.meting ?? null,
+    panelen: c.answers?.panelen ?? null,
+    voorkantZon: c.answers?.voorkantZon ?? null,
+    omvormerGevonden: c.omvormerGevonden ?? null,
+    // Gemeten volgt vanzelf (stap 4): de pagina laat zien waar de berekening mee rekent.
+    daken: c.answers?.daken ? metMeting(c.answers.daken, c.vlakMeting?.perLetter ?? {}) : null,
+    elders: c.answers?.elders ?? null,
+    grenzen: c.grenzen ?? null,
+  };
   const planes = c.base.geometry?.solarPlanes ?? [];
   const brand = c.solar ? solarBrand(c.solar.platform, lang) : null;
   const relevant = (a: ConnectionAnswers | null) =>
@@ -796,18 +903,13 @@ export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): Connect
           opZonUit: c.answers.opZonUit ?? [],
           netmeter: c.answers.netmeter ?? null,
           omvormers: c.answers.omvormers ?? [],
+          daken: c.answers.daken ?? null,
         }
       : null,
     vermogens: c.found.vermogens ?? [],
     inGebruik: c.inGebruik ?? { netmeter: null, omvormers: [] },
-    ligging: liggingView({
-      configuratie: c.base.geometry,
-      dak: c.answers?.dak ?? null,
-      meting: c.meting ?? null,
-      panelen: c.answers?.panelen ?? null,
-      voorkantZon: c.answers?.voorkantZon ?? null,
-      omvormerGevonden: c.omvormerGevonden ?? null,
-    }, lang),
+    ligging: liggingView(liggingIn, lang),
+    daken: dakenView(liggingIn, c),
     gevonden: {
       fasen: c.found.fasen.map((f) => f.id),
       apparaten: [...c.found.apparaten.map(({ id, naam, soort }) => ({ id, naam, soort })), ...(c.found.buffers ?? []).map(({ id, naam, soort }) => ({ id, naam, soort }))],

@@ -562,6 +562,39 @@
   .dok .voorbeeld::after { content: '”'; }
   .dok .voorbeeld:hover { color: var(--tekst); }
 </style>
+  <style>
+    /* De zon op je daken (besluit 254, stap 5, schets Wand-Daken-Elders). */
+    .dk-bladachter { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgb(var(--nacht) / 0.55); padding: 16px; }
+    .dk-blad { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .dk-bladkop { display: flex; justify-content: space-between; align-items: center; }
+    .dk-bladkop h2 { margin: 0; font: 600 22px var(--kop); }
+    .dk-sluit { width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgb(var(--wit) / 0.08); color: var(--tekst); font-size: 20px; cursor: pointer; }
+    .dk-blad .klein { margin: 0; font-size: 12.5px; color: var(--gedempt); }
+    .dk-bladboven { position: relative; height: 240px; border-radius: 16px; background: rgb(var(--wit) / 0.03); overflow: hidden; }
+    .dk-boven { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .dk-romp { fill: rgb(var(--wit) / 0.06); stroke: rgb(var(--wit) / 0.45); }
+    .dk-dv { fill: rgb(var(--wit) / 0.05); stroke: rgb(var(--wit) / 0.28); }
+    .dk-dv.vol { fill: rgba(247, 181, 72, 0.07); }
+    .dk-paneel { fill: #3f6f9e; stroke: #9cc0e4; }
+    .dk-nok { stroke: rgb(var(--wit) / 0.6); }
+    .dk-pijl { stroke: #ffd27a; stroke-linecap: round; }
+    .dk-badge text { fill: #0b1424; font-weight: 800; font-family: var(--kop); }
+    .dk-gnaam rect { fill: rgb(var(--nacht) / 0.78); stroke: rgb(var(--wit) / 0.2); stroke-width: 0.08; }
+    .dk-gnaam text { fill: var(--zacht); font-weight: 700; font-family: var(--romp); }
+    .dk-straat { fill: rgb(var(--wit) / 0.4); font-weight: 700; font-family: var(--romp); }
+    .dk-kand polygon { fill: rgb(var(--wit) / 0.03); stroke: rgb(var(--wit) / 0.22); }
+    .dk-kand text { fill: rgb(var(--wit) / 0.35); }
+    .dk-blad [role="button"] { pointer-events: none; }
+    .dk-nurijen { display: flex; flex-direction: column; gap: 8px; }
+    .dk-nurij { display: grid; grid-template-columns: 24px 120px minmax(0, 1fr) 70px; gap: 10px; align-items: center; font-size: 13.5px; }
+    .dk-letter { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font: 800 12px var(--kop); color: #0b1424; }
+    .dk-staaf { position: relative; height: 12px; border-radius: 6px; background: rgb(var(--wit) / 0.06); overflow: visible; }
+    .dk-staaf i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; }
+    .dk-staaf em { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgb(var(--wit) / 0.65); }
+    .dk-nurij b { text-align: right; font: 600 15px var(--kop); white-space: nowrap; }
+    .dk-opval { margin: 0; padding: 10px 12px; border-radius: 14px; background: rgba(255, 138, 107, 0.08); border: 1px solid rgba(255, 138, 107, 0.25); font-size: 13px; color: var(--zacht); line-height: 1.45; }
+    @media (max-width: 560px) { .dk-nurij { grid-template-columns: 24px 90px minmax(0, 1fr) 60px; } }
+  </style>
 </head>
 <body class="lucht lucht-dag">
   <div id="wand" class="wand">
@@ -709,6 +742,7 @@
   <script src="eigen.js"></script>
   <script src="niemand.js"></script>
   <script src="buitenblad.js"></script>
+  <script src="dakvlakken.js"></script>
   <script src="tedoen.js"></script>
   <script src="thuis.js"></script>
 </body>

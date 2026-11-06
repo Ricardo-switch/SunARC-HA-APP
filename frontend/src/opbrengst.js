@@ -18,6 +18,9 @@ const keuze = { soort: 'maand', datum: null };
 let data = null;
 let melding = null;
 let zon = null;
+/** Per dak (besluit 254, stap 5): de vlakken van deze periode, en of Per dak aan staat. */
+let daken = null;
+let perDak = false;
 
 const getal = (n) => nl(n, Math.abs(n) >= 100 ? 0 : 1);
 /** Een meternaam zoals de bewoner hem zegt: "Airco woonkamer", niet "Airconditioning woonkamer". */
@@ -35,6 +38,8 @@ const sluipIngang = () => (sluip
   : '');
 
 async function laad() {
+  // Nu (5 november 2026): live, uit de meters van dit moment.
+  if (keuze.soort === 'nu') return laadNu();
   const q = new URLSearchParams({ soort: keuze.soort, ...(keuze.datum ? { datum: keuze.datum } : {}) });
   try {
     const res = await fetch(`api/opbrengst?${q}`, { cache: 'no-store', headers: { 'x-taal': taal.code } });
@@ -54,6 +59,13 @@ async function laad() {
     melding = t('kamer.geenVerbinding');
   }
   teken();
+  // Per dak (besluit 254, stap 5): dezelfde periode, los; zonder daken blijft het leeg.
+  haal(`api/opbrengst/daken?${q}`).then((x) => {
+    daken = x;
+    teken();
+  }).catch(() => {
+    daken = null;
+  });
 }
 
 /* ------------------------------------------------------------ de delen */
@@ -117,12 +129,43 @@ function cijfers(r, klein = false) {
   return `${stroom}${kosten}${gas}`;
 }
 
+/**
+ * De naam van een dakvlak (Ricardo, 5 november 2026), zoals bij Daken en
+ * panelen: de eigen naam, of de plek; met meer vlakken op dezelfde plek de
+ * richting erbij ("Hoofddak oost").
+ */
+const RICHTINGEN = ['n', 'no', 'o', 'zo', 'z', 'zw', 'w', 'nw'];
+function dakNaam(v, alle) {
+  if (v.naam) return v.naam;
+  const plek = t(`daken.plek.${v.plek}`);
+  if (v.azimuthDeg == null || !alle.some((x) => x.letter !== v.letter && x.plek === v.plek && !x.naam)) return plek;
+  const kort = (d) => t(`panelen3.kort.${RICHTINGEN[Math.round((((d % 360) + 360) % 360) / 45) % 8]}`);
+  const richting = v.opstelling === 'plat' ? t('daken.opstelling.plat') : v.opstelling === 'oostwest' ? `${kort(v.azimuthDeg)}-${kort(v.azimuthDeg + 180)}` : kort(v.azimuthDeg);
+  return `${plek} ${richting.toLowerCase()}`;
+}
+
 function panelen(r) {
   if (!r.zon || r.geschat) return '';
   const z = r.zon;
   const zelf = z.opgewektKwh > 0 ? (z.zelfKwh / z.opgewektKwh) * 100 : 0;
+  // Samen of per dak (besluit 254, stap 5): bij meer dakvlakken.
+  const vlakken = daken?.vlakken ?? [];
+  const wissel = vlakken.length > 1 ? `<div class="blik" role="group" aria-label="${esc(t('opbrengst.daken.wissel'))}" style="margin-top: 8px"><button type="button" data-perdak="0" aria-pressed="${!perDak}">${esc(t('opbrengst.daken.samen'))}</button><button type="button" data-perdak="1" aria-pressed="${perDak}">${esc(t('opbrengst.daken.perDak'))}</button></div>` : '';
+  if (perDak && vlakken.length > 1) {
+    const top = Math.max(1, ...vlakken.map((v) => v.kWh));
+    const achter = daken.achter?.letter;
+    const rij = (v) => `<div class="dakrij"><span class="dakletter" style="background: ${achter === v.letter ? '#ff8a6b' : 'var(--zon)'}">${esc(v.letter)}</span><span class="daknaam">${esc(dakNaam(v, vlakken))}<span class="dakstaaf"><i style="width: ${((v.kWh / top) * 100).toFixed(1)}%; background: ${achter === v.letter ? '#ff8a6b' : 'var(--zon)'}"></i></span></span><b>${getal(v.kWh)} kWh<small>${esc(t('opbrengst.daken.perPaneel', { kwh: nl(v.aantal ? v.kWh / v.aantal : 0, 1) }))}</small></b></div>`;
+    return `<section class="glas kaart">
+    <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="kop-3">${esc(t('opbrengst.panelen'))}</h2><span class="getal zon-t" style="font-size: 22px">${getal(z.opgewektKwh)} kWh</span></div>
+    ${wissel}
+    <div class="dakrijen">${vlakken.map(rij).join('')}</div>
+    <p class="mini" style="margin: 8px 0 0">${esc(t('opbrengst.daken.uitleg'))}</p>
+    ${daken.achter ? `<p class="dakopval">${esc(dakvlakken.achterZin(daken.achter))}</p>` : ''}
+  </section>`;
+  }
   return `<section class="glas kaart">
     <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="kop-3">${esc(t('opbrengst.panelen'))}</h2><span class="getal zon-t" style="font-size: 22px">${getal(z.opgewektKwh)} kWh</span></div>
+    ${wissel}
     <div class="verdeel" style="height: 10px; margin-top: 12px"><i style="width: ${zelf.toFixed(1)}%; background: var(--zon)"></i><i style="width: ${(100 - zelf).toFixed(1)}%; background: var(--mint)"></i></div>
     <div class="klein" style="margin-top: 8px; display: flex; justify-content: space-between"><span>${z.opgewektKwh > 0 ? taal.html('opbrengst.zelfPct', { kwh: getal(z.zelfKwh), pct: Math.round(zelf) }) : esc(t('opbrengst.zelf', { kwh: getal(z.zelfKwh) }))}</span><span>${esc(t('opbrengst.naarNet', { kwh: getal(z.terugKwh) }))}</span></div>
     ${z.besteDag ? `<p class="mini" style="margin: 8px 0 0">${esc(t('opbrengst.besteDag', { dag: z.besteDag.label, kwh: getal(z.besteDag.kwh) }))}</p>` : ''}
@@ -142,31 +185,111 @@ function verwachtRegel(v, soort) {
   return `<p class="mini" style="margin: 6px 0 0">${esc(zin)}</p>`;
 }
 
-function sankeyVan(r, breedte, hoogte, links, rechts, vul = false) {
-  const stroom = r.stromen.filter((s) => s.van !== 'gas' && s.kwh > 0.05);
-  if (!stroom.length) return `<p class="klein">${esc(t('opbrengst.nietsGemeten'))}</p>`;
-  const namen = new Map(r.apparaten.map((a) => [a.id, a.rest ? t('opbrengst.rest') : kort(a.naam)]));
-  const doelen = [...new Set(stroom.map((s) => s.naar))].map((id, i) => ({
-    id,
-    naam: id === 'terug' ? (r.geschat ? t('opbrengst.naarHetNetGeschat') : t('opbrengst.naarHetNet')) : namen.get(id) ?? id,
-    kleur: id === 'terug' ? TERUG : id === 'rest' ? NET : KLEUREN[i % KLEUREN.length],
-  }));
+/** De kleuren van de dakvlakken, zoals bij Per dak. */
+const DAKKLEUR = ['#F7B548', '#F3D48A', '#D98C3A', '#FFC970'];
+
+/** Wat een paar kostenregels samen zijn, of null zonder prijs. */
+function kostenVan(r, soorten) {
+  const l = r.kosten.regels.filter((x) => soorten.includes(x.soort) && x.euro != null);
+  return l.length ? l.reduce((s, x) => s + x.euro, 0) : null;
+}
+
+/**
+ * Altijd aan (sluipverbruik, besluit 192): het gewone verbruik 's nachts over
+ * de uren van de periode, uit de rest van het huis. Een schatting: hooguit 90%
+ * van de rest.
+ */
+function altijdAan(r) {
+  const rest = r.apparaten.find((a) => a.rest);
+  if (!sluip?.gewoonW || !rest || rest.kwh <= 0 || r.geschat) return null;
+  const uren = Math.max(0, (Math.min(r.periode.totMs, Date.now()) - r.periode.vanMs) / 3_600_000);
+  const kwh = Math.min(rest.kwh * 0.9, (sluip.gewoonW * uren) / 1000);
+  return kwh > 0.05 ? { kwh, deel: kwh / rest.kwh } : null;
+}
+
+/**
+ * Het stroombeeld (schets Wand-Opbrengst-Stromen, 5 november 2026): de zon per
+ * dakvlak als die er zijn, het net met wat het kostte; rechts de apparaten, de
+ * rest van het huis, Altijd aan en terug met wat het opbracht. Wat kleiner is
+ * dan 2%, samen onder Overig.
+ */
+function stroomModel(r) {
+  let stroom = r.stromen.filter((s) => s.van !== 'gas' && s.kwh > 0.05);
+  if (!stroom.length) return null;
+  const altijd = altijdAan(r);
+  if (altijd) stroom = stroom.flatMap((s) => (s.naar === 'rest' ? [{ ...s, kwh: s.kwh * (1 - altijd.deel) }, { ...s, naar: 'altijd', kwh: s.kwh * altijd.deel }] : [s]));
+  const totaal = stroom.reduce((t, s) => t + s.kwh, 0);
+  const perDoel = new Map();
+  for (const s of stroom) perDoel.set(s.naar, (perDoel.get(s.naar) ?? 0) + s.kwh);
+  const klein = new Set([...perDoel].filter(([id, k]) => !['terug', 'rest', 'altijd'].includes(id) && k < totaal * 0.02).map(([id]) => id));
+  if (klein.size === 1) klein.clear();
+  stroom = stroom.map((s) => (klein.has(s.naar) ? { ...s, naar: 'overig' } : s));
+  // De zon per dakvlak, naar hun aandeel in deze periode (besluit 254).
+  const vlakken = (daken?.vlakken ?? []).filter((v) => v.kWh > 0);
+  const dakSom = vlakken.reduce((t, v) => t + v.kWh, 0);
+  const zonDelen = vlakken.length > 1 && dakSom > 0 && !r.geschat
+    ? vlakken.map((v, i) => ({ id: `dak-${v.letter}`, naam: `${v.letter} · ${dakNaam(v, daken?.vlakken ?? [])}`, deel: v.kWh / dakSom, kleur: DAKKLEUR[i % DAKKLEUR.length] }))
+    : [{ id: 'zon', naam: t('vandaag.zon'), deel: 1, kleur: ZON }];
+  const st = stroom.flatMap((s) => (s.van === 'zon' ? zonDelen.map((z) => ({ van: z.id, naar: s.naar, kwh: s.kwh * z.deel })) : [s]));
+  const van = (id, kant) => st.filter((s) => s[kant] === id).reduce((t, s) => t + s.kwh, 0);
+  const zonIn = (id) => st.filter((s) => s.naar === id && s.van !== 'net').reduce((t, s) => t + s.kwh, 0);
+  const netEuro = kostenVan(r, ['stroom', 'normaal', 'dal']);
+  const terugEuro = kostenVan(r, ['terug', 'terug-na']);
   const bronnen = [
-    ...(stroom.some((s) => s.van === 'zon') ? [{ id: 'zon', naam: t('vandaag.zon'), kleur: ZON }] : []),
-    ...(stroom.some((s) => s.van === 'net') ? [{ id: 'net', naam: t('opbrengst.net'), kleur: NET }] : []),
+    ...zonDelen.map((z) => ({ ...z, regels: [{ t: `${getal(van(z.id, 'van'))} kWh` }] })),
+    { id: 'net', naam: t('opbrengst.net'), kleur: NET, regels: [{ t: `${getal(van('net', 'van'))} kWh` }, ...(netEuro != null ? [{ t: euro(netEuro), vet: true }] : [])] },
   ];
-  const schema = sankey.svg({ breedte, hoogte, links, rechts, vul, bronnen, doelen, stromen: stroom, beschrijving: t('opbrengst.sankey') });
+  const namen = new Map(r.apparaten.map((a) => [a.id, a.rest ? t('opbrengst.rest') : kort(a.naam)]));
+  const zonRegel = (id) => {
+    const k = van(id, 'naar');
+    const pct = k > 0 ? Math.round((zonIn(id) / k) * 100) : 0;
+    return [{ t: r.heeft.zon && !r.geschat ? t('opbrengst.stromen.kwhZon', { kwh: getal(k), pct }) : `${getal(k)} kWh` }];
+  };
+  const ids = [...new Set(st.map((s) => s.naar))];
+  const volgorde = (id) => (id === 'terug' ? 4 : id === 'altijd' ? 3 : id === 'rest' ? 2 : id === 'overig' ? 1 : 0);
+  ids.sort((a, b) => volgorde(a) - volgorde(b) || van(b, 'naar') - van(a, 'naar'));
+  const doelen = ids.map((id, i) => {
+    if (id === 'terug') {
+      return { id, naam: r.geschat ? t('opbrengst.naarHetNetGeschat') : t('opbrengst.naarHetNet'), kleur: TERUG, regels: [{ t: `${getal(van(id, 'naar'))} kWh` }, ...(terugEuro != null && terugEuro < 0 ? [{ t: `+ ${euro(-terugEuro)}`, vet: true, kleur: 'var(--mint-t)' }] : [])] };
+    }
+    if (id === 'altijd') return { id, naam: t('opbrengst.stromen.altijd'), kleur: '#FFB39F', regels: zonRegel(id) };
+    if (id === 'overig') return { id, naam: t('opbrengst.stromen.overig'), kleur: 'rgba(233,239,246,0.55)', regels: zonRegel(id) };
+    return { id, naam: namen.get(id) ?? id, kleur: id === 'rest' ? NET : KLEUREN[i % KLEUREN.length], regels: zonRegel(id) };
+  });
+  return { bronnen, doelen, stromen: st };
+}
+
+function sankeyVan(r, breedte, hoogte, links = 104, rechts = 136) {
+  const m = stroomModel(r);
+  if (!m) return `<p class="klein">${esc(t('opbrengst.nietsGemeten'))}</p>`;
+  const schema = stromen.svg({ breedte, hoogte, links, rechts, id: `st${breedte}`, beschrijving: t('opbrengst.sankey'), ...m });
   // Zonder meter (besluit 196): zeggen hoe het geschat is.
   return r.geschat ? `${schema}<p class="mini" style="margin: 14px 0 0">${esc(t('opbrengst.geschatUitleg'))}</p>` : schema;
 }
 
+/** Gas apart onder het stroombeeld: op dezelfde schaal zou het alles wegdrukken. */
+function gasRegel(r) {
+  if (!r.gas || !(r.gas.m3 > 0)) return '';
+  const e = kostenVan(r, ['gas']);
+  return `<div class="gasregel"><svg viewBox="0 0 24 24" fill="none" stroke="#ff8a6b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1 1.5 2 1.5 3 1.5-1.5 1.5-5 1.5-8z"/></svg><span>${taal.html('opbrengst.stromen.gas')}<small>${esc(t('opbrengst.stromen.gasZin'))}</small></span><b>${getal(r.gas.m3)} m³${e != null ? `<small>${euro(e)}</small>` : ''}</b></div>`;
+}
+
 function perApparaat(r) {
   // Zonder meter (besluit 196) is van de rest van het huis alleen de zon bekend: die staat in het schema, niet hier.
-  const lijst = r.apparaten.filter((a) => (a.kwh >= 0.05 || a.rest) && !(a.rest && r.geschat));
+  const altijd = altijdAan(r);
+  const lijst = r.apparaten
+    .filter((a) => (a.kwh >= 0.05 || a.rest) && !(a.rest && r.geschat))
+    .flatMap((a) => (a.rest && altijd
+      ? [
+          { ...a, kwh: a.kwh - altijd.kwh, zonKwh: a.zonKwh * (1 - altijd.deel), netKwh: a.netKwh * (1 - altijd.deel), kosten: a.kosten == null ? null : a.kosten * (1 - altijd.deel) },
+          { ...a, id: 'altijd', naam: t('opbrengst.stromen.altijd'), rest: false, kwh: altijd.kwh, zonKwh: a.zonKwh * altijd.deel, netKwh: a.netKwh * altijd.deel, kosten: a.kosten == null ? null : a.kosten * altijd.deel },
+        ]
+      : [a]))
+    .sort((x, y) => y.kwh - x.kwh);
   if (!lijst.length) return `<h2 class="kop-3">${esc(t('opbrengst.perApparaat'))}</h2><p class="mini" style="margin: 6px 0 0">${esc(t('opbrengst.geenMeters'))}</p>`;
   const rij = (a) => {
     const zonPct = a.kwh > 0 ? (a.zonKwh / a.kwh) * 100 : 0;
-    return `<div class="rij"><div class="boven"><b>${esc(a.rest ? t('opbrengst.rest') : kort(a.naam))}</b><span>${getal(a.kwh)} kWh${a.kosten != null ? `, ${euro(a.kosten)}` : ''}</span></div><div class="verdeel"><i style="width: ${zonPct.toFixed(1)}%; background: var(--zon)"></i><i style="width: ${(100 - zonPct).toFixed(1)}%; background: ${NET}"></i></div></div>`;
+    return `<div class="rij"><div class="boven"><b>${esc(a.rest ? t('opbrengst.rest') : a.id === 'altijd' ? a.naam : kort(a.naam))}</b><span>${getal(a.kwh)} kWh${a.kosten != null ? `, ${euro(a.kosten)}` : ''}</span></div><div class="verdeel"><i style="width: ${zonPct.toFixed(1)}%; background: var(--zon)"></i><i style="width: ${(100 - zonPct).toFixed(1)}%; background: ${NET}"></i></div></div>`;
   };
   return `<h2 class="kop-3" style="margin-bottom: 4px">${esc(t('opbrengst.perApparaat'))}</h2>${lijst.map(rij).join('')}
     <p class="mini legenda">${legendaZonNet(r)}</p>`;
@@ -230,13 +353,173 @@ function perDag(r) {
     <p class="mini legenda">${g.legenda}</p>`;
 }
 
+/* ------------------------------------------------------------ nu */
+
+/*
+ * Nu (Ricardo, 5 november 2026): naast dag, week, maand en jaar het huis van
+ * dit moment, live. Links de zon, het huis en het net in kW en per dakvlak
+ * wat het nu levert; in het midden het stroombeeld van nu: de zon per dakvlak
+ * en het net naar de apparaten die nu stroom vragen, de rest van het huis,
+ * Altijd aan en terug; rechts wat er nu aan staat. Elke vijf tellen opnieuw,
+ * de dakvlakken elke halve minuut.
+ */
+let live = null;
+let liveKlok = null;
+let liveDaken = null;
+const kw = (w) => nl(w / 1000, w >= 10_000 ? 0 : w >= 1000 ? 1 : 2);
+
+async function laadNu() {
+  const dakenOud = !liveDaken || Date.now() - liveDaken.at > 30_000;
+  const [s, h, a] = await Promise.allSettled([haal('api/state'), haal('api/huis'), dakenOud ? haal('api/aansluiting') : Promise.resolve(null)]);
+  if (a.status === 'fulfilled' && a.value) liveDaken = { at: Date.now(), daken: a.value.daken ?? null };
+  const st = s.status === 'fulfilled' ? s.value?.bewoner?.stromen ?? null : null;
+  // De apparaten met een eigen meter die nu stroom vragen.
+  const apparaten = h.status === 'fulfilled'
+    ? (h.value?.etages ?? []).flatMap((e) => (e.ruimtes ?? []).flatMap((r) => (r.apparaten ?? []).filter((d) => typeof d.vermogenW === 'number' && d.vermogenW >= 30).map((d) => ({ id: d.id, naam: d.naam, w: d.vermogenW }))))
+    : [];
+  live = st ? { st, apparaten, at: Date.now() } : null;
+  if (!live) melding = s.status === 'rejected' ? t('kamer.geenVerbinding') : t('opbrengst.nu.wachten');
+  teken();
+}
+
+function startNu() {
+  stopNu();
+  liveKlok = setInterval(() => document.visibilityState === 'visible' && void laadNu(), 5_000);
+}
+function stopNu() {
+  if (liveKlok) clearInterval(liveKlok);
+  liveKlok = null;
+}
+
+/** Wat er nu stroomt, in W: bronnen, doelen en de stromen ertussen, zoals het stroombeeld ze tekent. */
+function nuModel() {
+  const st = live.st;
+  const zonW = Math.max(0, (st.zonKw ?? 0) * 1000);
+  const netW = (st.netKw ?? 0) * 1000;
+  const vanNet = Math.max(0, netW);
+  const terug = Math.max(0, -netW);
+  const verbruik = st.verbruikKw != null ? st.verbruikKw * 1000 : Math.max(0, zonW + netW);
+  const zonHuis = Math.max(0, Math.min(verbruik, zonW - terug));
+  // De grootste apparaten van nu, samen nooit meer dan het huis; een meter die meer zegt dan het huis is geen apparaat.
+  let ruimte = verbruik;
+  const apps = [...live.apparaten].filter((d) => d.w <= verbruik * 1.05).sort((x, y) => y.w - x.w).slice(0, 5).map((d) => {
+    const w = Math.min(d.w, ruimte);
+    ruimte -= w;
+    return { ...d, w };
+  }).filter((d) => d.w >= 30);
+  const rest = Math.max(0, ruimte);
+  // Altijd aan: het gewone sluipverbruik, hooguit 90% van de rest (besluit 192).
+  const altijd = sluip?.gewoonW ? Math.min(rest * 0.9, sluip.gewoonW) : 0;
+  const doelen = [
+    ...apps.map((d, i) => ({ id: `app-${d.id}`, naam: kort(d.naam), w: d.w, kleur: KLEUREN[i % KLEUREN.length] })),
+    ...(rest - altijd >= 30 ? [{ id: 'rest', naam: t('opbrengst.rest'), w: rest - altijd, kleur: NET }] : []),
+    ...(altijd >= 30 ? [{ id: 'altijd', naam: t('opbrengst.stromen.altijd'), w: altijd, kleur: '#FFB39F' }] : []),
+  ];
+  const zonDeel = verbruik > 0 ? zonHuis / verbruik : 0;
+  // De zon per dakvlak, naar wat elk vlak nu levert (besluit 254).
+  const dk = liveDaken?.daken;
+  const nu = dk?.nu ?? {};
+  const vlakken = (dk?.vlakken ?? []).filter((v) => (nu[v.letter]?.w ?? 0) > 0);
+  const dakSom = vlakken.reduce((s, v) => s + nu[v.letter].w, 0);
+  const zonDelen = vlakken.length > 1 && dakSom > 0
+    ? vlakken.map((v, i) => ({ id: `dak-${v.letter}`, naam: `${v.letter} · ${dakNaam(v, dk.vlakken)}`, deel: nu[v.letter].w / dakSom, kleur: DAKKLEUR[i % DAKKLEUR.length] }))
+    : [{ id: 'zon', naam: t('vandaag.zon'), deel: 1, kleur: ZON }];
+  const stromen = [];
+  for (const d of doelen) {
+    for (const z of zonDelen) if (zonDeel > 0) stromen.push({ van: z.id, naar: d.id, kwh: d.w * zonDeel * z.deel });
+    if (zonDeel < 1) stromen.push({ van: 'net', naar: d.id, kwh: d.w * (1 - zonDeel) });
+  }
+  if (terug >= 30) for (const z of zonDelen) stromen.push({ van: z.id, naar: 'terug', kwh: terug * z.deel });
+  const van = (id) => stromen.filter((s) => s.van === id).reduce((t, s) => t + s.kwh, 0);
+  const naar = (id) => stromen.filter((s) => s.naar === id).reduce((t, s) => t + s.kwh, 0);
+  const zonNaar = (id) => stromen.filter((s) => s.naar === id && s.van !== 'net').reduce((t, s) => t + s.kwh, 0);
+  return {
+    zonW, vanNet, terug, verbruik, zonHuis, apps,
+    bronnen: [...zonDelen.map((z) => ({ ...z, regels: [{ t: `${kw(van(z.id))} kW` }] })), { id: 'net', naam: t('opbrengst.net'), kleur: NET, regels: [{ t: `${kw(van('net'))} kW` }] }],
+    doelen: [
+      ...doelen.map((d) => ({ id: d.id, naam: d.naam, kleur: d.kleur, regels: [{ t: zonW > 0 ? t('opbrengst.nu.kwZon', { kw: kw(naar(d.id)), pct: naar(d.id) > 0 ? Math.round((zonNaar(d.id) / naar(d.id)) * 100) : 0 }) : `${kw(naar(d.id))} kW` }] })),
+      ...(terug >= 30 ? [{ id: 'terug', naam: t('opbrengst.naarHetNet'), kleur: TERUG, regels: [{ t: `${kw(terug)} kW` }] }] : []),
+    ],
+    stromen,
+  };
+}
+
+function nuCijfers(m, klein = false) {
+  const pct = m.verbruik > 0 ? Math.round((m.zonHuis / m.verbruik) * 100) : 0;
+  const net = m.terug >= 30 ? { naam: t('opbrengst.nu.terug'), w: m.terug, kleur: 'var(--mint-t)' } : { naam: t('opbrengst.nu.vanNet'), w: m.vanNet, kleur: '' };
+  const dk = liveDaken?.daken;
+  const helder = Object.values(dk?.nu ?? {}).reduce((s, n) => s + (n?.helderW ?? 0), 0);
+  if (klein) {
+    const blok = (naam, waarde, onder) => `<div class="glas-klein"><span class="mini">${esc(naam)}</span><span class="getal">${waarde}</span><span class="mini">${esc(onder)}</span></div>`;
+    return `<div class="drie">${blok(t('opbrengst.nu.zon'), kw(m.zonW), 'kW')}${blok(t('opbrengst.nu.huis'), kw(m.verbruik), 'kW')}${blok(net.naam, kw(net.w), 'kW')}</div>`;
+  }
+  return `<div class="cijfer"><div class="mini">${esc(t('opbrengst.nu.zon'))}</div><div class="getal zon-t">${kw(m.zonW)}<small>kW</small></div><div class="klein">${helder > 0 ? esc(t('opbrengst.nu.helder', { kw: kw(helder) })) : ''}</div></div>
+    <div class="cijfer"><div class="mini">${esc(t('opbrengst.nu.huis'))}</div><div class="getal">${kw(m.verbruik)}<small>kW</small></div><div class="klein">${m.zonW > 0 ? esc(t('opbrengst.nu.uitZon', { pct })) : ''}</div></div>
+    <div class="cijfer"><div class="mini">${esc(net.naam)}</div><div class="getal"${net.kleur ? ` style="color: ${net.kleur}"` : ''}>${kw(net.w)}<small>kW</small></div><div class="klein"></div></div>`;
+}
+
+/** Per dakvlak wat het nu levert, met een streepje voor de heldere lucht, zoals De zon op je daken op Thuis. */
+function nuPanelen() {
+  const dk = liveDaken?.daken;
+  const vlakken = dk?.vlakken ?? [];
+  const nu = dk?.nu ?? {};
+  if (vlakken.length < 2 || !Object.keys(nu).length) return '';
+  const top = Math.max(1, ...vlakken.map((v) => Math.max(nu[v.letter]?.w ?? 0, nu[v.letter]?.helderW ?? 0)));
+  const achter = dk.achter?.letter;
+  const rij = (v) => {
+    const n = nu[v.letter] ?? { w: null, helderW: 0 };
+    const kleur = achter === v.letter ? '#ff8a6b' : 'var(--zon)';
+    return `<div class="dakrij"><span class="dakletter" style="background: ${kleur}">${esc(v.letter)}</span><span class="daknaam">${esc(dakNaam(v, vlakken))}<span class="dakstaaf"><i style="width: ${(((n.w ?? 0) / top) * 100).toFixed(1)}%; background: ${kleur}"></i><em style="left: ${((n.helderW / top) * 100).toFixed(1)}%"></em></span></span><b>${n.w == null ? '–' : `${kw(n.w)} kW`}</b></div>`;
+  };
+  return `<section class="glas kaart"><h2 class="kop-3">${esc(t('opbrengst.nu.panelen'))}</h2><div class="dakrijen">${vlakken.map(rij).join('')}</div><p class="mini" style="margin: 8px 0 0">${esc(t('daken.nu.streep'))}</p></section>`;
+}
+
+/** Wat er nu aan staat, met zijn deel zon. */
+function nuApparaten(m) {
+  if (!m.apps.length) return `<h2 class="kop-3">${esc(t('opbrengst.nu.apparaten'))}</h2><p class="mini" style="margin: 6px 0 0">${esc(t('opbrengst.nu.geenApparaten'))}</p>`;
+  const zonDeel = m.verbruik > 0 ? m.zonHuis / m.verbruik : 0;
+  const rij = (a) => `<div class="rij"><div class="boven"><b>${esc(kort(a.naam))}</b><span>${kw(a.w)} kW</span></div><div class="verdeel"><i style="width: ${(zonDeel * 100).toFixed(1)}%; background: var(--zon)"></i><i style="width: ${((1 - zonDeel) * 100).toFixed(1)}%; background: ${NET}"></i></div></div>`;
+  return `<h2 class="kop-3" style="margin-bottom: 4px">${esc(t('opbrengst.nu.apparaten'))}</h2>${m.apps.map(rij).join('')}<p class="mini legenda">${legendaZonNet(null)}</p>`;
+}
+
+function tekenLive() {
+  if (!live) {
+    const tekst = `<p class="klein">${esc(melding ?? t('opbrengst.nu.wachten'))}</p>`;
+    $$('[data-titel]').forEach((el) => (el.textContent = t('opbrengst.soort.nu')));
+    document.querySelector('[data-links]').innerHTML = tekst;
+    document.querySelector('[data-telinhoud]').innerHTML = tekst;
+    ['[data-sankey]', '[data-gas]', '[data-apparaten]', '[data-perdag]'].forEach((s) => (document.querySelector(s).innerHTML = ''));
+    $$('[data-periode]').forEach((el) => (el.innerHTML = ''));
+    return;
+  }
+  const m = nuModel();
+  const titelNu = m.zonW >= 50 ? t('opbrengst.nu.titelZon', { kw: kw(m.zonW) }) : t('opbrengst.nu.titel', { kw: kw(m.verbruik) });
+  $$('[data-titel]').forEach((el) => (el.textContent = titelNu));
+  const klok = taal.tijd ? taal.tijd(live.at) : new Date(live.at).toLocaleTimeString(taal.locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  $$('[data-periode]').forEach((el) => (el.innerHTML = `<span class="livelabel"><i aria-hidden="true"></i>${esc(t('opbrengst.nu.live', { tijd: klok }))}</span>`));
+  const beeld = (b, h, l, r) => (m.stromen.length ? stromen.svg({ breedte: b, hoogte: h, links: l, rechts: r, id: `nu${b}`, beschrijving: t('opbrengst.sankey'), bronnen: m.bronnen, doelen: m.doelen, stromen: m.stromen }) : `<p class="klein">${esc(t('opbrengst.nietsGemeten'))}</p>`);
+  document.querySelector('[data-links]').innerHTML = `<div class="cijfers">${nuCijfers(m)}</div>${nuPanelen()}${sluipIngang()}`;
+  document.querySelector('[data-sankey]').innerHTML = beeld(380, 470, 104, 136);
+  document.querySelector('[data-gas]').innerHTML = '';
+  zet('[data-waarheen]', t('opbrengst.nu.waarHeen'));
+  document.querySelector('[data-apparaten]').innerHTML = nuApparaten(m);
+  document.querySelector('[data-perdag]').innerHTML = '';
+  document.querySelector('[data-telinhoud]').innerHTML = `${nuCijfers(m, true)}
+    <section class="glas kaart"><h2 class="kop-3">${esc(t('opbrengst.nu.waarHeen'))}</h2><div class="telstromen">${beeld(358, 400, 96, 128)}</div></section>
+    ${nuPanelen()}
+    <section class="glas kaart">${nuApparaten(m)}</section>${sluipIngang()}`;
+}
+
 /* ------------------------------------------------------------ tekenen */
 
 function tekenNu() {
   app.schaal();
   app.luchtVan(zon, 0);
-  const soorten = ['dag', 'week', 'maand', 'jaar'];
+  const soorten = ['nu', 'dag', 'week', 'maand', 'jaar'];
   $$('[data-wissel]').forEach((el) => (el.innerHTML = soorten.map((k) => `<button type="button" data-soort="${k}" aria-pressed="${k === keuze.soort}">${esc(t(`opbrengst.soort.${k}`))}</button>`).join('')));
+  // Bij Nu is er geen Per dag: die kaart weg, zodat er geen lege staat.
+  document.querySelector('[data-perdag]').hidden = keuze.soort === 'nu';
+  if (keuze.soort === 'nu') return tekenLive();
 
   if (!data) {
     const tekst = melding === 'meters'
@@ -245,20 +528,22 @@ function tekenNu() {
     $$('[data-titel]').forEach((el) => (el.textContent = melding ? t('nav.opbrengst') : t('algemeen.laden')));
     document.querySelector('[data-links]').innerHTML = tekst + sluipIngang();
     document.querySelector('[data-telinhoud]').innerHTML = tekst + sluipIngang();
-    ['[data-sankey]', '[data-apparaten]', '[data-perdag]'].forEach((s) => (document.querySelector(s).innerHTML = ''));
+    ['[data-sankey]', '[data-gas]', '[data-apparaten]', '[data-perdag]'].forEach((s) => (document.querySelector(s).innerHTML = ''));
     $$('[data-periode]').forEach((el) => (el.innerHTML = ''));
     return;
   }
   const r = data;
   $$('[data-titel]').forEach((el) => (el.textContent = titel(r)));
   $$('[data-periode]').forEach((el) => (el.innerHTML = periode(r)));
-  document.querySelector('[data-links]').innerHTML = `${cijfers(r)}${panelen(r)}${sluipIngang()}${erbijKaart(r)}`;
-  document.querySelector('[data-sankey]').innerHTML = sankeyVan(r, 500, 540, 70, 230);
+  document.querySelector('[data-links]').innerHTML = `<div class="cijfers">${cijfers(r)}</div>${panelen(r)}${sluipIngang()}${erbijKaart(r)}`;
+  document.querySelector('[data-sankey]').innerHTML = sankeyVan(r, 380, 470);
+  document.querySelector('[data-gas]').innerHTML = gasRegel(r);
   zet('[data-waarheen]', t(r.geschat ? 'opbrengst.waarHeenZon' : 'opbrengst.waarHeen'));
   document.querySelector('[data-apparaten]').innerHTML = perApparaat(r);
   document.querySelector('[data-perdag]').innerHTML = perDag(r);
-  document.querySelector('[data-telinhoud]').innerHTML = `${cijfers(r, true)}${panelen(r)}${sluipIngang()}${erbijKaart(r)}
-    <section class="glas kaart"><h2 class="kop-3">${esc(t(r.geschat ? 'opbrengst.waarHeenZon' : 'opbrengst.waarHeen'))}</h2><div style="margin-top: 10px">${sankeyVan(r, 380, 340, 0, 200, true)}</div></section>
+  document.querySelector('[data-telinhoud]').innerHTML = `${cijfers(r, true)}
+    <section class="glas kaart"><h2 class="kop-3">${esc(t(r.geschat ? 'opbrengst.waarHeenZon' : 'opbrengst.waarHeen'))}</h2><div class="telstromen">${sankeyVan(r, 358, 400, 96, 128)}</div>${gasRegel(r)}</section>
+    ${panelen(r)}${sluipIngang()}${erbijKaart(r)}
     <section class="glas kaart">${perApparaat(r)}</section>
     <section class="glas kaart">${perDag(r)}</section>`;
 }
@@ -274,6 +559,12 @@ document.addEventListener('click', (e) => {
   const staaf = e.target.closest('[data-staaf]');
   if (staaf) {
     grafiek.gekozen = Number(staaf.dataset.staaf);
+    teken();
+    return;
+  }
+  const pd = e.target.closest('[data-perdak]');
+  if (pd) {
+    perDak = pd.dataset.perdak === '1';
     teken();
     return;
   }
@@ -296,6 +587,9 @@ document.addEventListener('click', (e) => {
     keuze.soort = soort.dataset.soort;
     keuze.datum = null;
     grafiek.gekozen = null;
+    // Nu ververst zichzelf; de andere periodes niet.
+    if (keuze.soort === 'nu') startNu();
+    else stopNu();
     void laad();
     return;
   }
@@ -308,4 +602,4 @@ document.addEventListener('click', (e) => {
 void laad();
 haal('api/zon').then((z) => ((zon = z), teken())).catch(() => {});
 haal('api/sluipverbruik').then((s) => ((sluip = s), teken())).catch(() => {});
-setInterval(() => void laad(), 5 * 60_000);
+setInterval(() => keuze.soort !== 'nu' && void laad(), 5 * 60_000);
