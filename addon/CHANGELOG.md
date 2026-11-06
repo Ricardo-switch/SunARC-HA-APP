@@ -1,5 +1,29 @@
 # Wat is er nieuw · What is new
 
+## 0.132.0
+
+*6 november 2026*
+
+**Nieuw**
+
+- Een eigen pagina Auto: hoe vol de auto is, of hij laadt en met hoeveel, de stroom per fase, de laadgrens, hoe laat hij vol is, de kabel en of hij onderweg is. De auto zelf is de meter
+- De kaart van de auto op Thuis toont de auto als meter en opent de pagina Auto, net als de auto bij Apparaten
+
+**Beter**
+
+- SunArc leest bij meer auto’s hoe lang het laden nog duurt, zoals bij NissanConnect
+
+*English*
+
+**New**
+
+- A Car page of its own: how full the car is, whether it charges and how fast, the current per phase, the charge limit, when it is full, the cable and whether it is away. The car itself is the meter
+- The car card on Home shows the car as a meter and opens the Car page, as does the car under Devices
+
+**Improved**
+
+- SunArc reads how long charging still takes for more cars, such as with NissanConnect
+
 ## 0.131.2
 
 *6 november 2026 · 0.131.0 – 0.131.2*

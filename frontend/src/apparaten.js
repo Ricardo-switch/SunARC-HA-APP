@@ -310,7 +310,9 @@ function ladingKaart(soort, o) {
   const zin = soort === 'auto'
     ? [o.bereikKm != null ? t('apparaten.bereik', { km: nl(o.bereikKm, 0) }) : '', o.pct == null ? t('apparaten.laadpaal') : ''].filter(Boolean).join(' ')
     : t('apparaten.batterijKijkt');
-  const el = document.createElement('div');
+  // De auto opent zijn eigen pagina (besluit 259, stap 2).
+  const el = document.createElement(soort === 'auto' ? 'a' : 'div');
+  if (soort === 'auto') el.href = `auto.html#${encodeURIComponent(o.id)}`;
   el.className = 'glas app';
   el.dataset.lading = soort;
   el.dataset.actief = String(soort === 'auto' ? !!o.laadt : o.stand === 'laadt' || o.stand === 'levert');
@@ -424,7 +426,7 @@ function tekenNu() {
     if (box.contains(document.activeElement) && document.activeElement !== document.body) continue;
     // Wat nu iets doet eerst (besluit 140); verder de volgorde van het huis.
     const opslag = huisData?.opslag ?? {};
-    const kaarten = [...klimaat().map(klimaatKaart), ...lijst.map(kaart), ...buffers.map(bufferKaart), ...(opslag.auto ? [ladingKaart('auto', opslag.auto)] : []), ...(opslag.batterij ? [ladingKaart('batterij', opslag.batterij)] : [])];
+    const kaarten = [...klimaat().map(klimaatKaart), ...lijst.map(kaart), ...buffers.map(bufferKaart), ...(opslag.autos ?? (opslag.auto ? [opslag.auto] : [])).map((x) => ladingKaart('auto', x)), ...(opslag.batterij ? [ladingKaart('batterij', opslag.batterij)] : [])];
     zouSamen(kaarten, box.closest('#wand, #tel'));
     const voor = kaarten.filter((k) => k.dataset.actief === 'true');
     const na = kaarten.filter((k) => k.dataset.actief !== 'true');

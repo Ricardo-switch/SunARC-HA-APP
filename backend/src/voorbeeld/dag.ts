@@ -66,6 +66,8 @@ export interface Moment {
   readonly verwarmt: boolean;
   readonly autoLaadt: boolean;
   readonly autoPct: number;
+  /** De auto is weg: 's avonds van half zeven tot negen (de pagina Auto, onderweg). */
+  readonly autoWeg: boolean;
   readonly batterijPct: number;
   /** Positief is laden, negatief is het huis voeden. */
   readonly batterijW: number;
@@ -75,6 +77,9 @@ export interface Moment {
   readonly huisW: number;
   readonly temp: Readonly<Record<'woonkamer' | 'keuken' | 'badkamer' | 'slaapkamer' | 'kinderkamer' | 'zolder', number>>;
 }
+
+/** De laadgrens van de auto in het voorbeeldhuis. */
+export const AUTO_GRENS = 90;
 
 const rond = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
 
@@ -95,8 +100,10 @@ export function moment(klok: Klok): Moment {
   // Koelen en laden op zon alleen als er echt zon is.
   const koelt = !winter && licht && m > 660 && m < 1020 && zonW > 1500;
   const verwarmt = winter && m > 360 && m < 1350;
-  const autoLaadt = !winter && licht && m > 660 && m < 990 && zonW > 1500;
-  const autoPct = winter ? 55 : Math.round(Math.min(100, 40 + Math.max(0, Math.min(m, 990) - 660) / 6));
+  // Laden op zon tot de laadgrens van 90%, rond vier uur.
+  const autoPct = winter ? 55 : Math.round(Math.min(AUTO_GRENS, 40 + Math.max(0, Math.min(m, 990) - 660) / 6));
+  const autoLaadt = !winter && licht && m > 660 && m < 990 && zonW > 1500 && autoPct < AUTO_GRENS;
+  const autoWeg = m >= 1110 && m < 1260;
   const huisW = 260 + (droger ? 700 : 0) + (koelt ? 900 : 0) + (verwarmt ? (zonW > 800 ? 1400 : 1100) : 0) + (avond && m < 1380 ? 350 : 0);
   const over = zonW - huisW - (autoLaadt ? 1400 : 0);
   const batterijPct = Math.round(Math.max(18, Math.min(96, winter ? 40 + zonW / 100 : 30 + (Math.min(m, 1020) - 540) / 7)));
@@ -123,6 +130,7 @@ export function moment(klok: Klok): Moment {
     verwarmt,
     autoLaadt,
     autoPct,
+    autoWeg,
     batterijPct,
     batterijW: Math.round(batterijW),
     // Bij regen of sneeuw is het binnen grauw: de lampen gaan eerder aan.

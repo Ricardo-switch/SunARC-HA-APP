@@ -3816,7 +3816,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     p.on('pageerror', (e) => fouten.push(e.message));
     extraOpslag = {
       batterij: { id: 'sessy', naam: 'De batterij', pct: 54, vermogenW: -900, stand: 'levert' },
-      auto: { id: 'tesla', naam: 'Tesla Model 3', pct: 62, aangesloten: true, laadt: true, vermogenW: 3200, bereikKm: 280, plek: null, accuKWh: null, laadpaal: null },
+      auto: { id: 'tesla', naam: 'Tesla Model 3', pct: 62, aangesloten: true, laadt: true, vermogenW: 3200, bereikKm: 280, plek: 'garage', accuKWh: 75, laadpaal: 'easee', paalNaam: 'Easee Home', paalStroomA: { min: 6, max: 16 }, laadgrens: 80, stroomA: [4.6, 4.6, 4.7], volOm: null, thuis: true, kabelSinds: null, wegSinds: null },
       autos: [],
     };
     extraOpslag = { ...extraOpslag, autos: [extraOpslag.auto!] };
@@ -3830,7 +3830,9 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       const kaart = (id: string) => p.locator(`#tel [data-kaart="${id}"]`);
       await expect.poll(() => kaart('auto').textContent(), { timeout: 10_000 }).toContain('62%');
       expect(await kaart('auto').textContent()).toContain('Laadt, 3,2 kW · 280 km');
-      expect(await kaart('auto').getAttribute('href')).toBe('apparaten.html#auto');
+      // De auto als meter (besluit 259, stap 2), en een tik opent de pagina Auto.
+      expect(await kaart('auto').getAttribute('href')).toBe('auto.html');
+      expect(await kaart('auto').locator('.kvol .autometer svg').count()).toBe(1);
       expect(await kaart('batterij').textContent()).toContain('Levert 0,9 kW aan het huis');
       // Deze maand: met meters wat er opgewekt en zelf gebruikt is (na de test van Opbrengst), zonder wat er nodig is.
       await expect.poll(() => kaart('maand').textContent()).toMatch(/kWh opgewekt.*zelf gebruikt|Kies eerst je meters/);
@@ -3864,10 +3866,25 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       await p.locator('[data-kiesblad] [data-cam-klaar]').click();
       await expect.poll(() => kaart('deurbel').locator('.kvol .cambeeld').count()).toBe(1);
       expect((await (await fetch(`${baseUrl}/api/voorkeuren`)).json() as { tel: { cameras: string[] } }).tel.cameras).toEqual(['camera.deurbel_duidelijk']);
-      // Een tik op de auto: bij Apparaten, op de kaart van de auto, met de batterij ernaast.
+      // Een tik op de auto: de pagina Auto (besluit 259, stap 2), met de lading, de laadgrens en de laadpaal.
       await kaart('auto').click();
-      await p.waitForURL(/apparaten\.html#auto$/);
+      await p.waitForURL(/auto\.html$/);
+      const held = p.locator('#tel .held');
+      await expect.poll(() => held.textContent(), { timeout: 10_000 }).toContain('62%');
+      expect(await held.textContent()).toContain('3,2 kW3 × 5 A');
+      expect(await held.textContent()).toContain('280 km bereik');
+      expect(await held.textContent()).toContain('80%');
+      expect(await held.textContent()).toContain('Easee Home, in de garage');
+      expect(await held.textContent()).toContain('75 kWh');
+      expect(await p.locator('#tel .fase').count()).toBe(3);
+      expect(await p.locator('#tel .kan').textContent()).toBe('Laden met 6 tot 16 A.');
+      // In het menu licht Apparaten op; de weg terug gaat daarheen.
+      expect(await p.locator('#tabs [aria-current="page"]').count()).toBe(1);
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-auto.png'), fullPage: true });
+      // Bij Apparaten: de kaart van de auto, met de batterij ernaast; een tik op de auto opent zijn pagina.
+      await p.goto(`${baseUrl}/apparaten.html#auto`);
       const autoKaart = p.locator('#tel [data-lading="auto"]');
+      await expect.poll(() => autoKaart.getAttribute('href')).toBe('auto.html#tesla');
       await expect.poll(() => autoKaart.textContent()).toContain('Tesla Model 3');
       expect(await autoKaart.textContent()).toContain('Nog 280 km rijden.');
       expect(await p.locator('#tel [data-lading="batterij"]').textContent()).toContain('Levert aan het huis');

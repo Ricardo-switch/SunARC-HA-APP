@@ -1,8 +1,8 @@
 # Auto en laadpaal: het bouwplan
 
 Stand 6 november 2026. Het ontwerp is besloten ([besluit 259](../DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp));
-stap 1 is gebouwd in 0.131.0 (zie "Stap 1: wat er gebouwd is"), de rest nog
-niet. Dit document is de overdracht: alles wat nodig is
+stap 1 is gebouwd in 0.131.0 en stap 2 in 0.132.0 (zie "wat er gebouwd is"),
+de rest nog niet. Dit document is de overdracht: alles wat nodig is
 om het in een nieuwe sessie op te pakken, zonder het gesprek van 6 november.
 
 ## Waarom
@@ -56,7 +56,7 @@ In `design/app2/`, met beelden in `screens/` (zie de README daar):
 | `Tel-Auto.html` | (zonder), `#laden` | Dezelfde pagina op de telefoon, Laden als blad van onderen |
 | `Wand-Energie-Auto.html` | (zonder), `#evcc`, `#niets` | Energie › Auto en laadpaal |
 | `Thuis-Tel-Auto-Advies.html` | (zonder), `#goedkoop`, `#niets` | De advieskaart op Thuis naast de kaart van de auto |
-| `auto-tekening.js` | | De tekening van de auto als meter; hoort straks in `frontend/kit/` |
+| `frontend/kit/auto-tekening.js` | | De tekening van de auto als meter; sinds stap 2 in de kit, voor schets en app samen |
 
 De schets is de code (besluit 104): de app gebruikt dezelfde tekening.
 
@@ -194,6 +194,24 @@ lijst in `client.ts`). Laden wordt er een, naar het voorbeeld van `isHandCall`:
   oprit of onder de carport; `huis.js` tekent een garage met de deur omhoog en
   de auto erin (`bouwAutoInGarage`). Zonder plek beslist de indeling, zoals
   eerst.
+
+## Stap 2: wat er gebouwd is (0.132.0)
+
+- `opslag.ts` geeft per auto ook `paalNaam`, `paalStroomA`, `laadgrens`,
+  `stroomA` (per fase, gemeten; een grens zoals de dynamische stroom van een
+  Easee telt niet), `volOm`, `thuis`, `kabelSinds` en `wegSinds`. `volOm` is
+  de tijd van de auto zelf (een tijdstip, of een resterende duur zoals de
+  "Charge Time" van NissanConnect uit melding 132), anders (grens − lading) ×
+  accu / vermogen, op vijf minuten naar boven; zonder accu niet.
+- De pagina: `frontend/src/auto.html` en `auto.js`, de tekening in
+  `frontend/kit/auto-tekening.js` (de schetsen laden hem daarvandaan). Op zon
+  of van het net volgt uit het net nu (`api/state`). Met meer auto's een keuze
+  bovenaan; `auto.html#id` opent een bepaalde auto.
+- De Thuis-kaart opent `auto.html` en tekent de auto als meter; de auto bij
+  Apparaten opent `auto.html#id`. Elke tekening krijgt een eigen naam voor
+  zijn verlopen (`naam`), want wand en telefoon staan op dezelfde pagina.
+- Het voorbeeldhuis heeft een laadgrens van 90%, de stroom van de laadpaal op
+  één fase, en de auto is 's avonds van half zeven tot negen weg.
 
 ## De stappen, elk een eigen versie
 

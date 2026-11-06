@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.131.2';
+export const VERSIE = '0.132.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,26 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.132.0',
+    datum: '2026-11-06',
+    nieuw: [
+      'Een eigen pagina Auto: hoe vol de auto is, of hij laadt en met hoeveel, de stroom per fase, de laadgrens, hoe laat hij vol is, de kabel en of hij onderweg is. De auto zelf is de meter',
+      'De kaart van de auto op Thuis toont de auto als meter en opent de pagina Auto, net als de auto bij Apparaten',
+    ],
+    beter: [
+      'SunArc leest bij meer auto’s hoe lang het laden nog duurt, zoals bij NissanConnect',
+    ],
+    en: {
+      nieuw: [
+        'A Car page of its own: how full the car is, whether it charges and how fast, the current per phase, the charge limit, when it is full, the cable and whether it is away. The car itself is the meter',
+        'The car card on Home shows the car as a meter and opens the Car page, as does the car under Devices',
+      ],
+      beter: [
+        'SunArc reads how long charging still takes for more cars, such as with NissanConnect',
+      ],
+    },
+  },
   {
     versie: '0.131.2',
     datum: '2026-11-06',

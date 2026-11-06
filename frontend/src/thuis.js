@@ -681,8 +681,10 @@ function camerasGekozen() {
   return [...lijst.filter((c) => c.nu), ...lijst.filter((c) => !c.nu)];
 }
 
-function zetKaart(sel, id, html, hier) {
-  $$(sel).forEach((el) => {
+function zetKaart(sel, id, maakHtml, hier) {
+  $$(sel).forEach((el, i) => {
+    // Per plek een eigen stuk (de auto als meter heeft eigen namen per tekening), of overal hetzelfde.
+    const html = typeof maakHtml === 'function' ? maakHtml(i) : maakHtml;
     // Wat dit huis niet heeft, bieden we ook niet aan bij Kaart toevoegen.
     el.toggleAttribute('data-niet-hier', !hier);
     el.hidden = !html;
@@ -693,11 +695,19 @@ function zetKaart(sel, id, html, hier) {
   });
 }
 
+/** De auto als meter (besluit 259, stap 2): hij vult zich tot zijn lading, met een streep bij de laadgrens. */
+function autoMeter(a, zin, naam) {
+  if (typeof autoTekening !== 'function' || a.pct == null) return lading(a.pct, a.laadt ? 'var(--mint)' : 'var(--net)', zin, a.laadt ? 'var(--mint-t)' : 'var(--zacht)');
+  const beeld = autoTekening({ pct: a.pct, grens: a.laadgrens, kabel: a.laadt ? 'zon' : 'vrij', paal: false, tekst: { onbekend: '' }, naam });
+  return `<div class="lading autometer"><span class="getal">${getal(a.pct, 0)}%</span><svg viewBox="196 62 508 208" aria-hidden="true">${beeld}</svg><small style="color: ${a.laadt ? 'var(--mint-t)' : 'var(--zacht)'}">${esc(zin)}</small></div>`;
+}
+
 function tekenLading() {
   const a = huisData?.opslag?.auto ?? null;
   const autoZin = !a ? '' : a.laadt ? (a.vermogenW ? t('thuis.lading.laadtMet', { kw: kw(a.vermogenW) }) : t('thuis.lading.laadt')) : a.aangesloten === true ? t('thuis.lading.aangesloten') : a.aangesloten === false ? t('thuis.lading.nietAangesloten') : '';
   const bereik = a?.bereikKm != null ? `${autoZin ? ' · ' : ''}${getal(a.bereikKm, 0)} km` : '';
-  zetKaart('[data-auto]', 'auto', a ? `${vol(`${kaartKop('auto', a.naam)}${lading(a.pct, a.laadt ? 'var(--mint)' : 'var(--net)', autoZin + bereik, a.laadt ? 'var(--mint-t)' : 'var(--zacht)')}`)}${tegel({ id: 'auto', naam: a.naam, waarde: a.pct == null ? '–' : `${getal(a.pct, 0)}%`, zin: autoZin + bereik, toon: a.laadt ? 'var(--mint-t)' : '', beeld: ring(a.pct, a.laadt ? 'var(--mint)' : 'var(--net)') })}` : '', !!a);
+  // Elke kaart een eigen naam voor zijn tekening: een verborgen kaart mag de andere niet kleuren.
+  zetKaart('[data-auto]', 'auto', (i) => a ? `${vol(`${kaartKop('auto', a.naam)}${autoMeter(a, autoZin + bereik, `thuis-auto-${i}`)}`)}${tegel({ id: 'auto', naam: a.naam, waarde: a.pct == null ? '–' : `${getal(a.pct, 0)}%`, zin: autoZin + bereik, toon: a.laadt ? 'var(--mint-t)' : '', beeld: ring(a.pct, a.laadt ? 'var(--mint)' : 'var(--net)') })}` : '', !!a);
   const b = huisData?.opslag?.batterij ?? null;
   const st = b?.stand;
   const bZin = st === 'laadt' ? t('thuis.lading.laadtMet', { kw: kw(b.vermogenW) }) : st === 'levert' ? t('thuis.lading.levert', { kw: kw(b.vermogenW) }) : st === 'rust' ? t('thuis.lading.rust') : '';

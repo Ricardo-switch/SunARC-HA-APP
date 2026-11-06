@@ -11,7 +11,7 @@
 
 import type { HaEntityState } from '../adapters/homeassistant/client.js';
 import type { HaArea, HaDevice, HaFloor, HaRegistryEntity } from '../adapters/homeassistant/discovery.js';
-import { type Klok, type Moment, type Weer, ZON, moment } from './dag.js';
+import { AUTO_GRENS, type Klok, type Moment, type Weer, ZON, moment } from './dag.js';
 
 /* ---- de configuratie van SunArc voor dit huis ---- */
 
@@ -203,9 +203,9 @@ const TOESTELLEN: readonly Toestel[] = [
     merk: 'Volkswagen',
     model: 'ID.3',
     platform: 'volkswagen_we_connect_id',
-    entiteiten: [['sensor.auto_lading', meter('battery', 'Lading')], ['sensor.auto_bereik', meter('distance', 'Bereik')], ['binary_sensor.auto_laadt', meter('battery_charging', 'Laadt')], ['binary_sensor.auto_stekker', meter('plug', 'Stekker')]],
+    entiteiten: [['sensor.auto_lading', meter('battery', 'Lading')], ['sensor.auto_bereik', meter('distance', 'Bereik')], ['binary_sensor.auto_laadt', meter('battery_charging', 'Laadt')], ['binary_sensor.auto_stekker', meter('plug', 'Stekker')], ['number.auto_laadgrens', meter('', 'Laadgrens')], ['device_tracker.auto', meter('', 'Plek')]],
   },
-  { id: 'd-laadpaal', naam: 'Laadpaal', ruimte: 'oprit', merk: 'Easee', platform: 'easee', entiteiten: [['sensor.laadpaal_vermogen', meter('power', 'Vermogen')], ['sensor.laadpaal_status', meter('', 'Status')]] },
+  { id: 'd-laadpaal', naam: 'Laadpaal', ruimte: 'oprit', merk: 'Easee', platform: 'easee', entiteiten: [['sensor.laadpaal_vermogen', meter('power', 'Vermogen')], ['sensor.laadpaal_status', meter('', 'Status')], ['sensor.laadpaal_stroom_l1', meter('current', 'Stroom L1')]] },
   {
     id: 'd-p1',
     naam: 'P1-meter',
@@ -309,16 +309,18 @@ export function staten(klok: Klok, ingrepen: Ingrepen, nuMs: number): HaEntitySt
   const m: Moment = moment(klok);
   const tijd = new Date(nuMs).toISOString();
   const lijst: HaEntityState[] = [];
-  const zet = (entity_id: string, state: string | number, attributes: Record<string, unknown> = {}) => {
+  const zet = (entity_id: string, state: string | number, attributes: Record<string, unknown> = {}, sinds = tijd) => {
     const eigen = ingrepen.get(entity_id);
     lijst.push({
       entity_id,
       state: eigen?.state ?? String(state),
       attributes: { friendly_name: NAMEN[entity_id] ?? entity_id, ...attributes, ...(eigen?.attributes ?? {}) },
-      last_changed: tijd,
+      last_changed: sinds,
       last_updated: tijd,
     });
   };
+  /** Het tijdstip van minuut `min` van vandaag, of van gisteren als die nog moet komen. */
+  const om = (min: number) => new Date(nuMs - (((klok.minuut - min) % 1440) + 1440) % 1440 * 60_000).toISOString();
   const winter = klok.seizoen === 'winter';
   const [op, onder] = ZON[klok.seizoen];
 
@@ -379,9 +381,13 @@ export function staten(klok: Klok, ingrepen: Ingrepen, nuMs: number): HaEntitySt
   zet('sensor.auto_lading', m.autoPct, { unit_of_measurement: '%', device_class: 'battery' });
   zet('sensor.auto_bereik', Math.round(m.autoPct * 3.9), { unit_of_measurement: 'km', device_class: 'distance' });
   zet('binary_sensor.auto_laadt', m.autoLaadt ? 'on' : 'off', { device_class: 'battery_charging' });
-  zet('binary_sensor.auto_stekker', 'on', { device_class: 'plug' });
+  // 's Avonds is de auto even weg; om negen uur gaat de kabel er weer in.
+  zet('binary_sensor.auto_stekker', m.autoWeg ? 'off' : 'on', { device_class: 'plug' }, m.autoWeg ? om(1110) : om(1260));
+  zet('number.auto_laadgrens', AUTO_GRENS, { unit_of_measurement: '%', min: 50, max: 100, step: 5 });
+  zet('device_tracker.auto', m.autoWeg ? 'not_home' : 'home', { source_type: 'gps' }, m.autoWeg ? om(1110) : om(1260));
   zet('sensor.laadpaal_vermogen', m.autoLaadt ? 1400 : 0, { unit_of_measurement: 'W', device_class: 'power' });
-  zet('sensor.laadpaal_status', m.autoLaadt ? 'charging' : m.autoPct >= 100 ? 'completed' : 'connected', {});
+  zet('sensor.laadpaal_stroom_l1', m.autoLaadt ? 6.1 : 0, { unit_of_measurement: 'A', device_class: 'current' });
+  zet('sensor.laadpaal_status', m.autoLaadt ? 'charging' : m.autoWeg ? 'disconnected' : m.autoPct >= AUTO_GRENS ? 'completed' : 'connected', {});
 
   // Het net: wat het huis vraagt, min de zon, min de batterij.
   const netW = Math.round(m.huisW + (m.autoLaadt ? 1400 : 0) + m.batterijW - m.zonW);
