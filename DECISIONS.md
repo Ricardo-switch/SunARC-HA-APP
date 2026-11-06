@@ -119,6 +119,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [248. De netmeter en de omvormers kies je in de app](#248-de-netmeter-en-de-omvormers-kies-je-in-de-app)
 - [254. Daken en panelen: elk dakvlak apart (ontwerp)](#254-daken-en-panelen-elk-dakvlak-apart-ontwerp)
 - [256. De kaart is experimenteel, met 3D BAG naast OpenStreetMap](#256-de-kaart-is-experimenteel-met-3d-bag-naast-openstreetmap)
+- [261. Wat kan bij jouw huis: de kaarten nagaan, de bewoner kiest](#261-wat-kan-bij-jouw-huis-de-kaarten-nagaan-de-bewoner-kiest)
 
 **Meten, data en analyse**
 
@@ -11759,7 +11760,7 @@ al met elk aantal `solarPlanes`; de app kent alleen voorkant, achterkant,
 beide of plat met één helling, garage, carport en tuinhuis tellen niet mee in
 de berekening, en de meting vindt hooguit twee vlakken tegenover elkaar.
 
-*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, stap 4 in 0.124.0, stap 5 in 0.125.0, stap 3 in 0.127.0; 2b nog niet):*
+*Besluit (ontwerp; stap 1 gebouwd in 0.122.0, stap 2a in 0.123.0, stap 4 in 0.124.0, stap 5 in 0.125.0, stap 3 in 0.127.0, stap 2b in 0.134.0; wat kan bij jouw huis in 0.134.0, besluit 261):*
 
 - **Elk dakvlak apart,** met een letter, een plek (hoofddak, dwarskap,
   uitbouw, garage, carport, tuinhuis of schuur, de grond, gevel of balkon), een
@@ -11941,6 +11942,31 @@ Daken en panelen laat de rondleiding opnieuw zien, zoals op Thuis; en een
 stop bij het huis, waarvoor de rondleiding de wissel zelf omzet en daarna
 terug.
 
+*Stap 2b gebouwd (0.134.0, 6 november 2026), keuze van Ricardo: slepen met
+de maten ernaast:*
+
+- **Een gebouw aantikken** (zijn naam in de tekening) maakt het blok te
+  slepen met de vinger of de muis, met een rondje op de hoek om te draaien.
+  Tijdens het slepen schuiven de panelen en de letters mee; loslaten bewaart,
+  en het blok staat meteen op zijn nieuwe plek (de pagina past de tekening
+  zelf aan tot de dienst antwoordt). Loslaten is geen tik op een dakvlak.
+- **Plek en maat** naast de tekening: de lengte en de breedte per halve
+  meter, de draaiing per 5°. De nok draait mee, en de kant van een vlak dat
+  de bewoner op dit blok legde ook; de richting van de vlakken zelf (voor de
+  berekening) verandert niet.
+- **Van wie het blok is:** een geschat blok is na verschuiven van de bewoner
+  (`bron: 'bewoner'`, nieuw naast `kaart` en `schatting`), en blijft dan
+  staan: kijken op de kaart of Zelf tekenen haalt het niet weg. Een blok uit
+  de kaart blijft uit de kaart als het alleen schuift of draait; met een andere
+  maat is het een rechthoek van de bewoner.
+- **Een gebouw zonder panelen erbij** onder Dak of vlak erbij: uitbouw,
+  garage, carport, tuinhuis of iets anders, naast het huis langs zijn lange
+  kant; daarna sleep je het op zijn plek. Een eigen blok heeft Blok weghalen.
+- De tekening geeft per gebouw zijn maat mee (`maat`: midden, lange as,
+  lengte en breedte). Een fout gevonden bij het bouwen: de groep van elk
+  gebouw sloot niet, zodat de gebouwen erna erin vielen (en mee oplichtten).
+- De rondleiding heeft een stop bij Wat kan bij jouw huis (besluit 261).
+
 ---
 
 ## 255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer
@@ -12043,9 +12069,20 @@ met het huis, en het tuinhuis staat er niet in.
   vraagteken is klein en rustig, rechts naast de titel, zonder rand die na een
   tik blijft staan.
 
-*Nog niet:* de helling per dakvlak uit 3D BAG naast de meting leggen (bij
-Ricardo 44° tegen 53°), met Neem over. Dat raakt de vlakken zelf, dus eerst
-nagaan hoeveel het in de verwachting scheelt.
+*Nagekomen, versie 0.134.0* (6 november 2026): **de helling uit 3D BAG naast
+de meting.** Eerst nagegaan wat het scheelt: bij Ricardo's dak (oost 93°,
+west 272°) geeft 44° in plaats van 53° bij heldere lucht 5,7% meer over het
+jaar (zomer 6,8%, winter 2,1%). Te veel om te negeren, maar de meting kan
+53° vinden om een reden (schaduw, hoe de panelen echt liggen), dus niets
+gaat vanzelf:
+
+- Kiest de bewoner de 3D-kaart, dan bewaart SunArc de dakvlakken van het
+  hoofdhuis uit 3D BAG (`kaartDak`: richting, helling en oppervlak, geen plek).
+  Met Zelf tekenen of de plattegrond gaan ze weer weg.
+- Bij een schuin vlak op het hoofdhuis staat onder de meting wat de 3D-kaart
+  zegt over het dakvlak dat het dichtst bij zijn richting ligt (binnen 45°),
+  met Neem over; dan is het vlak zelf ingesteld. Klopt het al (5° en 3°), dan
+  staat er "Klopt met de 3D-kaart".
 
 *Nagekomen, versie 0.128.1* (Ricardo, dezelfde avond): "Hoofddak A en
 hoofddak B" zegt niets, bijvoorbeeld bij Opbrengst, waar geen tekening is.
@@ -12206,6 +12243,53 @@ als eigen stap vóór de temperaturen.
 
 *Wat afviel:* de dag bovenaan dezelfde stap (de eerste schets), en de
 schuiven voor het hele huis.
+
+---
+
+## 261. Wat kan bij jouw huis: de kaarten nagaan, de bewoner kiest
+
+*Onderwerp: configuratie en onboarding · Status: geldig*
+
+6 november 2026, idee van de bewoner bij het afronden van Daken en panelen:
+"iedereen heeft basis, detectie kijkt of de locatie aan staat in HA, checkt of
+je wijk en huis in OpenStreetMap staat en als 3e of 3D BAG ondersteund is. De
+keus blijft bij de gebruiker welke te gebruiken maar dan is het wel
+transparant en meteen duidelijk wat er mogelijk is." Tot nu toe was er één
+knop, Omtrek uit de kaart, die nam wat hij vond; wie niets kreeg, wist niet
+waarom.
+
+*Besluit (schets `design/app2/Wand-Daken-Watkan.html`, gebouwd in 0.134.0):*
+
+- **Een kaart Wat kan bij jouw huis** bij Daken en panelen, onder de vlakken,
+  met vier regels: **Zelf tekenen** (altijd: een blok langs de voorgevel),
+  **Je plek** (uit Home Assistant), **Plattegrond** (OpenStreetMap) en
+  **3D-kaart van Nederland** (3D BAG). Gewone woorden (de bewoner): de namen van
+  de bronnen staan alleen klein onder de tekening, zoals hun licentie vraagt.
+- **Wat in huis kan, meteen:** of de plek er is, en of het huis in Nederland
+  ligt. Buiten Nederland staat bij de 3D-kaart "Niet hier", en SunArc vraagt
+  3D BAG niets. Staat de plek uit, dan brengt **Stel in** je naar Instellingen ›
+  Systeem › Algemeen in Home Assistant.
+- **De kaarten pas na een tik:** Kijk wat kan, met de melding van besluit 256
+  (de knop heet nu "Ik begrijp het, kijk wat kan"). Daarna per kaart: je huis
+  staat erin (met de dakvorm en helling uit 3D BAG), je wijk wel maar je huis
+  niet (je plek ligt in geen gebouw), hier staat niets in, of geen antwoord.
+- **De bewoner kiest:** kijken neemt niets over. Kies bij een kaart tekent het
+  huis daaruit; Kies bij Zelf tekenen is wat Zonder kaart was (met dezelfde
+  vraag). Wat in gebruik is, staat omlijnd. Kies na het opnieuw openen van de
+  pagina vraagt de kaart opnieuw, met de melding, en neemt hem dan meteen.
+- **Wat bewaard blijft:** alleen wat de kaarten zeiden, als woord per kaart en
+  de dag (`kaartStand` bij de daken), zodat de kaart het de volgende keer weet;
+  geen plek en geen vormen die niet gekozen zijn. Opnieuw kijken staat in de
+  kop, met de dag; zo past de kaart op de wand zonder te schuiven.
+- **Inrichten:** de stap Hoe ze liggen zegt in één regel wat kan ("Bij jouw
+  huis kan: 3D-kaart van Nederland"), of "Kijk wat kan bij jouw huis", met een
+  link naar Daken en panelen.
+- **De dienst** (`api/daken-kaart`) geeft per kaart de stand in `bronnen`, en
+  bovenaan nog de beste zoals eerst (3D BAG met wat OpenStreetMap erbij heeft,
+  anders OpenStreetMap). 3D BAG geeft ook de dakvlakken mee, voor de helling
+  per vlak (besluit 256, nagekomen).
+- **De rondleiding** van Daken en panelen heeft er een stop bij: Wat kan bij
+  jouw huis, de kaarten en zelf blokken schuiven.
 
 ---
 

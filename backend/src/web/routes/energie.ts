@@ -8,8 +8,9 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { validateConnection } from '../aansluiting.js';
 import { importFromPrefs, pricesInPrefs, type DashboardPrice, type MeterOption } from '../energy.js';
-import { alBinnen, bagHuisEnOmgeving, haalBagVak, inNederland, naarRd, type BagDak } from '../bag3d.js';
-import { gevelsUitOmtrek, haalKaart, haalOmtrek, huisEnOmgeving, kaartVak, voorkantUitKaart } from '../kaart.js';
+import { alBinnen, bagHuisEnOmgeving, haalBagVak, inNederland, naarRd, type BagDak, type BagDakvlak } from '../bag3d.js';
+import type { Dakvorm, KaartStandWoord } from '../daken.js';
+import { gevelsUitOmtrek, haalKaart, haalOmtrek, heeftGebouwen, huisEnOmgeving, kaartVak, voorkantUitKaart } from '../kaart.js';
 import { readJson, sendJson } from '../http.js';
 import { taalVan, type Diensten, type Verzoek } from '../diensten.js';
 
@@ -168,13 +169,26 @@ export async function gevelKaartRoute(d: Diensten, req: IncomingMessage, res: Se
 /** De antwoorden van OpenStreetMap per vak van het raster, een dag. */
 const kaartVakken = new Map<string, { at: number; antwoord: unknown }>();
 /** Wat 3D BAG over het huis zei, een dag; alleen het uitgerekende, niet het hele vak. */
-let bagBewaard: { at: number; sleutel: string; uit: ReturnType<typeof bagHuisEnOmgeving> } | null = null;
+let bagBewaard: { at: number; sleutel: string; vak: boolean; uit: ReturnType<typeof bagHuisEnOmgeving> } | null = null;
+
+/** Wat een kaart over het huis zei (6 november 2026): de stand, en bij `huis` de vormen in meters. */
+export interface UitKaart {
+  readonly stand: KaartStandWoord;
+  readonly hoofdhuis?: readonly (readonly [number, number])[];
+  readonly omgeving?: readonly (readonly (readonly [number, number])[])[];
+  readonly dak?: { readonly dakvorm: Dakvorm; readonly nokDeg: number; readonly hellingDeg: number | null; readonly vlakken: readonly BagDakvlak[] };
+}
 
 /**
  * Het huis van boven uit de kaart (besluit 254, stap 2a): het gebouw waar de
  * plek uit Home Assistant in ligt en de gebouwen eromheen, in meters vanaf die
  * plek. Naar OpenStreetMap gaat alleen het vak van het raster; de plek zelf
  * blijft in huis en wordt niet bewaard. Alleen na een tik van de beheerder.
+ *
+ * Wat kan bij jouw huis (Ricardo, 6 november 2026): per kaart wat hij vond,
+ * zodat de bewoner ziet wat er is en zelf kiest (`bronnen`). Bovenaan staat
+ * nog de beste, zoals eerst: 3D BAG met wat OpenStreetMap erbij heeft, anders
+ * OpenStreetMap.
  */
 export async function dakenKaartRoute(d: Diensten, res: ServerResponse): Promise<void> {
   const loc = await (d.options.exacteLocatie?.() ?? Promise.resolve(null)).catch(() => null);
@@ -182,27 +196,43 @@ export async function dakenKaartRoute(d: Diensten, res: ServerResponse): Promise
     sendJson(res, 503, { wachten: 'de plek van het huis komt van Home Assistant zodra die verbonden is' });
     return;
   }
+  const nl = inNederland(loc.latDeg, loc.lonDeg);
   // In Nederland ook 3D BAG (5 november 2026): de omtrek en het dak per gebouw; OpenStreetMap vult aan wat er niet in staat, zoals een tuinhuis.
-  const [osm, bag] = await Promise.allSettled([osmVak(d, loc.latDeg, loc.lonDeg), inNederland(loc.latDeg, loc.lonDeg) ? bagVak(d, loc.latDeg, loc.lonDeg) : Promise.resolve(null)]);
+  const [osm, bag] = await Promise.allSettled([osmVak(d, loc.latDeg, loc.lonDeg), nl ? bagVak(d, loc.latDeg, loc.lonDeg) : Promise.resolve(null)]);
   const uitOsm = osm.status === 'fulfilled' ? huisEnOmgeving(osm.value, { lat: loc.latDeg, lon: loc.lonDeg }) : null;
-  const uitBag = bag.status === 'fulfilled' ? bag.value : null;
-  if (uitBag) {
+  const uitBag = bag.status === 'fulfilled' ? bag.value?.uit ?? null : null;
+  const kaartOsm: UitKaart =
+    osm.status === 'rejected' ? { stand: 'fout' } : uitOsm ? { stand: 'huis', hoofdhuis: uitOsm.huis, omgeving: uitOsm.omgeving } : { stand: heeftGebouwen(osm.value) ? 'wijk' : 'niets' };
+  let kaartBag: UitKaart;
+  if (!nl) kaartBag = { stand: 'buiten' };
+  else if (bag.status === 'rejected') kaartBag = { stand: 'fout' };
+  else if (!uitBag) kaartBag = { stand: bag.value?.vak ? 'wijk' : 'niets' };
+  else {
     const bagOmtrekken = [uitBag.huis.omtrek, ...uitBag.omgeving.map((g) => g.omtrek)];
     const erbij = [...(uitOsm ? [uitOsm.huis] : []), ...(uitOsm?.omgeving ?? [])].filter((o) => !alBinnen(o, bagOmtrekken));
-    const omgeving = [...uitBag.omgeving.map((g) => g.omtrek), ...erbij].slice(0, 20);
     const dak: BagDak = uitBag.huis.dak;
-    sendJson(res, 200, { hoofdhuis: uitBag.huis.omtrek, omgeving, bron: 'bag3d', bronnen: erbij.length ? ['bag3d', 'osm'] : ['bag3d'], dak: { dakvorm: dak.dakvorm, nokDeg: dak.nokDeg, hellingDeg: dak.hellingDeg } });
+    kaartBag = {
+      stand: 'huis',
+      hoofdhuis: uitBag.huis.omtrek,
+      omgeving: [...uitBag.omgeving.map((g) => g.omtrek), ...erbij].slice(0, 20),
+      dak: { dakvorm: dak.dakvorm, nokDeg: dak.nokDeg, hellingDeg: dak.hellingDeg, vlakken: dak.vlakken },
+    };
+  }
+  const bronnen = { osm: kaartOsm, bag3d: kaartBag };
+  if (kaartBag.stand === 'huis') {
+    sendJson(res, 200, { hoofdhuis: kaartBag.hoofdhuis, omgeving: kaartBag.omgeving, bron: 'bag3d', dak: kaartBag.dak, bronnen });
     return;
   }
-  if (uitOsm) {
-    sendJson(res, 200, { hoofdhuis: uitOsm.huis, omgeving: uitOsm.omgeving, bron: 'osm', bronnen: ['osm'] });
+  if (kaartOsm.stand === 'huis') {
+    sendJson(res, 200, { hoofdhuis: kaartOsm.hoofdhuis, omgeving: kaartOsm.omgeving, bron: 'osm', bronnen });
     return;
   }
-  if (osm.status === 'rejected' && (bag.status === 'rejected' || !inNederland(loc.latDeg, loc.lonDeg))) {
-    sendJson(res, 502, { fout: 'De kaart gaf geen antwoord. Probeer het straks nog eens.' });
+  if (kaartOsm.stand === 'fout' && (kaartBag.stand === 'fout' || kaartBag.stand === 'buiten')) {
+    sendJson(res, 502, { fout: 'De kaart gaf geen antwoord. Probeer het straks nog eens.', bronnen });
     return;
   }
-  sendJson(res, 404, { fout: 'Op de kaart staat op deze plek geen huis.' });
+  // Geen huis: wel zeggen wat de kaarten zagen, zodat de pagina het kan tonen.
+  sendJson(res, 404, { fout: 'Op de kaart staat op deze plek geen huis.', bronnen });
 }
 
 /** OpenStreetMap: het vak van het raster, een dag bewaard. */
@@ -216,13 +246,13 @@ async function osmVak(d: Diensten, lat: number, lon: number): Promise<unknown> {
   return bewaard.antwoord;
 }
 
-/** 3D BAG: het kaartvak van de plek, en daaruit het huis en de buren; een dag bewaard. */
-async function bagVak(d: Diensten, lat: number, lon: number): Promise<ReturnType<typeof bagHuisEnOmgeving>> {
+/** 3D BAG: het kaartvak van de plek, en daaruit het huis en de buren; een dag bewaard. `vak`: was er een kaartvak? */
+async function bagVak(d: Diensten, lat: number, lon: number): Promise<{ vak: boolean; uit: ReturnType<typeof bagHuisEnOmgeving> }> {
   const [x, y] = naarRd(lat, lon);
   const sleutel = `${Math.round(x)},${Math.round(y)}`;
-  if (bagBewaard?.sleutel === sleutel && Date.now() - bagBewaard.at < 86_400_000) return bagBewaard.uit;
+  if (bagBewaard?.sleutel === sleutel && Date.now() - bagBewaard.at < 86_400_000) return bagBewaard;
   const cj = await (d.options.bagVak ?? haalBagVak)(lat, lon);
   const uit = cj ? bagHuisEnOmgeving(cj, x, y) : null;
-  bagBewaard = { at: Date.now(), sleutel, uit };
-  return uit;
+  bagBewaard = { at: Date.now(), sleutel, vak: cj != null, uit };
+  return bagBewaard;
 }

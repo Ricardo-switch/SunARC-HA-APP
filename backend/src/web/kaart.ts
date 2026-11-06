@@ -115,6 +115,9 @@ export const overpassVraag = (lat: number, lon: number) => {
   return `[out:json][timeout:50];way(${v.zuid},${v.west},${v.noord},${v.oost})["building"];out geom;`;
 };
 
+/** Staan er in het antwoord gebouwen? Zo niet, dan kent de kaart de wijk niet (6 november 2026). */
+export const heeftGebouwen = (antwoord: unknown) => omtrekkenVan(antwoord).length > 0;
+
 /** De omtrekken uit een antwoord van Overpass. */
 const omtrekkenVan = (antwoord: unknown): Punt[][] =>
   ((antwoord as { elements?: { geometry?: { lat: number; lon: number }[] }[] })?.elements ?? []).map((e) => e.geometry ?? []).filter((g) => g.length >= 4);

@@ -1,11 +1,14 @@
 # Wat is er nieuw · What is new
 
-## 0.133.1
+## 0.134.0
 
-*6 november 2026 · 0.132.0 – 0.133.1*
+*6 november 2026 · 0.132.0 – 0.134.0*
 
 **Nieuw**
 
+- Bij Daken en panelen zie je wat kan bij jouw huis: zelf tekenen, je plek uit Home Assistant, de plattegrond en de 3D-kaart van Nederland, elk met wat ze vonden. Jij kiest waar je huis uit getekend wordt
+- Zelf tekenen: tik een gebouw aan en sleep het op zijn plek, draai het met het rondje, en zet de lengte en breedte. Een gebouw zonder panelen zet je erbij via Dak of vlak erbij
+- Komt je huis uit de 3D-kaart van Nederland, dan staat bij elk schuin vlak op het huis wat de laser mat, naast de meting, met Neem over
 - De laadbeurten van de laatste week op de pagina Auto: per beurt hoeveel er geladen is, wat het kostte en welk deel eigen zon was, en alles samen
 - Tijdens het laden staat onder de auto wat deze laadbeurt tot nu toe nam en kostte
 - Een eigen pagina Auto: hoe vol de auto is, of hij laadt en met hoeveel, de stroom per fase, de laadgrens, hoe laat hij vol is, de kabel en of hij onderweg is. De auto zelf is de meter
@@ -13,6 +16,8 @@
 
 **Beter**
 
+- Kijk wat kan neemt niets over: eerst zie je of je huis, alleen je wijk of niets in de kaart staat. Staat je plek uit, dan brengt Stel in je naar die instelling in Home Assistant
+- De stap Hoe ze liggen in Inrichten zegt wat kan bij jouw huis, met een link naar Daken en panelen
 - SunArc leest bij meer auto’s hoe lang het laden nog duurt, zoals bij NissanConnect
 
 **Opgelost**
@@ -24,6 +29,9 @@
 
 **New**
 
+- Roofs and panels shows what your house allows: drawing it yourself, your location from Home Assistant, the street map and the 3D map of the Netherlands, each with what they found. You choose what your house is drawn from
+- Draw it yourself: tap a building and drag it into place, rotate it with the circle, and set its length and width. Add a building without panels under Add a roof or plane
+- If your house comes from the 3D map of the Netherlands, each sloped plane on the house shows what the laser measured, next to the measurement, with Use this
 - The charging sessions of the last week on the Car page: per session how much was charged, what it cost and how much was own solar, and the total
 - While charging, the car shows what this session has taken and cost so far
 - A Car page of its own: how full the car is, whether it charges and how fast, the current per phase, the charge limit, when it is full, the cable and whether it is away. The car itself is the meter
@@ -31,6 +39,8 @@
 
 **Improved**
 
+- See what works takes nothing over: first you see whether your house, only your area or nothing is on the map. If your location is not set, Set it takes you to that setting in Home Assistant
+- The step How they lie in Set up says what your house allows, with a link to Roofs and panels
 - SunArc reads how long charging still takes for more cars, such as with NissanConnect
 
 **Fixed**

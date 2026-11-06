@@ -99,6 +99,23 @@ describe('de gebouwen zonder kaart', () => {
   });
 });
 
+describe('blokken van de bewoner (stap 2b)', () => {
+  it('geeft elk gebouw zijn maat mee, om op maat te maken', () => {
+    const tk = tekening({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [gebouw({ omtrek: rechthoek(12, 7, 30, [2, 1]), bron: 'bewoner' })] });
+    const m = tk.gebouwen[0]!.maat;
+    expect(m.lengte).toBeCloseTo(12, 1);
+    expect(m.breedte).toBeCloseTo(7, 1);
+    expect(m.asDeg).toBe(30);
+    expect(m.midden[0]).toBeCloseTo(2, 1);
+  });
+
+  it('houdt een blok van de bewoner, ook zonder vlakken erop', () => {
+    const tuin = gebouw({ id: 'tuinhuis', soort: 'tuinhuis', bron: 'bewoner', omtrek: rechthoek(3, 3, 0, [0, -15]), dakvorm: 'zadel' });
+    const g = gebouwenNu({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [gebouw(), tuin] });
+    expect(g.find((x) => x.id === 'tuinhuis')).toMatchObject({ bron: 'bewoner', dakvorm: 'zadel' });
+  });
+});
+
 describe('de vlakken op de tekening', () => {
   const huis = gebouw();
 

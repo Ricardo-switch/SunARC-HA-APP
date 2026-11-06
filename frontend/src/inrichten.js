@@ -1537,7 +1537,8 @@ function dakVoorstelStap(dk) {
     waar: waarVan('ligging'),
     kop: t(gemeten ? 'inr.dak.voorstelKop' : 'inr.dak.wachtKop'),
     uitleg: t(gemeten ? 'inr.dak.voorstelZin' : 'inr.dak.wachtZin'),
-    inhoud: `<div class="kp-vlakken">${rijen.join('')}</div>${tip}`,
+    // Wat kan bij jouw huis (6 november 2026): de kaarten, met een link naar Daken en panelen.
+    inhoud: `<div class="kp-vlakken">${rijen.join('')}</div>${tip}${dakvlakken.watKanZin(dk)}`,
     voet: [`<button type="button" class="zachtknop" data-terug>${esc(t('panelen.terug'))}</button>`, rechts],
   };
 }

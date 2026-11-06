@@ -79,6 +79,7 @@ import { Laadbeurten } from './web/laadbeurten.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
 import { sunPosition } from './core/sun.js';
 import { hoofddakPlat, panelenVan, type DakVlak } from './web/daken.js';
+import { inNederland } from './web/bag3d.js';
 import { aanvullenUitMeter, achterblijven, meetVlakken, metMeting, opbrengstPerVlak, verdeelDag, type Achter, type MeterGroep, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
 import { findHeatStores } from './web/buffers-vinden.js';
 import { kiesLigging, meetLigging, omvormerUitType, type Meting, type PanelenAntwoord } from './web/ligging.js';
@@ -2392,6 +2393,8 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
         kaart: location != null,
         // Plat dak bij Inrichten (issue 143): het voorstel voor het hoofdhuis zonder vlakken.
         huisPlat: layoutNu?.()?.dak === 'geen',
+        // Wat kan bij jouw huis (6 november 2026): 3D BAG alleen in Nederland, in huis nagegaan.
+        nederland: location ? inNederland(location.latDeg, location.lonDeg) : false,
         // De meting per dakvlak en de grens per omvormer (stap 4); de zon van nu voor elk vlak nu (stap 5).
         vlakMeting: vlakMetingNu(),
         zonNu: location ? sunPosition(Date.now(), location.latDeg, location.lonDeg) : null,

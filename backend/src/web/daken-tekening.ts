@@ -386,7 +386,8 @@ export function panelenOp(dv: Dakvlakje, vlakken: readonly DakVlak[]): Record<st
 }
 
 export interface Tekening {
-  readonly gebouwen: readonly (Gebouw & GebouwVanBoven)[];
+  /** Elk gebouw met zijn dakvlakken, en zijn maat: de rechthoek eromheen (stap 2b, om op maat te maken). */
+  readonly gebouwen: readonly (Gebouw & GebouwVanBoven & { readonly maat: Rechthoek })[];
   /** De gebouwen eromheen die nog niet bij het huis horen. */
   readonly omgeving: readonly (readonly Xy[])[];
   readonly plaats: Readonly<Record<string, VlakPlaats>>;
@@ -422,7 +423,7 @@ export function tekening(d: Daken, o: { huisPlat?: boolean } = {}): Tekening {
     .slice(0, 8)
     .map((x) => x.o);
   const plaats = plaatsVlakken(d.vlakken, gebouwen);
-  const boven = gebouwen.map((g) => ({ ...g, ...vanBoven(g) }));
+  const boven = gebouwen.map((g) => ({ ...g, ...vanBoven(g), maat: rechthoekOm(g.omtrek) }));
   const panelen: Record<string, Xy[][]> = {};
   for (const g of boven) {
     for (const dv of g.dakvlakken) {

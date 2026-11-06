@@ -76,6 +76,13 @@ describe('een plat dak op het hoofdhuis (issue 131)', () => {
     expect(hoofddakPlat(null, 'voorkant', true)).toBe(true);
   });
 
+  it('leest een blok dat de bewoner zelf neerzette (stap 2b)', () => {
+    const g = { id: 'tuinhuis', soort: 'tuinhuis', bron: 'bewoner', omtrek: [[0, 0], [3, 0], [3, 3], [0, 3]], dakvorm: 'zadel', nokDeg: 0 };
+    const r = leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [g] });
+    expect('daken' in r && r.daken?.gebouwen?.[0]?.bron).toBe('bewoner');
+    expect(leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [{ ...g, bron: 'buurman' }] })).toHaveProperty('fout');
+  });
+
   it('leest wie de dakvorm gaf, en laat iets anders weg', () => {
     const g = { id: 'huis', soort: 'hoofdhuis', bron: 'kaart', omtrek: [[0, 0], [10, 0], [10, 9]], dakvorm: 'plat', nokDeg: 0 };
     const r = leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [{ ...g, dakBron: 'bewoner' }] });
@@ -86,6 +93,13 @@ describe('een plat dak op het hoofdhuis (issue 131)', () => {
 });
 
 describe('lezen', () => {
+  it('leest wat de kaarten zeiden, alleen met bekende woorden en een dag (6 november 2026)', () => {
+    const r = leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, kaartStand: { osm: 'wijk', bag3d: 'buiten', datum: '2026-11-06' } });
+    expect('daken' in r && r.daken?.kaartStand).toEqual({ osm: 'wijk', bag3d: 'buiten', datum: '2026-11-06' });
+    expect(leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, kaartStand: { osm: 'ja', bag3d: 'huis', datum: '2026-11-06' } })).toHaveProperty('fout');
+    expect(leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, kaartStand: { osm: 'huis', bag3d: 'huis', datum: 'gisteren' } })).toHaveProperty('fout');
+  });
+
   it('neemt een goed vlak over en vult de bron aan', () => {
     const { bron: _weg, ...zonder } = vlak();
     const r = leesDaken({ vlakken: [zonder], voorgevelDeg: 180, omvormerW: null });
