@@ -1,8 +1,8 @@
 # Wat is er nieuw · What is new
 
-## 0.133.0
+## 0.133.1
 
-*6 november 2026 · 0.132.0 – 0.133.0*
+*6 november 2026 · 0.132.0 – 0.133.1*
 
 **Nieuw**
 
@@ -14,6 +14,11 @@
 **Beter**
 
 - SunArc leest bij meer auto’s hoe lang het laden nog duurt, zoals bij NissanConnect
+
+**Opgelost**
+
+- Een plat dak blijft plat op Thuis, ook nadat je de panelen aanpast. Ook Plat dak bij Inrichten telt mee
+- Bij Daken en panelen heet Naar één kant nu Op rekken: daar stel je de helling in van panelen die schuin op een plat dak staan
 
 *English*
 
@@ -27,6 +32,11 @@
 **Improved**
 
 - SunArc reads how long charging still takes for more cars, such as with NissanConnect
+
+**Fixed**
+
+- A flat roof stays flat on Home, also after you change the panels. Flat roof in Set up counts too
+- In Roofs and panels, One direction is now called On racks: that is where you set the tilt of panels tilted on a flat roof
 
 ## 0.131.2
 

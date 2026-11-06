@@ -12085,6 +12085,19 @@ hoofddak B" zegt niets, bijvoorbeeld bij Opbrengst, waar geen tekening is.
   een rand, en de panelen erop in rijen, zoals op de garage. Een tik erop opent
   De zon op je daken.
 
+*Nagekomen, versie 0.133.1* (issues 141 en 143, dezelfde tester, 6 november):
+
+- **Plat bleef geen plat (143):** bij elk bewaren ging de dakvorm van het
+  geschatte hoofdhuis mee, en die bleef daarna staan. Wie eerst een schuin vlak
+  had en later op rekken koos, hield een puntdak op Thuis. Nu onthoudt elk
+  gebouw wie de dakvorm gaf (`dakBron`): de bewoner of 3D BAG blijft staan, een
+  voorstel volgt de vlakken erop. Zonder vlakken op het hoofddak telt ook
+  Plat dak bij Inrichten (`dak: 'geen'` in de indeling).
+- **Geen helling bij plat (141):** Plat liggend heeft geen helling en geen
+  richting; de tester zocht daar de helling van schuine panelen op een plat
+  dak. Naar één kant heet nu **Op rekken**, en bij Plat liggend staat een zin
+  met een knop naar Op rekken.
+
 ## 258. Wat er nieuw is: één overzicht per uitgave op main
 
 *Onderwerp: uitrol en beheer · Status: geldig*

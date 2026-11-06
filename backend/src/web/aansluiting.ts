@@ -856,7 +856,7 @@ function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): Dake
       return nuPerVlak([...groepen].map(([id, vlakken]) => ({ vlakken, meterW: id ? w(id) : somW })), c.zonNu);
     })(),
     achter: c.vlakMeting?.achter ?? null,
-    tekening: tekening(daken),
+    tekening: tekening(daken, c.huisPlat ? { huisPlat: true } : {}),
     kaart: c.kaart ?? false,
   };
 }
@@ -866,6 +866,8 @@ export interface ConnectionContext {
   readonly base: SiteConfig;
   readonly found: { readonly fasen: readonly FoundPhase[]; readonly apparaten: readonly FoundAppliance[]; readonly buffers?: readonly FoundHeatStore[]; readonly vermogens?: readonly FoundPower[] };
   readonly applied: Pick<Applied, 'toegevoegd' | 'overgeslagen'>;
+  /** Zei de bewoner bij Inrichten dat het huis een plat dak heeft (issue 143)? */
+  readonly huisPlat?: boolean;
   /** De netmeter en de omvormers in de configuratie waarmee de regeling draait. */
   readonly inGebruik?: { readonly netmeter: Netmeter | null; readonly omvormers: readonly string[] };
   /** De antwoorden bij de start, om te zien of er iets veranderde. */

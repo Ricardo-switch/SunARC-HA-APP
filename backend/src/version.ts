@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.133.0';
+export const VERSIE = '0.133.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,38 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.133.1',
+    datum: '2026-11-06',
+    opgelost: [
+      'Een plat dak blijft plat op Thuis, ook nadat je de panelen aanpast. Ook Plat dak bij Inrichten telt mee',
+      'Bij Daken en panelen heet Naar één kant nu Op rekken: daar stel je de helling in van panelen die schuin op een plat dak staan',
+    ],
+    en: {
+      opgelost: [
+        'A flat roof stays flat on Home, also after you change the panels. Flat roof in Set up counts too',
+        'In Roofs and panels, One direction is now called On racks: that is where you set the tilt of panels tilted on a flat roof',
+      ],
+    },
+    meldingen: [
+      {
+        code: 'SA-VLFF',
+        uitkomst: 'opgelost',
+        tekst: 'Het huis op Thuis volgde een dakvorm die SunArc eerder had voorgesteld. Nu volgt het je panelen: liggen ze op rekken of plat, dan is het dak plat. Kies je bij Daken en panelen › het huis zelf een dakvorm, dan blijft die staan.',
+        tekstEn: 'The house on Home followed a roof shape SunArc had suggested earlier. Now it follows your panels: on racks or lying flat means a flat roof. If you pick a roof shape yourself in Roofs and panels › the house, it stays.',
+        href: 'energie.html#panelen',
+        issue: 143,
+      },
+      {
+        code: 'SA-TASW',
+        uitkomst: 'opgelost',
+        tekst: 'Plat liggend heeft geen helling. Staan je panelen schuin op een plat dak, kies dan Op rekken (eerst Naar één kant), of Oost-west: daar stel je de helling en de richting in.',
+        tekstEn: 'Lying flat has no tilt. If your panels are tilted on a flat roof, choose On racks (formerly One direction), or East-west: there you set the tilt and direction.',
+        href: 'energie.html#panelen',
+        issue: 141,
+      },
+    ],
+  },
   {
     versie: '0.133.0',
     datum: '2026-11-06',

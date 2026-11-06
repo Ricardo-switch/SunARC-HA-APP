@@ -1554,9 +1554,9 @@ const huisNu = (lang: Lang) => {
         lang,
       )
     : null;
-  // Een plat dak op het hoofdhuis (issue 131): zoals de bewoner het opgaf bij Daken en panelen.
+  // Een plat dak op het hoofdhuis (issue 131): zoals de bewoner het opgaf bij Daken en panelen of Inrichten (143).
   const a = connectionStore?.current;
-  const plat0 = huis?.ligging && hoofddakPlat(a?.daken, a?.panelen?.ligging) ? { ...huis, ligging: { ...huis.ligging, plat: true } } : huis;
+  const plat0 = huis?.ligging && hoofddakPlat(a?.daken, a?.panelen?.ligging, layoutStore?.current?.dak === 'geen') ? { ...huis, ligging: { ...huis.ligging, plat: true } } : huis;
   // De auto's en laadpalen met de keuzes bij Energie (besluit 259), uit alle standen: een kabel of bereik telt niet als iets in huis.
   const plat = plat0 && houseRegisters ? { ...plat0, opslag: vindOpslag(houseRegisters, allStates, a?.laden ?? null) } : plat0;
   huisBewaard.set(lang, { sleutel, atMs: Date.now(), huis: plat });
@@ -2390,6 +2390,8 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
         omvormerGevonden: omvormerGevonden(),
         // De omtrek uit de kaart kan zodra Home Assistant de plek gaf (besluit 254).
         kaart: location != null,
+        // Plat dak bij Inrichten (issue 143): het voorstel voor het hoofdhuis zonder vlakken.
+        huisPlat: layoutNu?.()?.dak === 'geen',
         // De meting per dakvlak en de grens per omvormer (stap 4); de zon van nu voor elk vlak nu (stap 5).
         vlakMeting: vlakMetingNu(),
         zonNu: location ? sunPosition(Date.now(), location.latDeg, location.lonDeg) : null,

@@ -84,6 +84,19 @@ describe('de gebouwen zonder kaart', () => {
     const eigen = gebouw({ omtrek: rechthoek(9, 7, 45), bron: 'kaart' });
     expect(gebouwenNu({ ...daken([vlak()]), gebouwen: [eigen] })[0]).toBe(eigen);
   });
+
+  it('laat een voorgestelde dakvorm de vlakken volgen, maar niet wat de bewoner koos (issue 143)', () => {
+    const rek = [vlak({ opstelling: 'rek', tiltDeg: 15 })];
+    expect(gebouwenNu({ ...daken(rek), gebouwen: [gebouw({ bron: 'schatting' })] })[0]?.dakvorm).toBe('plat');
+    expect(gebouwenNu({ ...daken(rek), gebouwen: [gebouw({ dakBron: 'bewoner' })] })[0]?.dakvorm).toBe('zadel');
+    expect(gebouwenNu({ ...daken([vlak()]), gebouwen: [gebouw({ dakvorm: 'plat' })] })[0]?.dakvorm).toBe('zadel');
+  });
+
+  it('geeft het huis zonder vlakken een plat dak als Inrichten dat zegt', () => {
+    expect(gebouwenNu(daken([]), { huisPlat: true })[0]?.dakvorm).toBe('plat');
+    expect(gebouwenNu(daken([]))[0]?.dakvorm).toBe('zadel');
+    expect(gebouwenNu({ ...daken([]), gebouwen: [gebouw()] }, { huisPlat: true })[0]?.dakvorm).toBe('plat');
+  });
 });
 
 describe('de vlakken op de tekening', () => {

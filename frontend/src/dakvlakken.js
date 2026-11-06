@@ -174,7 +174,7 @@ const dakvlakken = (() => {
     return `<div class="dk-vlak open">${letter(v, STANDKLEUR[v.bron])}<span>${nieuw ? `<small class="dk-nieuw">${esc(t('daken.nieuwKort'))}</small>` : ''}${naamVeld}<small>${esc(waar(v))}</small></span><span class="dk-rechts"><b>${esc(kWp(piek(v)))}</b> kWp</span></div>
       ${ligtOp(d, v)}
       ${veld(t('daken.hoeLiggen'), `<div class="dk-opstel" role="group" aria-label="${esc(t('daken.hoeLiggen'))}">${OPSTELLINGEN.map((o) => `<button type="button" data-dak-opstel="${o}" aria-pressed="${v.opstelling === o}" class="${v.opstelling === o ? 'aan' : ''}"><svg viewBox="0 0 90 38" aria-hidden="true">${OPSTEL_BEELD[o]}</svg>${esc(t(`daken.opstelling.${o}`))}</button>`).join('')}</div>`)}
-      ${v.opstelling === 'plat' ? '' : `<div class="dk-richting">${kompas(v)}
+      ${v.opstelling === 'plat' ? platZin() : `<div class="dk-richting">${kompas(v)}
         ${veld(t('daken.richting'), `<div class="dk-rij">${stapper('richting', `${norm(v.azimuthDeg)}°`, t('daken.richting'))}${v.opstelling === 'oostwest' ? `<span class="klein">${esc(t('daken.enTegenover', { graden: `${norm(v.azimuthDeg + 180)}°` }))}</span>` : `<span class="klein">${esc(kort(v.azimuthDeg))}</span>`}</div>
           <input class="lig-draai" type="range" min="0" max="355" step="1" value="${norm(v.azimuthDeg) % 360}" data-dak-draai aria-label="${esc(t('daken.draai'))}">
           <span class="klein dk-uitleg">${esc(t(v.opstelling === 'oostwest' ? 'daken.richtingOw' : 'daken.richtingUitleg'))}</span>`)}</div>
@@ -184,6 +184,12 @@ const dakvlakken = (() => {
       ${metingBij(d, v)}
       <div class="dk-voet"><button type="button" class="lig-knop zacht" data-dak-scherm="alle">${esc(t('daken.alle'))}</button>${nieuw ? '' : `<button type="button" class="lig-link dk-weg" data-dak-weg>${esc(t('daken.weg'))}</button>`}<button type="button" class="lig-knop" data-dak-bewaar>${esc(t('daken.bewaar'))}</button></div>`;
   }
+
+  /**
+   * Plat liggend heeft geen helling en geen richting (issue 141): een tester met
+   * schuine panelen op een plat dak zocht daar de helling. Dat is Op rekken.
+   */
+  const platZin = () => `<div class="dk-meting">${esc(t('daken.platZin'))} <button type="button" class="lig-link" data-dak-opstel="rek">${esc(t('daken.naarRek'))}</button></div>`;
 
   const TEGEL_BEELD = {
     hoofddak: '<path d="M4 22 22 8l18 14"/><path d="M8 19v13h28V19"/><path d="M26 13l8 6" stroke-width="4" stroke="#4d7eac"/>',
@@ -239,7 +245,7 @@ const dakvlakken = (() => {
   const gebouwNaam = (g) => t(`daken.gebouw.${g.soort}`);
   const sleutelVan = (kant) => (kant == null ? 'plat' : String(kant));
   /** De gebouwen zoals de dienst ze leest, uit de tekening. */
-  const gebouwenUit = (d) => (d.tekening?.gebouwen ?? []).map(({ id, soort, bron, omtrek, dakvorm, nokDeg, kaart }) => ({ id, soort, bron, omtrek, dakvorm, nokDeg, ...(kaart ? { kaart } : {}) }));
+  const gebouwenUit = (d) => (d.tekening?.gebouwen ?? []).map(({ id, soort, bron, omtrek, dakvorm, nokDeg, kaart, dakBron }) => ({ id, soort, bron, omtrek, dakvorm, nokDeg, ...(kaart ? { kaart } : {}), ...(dakBron ? { dakBron } : {}) }));
   /** Waar een vlak ligt: wat in het open vlak staat, anders wat de dienst vond. */
   function plaatsVan(d, v) {
     if (v.gebouw) return { gebouw: v.gebouw, kant: v.kant ?? null, getekend: true };
@@ -429,7 +435,7 @@ const dakvlakken = (() => {
     const oud = gebouwenUit(d);
     const weg = oud.filter((g) => g.soort !== 'hoofdhuis' && g.bron === 'schatting').map((g) => g.id);
     // Uit 3D BAG ook het dak: de vorm en hoe de nok loopt (5 november 2026).
-    const dak = body.dak && DAKVORMEN.includes(body.dak.dakvorm) ? { dakvorm: body.dak.dakvorm, nokDeg: body.dak.nokDeg } : {};
+    const dak = body.dak && DAKVORMEN.includes(body.dak.dakvorm) ? { dakvorm: body.dak.dakvorm, nokDeg: body.dak.nokDeg, dakBron: 'kaart' } : {};
     const kaart = body.bron === 'bag3d' || body.bron === 'osm' ? { kaart: body.bron } : {};
     const gebouwen = oud.filter((g) => !weg.includes(g.id)).map((g) => (g.soort === 'hoofdhuis' ? { ...g, ...dak, omtrek: body.hoofdhuis, bron: 'kaart', ...kaart } : g));
     // Een ander dak: de kanten van het huis kunnen anders liggen, dus de vlakken op het huis opnieuw plaatsen.
@@ -701,8 +707,9 @@ const dakvlakken = (() => {
       const id = ds.dakNok ?? s.gebouw;
       const gebouwen = gebouwenUit(d).map((g) => {
         if (g.id !== id) return g;
-        if (ds.dakDakvorm) return { ...g, dakvorm: ds.dakDakvorm };
-        return { ...g, nokDeg: g.dakvorm === 'lessenaar' ? norm(g.nokDeg + 90) : (g.nokDeg + 90) % 180 };
+        // Wat de bewoner kiest, blijft; een voorstel volgt de vlakken (issue 143).
+        if (ds.dakDakvorm) return { ...g, dakvorm: ds.dakDakvorm, dakBron: 'bewoner' };
+        return { ...g, nokDeg: g.dakvorm === 'lessenaar' ? norm(g.nokDeg + 90) : (g.nokDeg + 90) % 180, dakBron: g.dakBron ?? 'bewoner' };
       });
       // De dakvlakken veranderen: wat erop lag, zoekt SunArc opnieuw.
       return { vlakken: losVan(d.vlakken, [id]), gebouwen };

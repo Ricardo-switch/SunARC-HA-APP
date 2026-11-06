@@ -151,12 +151,13 @@ const PLEK_BLOK: Partial<Record<GebouwSoort, (hw: number, voor: number, achter: 
 };
 
 /** Een voorstel voor de dakvorm, uit het soort gebouw en de vlakken die erop liggen. */
-export function dakvormVoorstel(soort: GebouwSoort, vlakken: readonly DakVlak[], voorgevelDeg: number): { dakvorm: Dakvorm; nokDeg: number } {
+export function dakvormVoorstel(soort: GebouwSoort, vlakken: readonly DakVlak[], voorgevelDeg: number, huisPlat = false): { dakvorm: Dakvorm; nokDeg: number } {
   const schuin = vlakken.filter((v) => v.opstelling === 'schuin');
   if (soort === 'hoofdhuis' || soort === 'tuinhuis') {
     // Een schuin vlak: de nok loopt haaks op waar het naartoe kijkt.
     if (schuin.length) return { dakvorm: 'zadel', nokDeg: norm(schuin[0]!.azimuthDeg + 90) % 180 };
-    if (vlakken.length) return { dakvorm: 'plat', nokDeg: norm(voorgevelDeg + 90) % 180 };
+    // Zonder vlakken: wat de bewoner bij Inrichten zei over het dak van het huis.
+    if (vlakken.length || (soort === 'hoofdhuis' && huisPlat)) return { dakvorm: 'plat', nokDeg: norm(voorgevelDeg + 90) % 180 };
     return { dakvorm: 'zadel', nokDeg: norm(voorgevelDeg + 90) % 180 };
   }
   if (schuin.length) return { dakvorm: 'lessenaar', nokDeg: norm(schuin[0]!.azimuthDeg) };
@@ -177,12 +178,22 @@ function blok(midden: Xy, voorDeg: number, u0: number, u1: number, v0: number, v
  * hoofdhuis een blok van 10 bij 9 meter met de voorgevel naar de voorkant; voor
  * een vlak op de garage, de uitbouw of elders zonder gebouw een blok ernaast.
  */
-export function gebouwenNu(d: Daken): Gebouw[] {
+export function gebouwenNu(d: Daken, o: { huisPlat?: boolean } = {}): Gebouw[] {
   const voor = d.voorgevelDeg ?? 180;
-  const uit: Gebouw[] = [...(d.gebouwen ?? [])];
-  const vlakkenOp = (soort: GebouwSoort) => d.vlakken.filter((v) => (v.gebouw ? uit.find((g) => g.id === v.gebouw)?.soort === soort : SOORT_VAN_PLEK[v.plek] === soort));
+  const bewaard = d.gebouwen ?? [];
+  const vlakkenOp = (soort: GebouwSoort) => d.vlakken.filter((v) => (v.gebouw ? bewaard.find((g) => g.id === v.gebouw)?.soort === soort : SOORT_VAN_PLEK[v.plek] === soort));
+  // Op een bewaard gebouw: wat ernaar wijst, en zonder aanwijzing wat bij zijn plek hoort (het eerste gebouw van die soort).
+  const opGebouw = (g: Gebouw) => d.vlakken.filter((v) => (v.gebouw ? v.gebouw === g.id : SOORT_VAN_PLEK[v.plek] === g.soort && bewaard.find((x) => x.soort === g.soort) === g));
+  // Een voorgestelde dakvorm volgt de vlakken erop (issue 143); wat de bewoner of 3D BAG gaf, blijft.
+  const uit: Gebouw[] = bewaard.map((g) => {
+    if (g.dakBron) return g;
+    const op = opGebouw(g);
+    if (!op.length && !(g.soort === 'hoofdhuis' && o.huisPlat)) return g;
+    const v = dakvormVoorstel(g.soort, op, voor, o.huisPlat);
+    return v.dakvorm === g.dakvorm ? g : { ...g, ...v };
+  });
   if (!uit.some((g) => g.soort === 'hoofdhuis')) {
-    uit.unshift({ id: 'huis', soort: 'hoofdhuis', bron: 'schatting', omtrek: blok([0, 0], voor, -5, 5, -4.5, 4.5), ...dakvormVoorstel('hoofdhuis', vlakkenOp('hoofdhuis'), voor) });
+    uit.unshift({ id: 'huis', soort: 'hoofdhuis', bron: 'schatting', omtrek: blok([0, 0], voor, -5, 5, -4.5, 4.5), ...dakvormVoorstel('hoofdhuis', vlakkenOp('hoofdhuis'), voor, o.huisPlat) });
   }
   const huis = uit.find((g) => g.soort === 'hoofdhuis')!;
   // De maat van het huis langs de voorgevel en naar achteren, vanuit zijn midden.
@@ -392,9 +403,9 @@ const afstandTussen = (a: readonly Xy[], b: readonly Xy[]) => Math.min(...a.flat
  * komt grijs ernaast, om aan te tikken. Van de omgeving alleen wat binnen 12
  * meter van het huis staat, hooguit acht.
  */
-export function tekening(d: Daken): Tekening {
+export function tekening(d: Daken, o: { huisPlat?: boolean } = {}): Tekening {
   const delen: Xy[][] = [];
-  const gebouwen = gebouwenNu(d).map((g) => {
+  const gebouwen = gebouwenNu(d, o).map((g) => {
     if (g.bron !== 'kaart') return g;
     const b = inBlokken(g.omtrek);
     if (!b) return g;

@@ -81,6 +81,11 @@ export interface Gebouw {
   readonly nokDeg: number;
   /** Uit welke kaart de omtrek kwam (5 november 2026): 3D BAG of OpenStreetMap, voor de naamsvermelding. */
   readonly kaart?: 'bag3d' | 'osm';
+  /**
+   * Wie de dakvorm gaf (issue 143): de bewoner, of de kaart (3D BAG meet het
+   * dak). Weg: een voorstel, dat de vlakken erop volgt.
+   */
+  readonly dakBron?: 'bewoner' | 'kaart';
 }
 
 export interface Daken {
@@ -165,7 +170,8 @@ function leesGebouwen(x: unknown): Gebouw[] | { fout: string } {
       return { fout: `gebouw ${id}: een soort, een dakvorm, de nok en een omtrek in meters` };
     }
     const kaart = r['kaart'] === 'bag3d' || r['kaart'] === 'osm' ? r['kaart'] : null;
-    uit.push({ id, soort: r['soort'] as GebouwSoort, bron: r['bron'] as Gebouw['bron'], omtrek, dakvorm: r['dakvorm'] as Dakvorm, nokDeg: r['nokDeg'] as number, ...(kaart && r['bron'] === 'kaart' ? { kaart } : {}) });
+    const dakBron = r['dakBron'] === 'bewoner' || r['dakBron'] === 'kaart' ? r['dakBron'] : null;
+    uit.push({ id, soort: r['soort'] as GebouwSoort, bron: r['bron'] as Gebouw['bron'], omtrek, dakvorm: r['dakvorm'] as Dakvorm, nokDeg: r['nokDeg'] as number, ...(kaart && r['bron'] === 'kaart' ? { kaart } : {}), ...(dakBron ? { dakBron } : {}) });
   }
   return uit;
 }
@@ -349,14 +355,19 @@ export function dakenUitOud(o: OudeDaken): Daken {
 
 /**
  * Heeft het hoofdhuis een plat dak (issue 131)? Zoals de bewoner het opgaf: de
- * dakvorm van het hoofdhuis bij Daken en panelen, anders de vlakken van het
- * hoofddak (allemaal op rekken, oost-west of plat), anders het oude antwoord.
+ * dakvorm van het hoofdhuis als de bewoner of 3D BAG hem gaf, anders de
+ * vlakken van het hoofddak (allemaal op rekken, oost-west of plat), anders de
+ * voorgestelde dakvorm, het antwoord "plat dak" bij Inrichten of het oude
+ * antwoord. Een voorgestelde dakvorm bleef eerst staan als de vlakken
+ * veranderden (issue 143): dan bleef Thuis een puntdak tonen.
  */
-export function hoofddakPlat(daken: Daken | null | undefined, ligging: string | null | undefined): boolean {
+export function hoofddakPlat(daken: Daken | null | undefined, ligging: string | null | undefined, inrichtenPlat = false): boolean {
   const huis = daken?.gebouwen?.find((g) => g.soort === 'hoofdhuis');
-  if (huis) return huis.dakvorm === 'plat';
+  if (huis?.dakBron) return huis.dakvorm === 'plat';
   const hoofd = (daken?.vlakken ?? []).filter((v) => v.plek === 'hoofddak');
   if (hoofd.length) return hoofd.every((v) => v.opstelling !== 'schuin');
+  if (inrichtenPlat) return true;
+  if (huis) return huis.dakvorm === 'plat';
   return ligging === 'plat';
 }
 
