@@ -264,6 +264,7 @@ const IK = {
   tuinhuis: iconen.binnen('tuinhuis'),
   schuur: iconen.binnen('schuur'),
   terras: iconen.binnen('terras'),
+  border: iconen.binnen('border'),
   jacuzzi: iconen.binnen('jacuzzi'),
   balkon: iconen.binnen('balkon'),
   thermo: iconen.binnen('klimaat'),
@@ -746,7 +747,8 @@ const buitenKamers = () => (concept()?.kamers ?? []).filter((k) => k.etage === '
  * waar een ruimte nu ook bij de carport kan horen.
  */
 const RONDOM = huismodel.rondom();
-const { OP_OPRIT } = huismodel;
+/** Wat er rond het huis is, uit de indeling die je nu bewerkt; een lijstje van vóór de border heeft hem. */
+const rondVanConcept = (next) => huismodel.rondNu(next?.rond ? { rond: next.rond } : d.huis);
 function buitenNu(k) {
   const r = buitenRuimtes().find((x) => x.id === k.id);
   return k.buiten ?? r?.buiten ?? huismodel.soortBuiten(k);
@@ -757,13 +759,15 @@ function buitenStap() {
   // De jacuzzi (besluit 186): gevonden in Home Assistant, of alleen getekend.
   const jacuzzi = (d.aans?.gevonden?.apparaten ?? []).find((x) => x.soort === 'jacuzzi');
   const delen = RONDOM.map(([w, naam, soort, icoon]) => {
-    const aan = !!rond[w] && (!OP_OPRIT.has(w) || !!rond.oprit);
+    const aan = huismodel.rondAan(rond, w);
+    const ouder = huismodel.hangtAan(w);
     // Aanvinken is genoeg (28 oktober 2026): het deel komt op zijn vaste plek; de ruimte
     // uit Home Assistant die erbij hoort, volgt uit zijn naam of wat hij is bij Kamers en indeling.
-    // In de tuin: het tuinhuis met plat dak, of het schuurtje met puntdak (24 oktober 2026).
-    const soortKeuze = w === 'tuinhuis' && aan ? `<span class="chips">${knop('data-schuur="0"', t('inr.tuinhuis'), !rond.schuur)}${knop('data-schuur="1"', t('inr.schuurtje'), !!rond.schuur)}</span>` : '';
+    // In de tuin: het tuinhuis met plat dak, het schuurtje met puntdak, of allebei (6 november 2026).
+    const huisje = huismodel.huisjeVan(rond);
+    const soortKeuze = w === 'tuinhuis' && aan ? `<span class="chips">${huismodel.HUISJES.map(([v, sleutel]) => knop(`data-schuur="${v}"`, t(sleutel), huisje === v)).join('')}</span>` : '';
     const zin = w === 'jacuzzi' ? (jacuzzi ? jacuzzi.naam : t('inr.nietInHA')) : '';
-    return regel({ ik: w === 'tuinhuis' && rond.schuur ? 'schuur' : icoon, titel: naam, zin, rechts: schakelaar(`data-rond="${w}"`, naam, aan, OP_OPRIT.has(w) && !rond.oprit), onder: soortKeuze });
+    return regel({ ik: w === 'tuinhuis' && huisje === 'schuur' ? 'schuur' : icoon, titel: naam, zin, rechts: schakelaar(`data-rond="${w}"`, naam, aan, !!ouder && !rond[ouder]), onder: soortKeuze });
   });
   // Ruimtes die bij geen deel horen dat aan staat: die tekent het huis nergens.
   const los = kamers.filter((k) => !RONDOM.some(([w, , s]) => s && rond[w] && buitenNu(k).soort === s));
@@ -1289,8 +1293,6 @@ function antwoorden() {
     elders: { ...(x?.elders ?? {}) },
   };
 }
-/** "Weet ik niet" bij de kanten van het hoofddak: één teller, en de meting zoekt de kanten. Alleen op deze pagina. */
-let kantenWeetNiet = false;
 /** Een plaatje per plek, zoals de schets Wand-Inrichten-Daken. */
 const KORT_BEELD = {
   hoofddak: '<path d="M4 22 22 8l18 14"/><path d="M8 19v13h28V19"/><path d="M26 13l8 6" stroke-width="4" stroke="#4d7eac"/>',
@@ -1330,10 +1332,11 @@ function zonStap() {
     return `<div class="kp-plaats aan">${ICOON(p)}<b>${esc(naam)}</b>${onder}</div>`;
   };
   const hoofd = kort.aan.hoofddak > 0;
-  const kantKeuze = kantenWeetNiet ? 'weetniet' : String(Math.max(1, kort.kanten));
+  // Hoeveel kanten weet iedereen, of zoekt het even uit (6 november 2026): geen "Weet ik niet" meer.
+  const kantKeuze = String(Math.min(3, Math.max(1, kort.kanten)));
   const kanten = hoofd
-    ? `<div class="kp-kanten"><b>${esc(t('inr.dak.kantenVraag'))}</b>${[['1', '1'], ['2', '2'], ['3', t('inr.dak.drieOfMeer')], ['weetniet', t('energie.kant.weetniet')]].map(([w, x]) => knop(`data-kort-kanten="${w}"`, x, kantKeuze === w)).join('')}</div>
-      ${meerKanten && !kantenWeetNiet ? `<div class="kp-perkant">${kort.perKant.map((n, i) => `<label class="kp-kant"><span>${esc(dakvlakken.kantNaam(dk, i))}</span>${teller(`data-kort-kant="${i}"`, n, dakvlakken.kantNaam(dk, i))}</label>`).join('')}</div>` : ''}`
+    ? `<div class="kp-kanten"><b>${esc(t('inr.dak.kantenVraag'))}</b>${[['1', '1'], ['2', '2'], ['3', t('inr.dak.drieOfMeer')]].map(([w, x]) => knop(`data-kort-kanten="${w}"`, x, kantKeuze === w)).join('')}</div>
+      ${meerKanten ?`<div class="kp-perkant">${kort.perKant.map((n, i) => `<label class="kp-kant"><span>${esc(dakvlakken.kantNaam(dk, i))}</span>${teller(`data-kort-kant="${i}"`, n, dakvlakken.kantNaam(dk, i))}</label>`).join('')}</div>` : ''}`
     : '';
   return {
     waar: waarVan('zon'),
@@ -2131,7 +2134,8 @@ document.addEventListener('click', async (e) => {
       if (el.dataset.dak === 'plat') next.dak = 'geen';
       else if (d.huis?.dakEtage || boven) next.dak = d.huis?.dakEtage ?? boven.id;
     }
-    if (el.dataset.schuur) next.rond = { ...(next.rond ?? huismodel.rondNu(d.huis)), schuur: el.dataset.schuur === '1' };
+    // Het tuinhuis, het schuurtje of allebei (6 november 2026).
+    if (el.dataset.schuur) next.rond = { ...rondVanConcept(next), schuur: el.dataset.schuur === 'schuur', allebei: el.dataset.schuur === 'beide' };
     await bewaarIndeling(next);
     return;
   }
@@ -2494,8 +2498,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (el.dataset.kortKanten) {
-    kantenWeetNiet = el.dataset.kortKanten === 'weetniet';
-    await bewaarKort({ kanten: kantenWeetNiet ? 1 : Number(el.dataset.kortKanten) });
+    await bewaarKort({ kanten: Number(el.dataset.kortKanten) });
     return;
   }
   if (el.dataset.contract) {
@@ -2522,14 +2525,7 @@ document.addEventListener('click', async (e) => {
     // Wat er rond het huis is (besluit 158): elk deel apart aan of uit.
     const next = concept();
     if (!next) return;
-    const rond = { ...(next.rond ?? huismodel.rondNu(d.huis)) };
-    const w = el.dataset.rond;
-    rond[w] = !rond[w];
-    if (w === 'oprit' && !rond.oprit) {
-      rond.auto = false;
-      rond.carport = false;
-    }
-    next.rond = rond;
+    next.rond = huismodel.rondWissel(rondVanConcept(next), el.dataset.rond);
     await bewaarIndeling(next);
     return;
   }

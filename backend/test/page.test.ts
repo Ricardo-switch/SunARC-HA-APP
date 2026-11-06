@@ -2227,8 +2227,12 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await kaart.locator('[data-volgende]').click();
     await p.waitForURL(/#buiten$/);
     await kaart.locator('h1', { hasText: 'Wat is er rond je huis?' }).waitFor();
-    // Elk deel rond het huis apart aan of uit (besluit 158), met garage en carport (besluit 166) en de jacuzzi (besluit 190).
-    expect(await kaart.locator('[data-rond]').count()).toBe(10);
+    // Elk deel rond het huis apart aan of uit (besluit 158), met garage en carport (besluit 166), de jacuzzi (besluit 190)
+    // en de border (6 november 2026), die alleen kan met een achtertuin.
+    expect(await kaart.locator('[data-rond]').count()).toBe(11);
+    const border = kaart.locator('[data-rond="border"]');
+    const tuinAan = (await kaart.locator('[data-rond="tuin"]').getAttribute('aria-checked')) === 'true';
+    expect(await border.isDisabled()).toBe(!tuinAan);
     expect(await kaart.locator('[data-bsoort]').count()).toBe(0);
     await expect.poll(async () => p.evaluate<number>('document.querySelectorAll("#wand .stap .stipjes i.al").length')).toBe(3);
     await shot('buiten');

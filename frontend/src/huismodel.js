@@ -267,9 +267,17 @@
       const leeg = (naam) => ({ id: null, naam, lampAan: false });
       oprit = rond.oprit ? (oprit ?? { id: null, naam: global.t('huis.buiten.oprit'), auto: null, camera: null }) : null;
       if (oprit) oprit = { ...oprit, auto: rond.auto ? (oprit.auto ?? {}) : null };
-      tuin = rond.tuin || rond.tuinhuis || rond.jacuzzi ? { ...(tuin ?? { id: null, naam: global.t('huis.buiten.tuin'), tuinhuisAan: false, overstekAan: false, lampen: [], zonnescherm: null }), tuinhuis: rond.tuinhuis } : null;
-      // Een schuurtje met puntdak in plaats van het tuinhuis, en een jacuzzi zonder koppeling (besluit 190).
-      if (tuin && rond.schuur) tuin = { ...tuin, tuinhuisSoort: 'schuur' };
+      // Het terras en de border in de tuin staan er alleen als je ze aanzette (6 november 2026): eerst bleven ze altijd staan.
+      tuin = rond.tuin || rond.tuinhuis || rond.jacuzzi ? { ...(tuin ?? { id: null, naam: global.t('huis.buiten.tuin'), tuinhuisAan: false, overstekAan: false, lampen: [], zonnescherm: null }), tuinhuis: rond.tuinhuis, terras: !!rond.terras, border: !!rond.tuin && rond.border !== false } : null;
+      /*
+       * Een schuurtje met puntdak, het tuinhuis met plat dak, of allebei (besluit
+       * 190; allebei sinds 6 november 2026). Bij allebei horen de lampen en de
+       * ruimte uit Home Assistant bij het huisje dat zo heet.
+       */
+      if (tuin && rond.tuinhuis) {
+        const vanHA = tuin.tuinhuisSoort === 'schuur' ? 'schuur' : 'tuinhuis';
+        tuin = { ...tuin, tuinhuisSoort: rond.allebei ? 'beide' : rond.schuur ? 'schuur' : 'tuinhuis', ...(rond.allebei ? { huisjeVanHA: vanHA } : {}) };
+      }
       if (tuin && rond.jacuzzi && !tuin.jacuzzi) tuin = { ...tuin, jacuzzi: { stand: 'rust' } };
       // Een plek buiten zonder eigen naam heet zoals de plek (besluit 185: in de taal van de app).
       terras = rond.terras ? (terras ?? leeg(global.t('huis.buiten.terras'))) : null;
@@ -286,27 +294,46 @@
    * het startpunt voor de vraag "Wat is er rond je huis?".
    */
   function rondNu(huis) {
-    if (huis?.rond) return { ...huis.rond };
+    // De border stond er altijd (6 november 2026): een lijstje van daarvoor heeft hem dus.
+    if (huis?.rond) return { border: true, allebei: false, ...huis.rond };
     const ruimtes = (huis?.etages ?? []).flatMap((e) => (e.ruimtes ?? []).filter((r) => isBuiten(e, r)));
     const b = buiten(ruimtes);
-    return { oprit: !!b.oprit, auto: !!b.oprit?.auto, voortuin: !!b.voortuin, tuin: !!b.tuin, terras: !!b.terras, balkon: !!b.balkon, tuinhuis: !!b.tuin?.tuinhuis, garage: !!b.garage, carport: false, schuur: b.tuin?.tuinhuisSoort === 'schuur', jacuzzi: false };
+    return { oprit: !!b.oprit, auto: !!b.oprit?.auto, voortuin: !!b.voortuin, tuin: !!b.tuin, border: !!b.tuin, terras: !!b.terras, balkon: !!b.balkon, tuinhuis: !!b.tuin?.tuinhuis, garage: !!b.garage, carport: false, schuur: b.tuin?.tuinhuisSoort === 'schuur', allebei: false, jacuzzi: false };
   }
 
   /**
    * Wat er rond het huis kan zijn (besluit 158), één lijstje voor Inrichten ›
    * Buiten en Kamers en indeling › Buiten (besluit 193): [deel, naam, soort
    * van een ruimte die erbij hoort, icoon]. De auto en de carport horen bij de
-   * oprit; een ruimte die een carport is, hoort bij de carport.
+   * oprit; een ruimte die een carport is, hoort bij de carport. De border
+   * (de strook planten langs de achtertuin) hoort bij de achtertuin.
    */
   function rondom() {
     const t = global.t;
     return [
       ['oprit', t('soort.buiten.oprit'), 'oprit', 'oprit'], ['auto', t('indeling.autoOprit'), null, 'auto'], ['carport', t('soort.buiten.carport'), 'carport', 'carport'], ['garage', t('soort.buiten.garage'), 'garage', 'garage'],
-      ['voortuin', t('soort.buiten.voortuin'), 'voortuin', 'tuin'], ['tuin', t('soort.buiten.tuin'), 'tuin', 'tuin'], ['terras', t('soort.buiten.terras'), 'terras', 'terras'], ['balkon', t('soort.buiten.balkon'), 'balkon', 'balkon'],
+      ['voortuin', t('soort.buiten.voortuin'), 'voortuin', 'tuin'], ['tuin', t('soort.buiten.tuin'), 'tuin', 'tuin'], ['border', t('inr.border'), null, 'border'], ['terras', t('soort.buiten.terras'), 'terras', 'terras'], ['balkon', t('soort.buiten.balkon'), 'balkon', 'balkon'],
       ['tuinhuis', t('inr.inDeTuin'), 'tuinhuis', 'tuinhuis'], ['jacuzzi', t('inr.jacuzzi'), null, 'jacuzzi'],
     ];
   }
   const OP_OPRIT = new Set(['auto', 'carport']);
+  /** Wat alleen kan als er een achtertuin is (6 november 2026): de border. */
+  const IN_TUIN = new Set(['border']);
+  /** Hangt een deel aan een ander deel: aan de oprit of aan de achtertuin. */
+  const hangtAan = (w) => (OP_OPRIT.has(w) ? 'oprit' : IN_TUIN.has(w) ? 'tuin' : null);
+  /** Staat een deel aan: zelf aan, en wat het aan hangt ook. */
+  const rondAan = (rond, w) => !!rond?.[w] && (!hangtAan(w) || !!rond[hangtAan(w)]);
+  /** Wat er in de tuin staat (6 november 2026): het tuinhuis, het schuurtje of allebei. */
+  const huisjeVan = (rond) => (rond?.allebei ? 'beide' : rond?.schuur ? 'schuur' : 'tuinhuis');
+  const HUISJES = [['tuinhuis', 'inr.tuinhuis'], ['schuur', 'inr.schuurtje'], ['beide', 'inr.allebei']];
+  /** De naam van wat er in de tuin staat, voor een zin. */
+  const huisjeNaam = (rond) => ({ tuinhuis: 'inr.tuinhuis', schuur: 'inr.schuurtje', beide: 'inr.tuinhuisEnSchuurtje' })[huisjeVan(rond)];
+  /** Een deel aan of uit; de oprit uit haalt de auto en de carport weg. */
+  function rondWissel(rond, w) {
+    const r = { ...rond, [w]: !rond[w] };
+    if (w === 'oprit' && !r.oprit) Object.assign(r, { auto: false, carport: false });
+    return r;
+  }
 
   /**
    * Een buitenruimte krijgt een soort (besluit 193): dan staat dat deel ook aan
@@ -521,5 +548,5 @@
   const BUITEN_ZONES = soorten('buitenZone', ['gazon', 'border', 'terras', 'tuinhuis', 'overstek', 'moestuin', 'vijver', 'pad', 'speelplek', 'oprit', 'carport']);
   global.huismodel = { KAMER_SOORTEN, ZONE_SOORTEN, BUITEN_SOORTEN, BUITEN_ZONES, buitenUitNaam, buitenZoneUitNaam, thermostaten, cvThermostaat, isKetelKoppeling, ACTIEF,
 
- BUITEN, GANG, kleurVanLicht, zoneNaam, metLidwoord, metHoofdletter, etagesNaast, BRON_NAAM, ELEKTRISCH, bronNaam, opsomming, isElektrischSlim, inKamers, standVan, kortVan, kamerModel, isBuiten, soortBuiten, buiten, rondNu, rondom, OP_OPRIT, rondMet, tekening, huisDelen, panelenOpDak, kompasVan, zonOpRechts, zonNu, groetNamen, groetWie };
+ BUITEN, GANG, kleurVanLicht, zoneNaam, metLidwoord, metHoofdletter, etagesNaast, BRON_NAAM, ELEKTRISCH, bronNaam, opsomming, isElektrischSlim, inKamers, standVan, kortVan, kamerModel, isBuiten, soortBuiten, buiten, rondNu, rondom, OP_OPRIT, IN_TUIN, hangtAan, rondAan, rondWissel, huisjeVan, huisjeNaam, HUISJES, rondMet, tekening, huisDelen, panelenOpDak, kompasVan, zonOpRechts, zonNu, groetNamen, groetWie };
 })(window);

@@ -106,14 +106,17 @@ export interface LayoutOutside {
  * zo tekent het huis zijn buitenkant. Een ruimte buiten zegt alleen nog bij
  * welk deel zijn lampen en camera horen.
  */
-export const AROUND_PARTS = ['oprit', 'auto', 'voortuin', 'tuin', 'terras', 'balkon', 'tuinhuis', 'garage', 'carport', 'schuur', 'jacuzzi'] as const;
+export const AROUND_PARTS = ['oprit', 'auto', 'voortuin', 'tuin', 'terras', 'balkon', 'tuinhuis', 'garage', 'carport', 'schuur', 'jacuzzi', 'border', 'allebei'] as const;
 export type AroundPart = (typeof AROUND_PARTS)[number];
 /**
  * Garage en carport kwamen er later bij (besluit 166), het schuurtje (het
- * tuinhuis is een schuur met puntdak) en de jacuzzi in besluit 190: een
- * indeling van daarvoor kent ze niet, en heeft ze dan niet.
+ * tuinhuis is een schuur met puntdak) en de jacuzzi in besluit 190, de border
+ * en allebei (tuinhuis én schuurtje) op 6 november 2026: een indeling van
+ * daarvoor kent ze niet, en heeft ze dan niet. Behalve de border: die stond
+ * er toen altijd, dus die heeft hij dan wel.
  */
-const AROUND_LATER: readonly AroundPart[] = ['garage', 'carport', 'schuur', 'jacuzzi'];
+const AROUND_LATER: readonly AroundPart[] = ['garage', 'carport', 'schuur', 'jacuzzi', 'border', 'allebei'];
+const AROUND_STANDAARD_AAN: readonly AroundPart[] = ['border'];
 
 /** Wat voor huis het is (besluit 190), voor de tekening. Weg: vrijstaand. */
 export const WONINGEN = ['vrijstaand', 'rij', 'hoek', 'tweekap', 'appartement'] as const;
@@ -483,7 +486,7 @@ export function validateLayout(body: unknown, known: LayoutKnown): { ok: true; l
   if (rondIn !== null) {
     const r = (typeof rondIn === 'object' && !Array.isArray(rondIn) ? rondIn : {}) as Record<string, unknown>;
     if (AROUND_PARTS.some((x) => typeof r[x] !== 'boolean' && !(AROUND_LATER.includes(x) && r[x] === undefined))) return { ok: false, reden: `rond zegt per deel ja of nee: ${AROUND_PARTS.join(', ')}` };
-    rond = Object.fromEntries(AROUND_PARTS.map((x) => [x, r[x] === true])) as LayoutAround;
+    rond = Object.fromEntries(AROUND_PARTS.map((x) => [x, r[x] === true || (r[x] === undefined && AROUND_STANDAARD_AAN.includes(x))])) as LayoutAround;
   }
   // Wat voor huis het is (besluit 190).
   const woning = b['woning'];

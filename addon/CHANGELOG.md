@@ -1,18 +1,30 @@
 # Wat is er nieuw · What is new
 
-## 0.129.4
+## 0.129.5
 
-*6 november 2026*
+*6 november 2026 · 0.129.4 – 0.129.5*
+
+**Nieuw**
+
+- Buiten bij Inrichten kent de border, en in de tuin kan een tuinhuis, een schuurtje of allebei
 
 **Opgelost**
 
+- Zet je bij Buiten het terras of de border uit, dan staan ze ook niet meer in de tekening
+- Bij de panelen kies je hoeveel kanten van het dak er panelen hebben, zonder Weet ik niet
 - Wat je huis kan en Hoe ver je huis is staan meteen op het scherm, ook als een onderdeel nog laadt
 - Hoe je huis warmte vasthoudt wordt elke nacht uitgerekend, met veel minder geheugen, en loopt niet meer vast
 
 *English*
 
+**New**
+
+- Outside in Set up knows the flower border, and the garden can have a summer house, a shed or both
+
 **Fixed**
 
+- Turn off the terrace or the border under Outside, and they no longer show in the drawing
+- For the panels you pick how many sides of the roof have panels, without Not sure
 - What your house can do and How far your house is show up right away, even while one part is still loading
 - How your home holds heat is worked out every night, with far less memory, and no longer gets stuck
 

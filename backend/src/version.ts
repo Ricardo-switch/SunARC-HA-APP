@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.129.4';
+export const VERSIE = '0.129.5';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,26 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.129.5',
+    datum: '2026-11-06',
+    nieuw: [
+      'Buiten bij Inrichten kent de border, en in de tuin kan een tuinhuis, een schuurtje of allebei',
+    ],
+    opgelost: [
+      'Zet je bij Buiten het terras of de border uit, dan staan ze ook niet meer in de tekening',
+      'Bij de panelen kies je hoeveel kanten van het dak er panelen hebben, zonder Weet ik niet',
+    ],
+    en: {
+      nieuw: [
+        'Outside in Set up knows the flower border, and the garden can have a summer house, a shed or both',
+      ],
+      opgelost: [
+        'Turn off the terrace or the border under Outside, and they no longer show in the drawing',
+        'For the panels you pick how many sides of the roof have panels, without Not sure',
+      ],
+    },
+  },
   {
     versie: '0.129.4',
     datum: '2026-11-06',
