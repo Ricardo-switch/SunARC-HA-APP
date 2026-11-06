@@ -374,7 +374,7 @@ const dakvlakken = (() => {
     const mist = d.vlakken.filter((v) => !plaatsVan(d, v).getekend).map((v) => v.letter);
     const noten = [...(mist.length ? [t('daken.nietBoven', { n: mist.length, letters: mist.join(', ') })] : []), ...(huis?.bron === 'kaart' && tk?.omgeving.length ? [t('daken.kandidaatTip')] : [])];
     const noot = noten.length ? `<p class="dk-noot">${esc(noten.join(' '))}</p>` : '';
-    return `<div class="pan-podium dk-podium">${tk ? bovenSvg(d, s) : ''}<span class="dk-noord" aria-hidden="true">N</span>${noot}${balk}</div>`;
+    return `<div class="pan-podium dk-podium">${tk ? bovenSvg(d, s) : ''}<span class="dk-noord" aria-hidden="true"><svg viewBox="0 0 10 7"><path d="M5 0L10 7H0z"/></svg>N</span>${noot}${balk}</div>`;
   }
 
   function gebouwScherm(d, s) {

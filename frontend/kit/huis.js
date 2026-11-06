@@ -374,6 +374,9 @@
     const opts = { wereld: true, eigenLucht: false, ...kies };
     // Bij Weergave (25 oktober 2026): het seizoen en het weer kunnen uit; dan een gewone groene dag.
     const klassen = typeof document !== 'undefined' ? document.documentElement.classList : null;
+    // Zegt de pagina geen seizoen, dan dat van nu (6 november 2026): Indeling en Inrichten
+    // tekenden anders een zomer, terwijl Thuis al herfst had. Een schets zonder app blijft zoals hij is.
+    if (!('seizoen' in model) && global.app?.seizoenNu) model = { ...model, seizoen: global.app.seizoenNu() };
     if (klassen?.contains('sc-geen-seizoen')) model = { ...model, seizoen: undefined };
     if (klassen?.contains('sc-geen-weer')) model = { ...model, weer: undefined };
     // De ring van de zon met de uren (28 oktober 2026) kan uit bij Weergave; de zon zelf blijft.

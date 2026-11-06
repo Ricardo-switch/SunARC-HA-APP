@@ -2954,7 +2954,7 @@
   'indeling.knopRadiator': 'Radiator with a smart valve',
   'indeling.opCv': 'on the central heating',
   'indeling.cvThermostaat': 'Boiler thermostat',
-  'indeling.cvThermostaatZin': 'switches on the boiler; the radiators follow',
+  'indeling.cvThermostaatZin': 'switches on the boiler; what is connected follows',
   'indeling.gevondenHA': 'found in Home Assistant',
   'indeling.watHangt': 'What is connected to it?',
   'indeling.metHand': 'switched on manually',

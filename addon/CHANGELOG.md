@@ -1,16 +1,22 @@
 # Wat is er nieuw · What is new
 
-## 0.131.1
+## 0.131.2
 
-*6 november 2026 · 0.131.0 – 0.131.1*
+*6 november 2026 · 0.131.0 – 0.131.2*
 
 **Nieuw**
 
 - Bij Energie staat Auto en laadpaal: wat SunArc vond, elk met een schakelaar, en zelf een ander apparaat kiezen. Meerdere auto’s en laadpalen kan ook
 - Per auto vul je de accu in, aan welke laadpaal hij laadt en waar hij in de tekening staat: op de oprit, onder de carport of in de garage
 
+**Beter**
+
+- Bij Daken en panelen staat een rood pijltje bij de N van het kompas
+
 **Opgelost**
 
+- Aan de thermostaat van de cv-ketel kies je nu wat eraan hangt, zoals vloerverwarming. Het huis tekent dan geen radiator meer
+- Het seizoen is overal hetzelfde: bij de etages, de kamers en Inrichten staat nu ook de herfst van Thuis
 - Bij Auto en laadpaal staan geen iBeacons, Proximity of andere apparaten die alleen een afstand meten meer als auto
 - De klimaatregeling van een auto telt niet meer als klimaat in huis
 
@@ -21,8 +27,14 @@
 - Energy has Car and charger: what SunArc found, each with a switch, and choose another device yourself. Several cars and chargers work too
 - For each car you fill in the battery, which charger it uses and where it stands in the drawing: on the driveway, under the carport or in the garage
 
+**Improved**
+
+- Roofs and panels has a small red arrow at the N of the compass
+
 **Fixed**
 
+- For the boiler thermostat you now choose what is connected to it, such as underfloor heating. The house no longer draws a radiator then
+- The season is the same everywhere: the floors, the rooms and setup now show the same autumn as Home
 - Car and charger no longer lists iBeacons, Proximity or other devices that only measure a distance as a car
 - A car’s climate control no longer counts as climate in the home
 

@@ -2959,7 +2959,7 @@
   'indeling.knopRadiator': 'Radiator met een slimme knop',
   'indeling.opCv': 'op de cv',
   'indeling.cvThermostaat': 'Thermostaat van de cv-ketel',
-  'indeling.cvThermostaatZin': 'zet de ketel aan; de radiatoren gaan mee',
+  'indeling.cvThermostaatZin': 'zet de ketel aan; wat eraan hangt, gaat mee',
   'indeling.gevondenHA': 'gevonden in Home Assistant',
   'indeling.watHangt': 'Wat hangt eraan?',
   'indeling.metHand': 'gaat aan met de hand',
