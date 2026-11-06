@@ -266,6 +266,16 @@
     return 'dag';
   }
 
+  /**
+   * Het seizoen van nu (besluit 187), voor elke pagina hetzelfde: kale bomen van
+   * december tot en met februari, oranje in oktober en november. Eerder rekende
+   * elke pagina zelf, en stond november bij de etages al op winter.
+   */
+  function seizoenNu(datum = new Date()) {
+    const maand = datum.getMonth() + 1;
+    return maand === 12 || maand <= 2 ? 'winter' : maand >= 10 ? 'herfst' : 'zomer';
+  }
+
   function lucht(tijd, seizoen, wolken) {
     const b = document.body.classList;
     for (const c of [...b]) if (c.startsWith('lucht-')) b.remove(c);
@@ -294,8 +304,7 @@
   function luchtVan(zon, zonKw) {
     const helder = zon?.heldereLuchtW ?? 0;
     const wolken = zon?.zon?.boven && helder > 300 ? (zonKw * 1000 < helder * 0.35 ? 0.8 : zonKw * 1000 < helder * 0.7 ? 0.4 : 0.1) : 0.3;
-    const maand = new Date().getMonth() + 1;
-    lucht(tijdVanDeDag(zon), maand >= 11 || maand <= 2 ? 'winter' : 'zomer', wolken);
+    lucht(tijdVanDeDag(zon), seizoenNu(), wolken);
   }
 
   function klok() {
@@ -2105,5 +2114,5 @@
     return Promise.resolve(false);
   }
 
-  global.app = { laadBronnen, kanApparaatSpreken, zegMetApparaat, huisSoort, persoonlijk, $$, metLidwoord, nl, zet, esc, bijnaOp, klokVan, wanneer, LINKS, telStand, schaal, haal, deur, tijdVanDeDag, lucht, luchtVan, klok, live, start, verwachting, gebundeld, zicht, aanbellen, offline, online, inHA, volledigGekozen, zetVolledig, naarHA, zetWeergave, weergave: () => weergaveNu, zetThema, kleurVan, tekstKleur, houToegang, updateKlaar, bijwerkVenster, bijVerandering, kanInstalleren, geinstalleerd, installeer, naarHAScherm, terugknop, onthoudInrichten, vergeetInrichten, segmenten, koffieKnop, jouwMeldingen };
+  global.app = { laadBronnen, kanApparaatSpreken, zegMetApparaat, huisSoort, persoonlijk, $$, metLidwoord, nl, zet, esc, bijnaOp, klokVan, wanneer, LINKS, telStand, schaal, haal, deur, tijdVanDeDag, seizoenNu, lucht, luchtVan, klok, live, start, verwachting, gebundeld, zicht, aanbellen, offline, online, inHA, volledigGekozen, zetVolledig, naarHA, zetWeergave, weergave: () => weergaveNu, zetThema, kleurVan, tekstKleur, houToegang, updateKlaar, bijwerkVenster, bijVerandering, kanInstalleren, geinstalleerd, installeer, naarHAScherm, terugknop, onthoudInrichten, vergeetInrichten, segmenten, koffieKnop, jouwMeldingen };
 })(window);

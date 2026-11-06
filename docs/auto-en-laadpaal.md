@@ -1,7 +1,8 @@
 # Auto en laadpaal: het bouwplan
 
 Stand 6 november 2026. Het ontwerp is besloten ([besluit 259](../DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp));
-er is nog niets van gebouwd. Dit document is de overdracht: alles wat nodig is
+stap 1 is gebouwd in 0.131.0 (zie "Stap 1: wat er gebouwd is"), de rest nog
+niet. Dit document is de overdracht: alles wat nodig is
 om het in een nieuwe sessie op te pakken, zonder het gesprek van 6 november.
 
 ## Waarom
@@ -169,6 +170,30 @@ lijst in `client.ts`). Laden wordt er een, naar het voorbeeld van `isHandCall`:
   zoals de app hem zette: wie intussen zelf iets verzette, wint. Bewaren in
   een bestand naast `handbediening.json`, zodat een herstart het niet vergeet;
 - de stroom gaat met de hand niet vanzelf omlaag bij een wolk; dat is B.
+
+## Stap 1: wat er gebouwd is (0.131.0)
+
+- `backend/src/web/opslag.ts`: `vindOpslag` geeft `autos` (en `auto`, de
+  eerste, voor Thuis en Apparaten), met per auto `plek`, `accuKWh` en
+  `laadpaal`. `ladenView` geeft Energie wat gevonden is, met per apparaat wat
+  het meet (`wat`) en bij een laadpaal de stroom van tot (`stroomA`), de
+  kandidaten om zelf te kiezen en de laadpunten van evcc (`evcc_intg`).
+  `autoApparaten` is de lijst auto's voor melding 132. `leesLaden` leest wat
+  de pagina stuurt.
+- De keuzes staan in `aansluiting.json` onder `laden`: `aan` per apparaat (weg
+  is aan), `rol` voor wat de bewoner zelf koos, en `instelling` per auto (of
+  per laadpaal zonder auto): `accuKWh`, `laadpaal`, `plek`. Niet meegestuurd
+  blijft zoals het was. Ze gaan meteen in, zonder herstart.
+- Het huis leest de auto's in `main.ts` (`huisNu`) uit alle standen, met de
+  keuzes; `buildHouse` zelf kent ze niet.
+- Het klimaat en de meters van een auto staan niet meer in het huis
+  (`house.ts`) en niet in het voorstel bij het inrichten (`discovery.ts`).
+- De pagina: `frontend/src/laden.js`, als deel `auto` in `energie.js`. Het
+  vinkje "SunArc mag de laadpaal bedienen" uit de schets komt pas in stap 5.
+- De tekening: `huismodel.autosOpHunPlek` zet de auto in de garage, op de
+  oprit of onder de carport; `huis.js` tekent een garage met de deur omhoog en
+  de auto erin (`bouwAutoInGarage`). Zonder plek beslist de indeling, zoals
+  eerst.
 
 ## De stappen, elk een eigen versie
 

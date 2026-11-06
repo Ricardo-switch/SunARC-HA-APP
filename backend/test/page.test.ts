@@ -1025,11 +1025,11 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await p.goto(`${baseUrl}/indeling.html#${encodeURIComponent(kamer.id)}/warmte`);
     const blad = p.locator('#wand [data-blad]');
     await blad.locator('[data-kamertab="warmte"][aria-selected="true"]').waitFor({ timeout: 10_000 });
-    // Een thermostaat die alleen verwarmt, is de thermostaat van de cv-ketel (besluit 167): geen "Wat hangt eraan?".
+    // Een thermostaat die alleen verwarmt, is de thermostaat van de cv-ketel (besluit 167). Wat eraan hangt, kies je ook daar (issue 140).
     const ketel = huis.etages.flatMap((e) => e.ruimtes).flatMap((r) => r.apparaten).find((d) => d.soort === 'klimaat' && !d.radiatorknop && d.klimaat?.kanVerwarmen && !d.klimaat.kanKoelen)!;
     expect(ketel.actuatorId).toBe(thermo.actuatorId);
     await blad.locator('.bron', { hasText: 'Thermostaat van de cv-ketel' }).waitFor({ timeout: 10_000 });
-    expect(await blad.locator(`[data-bron-nieuw="${thermo.actuatorId}"]`).count()).toBe(0);
+    expect(await blad.locator(`[data-bron-nieuw="${thermo.actuatorId}"]`).count()).toBe(1);
     // Een radiator op de cv: aan met de thermostaat van de ketel, zonder een apparaat te kiezen.
     await blad.locator('[data-bron-nieuw=""]').click();
     await blad.locator('[data-bron-soort="radiator"]').click();
@@ -3816,8 +3816,10 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     p.on('pageerror', (e) => fouten.push(e.message));
     extraOpslag = {
       batterij: { id: 'sessy', naam: 'De batterij', pct: 54, vermogenW: -900, stand: 'levert' },
-      auto: { id: 'tesla', naam: 'Tesla Model 3', pct: 62, aangesloten: true, laadt: true, vermogenW: 3200, bereikKm: 280 },
+      auto: { id: 'tesla', naam: 'Tesla Model 3', pct: 62, aangesloten: true, laadt: true, vermogenW: 3200, bereikKm: 280, plek: null, accuKWh: null, laadpaal: null },
+      autos: [],
     };
+    extraOpslag = { ...extraOpslag, autos: [extraOpslag.auto!] };
     // Een half uur geleden, maar niet voor middernacht (UTC, zoals de browser hier): dan zegt de kaart "Laatst aangebeld" met de dag.
     const nu = Date.now();
     extraDeurbel = { camera: 'camera.deurbel_duidelijk', naam: 'Deurbel', laatsteMs: Math.max(nu - 30 * 60_000, nu - (nu % 86_400_000)), reserve: ['camera.deurbel_vloeiend'] };
@@ -3874,7 +3876,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       await p.goto(`${baseUrl}/thuis.html`);
 
       // Zonder auto en deurbel: die kaarten staan er niet, en worden niet aangeboden.
-      extraOpslag = { batterij: extraOpslag.batterij, auto: null };
+      extraOpslag = { batterij: extraOpslag!.batterij, auto: null, autos: [] };
       extraDeurbel = null;
       extraOprit = false;
       expect((await zet(STANDAARD_TEL)).ok).toBe(true);
@@ -5085,7 +5087,7 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     const p = await context.newPage();
     const fouten: string[] = [];
     p.on('pageerror', (e) => fouten.push(e.message));
-    extraOpslag = { batterij: { id: 'sessy', naam: 'De batterij', pct: 21, vermogenW: null, stand: 'rust' }, auto: null };
+    extraOpslag = { batterij: { id: 'sessy', naam: 'De batterij', pct: 21, vermogenW: null, stand: 'rust' }, auto: null, autos: [] };
     try {
       await p.goto(`${baseUrl}/huis-kan.html`);
       await p.getByText('21% vol; SunArc kijkt mee en stuurt hem niet').first().waitFor();

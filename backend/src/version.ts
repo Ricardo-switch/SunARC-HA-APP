@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.130.0';
+export const VERSIE = '0.131.2';
 
 export interface Nieuw {
   readonly versie: string;
@@ -74,12 +74,91 @@ export const TERUGKIJKEN = 10;
  * main komt de bovenste versie erbij. Oudere versies staan elk apart.
  */
 export const OP_MAIN: readonly string[] = [
-  '0.130.0', '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
+  '0.131.2', '0.130.0', '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
   '0.117.1', '0.117.0', '0.116.0', '0.115.2', '0.115.1', '0.115.0',
 ];
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.131.2',
+    datum: '2026-11-06',
+    beter: [
+      'Bij Daken en panelen staat een rood pijltje bij de N van het kompas',
+    ],
+    opgelost: [
+      'Aan de thermostaat van de cv-ketel kies je nu wat eraan hangt, zoals vloerverwarming. Het huis tekent dan geen radiator meer',
+      'Het seizoen is overal hetzelfde: bij de etages, de kamers en Inrichten staat nu ook de herfst van Thuis',
+    ],
+    en: {
+      beter: [
+        'Roofs and panels has a small red arrow at the N of the compass',
+      ],
+      opgelost: [
+        'For the boiler thermostat you now choose what is connected to it, such as underfloor heating. The house no longer draws a radiator then',
+        'The season is the same everywhere: the floors, the rooms and setup now show the same autumn as Home',
+      ],
+    },
+    meldingen: [
+      {
+        code: 'SA-469V',
+        uitkomst: 'opgelost',
+        tekst: 'Bij Kamers en indeling › Woonkamer › Verwarmen en koelen staat bij de thermostaat van de cv-ketel nu Wat hangt eraan? Kies daar vloerverwarming op water, dan tekent het huis de vloer in plaats van een radiator.',
+        tekstEn: 'In Rooms and layout › Living room › Heating and cooling, the boiler thermostat now has What is connected to it? Choose underfloor heating on water there, and the house draws the floor instead of a radiator.',
+        href: 'indeling.html',
+        issue: 140,
+      },
+    ],
+  },
+  {
+    versie: '0.131.1',
+    datum: '2026-11-06',
+    opgelost: [
+      'Bij Auto en laadpaal staan geen iBeacons, Proximity of andere apparaten die alleen een afstand meten meer als auto',
+    ],
+    en: {
+      opgelost: [
+        'Car and charger no longer lists iBeacons, Proximity or other devices that only measure a distance as a car',
+      ],
+    },
+  },
+  {
+    versie: '0.131.0',
+    datum: '2026-11-06',
+    nieuw: [
+      'Bij Energie staat Auto en laadpaal: wat SunArc vond, elk met een schakelaar, en zelf een ander apparaat kiezen. Meerdere auto’s en laadpalen kan ook',
+      'Per auto vul je de accu in, aan welke laadpaal hij laadt en waar hij in de tekening staat: op de oprit, onder de carport of in de garage',
+    ],
+    opgelost: [
+      'De klimaatregeling van een auto telt niet meer als klimaat in huis',
+    ],
+    en: {
+      nieuw: [
+        'Energy has Car and charger: what SunArc found, each with a switch, and choose another device yourself. Several cars and chargers work too',
+        'For each car you fill in the battery, which charger it uses and where it stands in the drawing: on the driveway, under the carport or in the garage',
+      ],
+      opgelost: [
+        'A car’s climate control no longer counts as climate in the home',
+      ],
+    },
+    meldingen: [
+      {
+        code: 'SA-XSNV',
+        uitkomst: 'opgelost',
+        tekst: 'Bij Energie › Auto en laadpaal kies je zelf welk apparaat je auto is, en zet je hem in de garage. De thuisbatterij in de garage komt later.',
+        tekstEn: 'In Energy › Car and charger you choose which device is your car, and put it in the garage. The home battery in the garage comes later.',
+        href: 'energie.html#auto',
+        issue: 123,
+      },
+      {
+        code: 'SA-HX7L',
+        uitkomst: 'opgelost',
+        tekst: 'De klimaatregeling van je MICRA hoort nu bij de auto en staat niet meer als klimaat in huis.',
+        tekstEn: 'The climate control of your MICRA now belongs to the car and no longer shows as climate in the home.',
+        issue: 132,
+      },
+    ],
+  },
   {
     versie: '0.130.0',
     datum: '2026-11-06',

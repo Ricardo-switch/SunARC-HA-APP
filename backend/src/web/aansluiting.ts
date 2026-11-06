@@ -29,6 +29,7 @@ import { tekening, type Tekening } from './daken-tekening.js';
 import { metMeting, nuPerVlak, type Achter, type VlakStand, type Verdeling } from './meten-vlakken.js';
 import type { SunPosition } from '../core/sun.js';
 import { leesDaken, piekVan, type Daken, type DakVlak } from './daken.js';
+import { leesLaden, type LadenKeuze, type LadenView } from './opslag.js';
 import { VOORKANT_ZON, aantalVan, dakUitAanpassing, dakUitMeting, dakenNu, liggingView, type Dak, type LiggingView, type Meting, type VoorkantZon } from './ligging.js';
 
 export const CONNECTION_FILE = 'aansluiting.json';
@@ -137,6 +138,11 @@ export interface ConnectionAnswers {
   readonly netmeter?: Netmeter | null;
   /** De omvormers die de bewoner koos, opgeteld tot de opbrengst van nu. Weg of leeg: de configuratie. */
   readonly omvormers?: readonly string[];
+  /**
+   * Auto en laadpaal (besluit 259): wat de bewoner uitzette of zelf koos, en
+   * per auto de accu, de laadpaal en de plek. Weg of null: wat de app vond.
+   */
+  readonly laden?: LadenKeuze | null;
 }
 
 export interface Netmeter {
@@ -585,6 +591,10 @@ export function validateConnection(
   const daken = leesDaken(dakenRaw);
   if ('fout' in daken) return { ok: false, reden: daken.fout };
 
+  // Auto en laadpaal (besluit 259): niet meegestuurd blijft zoals het was.
+  const laden = leesLaden(b['laden'] === undefined ? (vorige?.laden ?? null) : b['laden']);
+  if ('fout' in laden) return { ok: false, reden: laden.fout };
+
   return {
     ok: true,
     answers: {
@@ -603,6 +613,7 @@ export function validateConnection(
       ...(uitRaw.length ? { opZonUit: [...new Set(uitRaw as string[])] } : {}),
       ...(netmeter ? { netmeter } : {}),
       ...(omvRaw.length ? { omvormers: [...(omvRaw as string[])] } : {}),
+      ...(laden.keuze ? { laden: laden.keuze } : {}),
     },
   };
 }
@@ -747,7 +758,11 @@ export interface ConnectionView {
     readonly omvormers: readonly string[];
     /** Daken en panelen zoals de bewoner ze bewaarde (besluit 254), of null. */
     readonly daken: Daken | null;
+    /** Auto en laadpaal (besluit 259), zoals bewaard, of null. */
+    readonly laden: LadenKeuze | null;
   } | null;
+  /** Auto en laadpaal (besluit 259): wat de app vond en wat er te kiezen is; null zonder Home Assistant. */
+  readonly laden: LadenView | null;
   /**
    * Daken en panelen (besluit 254): elk vlak, bewaard of uit wat er al was,
    * met wat de meting over het hoofddak zegt en de meters om uit te kiezen.
@@ -869,6 +884,8 @@ export interface ConnectionContext {
   readonly zonNu?: SunPosition | null;
   /** Wat elke omvormer hooguit levert, uit zijn typenummer, per sensor. */
   readonly grenzen?: Readonly<Record<string, number>>;
+  /** Auto en laadpaal (besluit 259), uit Home Assistant met de keuzes van nu. */
+  readonly laden?: LadenView | null;
 }
 
 export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): ConnectionView {
@@ -904,8 +921,10 @@ export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): Connect
           netmeter: c.answers.netmeter ?? null,
           omvormers: c.answers.omvormers ?? [],
           daken: c.answers.daken ?? null,
+          laden: c.answers.laden ?? null,
         }
       : null,
+    laden: c.laden ?? null,
     vermogens: c.found.vermogens ?? [],
     inGebruik: c.inGebruik ?? { netmeter: null, omvormers: [] },
     ligging: liggingView(liggingIn, lang),

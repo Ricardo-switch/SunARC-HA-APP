@@ -395,6 +395,7 @@
       const w = jacuzzi.warmte;
       delen.tuin = { ...(delen.tuin ?? { id: null, naam: global.t('huis.buiten.tuin'), tuinhuis: false, tuinhuisAan: false, overstekAan: false, lampen: [], zonnescherm: null }), jacuzzi: { temp: w.tempC, stand: jacuzzi.aan ? 'verwarmt' : 'rust', zon: jacuzzi.aan && w.opZon } };
     }
+    autosOpHunPlek(delen, huis?.opslag?.autos ?? []);
     const piekW = (zon?.panelen ?? []).reduce((t, p) => t + (p.wattpiek ?? 0), 0);
     // Wat voor huis het is (besluit 190); een appartement in een gebouw van drie lagen.
     const woning = huis?.woning ?? 'vrijstaand';
@@ -411,6 +412,21 @@
       panelen: aantalPanelen ?? (piekW > 0 ? Math.max(1, Math.round(piekW / 400)) : 0),
       ligging: huis?.ligging ?? null,
     };
+  }
+
+  /**
+   * Waar de auto staat (idee 123, besluit 259), zoals de bewoner het bij
+   * Energie › Auto en laadpaal koos: in de garage, op de oprit of onder de
+   * carport. Een auto zonder plek laat de indeling beslissen, zoals eerst.
+   */
+  function autosOpHunPlek(delen, autos) {
+    const inGarage = autos.find((a) => a.plek === 'garage');
+    if (inGarage) delen.garage = { ...(delen.garage ?? { id: null, naam: global.t('huis.buiten.garage'), lampAan: false }), auto: { laadt: !!inGarage.laadt } };
+    const buiten = autos.filter((a) => a.plek === 'oprit' || a.plek === 'carport');
+    if (buiten.length) {
+      const o = delen.oprit ?? { id: null, naam: global.t('huis.buiten.oprit'), auto: null, camera: null };
+      delen.oprit = { ...o, auto: o.auto ?? {}, ...(buiten.some((a) => a.plek === 'carport') ? { carport: o.carport || true } : {}) };
+    } else if (autos.length && autos.every((a) => a.plek === 'garage') && delen.oprit) delen.oprit = { ...delen.oprit, auto: null };
   }
 
   /**

@@ -189,6 +189,15 @@ describe('bewaren', () => {
     expect(zonder.ok && 'elders' in zonder.answers).toBe(false);
   });
 
+  it('bewaart auto en laadpaal, en houdt ze als de pagina ze niet meestuurt (besluit 259)', () => {
+    const laden = { aan: { kia: false }, rol: {}, instelling: { tesla: { accuKWh: 75, laadpaal: 'easee', plek: 'garage' } } };
+    const eerst = validateConnection({ laden }, found);
+    expect(eerst).toMatchObject({ ok: true, answers: { laden } });
+    const daarna = validateConnection({ zekering: 'weetniet' }, found, eerst.ok ? eerst.answers : null);
+    expect(daarna).toMatchObject({ ok: true, answers: { laden } });
+    expect(validateConnection({ laden: { instelling: { tesla: { plek: 'dak' } } } }, found).ok).toBe(false);
+  });
+
   it('weigert wat niet kan', () => {
     expect(validateConnection({ panelen: { ligging: 'zuid' } }, found).ok).toBe(false);
     expect(validateConnection({ panelen: { aantal: 0 } }, found).ok).toBe(false);

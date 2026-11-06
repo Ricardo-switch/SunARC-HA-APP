@@ -235,13 +235,13 @@ function tekenPodium(etage, kamer) {
   // Met wat er rond het huis is (besluit 193): zoals Thuis, anders ontbraken de garage en de carport uit Inrichten.
   const buitenDelen = huismodel.isBuiten(etage, kamer) ? huismodel.buiten(buitenRuimtes, huisData.rond ?? null) : {};
   for (const b of Object.values(buitenDelen)) if (b) b.gekozen = b.id === kamer.id;
-  const maand = new Date().getMonth() + 1;
   const zonKw = state?.bewoner?.stromen?.zonKw ?? 0;
   const helder = zon?.heldereLuchtW ?? 0;
   const model = {
     beschrijving: t(Object.values(buitenDelen).some(Boolean) ? 'kamer.beschrijvingBuiten' : 'kamer.beschrijving', { etage: toon.naam, kamer: kamer.naam }),
     tijd: app.tijdVanDeDag(zon),
-    seizoen: maand >= 11 || maand <= 2 ? 'winter' : 'zomer',
+    // Hetzelfde seizoen als op Thuis: november stond hier al op winter.
+    seizoen: app.seizoenNu(),
     wolken: zon?.zon?.boven && helder > 300 ? (zonKw * 1000 < helder * 0.35 ? 0.8 : 0.3) : 0.3,
     zonderDak: true,
     // Een trap in de hal alleen als er een etage boven deze is (besluit 119).

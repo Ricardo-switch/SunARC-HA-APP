@@ -608,8 +608,9 @@ function warmteBlad(d, k) {
     const rol = rolRegel(k, sleutel);
     if (a.klimaat?.kanKoelen) kaarten.push(bronKaart(t('indeling.airco'), huismodel.opsomming([t('indeling.koelt'), a.klimaat.kanVerwarmen ? t('indeling.verwarmt') : null, a.klimaat.kanDrogen ? t('indeling.droogt') : null].filter(Boolean)), ICOON_KOEL, true, slim, viaRegel + rol));
     else if (a.radiatorknop) kaarten.push(bronKaart(t('indeling.knopRadiator'), t('indeling.opCv'), ICOON_RADIATOR, false, slim, viaRegel + rol));
-    // De thermostaat van de ketel (besluit 167): de radiatoren gaan mee; wat eraan hangt, vraagt hij niet.
-    else if (cvThermo()?.sleutel === sleutel) kaarten.push(bronKaart(t('indeling.cvThermostaat'), t('indeling.cvThermostaatZin'), ICOON_THERMO, false, slim, viaRegel + rol));
+    // De thermostaat van de ketel (besluit 167): wat eraan hangt, gaat mee. Wat dat is, kies je
+    // zoals bij elke thermostaat (issue 140): anders bleef het een radiator, ook bij vloerverwarming.
+    else if (cvThermo()?.sleutel === sleutel) kaarten.push(bronKaart(t('indeling.cvThermostaat'), t('indeling.cvThermostaatZin'), ICOON_THERMO, false, slim, `${viaRegel}${rol}<button type="button" class="vraagknop" data-bron-nieuw="${esc(sleutel)}">${esc(t('indeling.watHangt'))}</button>`));
     else kaarten.push(bronKaart(t('kan.thermostaat').replace(/^./, (c) => c.toUpperCase()), t('indeling.gevondenHA'), ICOON_THERMO, false, slim, `${viaRegel}${rol}<button type="button" class="vraagknop" data-bron-nieuw="${esc(sleutel)}">${esc(t('indeling.watHangt'))}</button>`));
   }
   for (const b of bronnen) {
@@ -699,7 +700,8 @@ async function bronKlik(knop) {
     kies({ tab: knop.dataset.kamertab });
   } else if (knop.dataset.bronNieuw !== undefined) {
     const a = knop.dataset.bronNieuw;
-    bronVorm = { id: null, soorten: new Set(), vloer: 'elektrisch', aan: a ? 'thermostaat' : null, apparaat: a || null, vermogenW: null, rol: null };
+    // Aan de thermostaat van de ketel hangt vloerverwarming op water, niet elektrisch.
+    bronVorm = { id: null, soorten: new Set(), vloer: a && a === cvThermo()?.sleutel ? 'water' : 'elektrisch', aan: a ? 'thermostaat' : null, apparaat: a || null, vermogenW: null, rol: null };
     teken();
   } else if (knop.dataset.bronOpen) {
     const b = (k.bronnen ?? []).find((x) => x.id === knop.dataset.bronOpen);

@@ -28,6 +28,7 @@
 
 import type { HaEntityState } from './client.js';
 import { doelSoort } from '../../web/doelsoort.js';
+import { autoApparaten } from '../../web/opslag.js';
 
 // --------------------------------------------------------------- vormen ----
 
@@ -392,7 +393,9 @@ export function discover(r: Registers): Proposal {
 
   // ---- zones en apparaten -------------------------------------------------
 
-  const climate = from('climate');
+  // Het klimaat van een auto hoort bij de auto, niet bij een kamer (melding 132, besluit 259).
+  const autos = autoApparaten({ devices: r.devices, entities: r.entities }, statePer);
+  const climate = from('climate').filter((e) => !e.device_id || !autos.has(e.device_id));
   const humiditySensors = sensorsOf('humidity');
   // Ook een sensor in W of kW zonder device_class, zoals een template of een Homey-dongle (testerronde, november 2026).
   const unitOf = (e: HaRegistryEntity) => String(statePer.get(e.entity_id)?.attributes['unit_of_measurement'] ?? '').toLowerCase();

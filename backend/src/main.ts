@@ -74,6 +74,7 @@ import type { TeDoenDienst } from './web/routes/tedoen.js';
 import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
+import { ladenView, vindOpslag } from './web/opslag.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
 import { sunPosition } from './core/sun.js';
 import { hoofddakPlat, panelenVan, type DakVlak } from './web/daken.js';
@@ -1542,7 +1543,9 @@ const huisNu = (lang: Lang) => {
     : null;
   // Een plat dak op het hoofdhuis (issue 131): zoals de bewoner het opgaf bij Daken en panelen.
   const a = connectionStore?.current;
-  const plat = huis?.ligging && hoofddakPlat(a?.daken, a?.panelen?.ligging) ? { ...huis, ligging: { ...huis.ligging, plat: true } } : huis;
+  const plat0 = huis?.ligging && hoofddakPlat(a?.daken, a?.panelen?.ligging) ? { ...huis, ligging: { ...huis.ligging, plat: true } } : huis;
+  // De auto's en laadpalen met de keuzes bij Energie (besluit 259), uit alle standen: een kabel of bereik telt niet als iets in huis.
+  const plat = plat0 && houseRegisters ? { ...plat0, opslag: vindOpslag(houseRegisters, allStates, a?.laden ?? null) } : plat0;
   huisBewaard.set(lang, { sleutel, atMs: Date.now(), huis: plat });
   return plat;
 };
@@ -2377,6 +2380,8 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
         vlakMeting: vlakMetingNu(),
         zonNu: location ? sunPosition(Date.now(), location.latDeg, location.lonDeg) : null,
         grenzen: grenzenGevonden(),
+        // Auto en laadpaal (besluit 259): wat Home Assistant heeft, met de keuzes van nu.
+        laden: houseRegisters ? ladenView(houseRegisters, allStates, store.current?.laden ?? null) : null,
         inGebruik: {
           netmeter: siteConfig?.power.gridPower ? { afname: siteConfig.power.gridPower.id, terug: siteConfig.power.gridExport?.id ?? null } : null,
           omvormers: siteConfig?.solarProduction ? [siteConfig.solarProduction.id, ...(siteConfig.solarExtra ?? []).map((p) => p.id)] : [],

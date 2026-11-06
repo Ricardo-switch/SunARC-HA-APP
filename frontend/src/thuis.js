@@ -74,7 +74,6 @@ function huisModel() {
   const piekW = tek.piekW;
   // Hoe de panelen liggen, zoals bij Inrichten (besluit 166): per kant bij beide kanten.
   const opDak = huismodel.panelenOpDak(aansluiting?.antwoorden?.panelen, piekW);
-  const maand = new Date().getMonth() + 1;
   const elders = aansluiting?.antwoorden?.elders ?? {};
   const nuWeer = weer?.vandaag?.soort;
 
@@ -100,7 +99,7 @@ function huisModel() {
     beschrijving: `${state?.bewoner?.kop?.titel ?? t('thuis.hetHuis')}. ${state?.bewoner?.kop?.zin ?? ''}`,
     tijd,
     // De seizoenen (besluit 187): kale bomen in de winter, oranje in de herfst.
-    seizoen: maand === 12 || maand <= 2 ? 'winter' : maand >= 10 ? 'herfst' : 'zomer',
+    seizoen: app.seizoenNu(),
     weer: nuWeer === 'regen' || nuWeer === 'onweer' ? 'regen' : nuWeer === 'sneeuw' ? 'sneeuw' : undefined,
     wolken,
     // De zon op zijn boog, aan de kant van het oosten. De ring van de dag staat bij Zonnepanelen (besluit 205):

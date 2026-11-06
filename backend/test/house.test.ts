@@ -175,6 +175,25 @@ describe('het voorstel uit Home Assistant', () => {
     expect(metIo.scherm).toEqual({ terugmelding: true, standKiezen: true });
   });
 
+  it('laat het klimaat van een auto buiten het huis (melding 132)', () => {
+    const basis = states.get('cover.screen')!;
+    const area = registers.areas.find((x) => x.name === 'Badkamer')!.area_id;
+    const metAuto = {
+      ...registers,
+      devices: [...registers.devices, { id: 'd-micra', area_id: area, name: 'MICRA', name_by_user: null, manufacturer: 'Nissan', model: 'MICRA' }],
+      entities: [
+        ...registers.entities,
+        { entity_id: 'climate.micra_climate', device_id: 'd-micra', platform: 'nissan_connect' },
+        { entity_id: 'sensor.micra_internal_temperature', device_id: 'd-micra', platform: 'nissan_connect', original_device_class: 'temperature' },
+      ],
+    };
+    const metStand = new Map(states);
+    metStand.set('climate.micra_climate', { ...basis, entity_id: 'climate.micra_climate', state: 'off', attributes: { friendly_name: 'MICRA Climate', hvac_modes: ['off', 'heat_cool'], current_temperature: 12 } });
+    metStand.set('sensor.micra_internal_temperature', { ...basis, entity_id: 'sensor.micra_internal_temperature', state: '12', attributes: { unit_of_measurement: '°C', device_class: 'temperature' } });
+    const ids = buildHouse(config, metAuto, metStand, snapshot).etages.flatMap((e) => e.ruimtes).flatMap((r) => r.apparaten).map((d) => d.id);
+    expect(ids.some((id) => id.includes('micra'))).toBe(false);
+  });
+
   it('toont een radiatorknop die de configuratie niet kent, met hoe hij gekoppeld is (besluit 126)', () => {
     const basis = states.get('cover.screen')!;
     const area = registers.areas.find((x) => x.name === 'Badkamer')!.area_id;

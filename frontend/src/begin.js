@@ -137,8 +137,7 @@ function tellers(deel) {
 function tekenHuis() {
   const podium = document.querySelector(app.telStand() ? '#tel [data-podium]' : '#wand [data-podium]');
   const { tijd, stand } = tijdNu();
-  const maand = new Date().getMonth() + 1;
-  app.lucht(tijd, maand >= 11 || maand <= 2 ? 'winter' : 'zomer', 0.2);
+  app.lucht(tijd, app.seizoenNu(), 0.2);
   if (!voorstel?.huis || !tekening) {
     document.querySelectorAll('[data-gevonden]').forEach((el) => (el.innerHTML = `<span class="bezig"><i aria-hidden="true"></i><span>${esc(t('begin.zoekt'))}</span></span>`));
     return;
