@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.131.0';
+export const VERSIE = '0.131.1';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,18 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.131.1',
+    datum: '2026-11-06',
+    opgelost: [
+      'Bij Auto en laadpaal staan geen iBeacons, Proximity of andere apparaten die alleen een afstand meten meer als auto',
+    ],
+    en: {
+      opgelost: [
+        'Car and charger no longer lists iBeacons, Proximity or other devices that only measure a distance as a car',
+      ],
+    },
+  },
   {
     versie: '0.131.0',
     datum: '2026-11-06',

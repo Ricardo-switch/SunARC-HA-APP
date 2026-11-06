@@ -171,6 +171,42 @@ describe('meer auto’s en laadpalen, en wat de bewoner koos (besluit 259)', () 
     expect([...autoApparaten(reg, states)]).toEqual(['micra']);
   });
 
+  it('ziet een iBeacon, Proximity of een afstand alleen niet als auto (6 november 2026)', () => {
+    const beacon: HaDevice = { id: 'beacon', area_id: null, name: 'CARe 0882', manufacturer: 'ibeacon', model: 'iBeacon' };
+    const tag: HaDevice = { id: 'tag', area_id: null, name: 'WSBC001006142U 7D04', manufacturer: null, model: null };
+    const prox: HaDevice = { id: 'prox', area_id: null, name: 'Thuis', manufacturer: null, model: null };
+    const losse: HaDevice = { id: 'losse', area_id: null, name: 'Afstandsmeter', manufacturer: 'Onbekend', model: 'X' };
+    const m: Meting[] = [
+      { id: 'sensor.care_0882_estimated_distance', klasse: 'distance', staat: '2.1', eenheid: 'm', naam: 'Estimated distance', platform: 'ibeacon', apparaat: 'beacon' },
+      { id: 'device_tracker.care_0882', staat: 'home', platform: 'ibeacon', apparaat: 'beacon' },
+      { id: 'sensor.care_0882_battery', klasse: 'battery', staat: '90', eenheid: '%', platform: 'ibeacon', apparaat: 'beacon' },
+      { id: 'sensor.wsbc_estimated_distance', klasse: 'distance', staat: '4', eenheid: 'm', naam: 'Estimated distance', platform: 'ibeacon', apparaat: 'tag' },
+      { id: 'sensor.thuis_distance', klasse: 'distance', staat: '12', eenheid: 'km', naam: 'Thuis Ricardo distance', platform: 'proximity', apparaat: 'prox' },
+      { id: 'sensor.thuis_direction', staat: 'stationary', naam: 'Thuis Ricardo direction of travel', platform: 'proximity', apparaat: 'prox' },
+      { id: 'sensor.losse_distance', klasse: 'distance', staat: '30', eenheid: 'cm', naam: 'Distance', platform: 'esphome', apparaat: 'losse' },
+    ];
+    const { reg, states } = registers([beacon, tag, prox, losse], m);
+    expect(ladenView(reg, states, null).apparaten).toEqual([]);
+    expect(huis([beacon, tag, prox, losse], m).autos).toEqual([]);
+    expect(autoApparaten(reg, states).size).toBe(0);
+  });
+
+  it('herkent een auto van een onbekende koppeling aan een bereik met een lading', () => {
+    const wagen: HaDevice = { id: 'wagen', area_id: null, name: 'Zoe', manufacturer: 'Iemand', model: 'Z' };
+    const m: Meting[] = [
+      { id: 'sensor.zoe_battery_autonomy', klasse: 'distance', staat: '240', eenheid: 'km', naam: 'Battery autonomy', platform: 'mqtt', apparaat: 'wagen' },
+      { id: 'sensor.zoe_battery_level', klasse: 'battery', staat: '70', eenheid: '%', platform: 'mqtt', apparaat: 'wagen' },
+    ];
+    expect(huis([wagen], m).auto).toMatchObject({ id: 'wagen', pct: 70, bereikKm: 240 });
+    // Alleen een bereik, zonder lading of laden: geen auto.
+    expect(huis([wagen], m.slice(0, 1)).auto).toBeNull();
+  });
+
+  it('neemt een laadpaal van een bekend merk pas als hij iets meet wat bij laden hoort', () => {
+    const naam: HaDevice = { id: 'stekker', area_id: null, name: 'Wallbox lamp', manufacturer: 'IKEA', model: 'TRADFRI' };
+    expect(huis([naam], [{ id: 'light.wallbox_lamp', staat: 'on', platform: 'hue', apparaat: 'stekker' }]).auto).toBeNull();
+  });
+
   it('leest wat de pagina stuurt, en weigert wat niet klopt', () => {
     expect(leesLaden(null)).toEqual({ keuze: null });
     expect(leesLaden({ aan: {}, rol: {}, instelling: {} })).toEqual({ keuze: null });

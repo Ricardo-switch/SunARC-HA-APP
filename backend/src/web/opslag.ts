@@ -126,6 +126,16 @@ const AUTO_KOPPELING = /^(tesla_fleet|teslemetry|tessie|tesla_custom|volkswagenc
 const AUTO_MERK = /\b(volkswagen|renault|kia|hyundai|polestar|bmw|mercedes|audi|skoda|škoda|nissan|peugeot|toyota|volvo|ford|mg|cupra|lynk)\b/i;
 const LAADPAAL_KOPPELING = /^(easee|zaptec|wallbox|alfen_wallbox|peblar|ohme|myenergi|go_echarger|goecharger|openevse|nrgkick|tesla_wall_connector|ocpp|evse_load_balancer|smappee)$/;
 const LAADPAAL_MERK = /\b(easee|zaptec|wallbox|alfen|peblar|ohme|zappi|go-e|openevse|nrgkick|wall connector)\b/i;
+/**
+ * Koppelingen die een afstand of een plek meten maar nooit een auto of een
+ * laadpaal zijn (6 november 2026): een iBeacon meet hoe ver de telefoon is,
+ * Proximity hoe ver iemand van huis is. Eerst telde elke afstand als auto.
+ */
+const GEEN_AUTO_KOPPELING = /^(ibeacon|proximity|bermuda|private_ble_device|bluetooth_le_tracker|ble_monitor|espresense|mqtt_room|room_assistant|mobile_app|owntracks|life360|google_maps|icloud|icloud3|find_my|tile|homekit_controller|browser_mod|waze_travel_time|google_travel_time|here_travel_time|places|zone|person|sun|met|buienradar|openweathermap)$/;
+/** Een sensor met het bereik van een auto: niet een afstand, maar hoe ver hij nog kan rijden. */
+const BEREIK = /range|bereik|actieradius|autonomy|reichweite|autonomie/;
+/** Een afstand die geen bereik is, zoals een geschatte afstand of een kilometerstand. */
+const GEEN_BEREIK = /estimated|geschat|odometer|kilometerstand|mileage|distance.?to|afstand/;
 /** evcc uit HACS (`evcc_intg`): laadpunten die zelf het laden regelen. */
 const EVCC_KOPPELING = /^evcc/;
 const BATTERIJ_KOPPELING = /^(powerwall|tesla_gateway|sessy|marstek|zendure|zendure_ha|victron|huawei_solar|sungrow|goodwe|solaredge|enphase_envoy|growatt_server|ecoflow|ecoflow_cloud|anker_solix|sonnen|sonnenbatterie|fronius|byd)$/;
@@ -184,8 +194,26 @@ function lezer(registers: Registers, states: ReadonlyMap<string, HaEntityState>)
     return null;
   };
   const isEvcc = (a: Apparaat) => EVCC_KOPPELING.test(a.platform);
-  const isAuto = (a: Apparaat) => !isEvcc(a) && (heeft(a, 'distance') || AUTO_KOPPELING.test(a.platform) || (AUTO_MERK.test(merk(a)) && pctVan(a) != null && !BATTERIJ_TYPE.test(merk(a))));
-  const isLaadpaal = (a: Apparaat) => !isEvcc(a) && (LAADPAAL_KOPPELING.test(a.platform) || LAADPAAL_MERK.test(merk(a)));
+  /** Nooit een auto of laadpaal: evcc, of een koppeling voor plek en afstand. */
+  const nooit = (a: Apparaat) => isEvcc(a) || GEEN_AUTO_KOPPELING.test(a.platform);
+  /** Een bereik in km of mijl, met een naam die bij een auto past. */
+  const heeftBereik = (a: Apparaat) =>
+    a.entiteiten.some((e) => e.entity_id.startsWith('sensor.') && klasse(e) === 'distance' && BEREIK.test(naamVan(e)) && !GEEN_BEREIK.test(naamVan(e)));
+  /** Iets wat alleen een auto meet: laden of een kabel erin. */
+  const laadTeken = (a: Apparaat) => heeft(a, 'battery_charging') || heeft(a, 'plug');
+  /*
+   * Een auto (6 november 2026, strenger): een koppeling voor auto's, of een
+   * bereik samen met een lading of laden, of een automerk met een lading en
+   * een bereik of laden. Een afstand alleen is geen auto meer.
+   */
+  const isAuto = (a: Apparaat) =>
+    !nooit(a) &&
+    (AUTO_KOPPELING.test(a.platform) ||
+      (heeftBereik(a) && (pctVan(a) != null || laadTeken(a))) ||
+      (AUTO_MERK.test(merk(a)) && !BATTERIJ_TYPE.test(merk(a)) && pctVan(a) != null && (heeftBereik(a) || laadTeken(a))));
+  /** Een laadpaal: een koppeling voor laadpalen, of een merk van laadpalen dat een vermogen, stroom of energie meet. */
+  const isLaadpaal = (a: Apparaat) =>
+    !nooit(a) && (LAADPAAL_KOPPELING.test(a.platform) || (LAADPAAL_MERK.test(merk(a)) && (heeft(a, 'power') || heeft(a, 'current') || heeft(a, 'energy'))));
   const isBatterij = (a: Apparaat) =>
     !isEvcc(a) && !isAuto(a) && !isLaadpaal(a) && pctVan(a) != null && (heeft(a, 'energy_storage') || BATTERIJ_KOPPELING.test(a.platform) || BATTERIJ_TYPE.test(merk(a)));
   return { klasse, apparaten, merk, heeft, naamVan, pctVan, isEvcc, isAuto, isLaadpaal, isBatterij };
@@ -213,7 +241,7 @@ function watVan(a: Apparaat, l: ReturnType<typeof lezer>, states: ReadonlyMap<st
     const s = states.get(e.entity_id);
     const eenheid = String(s?.attributes['unit_of_measurement'] ?? '');
     if (d === 'sensor' && k === 'battery' && eenheid === '%') wat.add('lading');
-    if (d === 'sensor' && k === 'distance' && /range|bereik|actieradius/.test(n)) wat.add('bereik');
+    if (d === 'sensor' && k === 'distance' && BEREIK.test(n) && !GEEN_BEREIK.test(n)) wat.add('bereik');
     if ((d === 'number' || d === 'sensor') && /charge.?limit|target.?soc|charge.?target|laadgrens|max.?soc|limit.?soc|soc.?limit/.test(n)) wat.add('laadgrens');
     if (d === 'binary_sensor' && k === 'plug') wat.add('kabel');
     if (d === 'binary_sensor' && k === 'battery_charging') wat.add('laadt');
@@ -330,7 +358,7 @@ export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaE
     const aangesloten = eerst((a) => aanUit(a, 'plug')) ?? (losStatus == null ? null : !losStatus) ?? (laadt ? true : null);
     const bereik = wagen
       ? (() => {
-          const e = wagen.entiteiten.find((x) => x.entity_id.startsWith('sensor.') && klasse(x) === 'distance' && /range|bereik|actieradius/.test(naamVan(x)));
+          const e = wagen.entiteiten.find((x) => x.entity_id.startsWith('sensor.') && klasse(x) === 'distance' && BEREIK.test(naamVan(x)) && !GEEN_BEREIK.test(naamVan(x)));
           const s = e ? states.get(e.entity_id) : undefined;
           const n = getal(s);
           if (n == null) return null;

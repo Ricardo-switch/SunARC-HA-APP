@@ -1,8 +1,8 @@
 # Wat is er nieuw · What is new
 
-## 0.131.0
+## 0.131.1
 
-*6 november 2026*
+*6 november 2026 · 0.131.0 – 0.131.1*
 
 **Nieuw**
 
@@ -11,6 +11,7 @@
 
 **Opgelost**
 
+- Bij Auto en laadpaal staan geen iBeacons, Proximity of andere apparaten die alleen een afstand meten meer als auto
 - De klimaatregeling van een auto telt niet meer als klimaat in huis
 
 *English*
@@ -22,6 +23,7 @@
 
 **Fixed**
 
+- Car and charger no longer lists iBeacons, Proximity or other devices that only measure a distance as a car
 - A car’s climate control no longer counts as climate in the home
 
 ## 0.130.0
