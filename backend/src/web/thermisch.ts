@@ -19,7 +19,8 @@
  * onduidelijk in plaats van een getal dat niet klopt.
  *
  * Alleen wereldbeeld, geen beleid (besluit 46): de regeling gebruikt het nog
- * niet. Het rekent elke dag één keer, en bewaart de uitkomst naast het logboek.
+ * niet. Het rekent elke nacht één keer op de achtergrond, en bewaart de
+ * uitkomst naast het logboek.
  */
 
 import { readFile, rename, writeFile } from 'node:fs/promises';
@@ -27,6 +28,7 @@ import { basename, join } from 'node:path';
 
 import type { SiteConfig } from '../core/model.js';
 import { findLogFiles, readMoments } from '../divergence/read.js';
+import { partsIn } from './today.js';
 
 const KWARTIER = 15 * 60_000;
 /** Zoveel dagen terug: een huis verandert (de ventilatie), en lezen kost tijd. */
@@ -75,7 +77,7 @@ export interface ThermischZone {
 
 export interface ThermischRapport {
   readonly versie: 1;
-  /** De dag waarop het is uitgerekend, JJJJ-MM-DD (UTC). */
+  /** De dag waarop het is uitgerekend, JJJJ-MM-DD, in de tijdzone van het huis (tot 6 november 2026 UTC). */
   readonly dag: string;
   /** Vanaf wanneer er gemeten is. */
   readonly sindsMs: number | null;
@@ -94,10 +96,19 @@ export interface ThermischMoment {
   readonly solarW: number | null;
 }
 
+/**
+ * Eén kwartier, al samengevat (6 november 2026): per zone hoe vaak elke
+ * temperatuur voorkwam (voor de mediaan), buiten en de zon als som en aantal,
+ * en welke standen elk apparaat had. Zo blijft er per kwartier een handvol
+ * getallen over in plaats van elk moment: op de NAS liep het bewaren van een
+ * half miljoen momenten uit het geheugen.
+ */
 interface Kwartier {
-  readonly T: Map<string, number[]>;
-  readonly buiten: number[];
-  readonly zon: number[];
+  readonly T: Map<string, Map<number, number>>;
+  buitenSom: number;
+  buitenN: number;
+  zonSom: number;
+  zonN: number;
   readonly obs: Map<string, Set<string>>;
 }
 
@@ -112,36 +123,88 @@ function doet(waarde: string, T: number): 'verwarmt' | 'koelt' | 'iets' | null {
   return stand === 'fan_only' || stand === 'dry' ? null : 'iets';
 }
 
-const mediaan = (l: readonly number[]) => {
-  const s = [...l].sort((a, b) => a - b);
-  return s.length % 2 ? s[(s.length - 1) / 2]! : (s[s.length / 2 - 1]! + s[s.length / 2]!) / 2;
-};
+/** De mediaan uit hoe vaak elke waarde voorkwam; null zonder waarden. */
+function mediaanVan(tel: ReadonlyMap<number, number> | undefined): number | null {
+  if (!tel?.size) return null;
+  let n = 0;
+  for (const c of tel.values()) n += c;
+  const waarden = [...tel.keys()].sort((a, b) => a - b);
+  // De waarde op plek i (vanaf 0) in de gesorteerde reeks.
+  const op = (i: number) => {
+    let tot = 0;
+    for (const w of waarden) {
+      tot += tel.get(w)!;
+      if (i < tot) return w;
+    }
+    return waarden.at(-1)!;
+  };
+  return n % 2 ? op((n - 1) / 2) : (op(n / 2 - 1) + op(n / 2)) / 2;
+}
 const gem = (l: readonly number[]) => l.reduce((a, b) => a + b, 0) / l.length;
+
+/** De dag in de tijdzone van het huis, JJJJ-MM-DD; zonder tijdzone de UTC-dag. */
+export function dagIn(ms: number, timeZone?: string): string {
+  if (!timeZone) return new Date(ms).toISOString().slice(0, 10);
+  const p = partsIn(ms, timeZone);
+  return `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
+}
+
+/**
+ * Telt momenten op per kwartier terwijl het logboek gelezen wordt (6 november
+ * 2026), zodat er nooit een half jaar aan momenten tegelijk in het geheugen
+ * staat. Daarna leert `leer` eruit, net als `leerThermisch`.
+ */
+export class ThermischKwartieren {
+  readonly #kw = new Map<number, Kwartier>();
+
+  voeg(m: ThermischMoment): void {
+    const q = Math.floor(m.tMs / KWARTIER);
+    let k = this.#kw.get(q);
+    if (!k) this.#kw.set(q, (k = { T: new Map(), buitenSom: 0, buitenN: 0, zonSom: 0, zonN: 0, obs: new Map() }));
+    for (const z of m.zones) {
+      if (z.temperatureC == null) continue;
+      const tel = k.T.get(z.id) ?? k.T.set(z.id, new Map()).get(z.id)!;
+      tel.set(z.temperatureC, (tel.get(z.temperatureC) ?? 0) + 1);
+    }
+    if (m.outdoorC != null) {
+      k.buitenSom += m.outdoorC;
+      k.buitenN++;
+    }
+    if (m.solarW != null) {
+      k.zonSom += m.solarW;
+      k.zonN++;
+    }
+    for (const id in m.observed) (k.obs.get(id) ?? k.obs.set(id, new Set()).get(id)!).add(m.observed[id]!);
+  }
+
+  /** Hoeveel kwartieren er zijn. */
+  get grootte(): number {
+    return this.#kw.size;
+  }
+
+  leer(zones: readonly ThermischZoneIn[], nowMs: number, timeZone?: string): ThermischRapport {
+    return leerUit(this.#kw, zones, nowMs, timeZone);
+  }
+}
 
 /** Leert uit momenten in tijdsvolgorde. */
 export function leerThermisch(
   momenten: Iterable<ThermischMoment>,
   zones: readonly ThermischZoneIn[],
   nowMs: number,
+  timeZone?: string,
 ): ThermischRapport {
-  const kw = new Map<number, Kwartier>();
-  for (const m of momenten) {
-    const q = Math.floor(m.tMs / KWARTIER);
-    let k = kw.get(q);
-    if (!k) kw.set(q, (k = { T: new Map(), buiten: [], zon: [], obs: new Map() }));
-    for (const z of m.zones) if (z.temperatureC != null) (k.T.get(z.id) ?? k.T.set(z.id, []).get(z.id)!).push(z.temperatureC);
-    if (m.outdoorC != null) k.buiten.push(m.outdoorC);
-    if (m.solarW != null) k.zon.push(m.solarW);
-    for (const [id, v] of Object.entries(m.observed)) (k.obs.get(id) ?? k.obs.set(id, new Set()).get(id)!).add(v);
-  }
+  const kw = new ThermischKwartieren();
+  for (const m of momenten) kw.voeg(m);
+  return kw.leer(zones, nowMs, timeZone);
+}
+
+function leerUit(kw: ReadonlyMap<number, Kwartier>, zones: readonly ThermischZoneIn[], nowMs: number, timeZone?: string): ThermischRapport {
   const qs = [...kw.keys()].sort((a, b) => a - b);
-  const dag = new Date(nowMs).toISOString().slice(0, 10);
+  const dag = dagIn(nowMs, timeZone);
   const leeg: ThermischRapport = { versie: 1, dag, sindsMs: null, dagen: 0, zones: [], stand: 'leert' };
   if (qs.length < 2) return leeg;
-  const tempIn = (q: number, z: string) => {
-    const l = kw.get(q)?.T.get(z);
-    return l?.length ? mediaan(l) : null;
-  };
+  const tempIn = (q: number, z: string) => mediaanVan(kw.get(q)?.T.get(z));
 
   const uit: ThermischZone[] = [];
   for (const zone of zones) {
@@ -155,16 +218,17 @@ export function leerThermisch(
       const tb = tempIn(b, zone.id);
       const ka = kw.get(a)!;
       const kb = kw.get(b)!;
-      const buiten = [...ka.buiten, ...kb.buiten];
-      if (ta == null || tb == null || buiten.length === 0) continue;
+      const buitenN = ka.buitenN + kb.buitenN;
+      if (ta == null || tb == null || buitenN === 0) continue;
       const T = (ta + tb) / 2;
-      const zon = [...ka.zon, ...kb.zon];
+      const zonN = ka.zonN + kb.zonN;
       const doen = new Map<string, string>();
       for (const id of new Set([...ka.obs.keys(), ...kb.obs.keys()])) {
         const wat = new Set([...(ka.obs.get(id) ?? []), ...(kb.obs.get(id) ?? [])].map((v) => doet(v, T)).filter((x) => x != null));
         if (wat.size) doen.set(id, wat.size === 1 ? [...wat][0]! : 'iets');
       }
-      stappen.push({ q: a, helling: (tb - ta) * 4, dT: T - gem(buiten), zonKw: zon.length ? gem(zon) / 1000 : 0, doen });
+      const buiten = (ka.buitenSom + kb.buitenSom) / buitenN;
+      stappen.push({ q: a, helling: (tb - ta) * 4, dT: T - buiten, zonKw: zonN ? (ka.zonSom + kb.zonSom) / zonN / 1000 : 0, doen });
     }
 
     // Afkoelen: rustige stukken, de helling over het hele stuk.
@@ -260,16 +324,29 @@ export function thermischZones(config: SiteConfig): ThermischZoneIn[] {
 
 const DAG_VAN = /(\d{4}-\d{2}-\d{2})\.ndjson(\.gz)?$/;
 
+/** Zo lang na het opstarten kijkt het voor het eerst of er gerekend moet worden: het opstarten gaat voor. */
+export const EERSTE_KEER_MS = 2 * 60_000;
+/** Daarna kijkt het elk uur. */
+export const ELK_UUR_MS = 60 * 60_000;
+/** Een rapport van gisteren wordt pas vanaf dit uur (in de tijdzone van het huis) vernieuwd: 's nachts, als het rustig is. */
+export const NACHT_UUR = 3;
+
 /**
  * Leert één keer per dag uit het logboek, en bewaart het naast het logboek
  * zodat een herstart het niet opnieuw hoeft te lezen.
+ *
+ * Sinds 6 november 2026 rekent het op de achtergrond (`achtergrond`): kort na
+ * het opstarten als er nog niets is, en verder elke nacht. Een pagina die
+ * vraagt krijgt meteen wat er bewaard is (`bewaard`), ook als dat van gisteren
+ * is, en wacht nooit op het lezen van een half jaar logboek.
  */
 export class ThermischLeer {
   readonly #logDir: string;
   readonly #now: () => number;
   #rapport: ThermischRapport | null = null;
-  #geladen = false;
+  #laden: Promise<void> | null = null;
   #bezig: Promise<ThermischRapport | null> | null = null;
+  #klok: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: { logDir: string; now?: () => number }) {
     this.#logDir = options.logDir;
@@ -280,33 +357,98 @@ export class ThermischLeer {
     return this.#rapport;
   }
 
+  /** Of er nu gerekend wordt. */
+  get rekent(): boolean {
+    return this.#bezig != null;
+  }
+
+  /** Wat er bewaard is, uit het geheugen of van schijf; rekent niet. */
+  async bewaard(): Promise<ThermischRapport | null> {
+    this.#laden ??= (async () => {
+      try {
+        const r = JSON.parse(await readFile(join(this.#logDir, THERMISCH_FILE), 'utf-8')) as ThermischRapport;
+        if (r.versie === 1 && this.#rapport == null) this.#rapport = r;
+      } catch {
+        // Nog niet bewaard: dan komt het van de eerste berekening.
+      }
+    })();
+    await this.#laden;
+    return this.#rapport;
+  }
+
+  /**
+   * Moet er gerekend worden? Zonder rapport altijd; een rapport van een
+   * eerdere dag pas vanaf `NACHT_UUR`, zodat het 's nachts gebeurt.
+   */
+  nodig(timeZone?: string): boolean {
+    const r = this.#rapport;
+    if (r == null) return true;
+    const nu = this.#now();
+    if (r.dag === dagIn(nu, timeZone)) return false;
+    const uur = timeZone ? partsIn(nu, timeZone).h : new Date(nu).getUTCHours();
+    return uur >= NACHT_UUR;
+  }
+
   /** Het rapport van vandaag; rekent als het er nog niet is, één keer tegelijk. */
-  bijwerken(config: SiteConfig): Promise<ThermischRapport | null> {
-    const vandaag = new Date(this.#now()).toISOString().slice(0, 10);
-    if (this.#rapport?.dag === vandaag) return Promise.resolve(this.#rapport);
-    this.#bezig ??= this.#reken(config, vandaag).finally(() => {
+  async bijwerken(config: SiteConfig): Promise<ThermischRapport | null> {
+    await this.bewaard();
+    if (this.#rapport?.dag === dagIn(this.#now(), config.timezone)) return this.#rapport;
+    return this.#reken(config);
+  }
+
+  /** Rekent opnieuw, ook als er al een rapport van vandaag is; één keer tegelijk. */
+  #reken(config: SiteConfig): Promise<ThermischRapport | null> {
+    this.#bezig ??= this.#lees(config).finally(() => {
       this.#bezig = null;
     });
     return this.#bezig;
   }
 
-  async #reken(config: SiteConfig, vandaag: string): Promise<ThermischRapport | null> {
-    const bestand = join(this.#logDir, THERMISCH_FILE);
-    if (!this.#geladen) {
-      this.#geladen = true;
+  /**
+   * Op de achtergrond: na `eersteMs` en daarna elke `elkeMs` kijken of er
+   * gerekend moet worden (`nodig`). De klok houdt de dienst niet open; `stop`
+   * zet hem stil. Hoe lang het duurde of wat er misging komt bij `meld`; na een
+   * fout probeert het het de volgende keer opnieuw.
+   */
+  achtergrond(config: () => SiteConfig | null, opties: { eersteMs?: number; elkeMs?: number; meld?: (tekst: string) => void } = {}): void {
+    this.stop();
+    const elke = opties.elkeMs ?? ELK_UUR_MS;
+    const kijk = async () => {
       try {
-        const bewaard = JSON.parse(await readFile(bestand, 'utf-8')) as ThermischRapport;
-        if (bewaard.versie === 1) this.#rapport = bewaard;
-        if (bewaard.dag === vandaag) return bewaard;
-      } catch {
-        // Nog niet bewaard: dan uit het logboek.
+        const c = config();
+        await this.bewaard();
+        if (c != null && this.nodig(c.timezone)) {
+          const begin = Date.now();
+          const r = await this.#reken(c);
+          opties.meld?.(`warmte vasthouden uitgerekend in ${Math.round((Date.now() - begin) / 1000)} s, ${r?.dagen ?? 0} dagen`);
+        }
+      } catch (error) {
+        opties.meld?.(`warmte vasthouden niet uitgerekend: ${String(error)}`);
+      } finally {
+        if (this.#klok != null) this.#plan(kijk, elke);
       }
-    }
+    };
+    this.#plan(kijk, opties.eersteMs ?? EERSTE_KEER_MS);
+  }
+
+  #plan(fn: () => Promise<void>, ms: number): void {
+    this.#klok = setTimeout(() => void fn(), ms);
+    this.#klok.unref?.();
+  }
+
+  stop(): void {
+    if (this.#klok != null) clearTimeout(this.#klok);
+    this.#klok = null;
+  }
+
+  async #lees(config: SiteConfig): Promise<ThermischRapport | null> {
+    const bestand = join(this.#logDir, THERMISCH_FILE);
     const vanaf = new Date(this.#now() - TERUG_DAGEN * 86_400_000).toISOString().slice(0, 10);
     const bestanden = (await findLogFiles(this.#logDir)).filter((p) => (DAG_VAN.exec(basename(p))?.[1] ?? '') >= vanaf);
-    const momenten: ThermischMoment[] = [];
-    for await (const m of readMoments(bestanden)) momenten.push({ tMs: m.tMs, zones: m.zones, observed: m.observed, outdoorC: m.outdoorC, solarW: m.solarW });
-    const rapport = leerThermisch(momenten, thermischZones(config), this.#now());
+    // Per kwartier optellen terwijl het leest: nooit een half jaar momenten tegelijk in het geheugen.
+    const kw = new ThermischKwartieren();
+    for await (const m of readMoments(bestanden)) kw.voeg(m);
+    const rapport = kw.leer(thermischZones(config), this.#now(), config.timezone);
     this.#rapport = rapport;
     const tijdelijk = `${bestand}.tmp`;
     await writeFile(tijdelijk, JSON.stringify(rapport), 'utf-8');

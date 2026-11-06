@@ -1152,7 +1152,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     const p = await context.newPage();
     const fouten: string[] = [];
     p.on('pageerror', (e) => fouten.push(e.message));
-    const stappen = ['woning', 'huis', 'buiten', 'bewoners', 'apparaten', 'meten', 'warmte', 'apparaat', 'comfort', 'afwezig', 'zekering', 'vermogen', 'zon', 'ligging', 'opzon', 'prijzen', 'functies', 'wand', 'ha', 'stem', 'account', 'klaar'];
+    const stappen = ['woning', 'huis', 'buiten', 'bewoners', 'apparaten', 'meten', 'warmte', 'apparaat', 'dag', 'comfort', 'afwezig', 'zekering', 'vermogen', 'zon', 'ligging', 'opzon', 'prijzen', 'functies', 'wand', 'ha', 'stem', 'account', 'klaar'];
     for (const stap of stappen) {
       await p.goto(`${baseUrl}/inrichten.html#${stap}`);
       const kaart = p.locator('#wand [data-kaart]');
@@ -2171,7 +2171,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await p.waitForTimeout(800);
     // Acht hoofdstukken met hun stappen (besluit 190).
     expect(await p.locator('#wand [data-stappen] .stap').count()).toBe(8);
-    expect(await p.locator('#wand [data-stappen] .stipjes i').count()).toBe(22);
+    expect(await p.locator('#wand [data-stappen] .stipjes i').count()).toBe(23);
     expect(await p.locator('#wand #balk').count()).toBe(0);
     await shot('welkom');
     // De getallen tikken open tot een lijst, en weer terug (besluit 158).
@@ -2227,8 +2227,12 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await kaart.locator('[data-volgende]').click();
     await p.waitForURL(/#buiten$/);
     await kaart.locator('h1', { hasText: 'Wat is er rond je huis?' }).waitFor();
-    // Elk deel rond het huis apart aan of uit (besluit 158), met garage en carport (besluit 166) en de jacuzzi (besluit 190).
-    expect(await kaart.locator('[data-rond]').count()).toBe(10);
+    // Elk deel rond het huis apart aan of uit (besluit 158), met garage en carport (besluit 166), de jacuzzi (besluit 190)
+    // en de border (6 november 2026), die alleen kan met een achtertuin.
+    expect(await kaart.locator('[data-rond]').count()).toBe(11);
+    const border = kaart.locator('[data-rond="border"]');
+    const tuinAan = (await kaart.locator('[data-rond="tuin"]').getAttribute('aria-checked')) === 'true';
+    expect(await border.isDisabled()).toBe(!tuinAan);
     expect(await kaart.locator('[data-bsoort]').count()).toBe(0);
     await expect.poll(async () => p.evaluate<number>('document.querySelectorAll("#wand .stap .stipjes i.al").length')).toBe(3);
     await shot('buiten');
@@ -2269,10 +2273,26 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await kaart.locator('h1', { hasText: 'Welke thermometer telt per kamer?' }).waitFor();
     await shot('meten');
     await kaart.locator('[data-volgende]').click();
+    // Je dag (6 november 2026): drie grepen, en een uur later gaat meteen naar de dienst.
+    await kaart.locator('h1', { hasText: 'Hoe ziet je dag eruit?' }).waitFor();
+    expect(await kaart.locator('[data-dg-greep]').count()).toBe(3);
+    const comfortNu = async () => (await (await fetch(`${baseUrl}/api/comfort`, { headers: { cookie: `hems_sessie=${sessionId}` } })).json()) as { dagdelen: { nacht: number }; kamers: { id: string; kanVerwarmen: boolean; modi: { nacht: { heat: number | null } } }[] };
+    const nachtWas = (await comfortNu()).dagdelen.nacht;
+    await kaart.locator(`[data-dg="nacht:${nachtWas < 23 ? 1 : -1}"]`).click();
+    await expect.poll(async () => (await comfortNu()).dagdelen.nacht, { timeout: 5000 }).toBe(nachtWas < 23 ? nachtWas + 1 : nachtWas - 1);
+    await shot('dag');
+    await kaart.locator('[data-volgende]').click();
     await kaart.locator('h1', { hasText: 'Hoe warm wil je het?' }).waitFor();
-    await kaart.locator('[data-comfort="warm"]').waitFor();
-    // Per kamer wat het wordt, overdag en 's nachts (besluit 190).
-    await kaart.locator('.dagdelen').waitFor();
+    // Per kamer overdag en 's nachts, elk getal aan te tikken (6 november 2026).
+    await kaart.locator('.cf-tabel').waitFor();
+    const kamer = (await comfortNu()).kamers.find((k) => k.kanVerwarmen);
+    if (kamer) {
+      const was = kamer.modi.nacht.heat;
+      await kaart.locator(`[data-cf="${kamer.id}|nacht|heat"]`).click();
+      await kaart.locator(`[data-cf="${kamer.id}|nacht|heat"][aria-pressed="true"]`).waitFor({ timeout: 5000 });
+      await kaart.locator('[data-cf-stap="-0.5"]').click();
+      await expect.poll(async () => (await comfortNu()).kamers.find((k) => k.id === kamer.id)?.modi.nacht.heat, { timeout: 5000 }).not.toBe(was);
+    }
     await shot('comfort');
     await kaart.locator('[data-volgende]').click();
     // Afwezig en vakantie (besluit 190): een halve graad per tik.

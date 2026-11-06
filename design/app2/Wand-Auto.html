@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · De auto en de laadpaal (schets)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * De pagina Auto (schets, 6 november 2026, stap 6 van de testerronde).
+   *
+   * Keuzes van Ricardo (6-11): kijken en bedienen op een eigen pagina, te openen
+   * vanaf de Thuis-kaart en vanuit Energie; instellen bij Energie › Auto en
+   * laadpaal. Bedienen met de hand, zoals klimaat met de hand (235): de
+   * hoogste laadstroom en pauzeren, alleen als de laadpaal het kan, nooit
+   * boven wat de laadpaal en de zekering toestaan. Automatisch op zon pas in B.
+   * Meerdere auto's. Extra's: laadbeurten, advies bij zon en prijs, meldingen.
+   *
+   * De auto zelf is de meter: hij vult zich van achter naar voren tot zijn
+   * lading, met een streep bij de laadgrens. De kabel loopt van de laadpaal
+   * naar de auto; amber is eigen zon, grijs het net.
+   *
+   * Standen:
+   *   (zonder)  de Tesla laadt op zon, het blad Laden ernaast
+   *   #hand     met de hand op 8 A, tot de kabel eruit gaat
+   *   #beurten  de laadbeurten van deze week
+   *   #paal     alleen de laadpaal staat in Home Assistant, de auto niet
+   *   #twee     de tweede auto, onderweg
+   */
+  main { position: relative; padding: 22px 26px 20px 22px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .kopregel { display: flex; align-items: center; gap: 16px; }
+  .kopregel .kop-1 { margin-right: 6px; }
+  .autos { display: flex; padding: 3px; border-radius: 13px; background: rgba(255, 255, 255, 0.06); }
+  .autos span { height: 38px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border-radius: 10px; font-size: 14.5px; font-weight: 600; color: var(--zacht); }
+  .autos span.aan { background: rgba(255, 255, 255, 0.14); color: var(--tekst); }
+  .autos span i { width: 7px; height: 7px; border-radius: 50%; }
+  .kopregel .pil { margin-left: auto; height: 40px; }
+
+  .veld { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 452px; gap: 16px; }
+  .links { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+
+  /* De auto groot: lading, laadstroom, de kabel. */
+  .held { position: relative; flex: 1; min-height: 0; padding: 22px 26px 18px; border-radius: 26px; display: flex; flex-direction: column; overflow: hidden; }
+  .held::before { content: ''; position: absolute; inset: auto -10% -40% -10%; height: 70%; background: radial-gradient(ellipse at 50% 0%, rgba(247, 181, 72, 0.16), transparent 65%); pointer-events: none; }
+  .held .boven { display: flex; justify-content: space-between; align-items: start; position: relative; }
+  .held .stand { display: flex; align-items: center; gap: 9px; font-size: 17px; font-weight: 700; }
+  .held .stand i { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
+  .held .vermogen { margin-top: 6px; font-family: var(--kop); font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  .held .vermogen small { font-family: var(--romp); font-size: 15px; font-weight: 600; color: var(--zacht); letter-spacing: 0; margin-left: 6px; }
+  .held .pct { text-align: right; }
+  .held .pct b { display: block; font-family: var(--kop); font-size: 84px; font-weight: 600; line-height: 0.9; letter-spacing: -0.04em; }
+  .held .pct b sup { font-size: 34px; vertical-align: top; margin-left: 2px; letter-spacing: 0; }
+  .held .pct span { font-size: 15px; color: var(--zacht); font-weight: 600; }
+  .scene { position: relative; flex: 1; min-height: 0; margin: 0 -26px; }
+  .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .feiten { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 14px; }
+  .feiten div { padding: 0 16px; border-left: 1px solid rgba(255, 255, 255, 0.08); }
+  .feiten div:first-child { padding-left: 0; border-left: 0; }
+  .feiten small { display: block; font-size: 12px; font-weight: 700; color: var(--gedempt); letter-spacing: 0.02em; }
+  .feiten b { display: block; margin-top: 3px; font-size: 17px; font-weight: 600; }
+  .feiten span { font-size: 13px; color: var(--zacht); }
+  .zonbalk { display: flex; height: 6px; margin-top: 7px; border-radius: 3px; overflow: hidden; background: rgba(154, 170, 187, 0.35); }
+  .zonbalk i { background: var(--zon); }
+
+  /* Het advies: zon en prijs, alleen wat klopt. */
+  .advies { padding: 14px 18px; border-radius: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .advies > div { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .advies .ik { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; }
+  .advies .ik svg { width: 19px; height: 19px; }
+  .advies b { display: block; font-size: 14.5px; font-weight: 600; }
+  .advies span { font-size: 13px; color: var(--zacht); line-height: 1.4; }
+
+  /* Het blad Laden. */
+  .blad { padding: 20px 22px; display: flex; flex-direction: column; gap: 13px; border-radius: 26px; min-height: 0; }
+  .blad h2 { margin: 0; font-family: var(--kop); font-size: 26px; font-weight: 600; }
+  .blad .nu { margin-top: 3px; font-size: 14px; color: var(--zacht); }
+  .blad .nu b { font-weight: 600; }
+  .vraag > span { display: block; font-size: 12px; font-weight: 700; color: var(--gedempt); margin-bottom: 6px; letter-spacing: 0.02em; }
+  .stroom { display: flex; align-items: center; justify-content: space-between; }
+  .stroom button { width: 52px; height: 52px; border-radius: 16px; border: 0; background: rgba(255, 255, 255, 0.08); color: var(--tekst); font-size: 24px; }
+  .stroom .getal { text-align: center; }
+  .stroom .getal b { display: block; font-family: var(--kop); font-size: 60px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
+  .stroom .getal b small { font-size: 26px; margin-left: 4px; letter-spacing: 0; }
+  .stroom .getal span { font-size: 13px; color: var(--gedempt); }
+  .schaal { position: relative; height: 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.07); margin-top: 10px; }
+  .schaal i { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+  .schaal b { position: absolute; top: -5px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 3px rgba(11, 20, 36, 0.8); }
+  .schaal-as { position: relative; height: 16px; margin-top: 5px; font-size: 11.5px; color: var(--gedempt); }
+  .schaal-as span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .seg { display: flex; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
+  .seg button { flex: 1; height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--zacht); font: inherit; font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+  .seg button[aria-pressed='true'] { background: rgba(255, 255, 255, 0.14); color: var(--tekst); }
+  .balk24 { position: relative; height: 22px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+  .balk24 i { position: absolute; top: 0; bottom: 0; }
+  .balk24 i.nacht { background: rgba(143, 134, 255, 0.16); }
+  .balk24 i.zon { background: linear-gradient(180deg, rgba(247, 181, 72, 0.35), rgba(247, 181, 72, 0.05)); }
+  .balk24 i.goedkoop { top: auto; height: 5px; background: var(--violet); }
+  .balk24 i.loopt { top: 4px; bottom: 4px; border-radius: 5px; background: linear-gradient(90deg, #f7b548, #ffd27a); }
+  .balk24 b { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff; }
+  .assen { position: relative; height: 16px; margin-top: 4px; font-size: 11.5px; color: var(--gedempt); }
+  .assen span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .hoe { padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); font-size: 13.5px; line-height: 1.5; color: var(--zacht); }
+  .hoe b { color: var(--tekst); font-weight: 600; }
+  .onder { margin-top: auto; display: flex; align-items: center; gap: 14px; }
+  .onder .terug { border: 0; background: none; color: var(--zacht); font: inherit; font-weight: 600; font-size: 14.5px; padding: 0; }
+  .onder .zet { margin-left: auto; height: 48px; padding: 0 24px; border-radius: 15px; border: 0; background: var(--tekst); color: var(--inkt); font: inherit; font-weight: 700; font-size: 15.5px; }
+  .kan { font-size: 12.5px; color: var(--gedempt); }
+  .tot-pct { display: grid; grid-template-columns: 40px 64px 40px minmax(0, 1fr); gap: 10px; align-items: center; margin-top: 8px; }
+  .tot-pct button { width: 40px; height: 40px; border-radius: 12px; border: 0; background: rgba(255, 255, 255, 0.08); color: var(--tekst); font-size: 20px; }
+  .tot-pct b { text-align: center; font-family: var(--kop); font-size: 26px; font-weight: 600; }
+  .tot-pct span { font-size: 12.5px; color: var(--gedempt); line-height: 1.4; }
+
+  /* Laadbeurten. */
+  .beurten h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gedempt); }
+  .som { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .som div { padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); }
+  .som small { display: block; font-size: 11.5px; font-weight: 700; color: var(--gedempt); }
+  .som b { font-family: var(--kop); font-size: 22px; font-weight: 600; }
+  .beurt { display: grid; grid-template-columns: minmax(0, 1fr) 74px 64px; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+  .beurt b { display: block; font-size: 14.5px; font-weight: 600; }
+  .beurt span { font-size: 12.5px; color: var(--gedempt); }
+  .beurt .kwh, .beurt .eur { text-align: right; font-weight: 600; font-size: 14.5px; }
+  .beurt .zonbalk { grid-column: 1 / -1; margin-top: 2px; height: 5px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wand lucht lucht-dag">
+  <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
+  <main>
+    <div class="kopregel">
+      <h1 class="kop-1">Auto</h1>
+      <div class="autos" data-autos><span class="aan" data-a="tesla"><i style="background: var(--zon)"></i>Model 3</span><span data-a="kia"><i style="background: var(--gedempt)"></i>EV6</span></div>
+      <span class="pil" data-zonover><span class="stip" style="background: var(--zon)"></span>2,2 kW zon over</span>
+    </div>
+
+    <div class="veld">
+      <div class="links">
+        <section class="glas held">
+          <div class="boven">
+            <div>
+              <div class="stand" data-stand style="color: var(--zon)"><i style="background: var(--zon)"></i><span>Laadt op zon</span></div>
+              <div class="vermogen" data-vermogen>4,1 kW<small>3 × 6 A</small></div>
+            </div>
+            <div class="pct" data-pct><b>64<sup>%</sup></b><span>312 km bereik</span></div>
+          </div>
+          <div class="scene"><svg viewBox="0 52 760 228" preserveAspectRatio="xMidYMax meet" data-scene></svg></div>
+          <div class="feiten" data-feiten>
+            <div><small>LAADGRENS</small><b>80%</b><span>vol om ± 17:05</span></div>
+            <div><small>DEZE LAADBEURT</small><b>8,4 kWh · € 0,66</b><div class="zonbalk"><i style="width: 71%"></i></div><span>71% van je eigen zon</span></div>
+            <div><small>KABEL</small><b>Erin sinds 11:20</b><span>Easee Home, in de garage</span></div>
+          </div>
+        </section>
+        <section class="glas advies" data-advies>
+          <div><span class="ik" style="background: rgba(247, 181, 72, 0.14); color: var(--zon)" data-icoon="zon"></span><div><b>Er kan meer op zon</b><span>Met 8 A in plaats van 6 A laadt de auto sneller, nog steeds op eigen zon.</span></div></div>
+          <div><span class="ik" style="background: rgba(143, 134, 255, 0.14); color: var(--violet-t)" data-icoon="klok"></span><div><b>Goedkoopst vannacht 2:00–5:00</b><span>€ 0,14 per kWh, de helft van nu. Vandaag niet nodig: op zon is hij om ± 17:05 op 80%.</span></div></div>
+        </section>
+      </div>
+
+      <!-- Het blad Laden: met de hand -->
+      <aside class="glas blad" data-blad="laden">
+        <div><h2>Laden</h2><p class="nu" data-l-nu>Nu kiest de laadpaal zelf · <b>6 A</b></p></div>
+        <div class="vraag"><span>HOOGSTE STROOM PER FASE</span>
+          <div class="stroom"><button type="button" aria-label="Minder">−</button><div class="getal"><b>8<small>A</small></b><span>5,5 kW · nog op eigen zon</span></div><button type="button" aria-label="Meer">+</button></div>
+          <div class="schaal"><i style="left: 0; width: 30%; background: linear-gradient(90deg, rgba(247, 181, 72, 0.25), rgba(247, 181, 72, 0.7))"></i><i style="left: 30%; width: 70%; background: rgba(154, 170, 187, 0.22)"></i><b style="left: 20%"></b></div>
+          <div class="schaal-as"><span style="left: 0; transform: none">6 A</span><span style="left: 30%; color: var(--zon-t); font-weight: 600">op zon tot 9 A</span><span style="left: 66%">daarboven deels van het net</span><span style="right: 0; left: auto; transform: none">16 A</span></div>
+        </div>
+        <div class="vraag"><span>HOE LANG</span><div class="seg" data-l-lang><button type="button">1 uur</button><button type="button">Tot 18:00</button><button type="button" data-l-pct>Tot een %</button><button type="button" aria-pressed="true" data-l-kabel>Tot de kabel eruit gaat</button></div>
+          <div class="tot-pct" data-l-totpct hidden><button type="button" aria-label="Lager">−</button><b>70%</b><button type="button" aria-label="Hoger">+</button><span>Daarna kiest de laadpaal weer zelf. Boven de laadgrens van de auto (80%) gaat niet.</span></div></div>
+        <div>
+          <div class="balk24"><i class="nacht" style="left: 0; width: 31%"></i><i class="zon" style="left: 33%; width: 38%"></i><i class="nacht" style="left: 72%; width: 28%"></i><i class="goedkoop" style="left: 8.3%; width: 12.5%"></i><i class="loopt" style="left: 59%; width: 9.3%"></i><b style="left: 59%"></b></div>
+          <div class="assen"><span style="left: 0; transform: none">0</span><span style="left: 14.6%; color: var(--violet-t); font-weight: 600">goedkoop</span><span style="left: 58.4%; transform: translateX(-100%); color: var(--tekst); font-weight: 700">nu</span><span style="left: 69%; transform: none; color: var(--zon-t); font-weight: 600">80% ± 16:20</span><span style="right: 0; left: auto; transform: none">24</span></div>
+        </div>
+        <div class="hoe" data-l-hoe>Zonder de auto gebruikt je huis nu <b>1 A per fase</b>. Met 8 A voor de auto blijft er 16 A over op je zekering van 3 × 25 A. Gaat de kabel eruit, dan kiest de laadpaal weer zelf.</div>
+        <div class="kan">De Easee kan: stroom van 6 tot 16 A, pauzeren. Instellen bij Energie › Auto en laadpaal.</div>
+        <div class="onder"><button class="terug" type="button" data-l-terug>Pauzeer</button><button class="zet" type="button" data-l-zet>Laad met 8 A</button></div>
+      </aside>
+
+      <!-- Laadbeurten -->
+      <aside class="glas blad beurten" data-blad="beurten" hidden>
+        <div><h2>Laadbeurten</h2><p class="nu">Model 3, thuis geladen</p></div>
+        <div class="som" data-som></div>
+        <h3>Deze week</h3>
+        <div data-lijst></div>
+        <div class="kan" style="margin-top: auto">De kosten zijn wat er van het net kwam, met je prijs per uur bij Contract en prijzen. Eigen zon telt als gratis.</div>
+      </aside>
+    </div>
+  </main>
+</div>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script src="auto-tekening.js"></script>
+<script>
+  const stand = location.hash.slice(1) || 'laadt';
+  const $ = (s) => document.querySelector(s);
+  nav.balk(document.getElementById('balk'), 'apparaten');
+
+  const S = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const ICOON = {
+    zon: S('<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>'),
+    klok: S('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),
+    weg: S('<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>'),
+  };
+  document.querySelectorAll('[data-icoon]').forEach((el) => el.insertAdjacentHTML('afterbegin', ICOON[el.dataset.icoon]));
+
+  const teken = (o) => { $('[data-scene]').innerHTML = autoTekening(o); };
+  teken({ pct: 64, grens: 80, kabel: 'zon' });
+
+  /* Laadbeurten: kosten = netstroom × € 0,27; de zon telt als gratis. */
+  const PRIJS = 0.27;
+  const BEURTEN = [
+    ['Vandaag', '11:20 – nu', 8.4, 0.71],
+    ['Woensdag', '18:05 – 23:40', 22.1, 0.12],
+    ['Maandag', '10:45 – 15:30', 17.6, 0.88],
+    ['Zondag', '02:00 – 05:10', 14.8, 0, 'goedkope uren', 0.14],
+  ];
+  const nl = (n, d = 1) => n.toLocaleString('nl-NL', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const eur = (kwh, zon, prijs = PRIJS) => kwh * (1 - zon) * prijs;
+  function beurten() {
+    const kwh = BEURTEN.reduce((s, b) => s + b[2], 0);
+    const zonKwh = BEURTEN.reduce((s, b) => s + b[2] * b[3], 0);
+    const kosten = BEURTEN.reduce((s, b) => s + eur(b[2], b[3], b[5]), 0);
+    $('[data-som]').innerHTML = `<div><small>GELADEN</small><b>${nl(kwh)} kWh</b></div><div><small>KOSTEN</small><b>€ ${nl(kosten, 2)}</b></div><div><small>EIGEN ZON</small><b>${Math.round((zonKwh / kwh) * 100)}%</b></div>`;
+    $('[data-lijst]').innerHTML = BEURTEN.map(([dag, tijd, k, z, extra, prijs]) => `
+      <div class="beurt"><div><b>${dag}</b><span>${tijd}${extra ? ` · <span style="color: var(--violet-t)">${extra}</span>` : ''}</span></div><span class="kwh">${nl(k)} kWh</span><span class="eur">€ ${nl(eur(k, z, prijs), 2)}</span>
+      <div class="zonbalk"><i style="width: ${z * 100}%"></i></div></div>`).join('');
+  }
+  beurten();
+
+  if (stand === 'hand') {
+    $('[data-stand]').innerHTML = '<i style="background: var(--zon)"></i><span>Laadt op zon · met de hand</span>';
+    $('[data-vermogen]').innerHTML = '5,5 kW<small>3 × 8 A</small>';
+    $('[data-zonover]').innerHTML = '<span class="stip" style="background: var(--zon)"></span>0,8 kW zon over';
+    $('[data-feiten]').firstElementChild.innerHTML = '<small>LAADGRENS</small><b>80%</b><span>vol om ± 16:50</span>';
+    $('[data-advies]').firstElementChild.innerHTML = `<span class="ik" style="background: rgba(110, 231, 183, 0.12); color: var(--mint)">${ICOON.zon}</span><div><b>Alles op eigen zon</b><span>Er is nog 0,8 kW over; 9 A past ook nog.</span></div>`;
+    $('[data-advies]').lastElementChild.querySelector('span:last-child').textContent = '€ 0,14 per kWh, de helft van nu. Vandaag niet nodig: op zon is hij om ± 16:50 op 80%.';
+    $('[data-l-nu]').innerHTML = '<span style="color: var(--zon-t); font-weight: 600">Met de hand</span> · 8 A tot 70%';
+    $('[data-l-terug]').textContent = 'Terug naar de laadpaal';
+    $('[data-l-kabel]').removeAttribute('aria-pressed');
+    $('[data-l-pct]').setAttribute('aria-pressed', 'true');
+    $('[data-l-pct]').textContent = 'Tot 70%';
+    $('[data-l-totpct]').hidden = false;
+    $('[data-blad="laden"] .balk24 .loopt').style.width = '3.5%';
+    $('[data-blad="laden"] .assen span:nth-child(4)').textContent = '70% ± 15:00';
+    $('[data-l-zet]').textContent = 'Bewaar';
+    $('[data-l-hoe]').innerHTML = 'Laadt met <b>8 A per fase</b> tot 70%, om ± 15:00; daarna kiest de laadpaal weer zelf. Komt er een wolk, dan neemt de auto even stroom van het net; hij gaat niet vanzelf omlaag. Dat komt later, als SunArc zelf regelt.';
+  }
+  if (stand === 'beurten') {
+    $('[data-blad="laden"]').hidden = true;
+    $('[data-blad="beurten"]').hidden = false;
+  }
+  if (stand === 'paal') {
+    $('[data-autos]').hidden = true;
+    teken({ pct: null, grens: null, kabel: 'zon' });
+    $('[data-pct]').innerHTML = '<span style="display: block; max-width: 230px; font-size: 14px; line-height: 1.45">Hoe vol de auto is, zegt alleen de auto zelf. Staat hij in Home Assistant, dan zie je het hier.</span>';
+    $('[data-feiten]').innerHTML = '<div><small>DEZE LAADBEURT</small><b>8,4 kWh · € 0,66</b><div class="zonbalk"><i style="width: 71%"></i></div><span>71% van je eigen zon</span></div><div><small>KABEL</small><b>Erin sinds 11:20</b><span>Easee Home, in de garage</span></div><div><small>DEZE MAAND</small><b>186 kWh</b><span>58% van je eigen zon</span></div>';
+    $('[data-advies]').lastElementChild.querySelector('span:last-child').textContent = '€ 0,14 per kWh, de helft van nu.';
+  }
+  if (stand === 'twee') {
+    document.querySelectorAll('[data-a]').forEach((el) => el.classList.toggle('aan', el.dataset.a === 'kia'));
+    teken({ pct: 41, grens: 90, kabel: 'vrij', auto: false });
+    $('[data-stand]').innerHTML = '<i style="background: var(--gedempt); box-shadow: none"></i><span style="color: var(--zacht)">Onderweg</span>';
+    $('[data-vermogen]').innerHTML = '41%<small>238 km bereik</small>';
+    $('[data-pct]').innerHTML = '<span style="display: block; max-width: 220px; font-size: 14px; line-height: 1.45">Weg sinds 08:10. De laadpaal is vrij.</span>';
+    $('[data-feiten]').innerHTML = '<div><small>LAADGRENS</small><b>90%</b><span>ingesteld in de auto</span></div><div><small>LAATSTE LAADBEURT</small><b>Gisteren, 19,0 kWh</b><div class="zonbalk"><i style="width: 34%"></i></div><span>34% van je eigen zon</span></div><div><small>THUIS</small><b>Deelt de Easee</b><span>met de Model 3</span></div>';
+    $('[data-advies]').innerHTML = `<div><span class="ik" style="background: rgba(255, 255, 255, 0.07); color: var(--zacht)">${ICOON.weg}</span><div><b>Onderweg</b><span>Bij thuiskomst zie je hier weer laden, kabel en laadbeurt.</span></div></div><div><span class="ik" style="background: rgba(143, 134, 255, 0.14); color: var(--violet-t)">${ICOON.klok}</span><div><b>Goedkoopst vannacht 2:00–5:00</b><span>€ 0,14 per kWh. Genoeg om tot 90% te laden.</span></div></div>`;
+    $('[data-l-nu]').textContent = 'De EV6 hangt nu niet aan de laadpaal.';
+    document.querySelectorAll('[data-blad="laden"] .vraag, [data-blad="laden"] .balk24, [data-blad="laden"] .assen, [data-l-hoe], [data-l-terug], [data-l-zet]').forEach((el) => (el.hidden = true));
+    $('[data-blad="laden"] .kan').insertAdjacentHTML('beforebegin', '<div class="hoe">Hangt de EV6 aan de kabel, dan kies je hier de stroom en hoe lang. Tot die tijd regelt de laadpaal het zelf.</div>');
+  }
+</script>
+</body>
+</html>

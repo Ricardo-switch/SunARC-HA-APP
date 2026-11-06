@@ -165,7 +165,15 @@ describe('de indeling toetsen', () => {
     expect(validateLayout({ ...good, rond: { ...rond, oprit: 'ja' } }, known).ok).toBe(false);
     const extra = validateLayout({ ...good, rond: { ...rond, zwembad: true } }, known);
     // Het schuurtje en de jacuzzi kwamen later (besluit 190): zonder zijn ze er niet.
-    expect(extra.ok && extra.layout.rond).toEqual({ ...rond, schuur: false, jacuzzi: false });
+    // De border stond er tot 6 november 2026 altijd, dus zonder is hij er wel; allebei niet.
+    expect(extra.ok && extra.layout.rond).toEqual({ ...rond, schuur: false, jacuzzi: false, border: true, allebei: false });
+  });
+
+  it('bewaart de border en tuinhuis én schuurtje (6 november 2026)', () => {
+    const rond = { oprit: false, auto: false, voortuin: false, tuin: true, terras: false, balkon: false, tuinhuis: true, garage: false, carport: false, schuur: false, jacuzzi: false };
+    const r = validateLayout({ ...good, rond: { ...rond, border: false, allebei: true } }, known);
+    expect(r.ok && r.layout.rond).toMatchObject({ border: false, allebei: true });
+    expect(validateLayout({ ...good, rond: { ...rond, border: 'ja' } }, known).ok).toBe(false);
   });
 
   it('bewaart wat voor huis het is, en weigert wat het niet kent (besluit 190)', () => {

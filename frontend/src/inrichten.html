@@ -334,14 +334,72 @@
   .stapper button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgb(var(--wit) / 0.08); color: var(--tekst); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
   .stapper button:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
   .stapper b { min-width: 44px; text-align: center; font-family: var(--kop); font-size: 16px; color: var(--tekst); }
-  .dagdelen { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, 62px); gap: 5px; align-items: center; font-size: 12px; }
-  .dagdelen.drie { grid-template-columns: minmax(0, 1fr) repeat(3, 62px); }
-  .dagdelen > small { font-weight: 700; color: var(--gedempt); text-align: center; }
-  .dagdelen > b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .dagdelen > span { height: 32px; border-radius: 10px; display: grid; place-items: center; background: rgb(var(--wit) / 0.06); font-family: var(--kop); font-size: 15px; font-weight: 600; color: var(--gedempt); }
-  .dagdelen > span.warm { background: rgba(255, 122, 77, 0.16); color: #ffb090; }
-  .dagdelen > span.nacht { background: rgba(143, 134, 255, 0.16); color: #c1bcff; }
-  .dagdelen > span.koel { background: rgba(111, 211, 255, 0.14); color: var(--ijs-t); }
+  /* Je dag (6 november 2026, schets Wand-Inrichten-Comfort #dag): een balk van 24 uur met drie grepen, en per grens een regel. */
+  .dg { display: flex; flex-direction: column; gap: 7px; flex: none; }
+  .dg-kop { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13.5px; }
+  .dg-kop span { font-size: 12.5px; font-weight: 600; color: var(--gedempt); }
+  .dg-balk { display: flex; height: 50px; border-radius: 14px; overflow: hidden; }
+  .dg-stuk { height: 100%; min-width: 0; padding: 0; border: 0; display: grid; place-items: center; overflow: hidden; white-space: nowrap; font: inherit; font-size: 13px; font-weight: 700; color: rgb(255 255 255 / 0.75); cursor: pointer; opacity: 0.55; transition: opacity 0.2s; }
+  .dg-stuk.op { opacity: 1; box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.5); }
+  .dg-stuk.nacht { background: rgb(143 134 255 / 0.3); }
+  .dg-stuk.voor { background: linear-gradient(90deg, rgb(143 134 255 / 0.3), rgb(255 122 77 / 0.5)); box-shadow: none; }
+  .dg-stuk.dag { background: rgb(247 181 72 / 0.32); color: #ffe2b0; }
+  .dg-grepen { position: relative; height: 26px; margin-top: -4px; touch-action: none; }
+  .dg-greep { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 0 4px; border: 0; background: none; color: var(--tekst); font: inherit; cursor: ew-resize; touch-action: none; }
+  .dg-greep::before { content: ''; width: 2px; height: 9px; border-radius: 1px; background: currentColor; }
+  .dg-greep b { font-family: var(--kop); font-size: 14px; font-weight: 600; padding: 0 4px; border-radius: 6px; }
+  .dg-greep.nu b { background: var(--tekst); color: #0b1424; }
+  /* Voorverwarmen en overdag liggen vaak een uur uit elkaar: hun tijden staan elk aan hun eigen kant. */
+  .dg-greep.voorverwarmen { align-items: flex-end; transform: translateX(calc(-100% + 6px)); color: #ffb090; }
+  .dg-greep.dag { align-items: flex-start; transform: translateX(-6px); }
+  .dg-lijst { display: flex; flex-direction: column; gap: 6px; }
+  .dg-grens { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 0 12px; align-items: center; padding: 9px 12px; border-radius: 15px; background: rgb(var(--wit) / 0.05); border: 1.5px solid transparent; }
+  .dg-grens.nu { border-color: rgb(var(--wit) / 0.4); }
+  .dg-grens > i { width: 12px; height: 12px; border-radius: 4px; background: #8f86ff; }
+  .dg-grens.voorverwarmen > i { background: linear-gradient(135deg, #8f86ff, #ff7a4d); }
+  .dg-grens.dag > i { background: var(--zon); }
+  .dg-grens > div b { display: block; font-size: 15px; }
+  .dg-grens > div span { display: block; font-size: 12.5px; line-height: 1.35; color: var(--gedempt); }
+  .dg-grens .stapper b { min-width: 58px; font-size: 20px; }
+  .dg-grens .stapper button { width: 34px; height: 34px; }
+  /* Hoe warm wil je het (6 november 2026): per kamer overdag en 's nachts, verwarmen en koelen. */
+  .cf-tabel { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 132px)); gap: 5px 10px; align-items: center; flex: none; }
+  .cf-tabel.een { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 76px)); }
+  .cf-kolkop { padding: 4px 2px 3px; border: 0; border-radius: 9px; background: none; color: var(--zacht); font: inherit; font-size: 12.5px; font-weight: 700; text-align: center; cursor: pointer; }
+  .cf-kolkop.aan { background: rgb(var(--wit) / 0.07); color: var(--tekst); }
+  .cf-kolkop em { margin-left: 4px; font-style: normal; font-weight: 600; color: var(--gedempt); }
+  .cf-kolkop small { display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; margin-top: 1px; font-size: 10.5px; font-weight: 600; }
+  .cf-kolkop small .heat { color: #ffb090; }
+  .cf-kolkop small .cool { color: var(--ijs-t); }
+  .cf-naam { min-width: 0; }
+  .cf-naam b { display: flex; align-items: center; gap: 6px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cf-naam.eigen b::after { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--violet); }
+  .cf-naam span { display: block; font-size: 11.5px; color: var(--gedempt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cf-naam.huis, .cf-paar.huis { padding-bottom: 6px; border-bottom: 1px solid rgb(var(--wit) / 0.08); }
+  .cf-paar { display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; gap: 6px; }
+  .cf-tal { height: 36px; min-width: 0; padding: 0; border: 2px solid transparent; border-radius: 11px; display: grid; place-items: center; font-family: var(--kop); font-size: 15.5px; font-weight: 600; cursor: pointer; }
+  .cf-tal.heat { background: rgba(255, 122, 77, 0.16); color: #ffb090; }
+  .cf-tal.cool { background: rgba(111, 211, 255, 0.14); color: var(--ijs-t); }
+  .cf-tal.uit { background: rgb(var(--wit) / 0.04); color: var(--gedempt); font-family: inherit; font-size: 12.5px; font-weight: 700; }
+  .cf-tal.niet { border: 1px dashed rgb(var(--wit) / 0.12); background: none; color: var(--gedempt); cursor: default; }
+  .cf-tal.volgt { opacity: 0.62; }
+  .cf-tal.gekozen { border-color: var(--tekst); opacity: 1; }
+  .cf-tal:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
+  .cf-bewerk { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; flex: none; padding: 10px 12px 10px 14px; border-radius: 16px; background: rgb(var(--wit) / 0.06); border: 1px solid rgb(var(--wit) / 0.1); }
+  .cf-bewerk > div:first-child b { display: block; font-size: 14.5px; }
+  .cf-bewerk > div:first-child span { font-size: 12.5px; color: var(--zacht); }
+  .cf-bewerk .stapper button { width: 38px; height: 38px; font-size: 19px; }
+  .cf-bewerk .stapper b { min-width: 72px; font-size: 25px; }
+  .cf-bewerk .stapper b.heat { color: #ffb090; }
+  .cf-bewerk .stapper b.cool { color: var(--ijs-t); }
+  .cf-bewerk .stapper b.uit { font-family: inherit; font-size: 16px; color: var(--gedempt); }
+  .cf-keuzes { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; }
+  .cf-keuzes small { margin-left: auto; font-size: 12px; color: var(--gedempt); }
+  .cf-noot { margin: 0; font-size: 12.5px; color: var(--gedempt); }
+  #tel .cf-tabel { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 104px)); gap: 5px 6px; }
+  #tel .cf-tabel.een { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 60px)); }
+  #tel .cf-paar { gap: 4px; }
+  #tel .cf-tal { font-size: 14px; height: 34px; }
   .wandje { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; flex: none; height: 124px; grid-template-rows: minmax(0, 1fr); margin-bottom: 6px; padding: 10px; border-radius: 16px; background: rgb(var(--wit) / 0.04); border: 1px solid rgb(var(--wit) / 0.08); box-sizing: border-box; }
   .wandje .huisvak { position: relative; display: block; border-radius: 10px; background: linear-gradient(160deg, rgb(111 211 255 / 0.12), rgb(255 255 255 / 0.03)); overflow: hidden; }
   .wandje .huisvak svg { position: absolute; inset: 0; width: 100%; height: 100%; }

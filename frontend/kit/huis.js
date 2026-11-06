@@ -2726,19 +2726,23 @@
       const padX = W + 1.78;
       const dingen = [];
       // De border: een strook aarde langs de buitenrand, met struiken en bloemen.
+      // Alleen als hij er is (6 november 2026); anders loopt het gras door tot de rand.
+      const metBorder = t.border !== false;
       const bx0 = gx1 - 0.34;
-      grond.push(poly([[bx0, gy0 + 0.95, 0.004], [gx1, gy0 + 0.95, 0.004], [gx1, gy1 - 0.08, 0.004], [bx0, gy1 - 0.08, 0.004]], `fill="${sneeuw ? '#dfe6ee' : licht ? '#8a7560' : '#3a2e24'}"`));
-      grond.push(line([[bx0, gy0 + 0.95, 0.006], [bx0, gy1 - 0.08, 0.006]], `stroke="${sneeuw ? '#c9d3dd' : '#5a4634'}" stroke-width="1.5"`));
+      if (metBorder) {
+        grond.push(poly([[bx0, gy0 + 0.95, 0.004], [gx1, gy0 + 0.95, 0.004], [gx1, gy1 - 0.08, 0.004], [bx0, gy1 - 0.08, 0.004]], `fill="${sneeuw ? '#dfe6ee' : licht ? '#8a7560' : '#3a2e24'}"`));
+        grond.push(line([[bx0, gy0 + 0.95, 0.006], [bx0, gy1 - 0.08, 0.006]], `stroke="${sneeuw ? '#c9d3dd' : '#5a4634'}" stroke-width="1.5"`));
+      }
       const bloemen = herfst ? ['#e0a04a', '#c9543a', '#e8c25a'] : winter || sneeuw ? null : ['#f2a7c3', '#f6d36b', '#b7a0f2', '#ffffff'];
       /*
        * De tuin in zones (28 oktober 2026, schets Wand-Huis-Ligging): elke zone een
        * vaste plek, voor een label en om op te tikken. De lampen van de border
        * staan in de border, elk in de kleur van zijn lamp.
        */
-      const gazon = { x0: W + 0.35, y0: gy0 + 1.0, x1: bx0 - 0.08, y1: 0.22 };
-      plek.border = [bx0 + 0.17, (gy0 + 0.95 + gy1) / 2, 0.25];
+      const gazon = { x0: W + 0.35, y0: gy0 + 1.0, x1: metBorder ? bx0 - 0.08 : gx1 - 0.08, y1: 0.22 };
+      if (metBorder) plek.border = [bx0 + 0.17, (gy0 + 0.95 + gy1) / 2, 0.25];
       plek.gazon = [(gazon.x0 + gazon.x1) / 2 - 0.25, (gazon.y0 + gazon.y1) / 2, 0.05];
-      const borderLampen = t.borderLampen ?? [];
+      const borderLampen = metBorder ? (t.borderLampen ?? []) : [];
       /*
        * Brandt een lamp van de border, dan kleurt zijn stuk border mee: een gloed
        * over de aarde en over de planten (28 oktober 2026). Eén lamp in Home
@@ -2775,7 +2779,7 @@
       });
       let z3 = 7;
       const rnd3 = () => ((z3 = (z3 * 16807) % 2147483647) / 2147483647);
-      for (let y = gy0 + 1.1; y < gy1 - 0.15; y += 0.3) {
+      for (let y = gy0 + 1.1; metBorder && y < gy1 - 0.15; y += 0.3) {
         const x = bx0 + 0.17 + (rnd3() - 0.5) * 0.08;
         const s = 0.8 + rnd3() * 0.45;
         dingen.push([y, () => struik(x, y, s, bloemen, sneeuw)]);
@@ -2784,7 +2788,8 @@
       // Niet tegen de gevel: daar staat de buitenunit.
       const ter = { x0: W + 0.5, x1: W + 1.5, y0: 0.35, y1: gy1 - 0.05 };
       plek.terras = [(ter.x0 + ter.x1) / 2, (ter.y0 + ter.y1) / 2, 0.45];
-      if (model.terras || t.terras !== false) {
+      const terrasEr = !!model.terras || t.terras !== false;
+      if (terrasEr) {
         grond.push(poly([[ter.x0, ter.y0, 0.006], [ter.x1, ter.y0, 0.006], [ter.x1, ter.y1, 0.006], [ter.x0, ter.y1, 0.006]], `fill="${sneeuw ? '#e6ecf2' : licht ? '#c3cad2' : '#3b4652'}"`));
         for (let x = ter.x0 + 0.3; x < ter.x1 - 0.05; x += 0.3) grond.push(line([[x, ter.y0, 0.008], [x, ter.y1, 0.008]], 'stroke="#2c353f" stroke-width="1"'));
         for (let y = ter.y0 + 0.3; y < ter.y1 - 0.05; y += 0.3) grond.push(line([[ter.x0, y, 0.008], [ter.x1, y, 0.008]], 'stroke="#2c353f" stroke-width="1"'));
@@ -2833,10 +2838,27 @@
       }
       // Het tuinhuis achterin, met de deur naar het pad.
       // Een schuurtje met puntdak, of een tuinhuis met plat dak en overstek (24 oktober 2026).
-      if (t.tuinhuis !== false) dingen.push([gy0, () => (t.tuinhuisSoort === 'schuur' ? tuinhuis3(padX - 0.5, gy0 + 0.02, t) : tuinhuisPlat(padX - 0.55, gy0 + 0.02, t))]);
+      /*
+       * Allebei (6 november 2026): het schuurtje links, het tuinhuis rechts aan het
+       * pad. De lampen, de panelen en de tik horen bij het huisje uit Home
+       * Assistant (`huisjeVanHA`); het andere staat er alleen.
+       */
+      const allebei = () => {
+        const vanHA = t.huisjeVanHA === 'schuur' ? 'schuur' : 'tuinhuis';
+        const alleen = { ...t, tuinhuisAan: false, overstekAan: false, overstekLampen: [], tuinhuisPanelen: 0 };
+        tuinhuis3(W + 0.28, gy0 + 0.02, vanHA === 'schuur' ? t : alleen);
+        const schuurVak = tuinhuisVak;
+        const schuurPlek = plek.tuinhuis;
+        tuinhuisPlat(W + 1.38, gy0 + 0.02, vanHA === 'schuur' ? alleen : t);
+        if (vanHA === 'schuur') {
+          tuinhuisVak = schuurVak;
+          plek.tuinhuis = schuurPlek;
+        }
+      };
+      if (t.tuinhuis !== false) dingen.push([gy0, () => (t.tuinhuisSoort === 'beide' ? allebei() : t.tuinhuisSoort === 'schuur' ? tuinhuis3(padX - 0.5, gy0 + 0.02, t) : tuinhuisPlat(padX - 0.55, gy0 + 0.02, t))]);
       dingen.sort((a, b) => a[0] - b[0]).forEach(([, teken]) => teken());
       // De gekozen zone (`zone`) licht op (schets Wand-Huis-Ligging): na een tik, met zijn kaartje ernaast.
-      tuinVakken = { border: { x0: bx0 - 0.04, y0: gy0 + 0.9, x1: gx1 + 0.02, y1: gy1 - 0.04 }, terras: ter, gazon, tuinhuis: tuinhuisVak, overstek: tuinhuisVak };
+      tuinVakken = { ...(metBorder ? { border: { x0: bx0 - 0.04, y0: gy0 + 0.9, x1: gx1 + 0.02, y1: gy1 - 0.04 } } : {}), ...(terrasEr ? { terras: ter } : {}), gazon, tuinhuis: tuinhuisVak, overstek: tuinhuisVak };
       const vak = tuinVakken[t.zone];
       if (vak) markeer(vak);
     }

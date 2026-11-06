@@ -252,6 +252,8 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [247. Eén iconenset, duotoon](#247-eén-iconenset-duotoon)
 - [255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer](#255-opbrengst-het-stroombeeld-vertelt-meer-opgewekt-uit-de-omvormer)
 - [257. Drie fouten van testers: het gevoel, Meten met, en een plat dak](#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak)
+- [259. Auto en laadpaal: een eigen pagina, en met de hand laden (ontwerp)](#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp)
+- [260. Je dag als eigen stap, en hoe warm per kamer](#260-je-dag-als-eigen-stap-en-hoe-warm-per-kamer)
 
 **Veiligheid**
 
@@ -12108,6 +12110,89 @@ kreeg in Home Assistant en in de app een lange lijst, versie voor versie.
 - **Vóór elke versie** gaan de nieuwe issues en ideeën op GitHub na, en wat
   nieuw is, komt in de prio-lijst. Lost een versie een melding uit de app op,
   dan krijgt die versie de uitkomst van de meldcode mee (besluit 250).
+
+## 259. Auto en laadpaal: een eigen pagina, en met de hand laden (ontwerp)
+
+*Onderwerp: weergave · Status: geldig*
+
+6 november 2026. Auto en laadpaal is de functie waar testers het vaakst om
+vragen (idee #123, melding #132), en stap 6 van de testerronde. Tot nu toe
+herkent de app één auto en één laadpaal en toont hij ze op een kaart (182). De
+bewoner koos in twee rondes, na de schetsen `Wand-Auto`, `Tel-Auto`,
+`Wand-Energie-Auto` en `Thuis-Tel-Auto-Advies`. Het bouwplan, met de gegevens
+die we willen, de rekenregels en de stappen, staat in
+`docs/auto-en-laadpaal.md`.
+
+*Besluit (ontwerp; nog niets gebouwd):*
+
+- **Instellen bij Energie › Auto en laadpaal:** wat in Home Assistant
+  gevonden is, met een schakelaar per apparaat; een ander apparaat kiezen; per
+  auto de accu in kWh, aan welke laadpaal hij laadt en waar hij in de tekening
+  staat (oprit, carport of garage, idee #123); per laadpaal of SunArc hem mag
+  bedienen. **Meerdere** auto's en laadpalen.
+- **Kijken en bedienen op een eigen pagina Auto,** zonder eigen tab: de
+  Thuis-kaart en de auto bij Apparaten openen hem. **De auto zelf is de
+  meter:** hij vult zich tot zijn lading, met een streep bij de laadgrens; de
+  kabel van de laadpaal is amber als hij op zon laadt. Erbij: kW en A per fase,
+  bereik, laadgrens, vol om, kabel, deze laadbeurt, en onderweg.
+- **Met de hand laden,** zoals klimaat met de hand (235): de hoogste stroom in
+  A en pauzeren, alleen als de laadpaal het kan, nooit boven de laadpaal of de
+  ruimte op de zekering. Hoe lang: 1 uur, tot een tijd, tot een % (nooit boven
+  de laadgrens van de auto) of tot de kabel eruit gaat; daarna weer de
+  laadpaal, en wie intussen zelf iets verzette, wint. Met evcc zet SunArc de
+  stand van evcc. Een nieuwe smalle deur in de schrijfgrens, die bij het bouwen
+  een eigen besluit krijgt. Automatisch op zon blijft voor B (85).
+- **Laadbeurten:** kWh, kosten (het deel van het net × de prijs van dat
+  moment; eigen zon is gratis) en het deel eigen zon.
+- **Advies, alleen als het iets zegt:** zon over ("met 8 A nog op eigen zon")
+  en bij een prijs per uur de goedkoopste uren, met de ruimte op de zekering.
+  Ook als **eigen kaart op Thuis**, met één tik "Laad met 8 A".
+- **Meldingen:** auto vol, laden gestopt met een fout, kabel vergeten.
+- **Het klimaat van een auto** telt niet als klimaat in huis (#132).
+- **Volgorde, elk een eigen versie:** 1 kiezen en herkennen, 2 de pagina Auto,
+  3 laadbeurten, 4 advies, 5 met de hand, 6 meldingen.
+
+*Wat afviel:* een eigen tab in het menu, en een overzicht van thuis geladen
+kWh voor de werkgever.
+
+## 260. Je dag als eigen stap, en hoe warm per kamer
+
+*Onderwerp: weergave · Status: geldig*
+
+6 november 2026, op verzoek van de bewoner: "bij hoe warm wil je het kan je
+niet veel instellen in de losse ruimtes eronder. ook de dagdelen zijn niet
+compleet." Inrichten › Comfort had twee schuiven voor het hele huis, een
+keuze voor de nacht (koeler, hetzelfde of uit), de dag van-tot, en een tabel
+per kamer die je alleen kon lezen. Voorverwarmen stond er niet, en koelen
+alleen overdag. Na de schets `Wand-Inrichten-Comfort` koos de bewoner de dag
+als eigen stap vóór de temperaturen.
+
+*Besluit (versie 0.130.0):*
+
+- **Je dag** is een eigen stap bij Klimaat, tussen Meten met en Comfort;
+  Klimaat heeft nu zes stappen. Een balk van 24 uur met een greep voor
+  voorverwarmen, overdag en 's nachts, per heel uur te schuiven, en per grens
+  een regel met − en +. Elke verandering gaat meteen naar de dienst. De lucht
+  boven het huis volgt de grens die je het laatst bewoog, ook in de winter;
+  bij voorverwarmen gloeien de kamers die meedoen.
+- **Hoe warm wil je het** is één tabel: per kamer overdag en 's nachts, elk
+  verwarmen en koelen, met de tijden uit Je dag in de kop. Elk getal is aan
+  te tikken; één regel eronder past het gekozen getal aan, met Uit en Zoals
+  het huis. Een kamer die iets niet kan, heeft daar een streepje.
+- **Het hele huis** is de bovenste regel: per dagdeel en soort wat de meeste
+  kamers hebben, ook als dat uit is. Een kamer volgt het huis zolang hij dat
+  getal heeft; verander je het huis, dan gaan de kamers die volgen mee, elk
+  binnen wat zijn apparaten kunnen en met een graad tussen verwarmen en
+  koelen. Een kamer met een eigen getal krijgt een stip. Dit vervangt het
+  eerdere "de kamers die de bewoner zelf anders zette, blijven zo" (158).
+- **Volgende** bewaart wat er staat bij Je dag en Comfort, ook als je niets
+  verzette, zodat de stap daarna als nagelopen telt.
+- De dienst verandert niet: het blijven de doelen per kamer en de dagdelen
+  van `api/comfort` (130). Op zon, nooit warmer dan en voorrang blijven bij
+  Instellingen › Comfort.
+
+*Wat afviel:* de dag bovenaan dezelfde stap (de eerste schets), en de
+schuiven voor het hele huis.
 
 ---
 

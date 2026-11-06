@@ -48,7 +48,7 @@ const HOOFDSTUKKEN = [
   ['huis', ['woning', 'huis', 'apparaten']],
   ['buiten', ['buiten']],
   ['bewoners', ['bewoners']],
-  ['klimaat', ['warmte', 'apparaat', 'meten', 'comfort', 'afwezig']],
+  ['klimaat', ['warmte', 'apparaat', 'meten', 'dag', 'comfort', 'afwezig']],
   ['energie', ['zekering', 'vermogen', 'zon', 'ligging', 'opzon', 'prijzen']],
   ['gemak', ['functies']],
   ['schermen', ['account', 'wand']],
@@ -81,7 +81,7 @@ function gedaan(id) {
   if (id === 'warmte') return binnen().some((r) => klimaatIn(r).some((a) => a.klimaat?.rol && a.klimaat.rol !== 'kijken'));
   // Wat elk apparaat kan (besluit 197): geen open vraag meer.
   if (id === 'apparaat') return kanToestellen().length > 0 && !kanToestellen().some(({ a }) => kanVraagOpen(a));
-  if (id === 'comfort' || id === 'afwezig') return (d.comfort?.kamers ?? []).some((k) => k.uitApp);
+  if (id === 'dag' || id === 'comfort' || id === 'afwezig') return (d.comfort?.kamers ?? []).some((k) => k.uitApp);
   // Op zon (besluit 167): iets mag al op zon. Klaarzetten: niets mist meer in Home Assistant.
   if (id === 'opzon') return Object.values(d.aans?.antwoorden?.opZon ?? {}).some(Boolean) || (d.aans?.configuratie?.apparaten ?? []).length > 0;
   if (id === 'ha') return (d.klaar?.punten ?? []).length > 0 && d.klaar.punten.every((p) => p.stand !== 'mist');
@@ -210,6 +210,8 @@ function model(stap) {
       // Bij Wat elk apparaat kan: de kamer van het apparaat dat open staat.
       if (stap === 'apparaat' && kanToestellen().find(({ a }) => sleutel(a) === kanOpen)?.r.id === r.id) k.gekozen = true;
       if (stap === 'comfort' && r.zoneId) k.stand = 'goed';
+      // Je dag (6 november 2026): bij voorverwarmen gloeien de kamers die meedoen.
+      if (stap === 'dag' && r.zoneId && dagMoment(dagUur()).voor) k.stand = 'verwarmt';
       return k;
     },
   });
@@ -222,7 +224,7 @@ function model(stap) {
   const elders = metZon ? a.elders : {};
   return {
     beschrijving: t('inr.beschrijving'),
-    tijd: stap === 'ha' || stap === 'klaar' ? 'nacht' : groot ? 'ochtend' : app.tijdVanDeDag(d.zon),
+    tijd: stap === 'ha' || stap === 'klaar' ? 'nacht' : groot ? 'ochtend' : stap === 'dag' ? dagMoment(dagUur()).tijd : app.tijdVanDeDag(d.zon),
     wolken: 0.3,
     zon: { stand: d.zon?.dag?.fractie ?? 0.4, hoogte: d.zon?.dag?.hoogteDeel ?? 0.6, aandeel: metZon ? 0.6 : 0.2, opRechts: huismodel.zonOpRechts(d.aans?.ligging, a.panelen) ?? undefined, ...opDak },
     // Het huis zelf, zoals elke pagina het tekent (besluit 191); buiten pas vanaf de stap Buiten.
@@ -264,6 +266,7 @@ const IK = {
   tuinhuis: iconen.binnen('tuinhuis'),
   schuur: iconen.binnen('schuur'),
   terras: iconen.binnen('terras'),
+  border: iconen.binnen('border'),
   jacuzzi: iconen.binnen('jacuzzi'),
   balkon: iconen.binnen('balkon'),
   thermo: iconen.binnen('klimaat'),
@@ -746,7 +749,8 @@ const buitenKamers = () => (concept()?.kamers ?? []).filter((k) => k.etage === '
  * waar een ruimte nu ook bij de carport kan horen.
  */
 const RONDOM = huismodel.rondom();
-const { OP_OPRIT } = huismodel;
+/** Wat er rond het huis is, uit de indeling die je nu bewerkt; een lijstje van vóór de border heeft hem. */
+const rondVanConcept = (next) => huismodel.rondNu(next?.rond ? { rond: next.rond } : d.huis);
 function buitenNu(k) {
   const r = buitenRuimtes().find((x) => x.id === k.id);
   return k.buiten ?? r?.buiten ?? huismodel.soortBuiten(k);
@@ -757,13 +761,15 @@ function buitenStap() {
   // De jacuzzi (besluit 186): gevonden in Home Assistant, of alleen getekend.
   const jacuzzi = (d.aans?.gevonden?.apparaten ?? []).find((x) => x.soort === 'jacuzzi');
   const delen = RONDOM.map(([w, naam, soort, icoon]) => {
-    const aan = !!rond[w] && (!OP_OPRIT.has(w) || !!rond.oprit);
+    const aan = huismodel.rondAan(rond, w);
+    const ouder = huismodel.hangtAan(w);
     // Aanvinken is genoeg (28 oktober 2026): het deel komt op zijn vaste plek; de ruimte
     // uit Home Assistant die erbij hoort, volgt uit zijn naam of wat hij is bij Kamers en indeling.
-    // In de tuin: het tuinhuis met plat dak, of het schuurtje met puntdak (24 oktober 2026).
-    const soortKeuze = w === 'tuinhuis' && aan ? `<span class="chips">${knop('data-schuur="0"', t('inr.tuinhuis'), !rond.schuur)}${knop('data-schuur="1"', t('inr.schuurtje'), !!rond.schuur)}</span>` : '';
+    // In de tuin: het tuinhuis met plat dak, het schuurtje met puntdak, of allebei (6 november 2026).
+    const huisje = huismodel.huisjeVan(rond);
+    const soortKeuze = w === 'tuinhuis' && aan ? `<span class="chips">${huismodel.HUISJES.map(([v, sleutel]) => knop(`data-schuur="${v}"`, t(sleutel), huisje === v)).join('')}</span>` : '';
     const zin = w === 'jacuzzi' ? (jacuzzi ? jacuzzi.naam : t('inr.nietInHA')) : '';
-    return regel({ ik: w === 'tuinhuis' && rond.schuur ? 'schuur' : icoon, titel: naam, zin, rechts: schakelaar(`data-rond="${w}"`, naam, aan, OP_OPRIT.has(w) && !rond.oprit), onder: soortKeuze });
+    return regel({ ik: w === 'tuinhuis' && huisje === 'schuur' ? 'schuur' : icoon, titel: naam, zin, rechts: schakelaar(`data-rond="${w}"`, naam, aan, !!ouder && !rond[ouder]), onder: soortKeuze });
   });
   // Ruimtes die bij geen deel horen dat aan staat: die tekent het huis nergens.
   const los = kamers.filter((k) => !RONDOM.some(([w, , s]) => s && rond[w] && buitenNu(k).soort === s));
@@ -1137,68 +1143,190 @@ function kanStap() {
   };
 }
 
+/** De standaard voor een nieuw huis (besluit 204), zoals de dienst hem geeft. */
+const standaard = () => d.comfort?.standaard ?? { warm: { dag: 20, nacht: 16, afwezig: 15, vakantie: 12 }, koel: { dag: 25, nacht: 25, afwezig: 27, vakantie: 28 }, dagdelen: { voorverwarmen: 6, dag: 7, nacht: 22 } };
 /** Wat de meeste kamers zeggen, of een gewone waarde. */
 function meest(lijst, anders) {
   const tel = new Map();
   for (const v of lijst) if (v != null) tel.set(v, (tel.get(v) ?? 0) + 1);
   return [...tel.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? anders;
 }
+
 /*
- * Comfort voor het hele huis (besluit 158): het geldt voor de kamers die
- * dezelfde waarde hebben als de meeste. Een kamer die de bewoner zelf anders
- * zette, blijft zo, tenzij hij kiest dat die mee moet.
+ * Je dag (6 november 2026, schets Wand-Inrichten-Comfort #dag): de drie
+ * grenzen van de dag in een eigen stap, vóór hoe warm. Een balk van 24 uur
+ * met een greep per grens, en per grens een regel met − en +. De lucht boven
+ * het huis volgt de grens die je het laatst bewoog; bij voorverwarmen gloeien
+ * de kamers die meedoen.
  */
-let comfortKeuze = null;
-let ookEigen = false;
-/** De standaard voor een nieuw huis (besluit 204), zoals de dienst hem geeft. */
-const standaard = () => d.comfort?.standaard ?? { warm: { dag: 20, nacht: 16, afwezig: 15, vakantie: 12 }, koel: { dag: 25, nacht: 25, afwezig: 27, vakantie: 28 }, dagdelen: { voorverwarmen: 6, dag: 7, nacht: 22 } };
-function comfortBasis() {
-  const kamers = d.comfort?.kamers ?? [];
-  const s = standaard();
-  const warm = meest(kamers.filter((k) => k.kanVerwarmen).map((k) => k.modi.dag.heat), s.warm.dag);
-  const koel = meest(kamers.filter((k) => k.kanKoelen).map((k) => k.modi.dag.cool), s.koel.dag);
-  const nachtHeat = meest(kamers.filter((k) => k.kanVerwarmen).map((k) => k.modi.nacht.heat), null);
-  const nacht = kamers.every((k) => k.modi.nacht.heat == null && k.modi.nacht.cool == null) ? 'uit' : nachtHeat === warm ? 'zelfde' : 'koeler';
-  return { warm, koel: Math.max(koel, warm + 1), nacht, dag: d.comfort?.dagdelen?.dag ?? s.dagdelen.dag, avond: d.comfort?.dagdelen?.nacht ?? s.dagdelen.nacht };
+const GRENZEN = ['voorverwarmen', 'dag', 'nacht'];
+let dagKeuze = null;
+let dagGreep = null;
+const dagNu = () => dagKeuze ?? { ...standaard().dagdelen, ...(d.comfort?.dagdelen ?? {}) };
+const uurTekst = (u) => `${u}:00`;
+const grensNaam = (g) => (g === 'voorverwarmen' ? t('inr.dag.voor') : t(`comfort.naam.${g}`));
+/** Binnen wat de dienst aanneemt: voorverwarmen vóór de dag, de dag vóór de nacht. */
+function dagMet(dg, grens, u) {
+  const n = { ...dg };
+  if (grens === 'voorverwarmen') n.voorverwarmen = Math.min(Math.max(u, 0), n.dag - 1);
+  if (grens === 'dag') n.dag = Math.min(Math.max(u, n.voorverwarmen + 1), n.nacht - 1);
+  if (grens === 'nacht') n.nacht = Math.min(Math.max(u, n.dag + 1), 23);
+  return n;
 }
-const comfortNu = () => comfortKeuze ?? comfortBasis();
-/** De kamers die de bewoner zelf anders zette dan de rest. */
-function eigenKamers() {
-  const b = comfortBasis();
-  return (d.comfort?.kamers ?? []).filter((k) => k.uitApp && ((k.kanVerwarmen && k.modi.dag.heat !== b.warm) || (k.kanKoelen && k.modi.dag.cool !== b.koel)));
+/** Welk uur de tekening laat zien: net na de grens die je het laatst bewoog. */
+function dagUur() {
+  const dg = dagNu();
+  return (dagGreep ? dg[dagGreep] : dg.voorverwarmen) + 0.5;
+}
+/** De lucht en het dagdeel bij een uur van Je dag. */
+function dagMoment(u) {
+  const dg = dagNu();
+  const tijd = u < dg.voorverwarmen || u >= dg.nacht ? 'nacht' : u < dg.dag + 1.5 ? 'ochtend' : u >= dg.nacht - 2.5 ? 'avond' : 'dag';
+  return { tijd, voor: u >= dg.voorverwarmen && u < dg.dag, deel: u >= dg.voorverwarmen && u < dg.nacht ? 'dag' : 'nacht' };
+}
+function dagBalk() {
+  const dg = dagNu();
+  const pct = (u) => `${((u / 24) * 100).toFixed(2)}%`;
+  const op = dagMoment(dagUur()).deel;
+  const stuk = (soort, a, b, naam, deel) => `<button type="button" class="dg-stuk ${soort}${deel === op ? ' op' : ''}" data-dg-deel="${deel}" style="width: ${pct(b - a)}" tabindex="-1">${naam ? esc(naam) : ''}</button>`;
+  const grepen = GRENZEN.map((g) => `<button type="button" class="dg-greep ${g}${dagGreep === g ? ' nu' : ''}" data-dg-greep="${g}" style="left: ${pct(dg[g])}" aria-label="${esc(t('inr.dag.greep', { naam: grensNaam(g), uur: uurTekst(dg[g]) }))}"><b>${uurTekst(dg[g])}</b></button>`).join('');
+  return `<div class="dg-kop"><b>${esc(t('inr.stap.dag'))}</b><span>${esc(t('inr.dag.samen', { dag: dg.nacht - dg.dag, nacht: 24 - dg.nacht + dg.voorverwarmen }))}</span></div>
+    <div class="dg-balk">${stuk('nacht', 0, dg.voorverwarmen, t('comfort.naam.nacht'), 'nacht')}${stuk('voor', dg.voorverwarmen, dg.dag, '', 'dag')}${stuk('dag', dg.dag, dg.nacht, t('comfort.naam.dag'), 'dag')}${stuk('nacht', dg.nacht, 24, '', 'nacht')}</div>
+    <div class="dg-grepen" data-dg-grepen>${grepen}</div>`;
+}
+function dagStap() {
+  const dg = dagNu();
+  const ZIN = { voorverwarmen: t('inr.dag.voorZin', { uur: uurTekst(dg.dag) }), dag: t('inr.dag.dagZin'), nacht: t('inr.dag.nachtZin', { uur: uurTekst(dg.voorverwarmen) }) };
+  const regels = GRENZEN.map((g) => {
+    const naam = grensNaam(g);
+    const stapper = `<span class="stapper"><button type="button" data-dg="${g}:-1" aria-label="${esc(t('inr.dag.eerder', { naam }))}">−</button><b>${uurTekst(dg[g])}</b><button type="button" data-dg="${g}:1" aria-label="${esc(t('inr.dag.later', { naam }))}">+</button></span>`;
+    return `<div class="dg-grens ${g}${dagGreep === g ? ' nu' : ''}"><i aria-hidden="true"></i><div><b>${esc(naam)}</b><span>${esc(ZIN[g])}</span></div>${stapper}</div>`;
+  }).join('');
+  return {
+    waar: waarVan('dag'),
+    kop: t('inr.dag.kop'),
+    uitleg: t('inr.dag.zin'),
+    inhoud: `<div class="dg">${dagBalk()}</div><div class="dg-lijst">${regels}</div>${tip(t('inr.dag.tip'))}`,
+  };
+}
+/** Je dag bewaren: een uur verzet gaat meteen naar de dienst. */
+async function bewaarDag(dg) {
+  dagKeuze = dg;
+  if (!d.comfort?.kamers?.length) return teken();
+  const ok = await bewaarKamers(new Map(), dg);
+  if (ok) dagKeuze = null;
+}
+
+/*
+ * Hoe warm wil je het (6 november 2026, schets Wand-Inrichten-Comfort): per
+ * kamer overdag en 's nachts, elk verwarmen en koelen, en elk getal is aan te
+ * tikken. Het hele huis is de bovenste regel: wat de meeste kamers hebben.
+ * Een kamer volgt het huis zolang hij dat getal heeft; verander je het huis,
+ * dan gaan de kamers die volgen mee. Een eigen getal krijgt een stip.
+ */
+const DELEN = ['dag', 'nacht'];
+let cfKeuze = null;
+const kanSoort = (k, soort) => (soort === 'heat' ? k.kanVerwarmen : k.kanKoelen);
+/** Het doel van een kamer; null is uit, undefined kan niet. */
+const kamerDoel = (k, deel, soort) => (kanSoort(k, soort) ? (k.modi?.[deel]?.[soort] ?? null) : undefined);
+/** Het getal van het huis: wat de meeste kamers hebben die het kunnen, ook als dat uit is. */
+function huisDoel(deel, soort) {
+  const lijst = (d.comfort?.kamers ?? []).filter((k) => kanSoort(k, soort)).map((k) => kamerDoel(k, deel, soort));
+  if (!lijst.length) return undefined;
+  const tel = new Map();
+  for (const v of lijst) tel.set(v, (tel.get(v) ?? 0) + 1);
+  return [...tel.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
+const cfDoel = (id, deel, soort) => (id === 'huis' ? huisDoel(deel, soort) : kamerDoel(d.comfort.kamers.find((k) => k.id === id), deel, soort));
+const volgtHuis = (k, deel, soort) => !kanSoort(k, soort) || kamerDoel(k, deel, soort) === huisDoel(deel, soort);
+const heeftEigen = (k) => DELEN.some((deel) => ['heat', 'cool'].some((s) => !volgtHuis(k, deel, s)));
+const graden = (v) => (v == null ? t('inr.cf.uitWaarde') : `${nl(v)}°`);
+function cfNu() {
+  const kamers = d.comfort?.kamers ?? [];
+  const k = cfKeuze && kamers.some((x) => x.id === cfKeuze.kamer || cfKeuze.kamer === 'huis') && cfDoel(cfKeuze.kamer, cfKeuze.deel, cfKeuze.soort) !== undefined ? cfKeuze : null;
+  return k ?? { kamer: 'huis', deel: 'dag', soort: kamers.some((x) => x.kanVerwarmen) ? 'heat' : 'cool' };
 }
 function comfortStap() {
   if (!d.comfort?.kamers?.length) {
     return { waar: waarVan('comfort'), kop: t('inr.comfortKop'), uitleg: t('inr.comfortLater'), inhoud: '' };
   }
-  const c = comfortNu();
-  const uur = (u) => `${String(u).padStart(2, '0')}:00`;
-  const kanKoelen = d.comfort.kamers.some((k) => k.kanKoelen);
-  const eigen = eigenKamers();
+  const kamers = d.comfort.kamers;
+  const soorten = [...(kamers.some((k) => k.kanVerwarmen) ? ['heat'] : []), ...(kamers.some((k) => k.kanKoelen) ? ['cool'] : [])];
+  const sel = cfNu();
+  const dg = dagNu();
+  const deelNaam = { dag: t('inr.cf.overdag'), nacht: t('inr.cf.snachts') };
+  const wat = (deel, soort) => t(soort === 'heat' ? 'inr.cf.onder' : 'inr.cf.boven', { deel: deelNaam[deel] });
+  const tal = (id, naam, deel, soort) => {
+    const v = cfDoel(id, deel, soort);
+    if (v === undefined) return '<span class="cf-tal niet" aria-hidden="true">–</span>';
+    const k = id === 'huis' ? null : kamers.find((x) => x.id === id);
+    const gekozen = sel.kamer === id && sel.deel === deel && sel.soort === soort;
+    const volgt = k && volgtHuis(k, deel, soort);
+    return `<button type="button" class="cf-tal ${v == null ? 'uit' : soort}${volgt ? ' volgt' : ''}${gekozen ? ' gekozen' : ''}" data-cf="${esc(id)}|${deel}|${soort}" aria-pressed="${gekozen}" aria-label="${esc(t('inr.cf.tal', { kamer: naam, wat: wat(deel, soort), waarde: graden(v) }))}">${esc(graden(v))}</button>`;
+  };
+  const paren = (id, naam, klasse = '') => DELEN.map((deel) => `<div class="cf-paar${klasse}">${soorten.map((s) => tal(id, naam, deel, s)).join('')}</div>`).join('');
+  const volgers = kamers.filter((k) => !heeftEigen(k)).length;
+  const telVolgers = (n, m) => (n === m ? t('inr.cf.allen') : t('inr.cf.deel', { n, m }));
+  const kop = DELEN.map((deel) => `<button type="button" class="cf-kolkop${sel.deel === deel ? ' aan' : ''}" data-cf-deel="${deel}">${esc(t(`comfort.naam.${deel}`))}<em>${deel === 'dag' ? `${dg.dag}–${dg.nacht}` : `${dg.nacht}–${dg.voorverwarmen}`}</em><small>${soorten.map((s) => `<span class="${s}">${esc(t(s === 'heat' ? 'inr.cf.verwarmen' : 'inr.cf.koelen'))}</span>`).join('')}</small></button>`).join('');
+  const huisRij = `<div class="cf-naam huis"><b>${esc(t('inr.cf.huis'))}</b><span>${esc(telVolgers(volgers, kamers.length))}</span></div>${paren('huis', t('inr.cf.huis'), ' huis')}`;
+  const kamerRijen = kamers.map((k) => {
+    const eigen = heeftEigen(k);
+    const sub = eigen ? t('inr.cf.eigen') : k.kanVerwarmen && k.kanKoelen ? t('inr.cf.beide') : k.kanKoelen ? t('inr.cf.koelt') : t('inr.cf.verwarmt');
+    return `<div class="cf-naam${eigen ? ' eigen' : ''}"><b>${esc(k.naam)}</b><span>${esc(sub)}</span></div>${paren(k.id, k.naam)}`;
+  }).join('');
+  // Eén regel past het gekozen getal aan, met Uit en Zoals het huis.
+  const v = cfDoel(sel.kamer, sel.deel, sel.soort);
+  const k = sel.kamer === 'huis' ? null : kamers.find((x) => x.id === sel.kamer);
+  const kunnen = kamers.filter((x) => kanSoort(x, sel.soort));
+  const onder = !k
+    ? `<small>${esc(telVolgers(kunnen.filter((x) => volgtHuis(x, sel.deel, sel.soort)).length, kunnen.length))}</small>`
+    : volgtHuis(k, sel.deel, sel.soort)
+      ? `<small>${esc(t('inr.cf.volgt'))}</small>`
+      : `<button type="button" class="chip" data-cf-huis>${esc(t('inr.cf.zoalsHuis', { waarde: graden(huisDoel(sel.deel, sel.soort)) }))}</button>`;
+  const bewerk = `<div class="cf-bewerk"><div><b>${esc(k ? k.naam : t('inr.cf.huis'))}</b><span>${esc(wat(sel.deel, sel.soort))}</span></div>
+    <span class="stapper"><button type="button" data-cf-stap="-0.5" aria-label="${esc(t('comfort.lager'))}">−</button><b class="${v == null ? 'uit' : sel.soort}">${esc(graden(v))}</b><button type="button" data-cf-stap="0.5" aria-label="${esc(t('comfort.hoger'))}">+</button></span>
+    <div class="cf-keuzes">${knop('data-cf-uit', t('inr.cf.uit'), v == null)}${onder}</div></div>`;
   return {
     waar: waarVan('comfort'),
     kop: t('inr.comfortKop'),
     uitleg: t('inr.comfortZin'),
-    inhoud: `<div class="kolom">
-        <label class="schuif warm">${esc(t('inr.verwarmenOnder'))}<b>${nl(c.warm)}°</b><input type="range" min="14" max="24" step="0.5" value="${c.warm}" data-comfort="warm" aria-label="${esc(t('inr.verwarmenOnder'))}"></label>
-        ${kanKoelen ? `<label class="schuif">${esc(t('inr.koelenBoven'))}<b>${nl(c.koel)}°</b><input type="range" min="18" max="28" step="0.5" value="${c.koel}" data-comfort="koel" aria-label="${esc(t('inr.koelenBoven'))}"></label>` : ''}
-      </div>
-      <div class="rijen">
-        ${rij(t('comfort.naam.nacht'), ['koeler', 'zelfde', 'uit'].map((w) => knop(`data-nacht="${w}"`, t(`inr.nacht.${w}`), c.nacht === w)).join(''))}
-        ${rij(t('inr.deDag'), `<select class="veld" data-dagvan aria-label="${esc(t('inr.dagBegint'))}" style="width: auto">${[5, 6, 7, 8, 9].map((u) => `<option value="${u}" ${u === c.dag ? 'selected' : ''}>${esc(t('inr.van', { uur: uur(u) }))}</option>`).join('')}</select><select class="veld" data-dagtot aria-label="${esc(t('inr.nachtBegint'))}" style="width: auto">${[20, 21, 22, 23].map((u) => `<option value="${u}" ${u === c.avond ? 'selected' : ''}>${esc(t('inr.tot', { uur: uur(u) }))}</option>`).join('')}</select>`)}
-      </div>
-      ${eigen.length ? `<div class="noot">${esc(t('inr.eigenWaarde', { n: eigen.length, namen: lijstje(eigen.map((k) => k.naam)) }))}<div class="chips" style="margin-top: 8px">${knop('data-ookeigen', t('inr.ookGelijk'), ookEigen)}</div></div>` : ''}
-      <div class="rijen">${dagdelenRaster()}</div>`,
+    inhoud: `<div class="cf-tabel${soorten.length === 1 ? ' een' : ''}"><span></span>${kop}${huisRij}${kamerRijen}</div>${bewerk}<p class="cf-noot">${esc(t('inr.cf.noot'))}</p>`,
   };
 }
-/** Per kamer wat het wordt, overdag en 's nachts, en vanaf wanneer hij koelt (besluit 190, schets Wand-Inrichten-3). */
-function dagdelenRaster() {
-  const kamers = d.comfort?.kamers ?? [];
-  const koelen = kamers.some((k) => k.kanKoelen);
-  const cel = (v, klasse) => `<span class="${v == null ? '' : klasse}">${v == null ? '–' : `${nl(v)}°`}</span>`;
-  const kop = `<small></small><small>${esc(t('comfort.naam.dag'))}</small><small>${esc(t('comfort.naam.nacht'))}</small>${koelen ? `<small>${esc(t('inr.koelenVanaf'))}</small>` : ''}`;
-  const rijen = kamers.map((k) => `<b>${esc(k.naam)}</b>${cel(k.kanVerwarmen ? k.modi.dag.heat : null, 'warm')}${cel(k.kanVerwarmen ? k.modi.nacht.heat : null, 'nacht')}${koelen ? cel(k.kanKoelen ? k.modi.dag.cool : null, 'koel') : ''}`).join('');
-  return `<div class="dagdelen${koelen ? ' drie' : ''}">${kop}${rijen}</div>`;
+/** Binnen wat de apparaten van een kamer kunnen (28 oktober 2026): anders weigert de dienst het hele comfort. */
+const haalbaarIn = (k, soort, v) => {
+  const r = k.haalbaar?.[soort === 'heat' ? 'verwarmen' : 'koelen'];
+  return v == null || !r ? v : Math.min(r[1], Math.max(r[0], v));
+};
+/** Een doel voor een kamer: binnen wat hij kan, en minstens een graad tussen verwarmen en koelen. */
+function doelVoor(k, modi, deel, soort, v) {
+  if (v == null) return null;
+  let w = haalbaarIn(k, soort, v);
+  const ander = modi[deel]?.[soort === 'heat' ? 'cool' : 'heat'];
+  if (ander != null) w = soort === 'heat' ? Math.min(w, ander - 1) : Math.max(w, ander + 1);
+  return w;
+}
+/** Zet een doel: voor één kamer, of voor het huis en de kamers die het volgen. */
+async function zetCf(sel, v) {
+  const oud = huisDoel(sel.deel, sel.soort);
+  const nieuw = new Map();
+  for (const k of d.comfort.kamers) {
+    if (!kanSoort(k, sel.soort)) continue;
+    if (sel.kamer === 'huis' ? kamerDoel(k, sel.deel, sel.soort) !== oud : k.id !== sel.kamer) continue;
+    const modi = { ...k.modi, [sel.deel]: { ...k.modi[sel.deel] } };
+    modi[sel.deel][sel.soort] = doelVoor(k, modi, sel.deel, sel.soort, v);
+    nieuw.set(k.id, modi);
+  }
+  return bewaarKamers(nieuw);
+}
+/** Bewaar comfort: de kamers die veranderden, en de rest zoals ze zijn; met de dagdelen. */
+async function bewaarKamers(nieuw, dagdelen = null) {
+  const kamers = Object.fromEntries(d.comfort.kamers.map((k) => [k.id, { modi: nieuw.get(k.id) ?? k.modi, nooitWarmerC: k.nooitWarmerC, voorrang: k.voorrang, opZonC: k.opZonC }]));
+  const body = { kamers, dagdelen: { ...standaard().dagdelen, ...(d.comfort.dagdelen ?? {}), ...(dagdelen ?? {}) }, ...(d.comfort.voorrang ? { voorrang: { koelen: d.comfort.voorrang.koelen, verwarmen: d.comfort.voorrang.verwarmen } } : {}) };
+  const uit = await stuur('api/comfort', body);
+  if (uit) d.comfort = uit;
+  teken();
+  return !!uit;
 }
 
 /*
@@ -1231,11 +1359,6 @@ function afwezigStap() {
     inhoud: `<div class="rijen lijst">${rijen.join('')}</div>${tip(t('inr.afw.tip'))}`,
   };
 }
-/** Binnen wat de apparaten van een kamer kunnen (28 oktober 2026): anders weigert de dienst het hele comfort. */
-const haalbaarIn = (k, soort, v) => {
-  const r = k.haalbaar?.[soort === 'heat' ? 'verwarmen' : 'koelen'];
-  return v == null || !r ? v : Math.min(r[1], Math.max(r[0], v));
-};
 async function bewaarAfwezig() {
   const b = afwezigKeuze ?? afwezigBasis();
   const kamers = Object.fromEntries(d.comfort.kamers.map((k) => {
@@ -1249,26 +1372,6 @@ async function bewaarAfwezig() {
     afwezigKeuze = null;
   }
   teken();
-}
-async function bewaarComfort() {
-  const c = comfortNu();
-  const houd = new Set(ookEigen ? [] : eigenKamers().map((k) => k.id));
-  const kamers = Object.fromEntries(d.comfort.kamers.map((k) => {
-    if (houd.has(k.id)) return [k.id, { modi: k.modi, nooitWarmerC: k.nooitWarmerC, voorrang: k.voorrang, opZonC: k.opZonC }];
-    const heat = k.kanVerwarmen ? haalbaarIn(k, 'heat', c.warm) : null;
-    const cool = k.kanKoelen ? haalbaarIn(k, 'cool', c.koel) : null;
-    // 's Nachts koeler: zoveel als de standaard tussen dag en nacht laat (besluit 204: vier graden).
-    const minder = standaard().warm.dag - standaard().warm.nacht;
-    const nacht = c.nacht === 'uit' ? { heat: null, cool: null } : c.nacht === 'zelfde' ? { heat, cool } : { heat: heat == null ? null : haalbaarIn(k, 'heat', heat - minder), cool: cool == null ? null : haalbaarIn(k, 'cool', Math.max(cool - 2, (heat ?? 0) - 1)) };
-    return [k.id, { modi: { ...k.modi, dag: { heat, cool }, nacht }, nooitWarmerC: k.nooitWarmerC, voorrang: k.voorrang, opZonC: k.opZonC }];
-  }));
-  const body = { kamers, dagdelen: { ...(d.comfort.dagdelen ?? {}), dag: c.dag, nacht: c.avond }, ...(d.comfort.voorrang ? { voorrang: { koelen: d.comfort.voorrang.koelen, verwarmen: d.comfort.voorrang.verwarmen } } : {}) };
-  const uit = await stuur('api/comfort', body);
-  if (uit) {
-    d.comfort = uit;
-    comfortKeuze = null;
-    teken();
-  }
 }
 
 /* De panelen (besluit 158): eerst of ze er zijn, dan de kant van het dak, dan hoeveel. */
@@ -1289,8 +1392,6 @@ function antwoorden() {
     elders: { ...(x?.elders ?? {}) },
   };
 }
-/** "Weet ik niet" bij de kanten van het hoofddak: één teller, en de meting zoekt de kanten. Alleen op deze pagina. */
-let kantenWeetNiet = false;
 /** Een plaatje per plek, zoals de schets Wand-Inrichten-Daken. */
 const KORT_BEELD = {
   hoofddak: '<path d="M4 22 22 8l18 14"/><path d="M8 19v13h28V19"/><path d="M26 13l8 6" stroke-width="4" stroke="#4d7eac"/>',
@@ -1330,10 +1431,11 @@ function zonStap() {
     return `<div class="kp-plaats aan">${ICOON(p)}<b>${esc(naam)}</b>${onder}</div>`;
   };
   const hoofd = kort.aan.hoofddak > 0;
-  const kantKeuze = kantenWeetNiet ? 'weetniet' : String(Math.max(1, kort.kanten));
+  // Hoeveel kanten weet iedereen, of zoekt het even uit (6 november 2026): geen "Weet ik niet" meer.
+  const kantKeuze = String(Math.min(3, Math.max(1, kort.kanten)));
   const kanten = hoofd
-    ? `<div class="kp-kanten"><b>${esc(t('inr.dak.kantenVraag'))}</b>${[['1', '1'], ['2', '2'], ['3', t('inr.dak.drieOfMeer')], ['weetniet', t('energie.kant.weetniet')]].map(([w, x]) => knop(`data-kort-kanten="${w}"`, x, kantKeuze === w)).join('')}</div>
-      ${meerKanten && !kantenWeetNiet ? `<div class="kp-perkant">${kort.perKant.map((n, i) => `<label class="kp-kant"><span>${esc(dakvlakken.kantNaam(dk, i))}</span>${teller(`data-kort-kant="${i}"`, n, dakvlakken.kantNaam(dk, i))}</label>`).join('')}</div>` : ''}`
+    ? `<div class="kp-kanten"><b>${esc(t('inr.dak.kantenVraag'))}</b>${[['1', '1'], ['2', '2'], ['3', t('inr.dak.drieOfMeer')]].map(([w, x]) => knop(`data-kort-kanten="${w}"`, x, kantKeuze === w)).join('')}</div>
+      ${meerKanten ?`<div class="kp-perkant">${kort.perKant.map((n, i) => `<label class="kp-kant"><span>${esc(dakvlakken.kantNaam(dk, i))}</span>${teller(`data-kort-kant="${i}"`, n, dakvlakken.kantNaam(dk, i))}</label>`).join('')}</div>` : ''}`
     : '';
   return {
     waar: waarVan('zon'),
@@ -1861,6 +1963,15 @@ function klaarStap() {
  * blijft de stap staan en zegt de melding waarom.
  */
 const BEVESTIG = {
+  // Je dag en Hoe warm (6 november 2026): Volgende bewaart wat er staat, ook als je niets verzette.
+  async dag() {
+    if (!d.comfort?.kamers?.length || d.comfort.kamers.some((k) => k.uitApp)) return true;
+    return bewaarKamers(new Map(), dagNu());
+  },
+  async comfort() {
+    if (!d.comfort?.kamers?.length || d.comfort.kamers.some((k) => k.uitApp)) return true;
+    return bewaarKamers(new Map());
+  },
   async woning() {
     const next = concept();
     if (!next || d.ind?.indeling?.woning) return true;
@@ -1942,6 +2053,8 @@ function tekenWandje(el, m) {
 function tekenNu() {
   app.schaal();
   app.luchtVan(d.zon, 0);
+  // Je dag: de lucht van het uur bij de grens die je het laatst bewoog (ook in de winter de ochtend en de avond).
+  if (stapNu() === 'dag') app.lucht(dagMoment(dagUur()).tijd, 'zomer', 0.3);
   const nu = stapNu();
   $$('[data-stappen]').forEach((el) => {
     // Acht hoofdstukken (besluit 190): de naam en een streepje per stap.
@@ -1963,7 +2076,7 @@ function tekenNu() {
   $$('[data-voortgang]').forEach((el) => {
     el.innerHTML = STAPPEN.map(([id]) => `<i class="${id === nu ? 'nu' : nagelopen.has(id) ? 'al' : gedaan(id) ? 'half' : ''}"></i>`).join('');
   });
-  const v = { welkom, woning: woningStap, huis: huisStap, buiten: buitenStap, bewoners: bewonersStap, apparaten: apparatenStap, meten: metenStap, warmte: warmteStap, apparaat: kanStap, comfort: comfortStap, afwezig: afwezigStap, zon: zonStap, ligging: liggingStap, zekering: zekeringStap, vermogen: vermogenStap, opzon: opzonStap, prijzen: prijzenStap, functies: functiesStap, wand: wandStap, ha: haStap, stem: stemStap, klaar: klaarStap, account: accountStap }[nu]();
+  const v = { welkom, woning: woningStap, huis: huisStap, buiten: buitenStap, bewoners: bewonersStap, apparaten: apparatenStap, meten: metenStap, warmte: warmteStap, apparaat: kanStap, dag: dagStap, comfort: comfortStap, afwezig: afwezigStap, zon: zonStap, ligging: liggingStap, zekering: zekeringStap, vermogen: vermogenStap, opzon: opzonStap, prijzen: prijzenStap, functies: functiesStap, wand: wandStap, ha: haStap, stem: stemStap, klaar: klaarStap, account: accountStap }[nu]();
   // Onderaan overal hetzelfde (besluit 158): Terug, Later en Volgende, tenzij de stap iets anders zegt.
   const [links, rechts] = v.voet ?? [terugKnop(), volgendeKnoppen()];
   const actief = document.activeElement;
@@ -2131,7 +2244,8 @@ document.addEventListener('click', async (e) => {
       if (el.dataset.dak === 'plat') next.dak = 'geen';
       else if (d.huis?.dakEtage || boven) next.dak = d.huis?.dakEtage ?? boven.id;
     }
-    if (el.dataset.schuur) next.rond = { ...(next.rond ?? huismodel.rondNu(d.huis)), schuur: el.dataset.schuur === '1' };
+    // Het tuinhuis, het schuurtje of allebei (6 november 2026).
+    if (el.dataset.schuur) next.rond = { ...rondVanConcept(next), schuur: el.dataset.schuur === 'schuur', allebei: el.dataset.schuur === 'beide' };
     await bewaarIndeling(next);
     return;
   }
@@ -2402,15 +2516,44 @@ document.addEventListener('click', async (e) => {
     await bewaarIndeling(next, t('inr.toegevoegdBij', { naam: huismodel.bronNaam(b), kamer: k.naam }));
     return;
   }
-  if (el.dataset.nacht) {
-    comfortKeuze = { ...comfortNu(), nacht: el.dataset.nacht };
-    await bewaarComfort();
+  // Je dag (6 november 2026): een grens een uur eerder of later, of een stuk van de dag aantikken.
+  if (el.dataset.dg) {
+    const [g, stap] = el.dataset.dg.split(':');
+    const dg = dagNu();
+    dagGreep = g;
+    await bewaarDag(dagMet(dg, g, dg[g] + Number(stap)));
     return;
   }
-  if (el.hasAttribute('data-ookeigen')) {
-    ookEigen = !ookEigen;
-    if (ookEigen) await bewaarComfort();
-    else teken();
+  if (el.dataset.dgDeel) {
+    // De tekening laat dat dagdeel zien: overdag de grens van de dag, 's nachts die van de nacht.
+    dagGreep = el.dataset.dgDeel === 'dag' ? 'dag' : 'nacht';
+    teken();
+    return;
+  }
+  // Hoe warm wil je het (6 november 2026): een getal kiezen, en het aanpassen.
+  if (el.dataset.cf) {
+    const [kamer, deel, soort] = el.dataset.cf.split('|');
+    cfKeuze = { kamer, deel, soort };
+    teken();
+    return;
+  }
+  if (el.dataset.cfDeel) {
+    const sel = cfNu();
+    cfKeuze = { ...sel, deel: el.dataset.cfDeel };
+    teken();
+    return;
+  }
+  if (el.dataset.cfStap || el.hasAttribute('data-cf-uit') || el.hasAttribute('data-cf-huis')) {
+    const sel = cfNu();
+    const nu = cfDoel(sel.kamer, sel.deel, sel.soort);
+    const s = standaard();
+    const gewoon = sel.soort === 'heat' ? s.warm[sel.deel] : s.koel[sel.deel];
+    const b = d.comfort.bereik?.[sel.soort === 'heat' ? 'verwarmen' : 'koelen'] ?? { min: 5, max: 32 };
+    let v;
+    if (el.dataset.cfStap) v = Math.min(b.max, Math.max(b.min, Math.round(((nu ?? gewoon) + Number(el.dataset.cfStap)) * 2) / 2));
+    else if (el.hasAttribute('data-cf-uit')) v = nu == null ? gewoon : null;
+    else v = huisDoel(sel.deel, sel.soort);
+    await zetCf(sel, v);
     return;
   }
   if (el.dataset.kanOpen) {
@@ -2494,8 +2637,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (el.dataset.kortKanten) {
-    kantenWeetNiet = el.dataset.kortKanten === 'weetniet';
-    await bewaarKort({ kanten: kantenWeetNiet ? 1 : Number(el.dataset.kortKanten) });
+    await bewaarKort({ kanten: Number(el.dataset.kortKanten) });
     return;
   }
   if (el.dataset.contract) {
@@ -2522,14 +2664,7 @@ document.addEventListener('click', async (e) => {
     // Wat er rond het huis is (besluit 158): elk deel apart aan of uit.
     const next = concept();
     if (!next) return;
-    const rond = { ...(next.rond ?? huismodel.rondNu(d.huis)) };
-    const w = el.dataset.rond;
-    rond[w] = !rond[w];
-    if (w === 'oprit' && !rond.oprit) {
-      rond.auto = false;
-      rond.carport = false;
-    }
-    next.rond = rond;
+    next.rond = huismodel.rondWissel(rondVanConcept(next), el.dataset.rond);
     await bewaarIndeling(next);
     return;
   }
@@ -2720,17 +2855,6 @@ document.addEventListener('change', async (e) => {
     next.apparaten[key] = { ...(next.apparaten[key] ?? {}), kamer: k.id, zone: null };
     toevoegenIn = null;
     await bewaarIndeling(next);
-  } else if (el.dataset.comfort) {
-    const c = { ...comfortNu() };
-    c[el.dataset.comfort] = Number(el.value);
-    // Tussen verwarmen en koelen minstens een graad.
-    if (el.dataset.comfort === 'warm' && c.koel < c.warm + 1) c.koel = c.warm + 1;
-    if (el.dataset.comfort === 'koel' && c.warm > c.koel - 1) c.warm = c.koel - 1;
-    comfortKeuze = c;
-    await bewaarComfort();
-  } else if (el.hasAttribute('data-dagvan') || el.hasAttribute('data-dagtot')) {
-    comfortKeuze = { ...comfortNu(), [el.hasAttribute('data-dagvan') ? 'dag' : 'avond']: Number(el.value) };
-    await bewaarComfort();
   } else if (el.matches('input[data-kort-n], input[data-kort-kant]')) {
     // Een aantal getypt in de korte stap Daken; 0 of leeg haalt een plek weg.
     const v = el.value.trim();
@@ -2802,4 +2926,44 @@ document.addEventListener('click', (e) => {
   if (!a || href.startsWith('#') || /^[a-z]+:/i.test(href) || /^inrichten\.html/.test(href)) return;
   app.onthoudInrichten('app', location.hash.slice(1));
 }, true);
+/*
+ * Je dag (6 november 2026): een greep van de balk schuiven, per heel uur.
+ * Tijdens het schuiven tekent alleen de balk mee; bij loslaten bewaart hij,
+ * en tekent het huis met de lucht van dat uur.
+ */
+{
+  let greep = null;
+  document.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest?.('[data-dg-greep]');
+    if (!el || stapNu() !== 'dag') return;
+    e.preventDefault();
+    greep = { naam: el.dataset.dgGreep, dg: dagNu(), bewogen: false };
+    dagGreep = greep.naam;
+    el.setPointerCapture?.(e.pointerId);
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!greep) return;
+    const vak = document.querySelector(`${app.zicht()} [data-dg-grepen]`);
+    if (!vak) return;
+    const r = vak.getBoundingClientRect();
+    const u = Math.round(((e.clientX - r.left) / r.width) * 24);
+    const dg = dagMet(greep.dg, greep.naam, u);
+    if (dg[greep.naam] === dagNu()[greep.naam]) return;
+    greep.dg = dg;
+    greep.bewogen = true;
+    dagKeuze = dg;
+    // Alleen de balk opnieuw, zodat de greep onder de vinger blijft.
+    for (const b of document.querySelectorAll('.dg')) b.innerHTML = dagBalk();
+  });
+  const los = async () => {
+    if (!greep) return;
+    const { dg, bewogen } = greep;
+    greep = null;
+    if (bewogen) await bewaarDag(dg);
+    else teken();
+  };
+  document.addEventListener('pointerup', los);
+  document.addEventListener('pointercancel', los);
+}
+
 void laad();

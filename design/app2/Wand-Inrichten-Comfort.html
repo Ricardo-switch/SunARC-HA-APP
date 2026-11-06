@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Inrichten › Hoe warm wil je het</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Inrichten › Klimaat › Comfort, opnieuw (schets, 6 november 2026). Ricardo:
+   * "bij hoe warm wil je het kan je niet veel instellen in de losse ruimtes
+   * eronder. ook de dagdelen zijn niet compleet."
+   *
+   * Wat er nu staat: twee schuiven voor het hele huis, een keuze voor de
+   * nacht, de dag van-tot, en een tabel per kamer die je alleen kunt lezen,
+   * met overdag, 's nachts en koelen boven (alleen overdag).
+   *
+   * Wat deze schets anders doet:
+   * - De dag is één balk van 24 uur, met alle drie de grenzen: voorverwarmen,
+   *   overdag en 's nachts. Een greep schuif je per heel uur. Voorverwarmen
+   *   stond nergens.
+   * - Per dagdeel verwarmen én koelen, ook 's nachts koelen (dat ontbrak).
+   * - Elk getal is aan te tikken. Onder de tabel past één regel het gekozen
+   *   getal aan, met Uit en Zoals het huis.
+   * - Het hele huis is de bovenste regel van dezelfde tabel, geen aparte
+   *   schuiven: een kamer volgt het huis, tot je hem een eigen getal geeft.
+   *   Dan staat er een stip bij.
+   * - Het huis links kleurt mee: overdag of 's nachts, verwarmen of koelen,
+   *   met het doel per kamer en de gekozen kamer omlijnd.
+   * - Afwezig en vakantie blijven de volgende stap.
+   *
+   * Gekozen (Ricardo, 6 november 2026): de dag wordt een eigen stap vóór de
+   * temperaturen, "Je dag". Eerst je ritme, dan per dagdeel hoe warm; Klimaat
+   * heeft dan zes stappen (warmte, apparaat, meten, dag, comfort, afwezig).
+   * Schuif je een greep, dan schuift de lucht boven het huis mee: om 6:00
+   * komt de ochtend, en bij voorverwarmen gloeien de kamers die het doen.
+   *
+   * Standen: #dag (Je dag), #overdag (zonder hash), #nacht, #badkamer (een
+   * eigen getal), #koelen. Alles is ook aan te tikken.
+   */
+  .scherm { position: relative; width: 1280px; height: 800px; overflow: hidden; }
+  .boven { position: absolute; left: 28px; right: 28px; top: 20px; display: flex; align-items: center; gap: 16px; }
+  .logo { width: 34px; height: 34px; border-radius: 11px; background: url('../../frontend/kit/icoon-klein.svg') center / cover; flex: none; }
+  .pad { flex: 1; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+  .h { padding: 7px 10px 8px; border-radius: 14px; background: rgb(var(--wit) / 0.04); border: 1px solid transparent; min-width: 0; }
+  .h b { display: block; font-size: 12.5px; font-weight: 700; color: var(--gedempt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .h .streep { display: flex; gap: 3px; margin-top: 6px; }
+  .h .streep i { flex: 1; height: 3px; border-radius: 2px; background: rgb(var(--wit) / 0.12); }
+  .h.klaar b { color: var(--zacht); }
+  .h.klaar .streep i, .h .streep i.klaar { background: var(--mint); }
+  .h.nu { background: rgb(var(--wit) / 0.09); border-color: rgb(var(--wit) / 0.16); }
+  .h.nu b { color: var(--tekst); }
+  .h .streep i.nu { background: var(--tekst); }
+  .dicht { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgb(var(--wit) / 0.08); font-weight: 700; flex: none; }
+
+  .podium { position: absolute; left: 0; top: 78px; width: 790px; height: 706px; }
+  .vraag { position: absolute; right: 28px; top: 84px; bottom: 26px; width: 452px; padding: 22px 24px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .vraag .waar { font-size: 12.5px; font-weight: 700; color: var(--gedempt); }
+  .vraag h1 { margin: 0; font-family: var(--kop); font-size: 30px; font-weight: 600; line-height: 1.08; letter-spacing: -0.02em; }
+  .vraag .lead { margin: 0; font-size: 14.5px; line-height: 1.45; color: var(--zacht); }
+  .inhoud { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+  .voet { display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid rgb(var(--wit) / 0.07); }
+  .voet .terug { color: var(--zacht); font-weight: 700; font-size: 14px; }
+  .voet .later { margin-left: auto; color: var(--gedempt); font-size: 13px; font-weight: 600; }
+  .knop { height: 44px; padding: 0 20px; border-radius: 14px; display: inline-flex; align-items: center; font-weight: 700; font-size: 15px; background: rgb(var(--wit) / 0.08); }
+  .knop.licht { background: var(--ijs); color: #072033; margin-left: 8px; }
+  .bewaard { font-size: 13px; font-weight: 700; color: var(--mint); opacity: 0; transition: opacity 0.3s; }
+  .bewaard.aan { opacity: 1; }
+
+  /* ---- de dag: één balk van 24 uur ---- */
+  .dag { display: flex; flex-direction: column; gap: 7px; }
+  .dag .kopje { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 700; }
+  .dag .kopje span { font-weight: 600; color: var(--gedempt); font-size: 12.5px; }
+  .dagbalk { position: relative; height: 34px; border-radius: 11px; overflow: hidden; display: flex; cursor: pointer; user-select: none; }
+  .dagbalk .deel { position: relative; height: 100%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: rgb(255 255 255 / 0.75); white-space: nowrap; overflow: hidden; transition: filter 0.2s, opacity 0.2s; }
+  .dagbalk .deel.nacht { background: rgb(143 134 255 / 0.28); }
+  .dagbalk .deel.voor { background: linear-gradient(90deg, rgb(143 134 255 / 0.28), rgb(255 122 77 / 0.45)); color: #ffd2bf; }
+  .dagbalk .deel.dag { background: rgb(247 181 72 / 0.3); color: #ffe2b0; }
+  .dagbalk.op-dag .deel.nacht, .dagbalk.op-nacht .deel.dag { opacity: 0.45; }
+  .dagbalk.op-nacht .deel.nacht, .dagbalk.op-dag .deel.dag { box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.55); }
+  .grepen { position: relative; height: 18px; margin-top: -4px; }
+  .greep { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: ew-resize; user-select: none; }
+  .greep::before { content: ''; width: 2px; height: 8px; border-radius: 1px; background: var(--tekst); }
+  .greep b { font: 600 12.5px var(--kop); color: var(--tekst); padding: 0 4px; border-radius: 6px; }
+  .greep.sleept b { background: var(--tekst); color: #0b1424; }
+  .greep.voor b { color: #ffb090; }
+  /* Voorverwarmen en overdag liggen vaak een uur uit elkaar: hun tijden staan elk aan hun eigen kant. */
+  .greep.voor { align-items: flex-end; transform: translateX(-2px); }
+  .greep.voor b { transform: translateX(-50%); }
+  .greep.dagstart { align-items: flex-start; transform: translateX(-1px); }
+  .greep.dagstart b { transform: translateX(50%); }
+
+  /* ---- per kamer: overdag en 's nachts, elk verwarmen en koelen ---- */
+  .tabel { display: grid; grid-template-columns: minmax(0, 1fr) 132px 132px; gap: 5px 10px; align-items: center; }
+  .tabel .kolkop { text-align: center; font-size: 12.5px; font-weight: 700; color: var(--zacht); cursor: pointer; padding: 4px 0 3px; border-radius: 9px; }
+  .tabel .kolkop small { display: grid; grid-template-columns: 1fr 1fr; font-size: 10.5px; font-weight: 600; margin-top: 1px; }
+  .tabel .kolkop small span:first-child { color: #ffb090; }
+  .tabel .kolkop small span:last-child { color: var(--ijs-t); }
+  .tabel .kolkop.aan { background: rgb(var(--wit) / 0.07); color: var(--tekst); }
+  .tabel .naam { min-width: 0; }
+  .tabel .naam b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+  .tabel .naam span { display: block; font-size: 11.5px; color: var(--gedempt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tabel .naam b i { width: 7px; height: 7px; border-radius: 50%; background: var(--violet); flex: none; }
+  .tabel .huisrij { padding-bottom: 6px; border-bottom: 1px solid rgb(var(--wit) / 0.08); }
+  .paar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .tal { height: 36px; border-radius: 11px; display: grid; place-items: center; font: 600 15.5px var(--kop); cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s, background 0.15s; }
+  .tal.warm { background: rgb(255 122 77 / 0.16); color: var(--gloed-zacht); }
+  .tal.koel { background: rgb(111 211 255 / 0.14); color: var(--ijs-t); }
+  .tal.uit { background: rgb(var(--wit) / 0.04); color: var(--gedempt); font: 700 12.5px var(--tekst-font, Figtree, sans-serif); }
+  .tal.niet { background: transparent; border: 1px dashed rgb(var(--wit) / 0.12); color: var(--gedempt); cursor: default; font-size: 13px; }
+  .tal.volgt { opacity: 0.62; }
+  .tal.gekozen { border-color: var(--tekst); opacity: 1; }
+
+  /* ---- één regel past het gekozen getal aan ---- */
+  .bewerk { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; padding: 10px 12px 10px 14px; border-radius: 16px; background: rgb(var(--wit) / 0.06); border: 1px solid rgb(var(--wit) / 0.1); }
+  .bewerk .wat b { display: block; font-size: 14.5px; }
+  .bewerk .wat span { font-size: 12.5px; color: var(--zacht); }
+  .stapper { display: flex; align-items: center; gap: 6px; }
+  .stapper button { width: 38px; height: 38px; border-radius: 12px; border: 0; background: rgb(var(--wit) / 0.1); color: var(--tekst); font: 700 20px Figtree, sans-serif; cursor: pointer; }
+  .stapper b { min-width: 74px; text-align: center; font: 600 26px var(--kop); }
+  .stapper b.warm { color: var(--gloed-zacht); }
+  .stapper b.koel { color: var(--ijs-t); }
+  .stapper b.uit { font-size: 17px; color: var(--gedempt); }
+  .bewerk .keuzes { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; }
+  .chip { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 13px; border-radius: 999px; background: rgb(var(--wit) / 0.07); font-size: 13px; font-weight: 700; color: var(--zacht); cursor: pointer; border: 0; }
+  .chip.aan { background: var(--tekst); color: #0b1424; }
+  .bewerk .keuzes small { margin-left: auto; font-size: 12px; color: var(--gedempt); }
+  .noot { font-size: 12.5px; line-height: 1.4; color: var(--gedempt); }
+  .noot b { color: var(--zacht); font-weight: 700; }
+  .kolkop em { font-style: normal; font-weight: 600; color: var(--gedempt); margin-left: 4px; }
+
+  /* ---- de stap Je dag: de balk groot, en per grens een regel ---- */
+  .groot .dagbalk { height: 54px; border-radius: 14px; }
+  .groot .dagbalk .deel { font-size: 13.5px; }
+  .groot .grepen { height: 22px; }
+  .groot .greep::before { height: 10px; }
+  .groot .greep b { font-size: 14px; }
+  .grenzen { display: flex; flex-direction: column; gap: 6px; }
+  .grens { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 0 12px; align-items: center; padding: 10px 12px; border-radius: 15px; background: rgb(var(--wit) / 0.05); border: 1.5px solid transparent; }
+  .grens.nu { border-color: rgb(var(--wit) / 0.4); }
+  .grens > i { width: 12px; height: 12px; border-radius: 4px; }
+  .grens b { display: block; font-size: 15px; }
+  .grens span { display: block; font-size: 12.5px; color: var(--gedempt); line-height: 1.35; }
+  .grens .stapper b { min-width: 66px; font-size: 22px; }
+  .grens .stapper button { width: 34px; height: 34px; font-size: 18px; }
+  .tip { padding: 10px 12px; border-radius: 14px; background: rgba(111, 211, 255, 0.08); color: var(--ijs-zacht); font-size: 12.5px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="scherm lucht lucht-dag" id="scherm">
+  <div class="boven">
+    <span class="logo"></span>
+    <div class="pad" id="pad"></div>
+    <span class="dicht">×</span>
+  </div>
+  <div class="podium" id="podium"></div>
+
+  <section class="glas vraag" data-scherm="dag">
+    <span class="waar">4. Klimaat · Je dag</span>
+    <h1>Hoe ziet je dag eruit?</h1>
+    <p class="lead">Wanneer sta je op, en wanneer ga je slapen? Daarop zet het huis overdag en 's nachts.</p>
+    <div class="inhoud">
+      <div class="dag groot">
+        <div class="kopje">Je dag <span id="dagzin"></span></div>
+        <div class="dagbalk" id="balk"></div>
+        <div class="grepen" id="grepen"></div>
+      </div>
+      <div class="grenzen" id="grenzen"></div>
+      <div class="tip">Schuif een greep, of tik − en +. Hoe warm het dan wordt, kies je in de volgende stap.</div>
+    </div>
+    <div class="voet"><span class="terug">Terug</span><span class="bewaard" id="bewaard">Bewaard</span><span class="later">Later</span><span class="knop licht">Volgende</span></div>
+  </section>
+
+  <section class="glas vraag" data-scherm="comfort">
+    <span class="waar">4. Klimaat · Comfort</span>
+    <h1>Hoe warm wil je het?</h1>
+    <p class="lead">Tik een getal om het aan te passen. Een kamer volgt het huis, tot je hem een eigen getal geeft.</p>
+    <div class="inhoud">
+      <div class="tabel" id="tabel"></div>
+      <div class="bewerk" id="bewerk"></div>
+      <div class="noot">Op zon, <b>nooit warmer dan</b> en voorrang: later bij Comfort.</div>
+    </div>
+    <div class="voet"><span class="terug">Terug</span><span class="bewaard" id="bewaard">Bewaard</span><span class="later">Later</span><span class="knop licht">Volgende</span></div>
+  </section>
+</div>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/huis.js"></script>
+<script>
+  /* ---- welke stap: Je dag, of Hoe warm wil je het ---- */
+  const STAP = location.hash === '#dag' ? 'dag' : 'comfort';
+  document.querySelectorAll("[data-scherm]").forEach((el) => { if (el.dataset.scherm !== STAP) el.remove(); });
+
+  /* ---- het pad: Klimaat heeft zes stappen; Je dag is de vierde, Comfort de vijfde ---- */
+  const HS = [['Je huis', 3, 3], ['Buiten', 1, 1], ['Wie woont hier', 1, 1], ['Klimaat', 6, STAP === 'dag' ? 3 : 4], ['Energie', 6, 0], ['Gemak', 1, 0], ['Je schermen', 2, 0], ['Klaar', 3, 0]];
+  document.getElementById('pad').innerHTML = HS.map(([n, tot, al], i) => `<div class="h${al === tot ? ' klaar' : ''}${i === 3 ? ' nu' : ''}"><b>${i + 1}. ${n}</b><div class="streep">${Array.from({ length: tot }, (_, j) => `<i class="${j < al ? 'klaar' : i === 3 && j === al ? 'nu' : ''}"></i>`).join('')}</div></div>`).join('');
+
+  /* ---- wat er te regelen is: het huis, en de kamers die het kunnen ---- */
+  const S = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const IK = {
+    huis: '<path d="M3.5 10.6 12 4l8.5 6.6"/><path d="M5.5 9.1V19a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.1"/>',
+    bank: '<path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><path d="M3 11h18v6H3zM6 17v2M18 17v2"/>',
+    bad: '<path d="M4 12h16v3a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M6 12V6a2 2 0 0 1 4 0"/>',
+    was: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4"/>',
+  };
+  const huisDoel = { dag: { warm: 20, koel: 25 }, nacht: { warm: 16, koel: 24 } };
+  const KAMERS = [
+    { id: 'Woonkamer', ik: 'bank', wat: 'Nest en airco', warm: true, koel: true, nu: 19.8, eigen: {} },
+    { id: 'Badkamer', ik: 'bad', wat: 'vloer, koelt niet', warm: true, koel: false, nu: 18.5, eigen: {} },
+    { id: 'Wasruimte', ik: 'was', wat: 'airco', warm: true, koel: true, nu: 18.2, eigen: {} },
+  ];
+  const uren = { voor: 6, dag: 7, nacht: 22 };
+  let keuze = { kamer: 'Woonkamer', deel: 'dag', soort: 'warm' };
+
+  // De standen van de schets.
+  const hash = location.hash.slice(1);
+  if (hash === 'nacht') keuze = { kamer: 'huis', deel: 'nacht', soort: 'warm' };
+  if (hash === 'badkamer') {
+    KAMERS[1].eigen = { 'dag.warm': 21, 'nacht.warm': 19 };
+    keuze = { kamer: 'Badkamer', deel: 'dag', soort: 'warm' };
+  }
+  if (hash === 'koelen') {
+    KAMERS[2].eigen = { 'nacht.koel': 22 };
+    keuze = { kamer: 'Wasruimte', deel: 'nacht', soort: 'koel' };
+  }
+  addEventListener('hashchange', () => location.reload());
+
+  const nl = (v) => String(v).replace('.', ',');
+  const kamerVan = (id) => KAMERS.find((k) => k.id === id);
+  /** Het doel: een eigen getal, of dat van het huis; null is uit, undefined kan niet. */
+  function doel(id, deel, soort) {
+    if (id === 'huis') return huisDoel[deel][soort];
+    const k = kamerVan(id);
+    if (!k[soort]) return undefined;
+    const sleutel = `${deel}.${soort}`;
+    return sleutel in k.eigen ? k.eigen[sleutel] : huisDoel[deel][soort];
+  }
+  const eigen = (id, deel, soort) => id !== 'huis' && `${deel}.${soort}` in kamerVan(id).eigen;
+  const heeftEigen = (k) => Object.keys(k.eigen).length > 0;
+  const volgers = (deel, soort) => KAMERS.filter((k) => k[soort] && !(`${deel}.${soort}` in k.eigen));
+  const DEEL = { dag: 'overdag', nacht: "'s nachts" };
+  const uur = (u) => `${u}:00`;
+
+  /* ---- de balk van de dag (alleen in de stap Je dag) ---- */
+  // Welk uur de tekening laat zien: van de greep die je het laatst bewoog.
+  let toonUur = 12;
+  let laatsteGreep = null;
+  function balk() {
+    const el = document.getElementById('balk');
+    if (!el) return;
+    const stukken = [['nacht', 0, uren.voor, "'s Nachts"], ['voor', uren.voor, uren.dag, ''], ['dag', uren.dag, uren.nacht, 'Overdag'], ['nacht', uren.nacht, 24, '']];
+    el.className = `dagbalk op-${STAP === 'dag' ? opUur(toonUur).deel : keuze.deel}`;
+    el.innerHTML = stukken.map(([s, a, b, naam]) => `<div class="deel ${s}" data-deel="${s === 'voor' ? 'dag' : s}" style="width: ${((b - a) / 24) * 100}%">${naam}</div>`).join('');
+    document.getElementById('grepen').innerHTML = [['voor', uren.voor], ['dag', uren.dag], ['nacht', uren.nacht]]
+      .map(([g, u]) => `<span class="greep${g === 'voor' ? ' voor' : g === 'dag' ? ' dagstart' : ''}" data-greep="${g}" style="left: ${(u / 24) * 100}%"><b>${uur(u)}</b></span>`).join('');
+    document.getElementById('dagzin').textContent = `${uren.nacht - uren.dag} uur overdag, ${24 - uren.nacht + uren.voor} uur 's nachts`;
+    // Per grens een regel, met − en +.
+    const GRENZEN = [
+      ['voor', 'Voorverwarmen', `het huis begint eerder, zodat het om ${uur(uren.dag)} op temperatuur is`, 'linear-gradient(135deg, #8f86ff, #ff7a4d)'],
+      ['dag', 'Overdag', 'vanaf nu geldt de temperatuur van overdag', '#f7b548'],
+      ['nacht', "'s Nachts", `tot ${uur(uren.voor)}; het huis zakt naar de nacht`, '#8f86ff'],
+    ];
+    document.getElementById('grenzen').innerHTML = GRENZEN.map(([g, naam, zin, kleur]) => `<div class="grens${laatsteGreep === g ? ' nu' : ''}"><i style="background: ${kleur}"></i><div><b>${naam}</b><span>${zin}</span></div>
+      <div class="stapper"><button data-uur="${g}:-1" aria-label="eerder">−</button><b>${uur(uren[g])}</b><button data-uur="${g}:1" aria-label="later">+</button></div></div>`).join('');
+  }
+  /** Binnen wat kan: voorverwarmen vóór de dag, de dag vóór de nacht. */
+  function zetUur(g, u) {
+    if (g === 'voor') u = Math.min(Math.max(u, 3), uren.dag - 1);
+    if (g === 'dag') u = Math.min(Math.max(u, uren.voor + 1, 5), 10);
+    if (g === 'nacht') u = Math.min(Math.max(u, 19), 23);
+    uren[g] = u;
+    laatsteGreep = g;
+    // De tekening laat het uur net na de grens zien: de ochtend, de dag of de nacht.
+    toonUur = g === 'voor' ? u + 0.5 : u + 0.5;
+  }
+
+  /* ---- de tabel ---- */
+  function tal(id, deel, soort) {
+    const v = doel(id, deel, soort);
+    const gekozen = keuze.kamer === id && keuze.deel === deel && keuze.soort === soort;
+    if (v === undefined) return '<span class="tal niet">–</span>';
+    const volgt = id !== 'huis' && !eigen(id, deel, soort);
+    return `<span class="tal ${v == null ? 'uit' : soort}${volgt ? ' volgt' : ''}${gekozen ? ' gekozen' : ''}" data-tal="${id}|${deel}|${soort}">${v == null ? 'uit' : `${nl(v)}°`}</span>`;
+  }
+  function tabel() {
+    if (!document.getElementById('tabel')) return;
+    // De tijden uit Je dag staan in de kop, kort.
+    const van = { dag: `${uren.dag}–${uren.nacht}`, nacht: `${uren.nacht}–${uren.voor}` };
+    const kop = (deel, naam) => `<div class="kolkop${keuze.deel === deel ? ' aan' : ''}" data-deel="${deel}">${naam}<em>${van[deel]}</em><small><span>verwarmen</span><span>koelen</span></small></div>`;
+    const rij = (id, naam, ik, wat, stip) => `<div class="naam${id === 'huis' ? ' huisrij' : ''}"><b>${naam}${stip ? '<i title="eigen getal"></i>' : ''}</b><span>${wat}</span></div>
+      <div class="paar${id === 'huis' ? ' huisrij' : ''}">${tal(id, 'dag', 'warm')}${tal(id, 'dag', 'koel')}</div>
+      <div class="paar${id === 'huis' ? ' huisrij' : ''}">${tal(id, 'nacht', 'warm')}${tal(id, 'nacht', 'koel')}</div>`;
+    document.getElementById('tabel').innerHTML = `<div></div>${kop('dag', 'Overdag')}${kop('nacht', "'s Nachts")}
+      ${rij('huis', 'Het hele huis', 'huis', `${KAMERS.every((k) => !heeftEigen(k)) ? 'alle kamers volgen dit' : `${KAMERS.filter((k) => !heeftEigen(k)).length} van ${KAMERS.length} volgen dit`}`, false)}
+      ${KAMERS.map((k) => rij(k.id, k.id, k.ik, heeftEigen(k) ? 'eigen getal' : k.wat, heeftEigen(k))).join('')}`;
+  }
+
+  /* ---- de regel die het gekozen getal aanpast ---- */
+  function bewerk() {
+    if (!document.getElementById('bewerk')) return;
+    const { kamer, deel, soort } = keuze;
+    const v = doel(kamer, deel, soort);
+    const naam = kamer === 'huis' ? 'Het hele huis' : kamer;
+    const wat = `${DEEL[deel]} · ${soort === 'warm' ? 'verwarmen onder' : 'koelen boven'}`;
+    const n = volgers(deel, soort).length;
+    const onder = kamer === 'huis'
+      ? `<small>${n === KAMERS.length ? 'alle kamers volgen dit' : `${n} van ${KAMERS.length} kamers volgen dit`}</small>`
+      : eigen(kamer, deel, soort)
+        ? `<button class="chip" data-zoalshuis>Zoals het huis, ${huisDoel[deel][soort] == null ? 'uit' : `${nl(huisDoel[deel][soort])}°`}</button>`
+        : `<small>volgt het huis</small>`;
+    document.getElementById('bewerk').innerHTML = `<div class="wat"><b>${naam}</b><span>${wat}</span></div>
+      <div class="stapper"><button data-stap="-0.5" aria-label="lager">−</button><b class="${v == null ? 'uit' : soort}">${v == null ? 'uit' : `${nl(v)}°`}</b><button data-stap="0.5" aria-label="hoger">+</button></div>
+      <div class="keuzes"><button class="chip${v == null ? ' aan' : ''}" data-uit>Uit</button>${onder}</div>`;
+  }
+
+  /* ---- het huis links: overdag of 's nachts, verwarmen of koelen ---- */
+  const podium = document.getElementById('podium');
+  /** In Je dag: welk dagdeel en welke lucht bij het uur van de tekening. */
+  function opUur(u) {
+    const deel = u >= uren.voor && u < uren.nacht ? 'dag' : 'nacht';
+    const tijd = u < uren.voor || u >= uren.nacht ? 'nacht' : u < uren.dag + 1.5 ? 'ochtend' : u >= uren.nacht - 2.5 ? 'avond' : 'dag';
+    return { deel, tijd, voor: u >= uren.voor && u < uren.dag };
+  }
+  function huisje() {
+    const inDag = STAP === 'dag' ? opUur(toonUur) : null;
+    const deel = inDag ? inDag.deel : keuze.deel;
+    const soort = inDag ? 'warm' : keuze.soort;
+    const doelTekst = (id) => {
+      const v = doel(id, deel, soort);
+      return v === undefined ? '' : v == null ? 'uit' : `${nl(v)}°`;
+    };
+    // In Je dag gloeien de kamers alleen bij voorverwarmen; in Comfort kleurt het gekozen doel.
+    const standVan = (naam) => (doel(naam, deel, soort) == null || doel(naam, deel, soort) === undefined ? undefined : inDag ? (inDag.voor ? 'verwarmt' : undefined) : soort === 'warm' ? 'verwarmt' : 'koelt');
+    const kamer = (naam, gewicht, apparaten = [], regel = false) => ({
+      naam, gewicht, stil: false, apparaten,
+      ...(regel ? { temp: doelTekst(naam), stand: standVan(naam), gekozen: !inDag && (keuze.kamer === naam || keuze.kamer === 'huis') } : {}),
+    });
+    const tijd = inDag ? inDag.tijd : deel === 'nacht' ? 'nacht' : 'dag';
+    const model = {
+      tijd,
+      etages: [
+        { naam: 'Begane grond', kamers: [kamer('Hal', 0.55), kamer('Woonkamer', 2.2, [{ soort: 'airco', aan: soort === 'koel' }, { soort: 'radiator', aan: soort === 'warm' }, { soort: 'bank' }], true)] },
+        { naam: 'Eerste', kamers: [kamer('Badkamer', 0.9, [{ soort: 'vloer', aan: soort === 'warm' }], true), kamer('Hobbykamer', 0.9), kamer('Slaapkamer Matts', 0.9), kamer('Slaapkamer Mylan', 0.9)] },
+        { dak: true, kamers: [kamer('Slaapkamer', 1), kamer('Wasruimte', 1, [{ soort: 'airco', aan: false }, { soort: 'droger' }], true)] },
+      ],
+      voordeur: {}, buitenunit: { aan: false, aantal: 2 }, oprit: {}, auto: { kleur: '#7f97b0', procent: 60, stand: 'rust' }, garage: {},
+      tuin: { tuinhuis: true, tuinhuisSoort: 'tuinhuis', lampen: [{ aan: deel === 'nacht' }] },
+    };
+    document.getElementById('scherm').className = `scherm lucht lucht-${tijd}`;
+    podium.innerHTML = '';
+    const r = podium.getBoundingClientRect();
+    huis.teken(podium, model, { breedte: r.width, hoogte: r.height, wereld: true, eigenLucht: false, marge: 0.05, schuifY: 20, meubels: true });
+  }
+
+  function alles() {
+    balk();
+    tabel();
+    bewerk();
+    huisje();
+  }
+  let bewaardTijd;
+  function bewaard() {
+    const el = document.getElementById('bewaard');
+    el.classList.add('aan');
+    clearTimeout(bewaardTijd);
+    bewaardTijd = setTimeout(() => el.classList.remove('aan'), 1400);
+  }
+
+  /* ---- tikken ---- */
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-tal], [data-deel], [data-stap], [data-uit], [data-zoalshuis], [data-uur]');
+    if (!t) return;
+    const { kamer, deel, soort } = keuze;
+    if (t.dataset.uur) {
+      // Je dag: een grens een uur eerder of later.
+      const [g, stap] = t.dataset.uur.split(':');
+      zetUur(g, uren[g] + Number(stap));
+      bewaard();
+    } else if (STAP === 'dag' && t.dataset.deel) {
+      // Een stuk van de balk aantikken: de tekening laat dat dagdeel zien.
+      toonUur = t.dataset.deel === 'dag' ? 13 : (uren.nacht + 2) % 24;
+      laatsteGreep = null;
+    } else if (t.dataset.tal) {
+      const [k, d, s] = t.dataset.tal.split('|');
+      keuze = { kamer: k, deel: d, soort: s };
+    } else if (t.dataset.deel) {
+      keuze = { ...keuze, deel: t.dataset.deel };
+      if (doel(keuze.kamer, keuze.deel, keuze.soort) === undefined) keuze.soort = 'warm';
+    } else {
+      const zet = (v) => {
+        if (kamer === 'huis') huisDoel[deel][soort] = v;
+        else kamerVan(kamer).eigen[`${deel}.${soort}`] = v;
+      };
+      const nu = doel(kamer, deel, soort);
+      if (t.dataset.stap) {
+        const basis = nu ?? (soort === 'warm' ? 16 : 25);
+        // Tussen verwarmen en koelen blijft minstens een graad.
+        const ander = doel(kamer, deel, soort === 'warm' ? 'koel' : 'warm');
+        let v = Math.round((basis + Number(t.dataset.stap)) * 2) / 2;
+        v = soort === 'warm' ? Math.min(Math.max(v, 5), 28, ander == null ? 99 : ander - 1) : Math.max(Math.min(v, 32), 16, ander == null ? 0 : ander + 1);
+        zet(v);
+      } else if (t.hasAttribute('data-uit')) zet(nu == null ? (soort === 'warm' ? 16 : 25) : null);
+      else if (t.hasAttribute('data-zoalshuis')) delete kamerVan(kamer).eigen[`${deel}.${soort}`];
+      bewaard();
+    }
+    alles();
+  });
+
+  /* ---- een greep van de dag schuiven, per heel uur ---- */
+  let sleep = null;
+  document.addEventListener('pointerdown', (e) => {
+    const g = e.target.closest('[data-greep]');
+    if (!g) return;
+    sleep = g.dataset.greep;
+    g.classList.add('sleept');
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!sleep) return;
+    const r = document.getElementById('grepen').getBoundingClientRect();
+    const u = Math.round(((e.clientX - r.left) / r.width) * 24);
+    const was = uren[sleep];
+    zetUur(sleep, u);
+    if (uren[sleep] !== was) {
+      balk();
+      tabel();
+      const g = document.querySelector(`[data-greep="${sleep}"]`);
+      if (g) g.classList.add('sleept');
+    }
+  });
+  document.addEventListener('pointerup', () => {
+    if (!sleep) return;
+    sleep = null;
+    bewaard();
+    balk();
+    huisje();
+  });
+
+  // Je dag opent bij voorverwarmen: de ochtend, en de kamers die er al mee bezig zijn.
+  if (STAP === 'dag') zetUur('voor', uren.voor);
+  alles();
+</script>
+</body>
+</html>

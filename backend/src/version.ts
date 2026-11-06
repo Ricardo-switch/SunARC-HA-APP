@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.129.3';
+export const VERSIE = '0.130.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -74,12 +74,60 @@ export const TERUGKIJKEN = 10;
  * main komt de bovenste versie erbij. Oudere versies staan elk apart.
  */
 export const OP_MAIN: readonly string[] = [
-  '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
+  '0.130.0', '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
   '0.117.1', '0.117.0', '0.116.0', '0.115.2', '0.115.1', '0.115.0',
 ];
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.130.0',
+    datum: '2026-11-06',
+    nieuw: [
+      "Inrichten heeft een stap Je dag: schuif wanneer het huis voorverwarmt, overdag begint en 's nachts, en de lucht boven het huis schuift mee",
+      "Bij Hoe warm wil je het zet je per kamer overdag en 's nachts, verwarmen en koelen; een kamer volgt het hele huis tot je hem een eigen getal geeft",
+    ],
+    en: {
+      nieuw: [
+        'Set up has a Your day step: drag when the house preheats, when day starts and when night starts, and the sky above the house moves along',
+        'Under How warm do you want it you set each room by day and at night, heating and cooling; a room follows the whole house until you give it its own number',
+      ],
+    },
+  },
+  {
+    versie: '0.129.5',
+    datum: '2026-11-06',
+    nieuw: [
+      'Buiten bij Inrichten kent de border, en in de tuin kan een tuinhuis, een schuurtje of allebei',
+    ],
+    opgelost: [
+      'Zet je bij Buiten het terras of de border uit, dan staan ze ook niet meer in de tekening',
+      'Bij de panelen kies je hoeveel kanten van het dak er panelen hebben, zonder Weet ik niet',
+    ],
+    en: {
+      nieuw: [
+        'Outside in Set up knows the flower border, and the garden can have a summer house, a shed or both',
+      ],
+      opgelost: [
+        'Turn off the terrace or the border under Outside, and they no longer show in the drawing',
+        'For the panels you pick how many sides of the roof have panels, without Not sure',
+      ],
+    },
+  },
+  {
+    versie: '0.129.4',
+    datum: '2026-11-06',
+    opgelost: [
+      'Wat je huis kan en Hoe ver je huis is staan meteen op het scherm, ook als een onderdeel nog laadt',
+      'Hoe je huis warmte vasthoudt wordt elke nacht uitgerekend, met veel minder geheugen, en loopt niet meer vast',
+    ],
+    en: {
+      opgelost: [
+        'What your house can do and How far your house is show up right away, even while one part is still loading',
+        'How your home holds heat is worked out every night, with far less memory, and no longer gets stuck',
+      ],
+    },
+  },
   {
     versie: '0.129.3',
     datum: '2026-11-06',
