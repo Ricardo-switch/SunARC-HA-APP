@@ -1,11 +1,13 @@
 # Wat is er nieuw · What is new
 
-## 0.129.5
+## 0.130.0
 
-*6 november 2026 · 0.129.4 – 0.129.5*
+*6 november 2026 · 0.129.4 – 0.130.0*
 
 **Nieuw**
 
+- Inrichten heeft een stap Je dag: schuif wanneer het huis voorverwarmt, overdag begint en 's nachts, en de lucht boven het huis schuift mee
+- Bij Hoe warm wil je het zet je per kamer overdag en 's nachts, verwarmen en koelen; een kamer volgt het hele huis tot je hem een eigen getal geeft
 - Buiten bij Inrichten kent de border, en in de tuin kan een tuinhuis, een schuurtje of allebei
 
 **Opgelost**
@@ -19,6 +21,8 @@
 
 **New**
 
+- Set up has a Your day step: drag when the house preheats, when day starts and when night starts, and the sky above the house moves along
+- Under How warm do you want it you set each room by day and at night, heating and cooling; a room follows the whole house until you give it its own number
 - Outside in Set up knows the flower border, and the garden can have a summer house, a shed or both
 
 **Fixed**

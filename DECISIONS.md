@@ -253,6 +253,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer](#255-opbrengst-het-stroombeeld-vertelt-meer-opgewekt-uit-de-omvormer)
 - [257. Drie fouten van testers: het gevoel, Meten met, en een plat dak](#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak)
 - [259. Auto en laadpaal: een eigen pagina, en met de hand laden (ontwerp)](#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp)
+- [260. Je dag als eigen stap, en hoe warm per kamer](#260-je-dag-als-eigen-stap-en-hoe-warm-per-kamer)
 
 **Veiligheid**
 
@@ -12153,6 +12154,45 @@ die we willen, de rekenregels en de stappen, staat in
 
 *Wat afviel:* een eigen tab in het menu, en een overzicht van thuis geladen
 kWh voor de werkgever.
+
+## 260. Je dag als eigen stap, en hoe warm per kamer
+
+*Onderwerp: weergave · Status: geldig*
+
+6 november 2026, op verzoek van de bewoner: "bij hoe warm wil je het kan je
+niet veel instellen in de losse ruimtes eronder. ook de dagdelen zijn niet
+compleet." Inrichten › Comfort had twee schuiven voor het hele huis, een
+keuze voor de nacht (koeler, hetzelfde of uit), de dag van-tot, en een tabel
+per kamer die je alleen kon lezen. Voorverwarmen stond er niet, en koelen
+alleen overdag. Na de schets `Wand-Inrichten-Comfort` koos de bewoner de dag
+als eigen stap vóór de temperaturen.
+
+*Besluit (versie 0.130.0):*
+
+- **Je dag** is een eigen stap bij Klimaat, tussen Meten met en Comfort;
+  Klimaat heeft nu zes stappen. Een balk van 24 uur met een greep voor
+  voorverwarmen, overdag en 's nachts, per heel uur te schuiven, en per grens
+  een regel met − en +. Elke verandering gaat meteen naar de dienst. De lucht
+  boven het huis volgt de grens die je het laatst bewoog, ook in de winter;
+  bij voorverwarmen gloeien de kamers die meedoen.
+- **Hoe warm wil je het** is één tabel: per kamer overdag en 's nachts, elk
+  verwarmen en koelen, met de tijden uit Je dag in de kop. Elk getal is aan
+  te tikken; één regel eronder past het gekozen getal aan, met Uit en Zoals
+  het huis. Een kamer die iets niet kan, heeft daar een streepje.
+- **Het hele huis** is de bovenste regel: per dagdeel en soort wat de meeste
+  kamers hebben, ook als dat uit is. Een kamer volgt het huis zolang hij dat
+  getal heeft; verander je het huis, dan gaan de kamers die volgen mee, elk
+  binnen wat zijn apparaten kunnen en met een graad tussen verwarmen en
+  koelen. Een kamer met een eigen getal krijgt een stip. Dit vervangt het
+  eerdere "de kamers die de bewoner zelf anders zette, blijven zo" (158).
+- **Volgende** bewaart wat er staat bij Je dag en Comfort, ook als je niets
+  verzette, zodat de stap daarna als nagelopen telt.
+- De dienst verandert niet: het blijven de doelen per kamer en de dagdelen
+  van `api/comfort` (130). Op zon, nooit warmer dan en voorrang blijven bij
+  Instellingen › Comfort.
+
+*Wat afviel:* de dag bovenaan dezelfde stap (de eerste schets), en de
+schuiven voor het hele huis.
 
 ---
 

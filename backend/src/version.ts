@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.129.5';
+export const VERSIE = '0.130.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,20 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.130.0',
+    datum: '2026-11-06',
+    nieuw: [
+      "Inrichten heeft een stap Je dag: schuif wanneer het huis voorverwarmt, overdag begint en 's nachts, en de lucht boven het huis schuift mee",
+      "Bij Hoe warm wil je het zet je per kamer overdag en 's nachts, verwarmen en koelen; een kamer volgt het hele huis tot je hem een eigen getal geeft",
+    ],
+    en: {
+      nieuw: [
+        'Set up has a Your day step: drag when the house preheats, when day starts and when night starts, and the sky above the house moves along',
+        'Under How warm do you want it you set each room by day and at night, heating and cooling; a room follows the whole house until you give it its own number',
+      ],
+    },
+  },
   {
     versie: '0.129.5',
     datum: '2026-11-06',

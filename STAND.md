@@ -255,6 +255,7 @@ verwijzing bestaat.
 - **Daken en panelen, elk vlak apart**: van boven met de omtrek uit de kaart, dakvorm per gebouw, de meting per vlak, een grens per omvormer, per vlak op Thuis en in Opbrengst, een vlak dat achterblijft, een korte stap in Inrichten en een eigen rondleiding ([254]); de kaart is experimenteel, met 3D BAG naast OpenStreetMap ([256]).
 - **Opbrengst in drie kolommen**, met een stroombeeld dat de zon per dakvlak, de kosten, terug, Altijd aan en gas apart laat zien; opgewekt komt uit de omvormer ([255]).
 - **Drie fouten van testers opgelost**: het gevoel kent de zones van nu, Meten met kan echt uit (en kiest geen watertemperatuur), en een plat dak op Thuis ([257]).
+- **Je dag en hoe warm** in Inrichten: eerst een eigen stap met de dag als balk (voorverwarmen, overdag en 's nachts, te schuiven), dan per kamer overdag en 's nachts, verwarmen en koelen, elk getal aan te tikken; het hele huis is wat de meeste kamers hebben, en een kamer volgt het tot hij een eigen getal krijgt ([260]).
 - **De hoofdzekering** stel je in de app in, en die gaat voor de configuratie
   ([117]). Sinds [248] ook de netmeter (één sensor, of afname en teruglevering
   apart zoals DSMR) en de omvormers, die opgeteld worden; kW telt als W.
@@ -839,4 +840,5 @@ verwijzing bestaat.
 [257]: DECISIONS.md#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak
 [258]: DECISIONS.md#258-wat-er-nieuw-is-één-overzicht-per-uitgave-op-main
 [259]: DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp
+[260]: DECISIONS.md#260-je-dag-als-eigen-stap-en-hoe-warm-per-kamer
 <!-- links:einde -->
