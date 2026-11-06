@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telefoon · De auto en de laadpaal (schets)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * De pagina Auto op de telefoon (schets bij Wand-Auto, 6 november 2026).
+   * Dezelfde auto als meter, daaronder het advies, Laden als één regel die
+   * het blad van onderen opent, en de laadbeurten van deze week.
+   * Standen: (zonder) de pagina; #laden het blad Laden open.
+   */
+  .tel { position: relative; overflow: hidden; }
+  .inhoud { padding: 16px 16px 110px; display: flex; flex-direction: column; gap: 12px; }
+  .kop { display: flex; align-items: center; justify-content: space-between; }
+  .kop h1 { font-size: 34px; margin: 0; }
+  .autos { display: flex; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
+  .autos span { height: 34px; padding: 0 12px; display: flex; align-items: center; gap: 7px; border-radius: 9px; font-size: 13.5px; font-weight: 600; color: var(--zacht); }
+  .autos span.aan { background: rgba(255, 255, 255, 0.14); color: var(--tekst); }
+  .autos span i { width: 6px; height: 6px; border-radius: 50%; }
+  .held { padding: 16px 16px 14px; border-radius: 24px; overflow: hidden; position: relative; }
+  .held .boven { display: flex; justify-content: space-between; align-items: start; }
+  .held .stand { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; color: var(--zon); }
+  .held .stand i { width: 8px; height: 8px; border-radius: 50%; background: var(--zon); box-shadow: 0 0 10px var(--zon); }
+  .held .vermogen { margin-top: 4px; font-family: var(--kop); font-size: 28px; font-weight: 600; line-height: 1; }
+  .held .vermogen small { font-family: var(--romp); font-size: 13px; color: var(--zacht); margin-left: 4px; }
+  .held .pct { text-align: right; }
+  .held .pct b { display: block; font-family: var(--kop); font-size: 56px; font-weight: 600; line-height: 0.9; letter-spacing: -0.04em; }
+  .held .pct b sup { font-size: 22px; vertical-align: top; }
+  .held .pct span { font-size: 12.5px; color: var(--zacht); font-weight: 600; }
+  .held svg { display: block; width: calc(100% + 32px); margin: 4px -16px 0; }
+  .feiten { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+  .feiten small { display: block; font-size: 11px; font-weight: 700; color: var(--gedempt); letter-spacing: 0.02em; }
+  .feiten b { display: block; margin-top: 2px; font-size: 15px; font-weight: 600; }
+  .feiten span { font-size: 12.5px; color: var(--zacht); }
+  .zonbalk { display: flex; height: 5px; margin-top: 6px; border-radius: 3px; overflow: hidden; background: rgba(154, 170, 187, 0.35); }
+  .zonbalk i { background: var(--zon); }
+  .advies { padding: 13px 14px; border-radius: 18px; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .advies .ik { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; }
+  .advies .ik svg { width: 18px; height: 18px; }
+  .advies b { display: block; font-size: 14px; font-weight: 600; }
+  .advies span { font-size: 12.5px; color: var(--zacht); line-height: 1.4; }
+  .regel { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 14px 16px; border-radius: 18px; }
+  .regel b { font-size: 16px; font-weight: 600; }
+  .regel small { grid-column: 1; font-size: 13px; color: var(--zacht); }
+  .regel .pijl { grid-row: 1 / 3; grid-column: 2; color: var(--gedempt); font-size: 22px; }
+  h3 { margin: 6px 2px 0; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gedempt); }
+  .beurten { padding: 4px 16px; border-radius: 18px; }
+  .beurt { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 2px 12px; align-items: center; padding: 11px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+  .beurt:first-child { border-top: 0; }
+  .beurt b { display: block; font-size: 14.5px; font-weight: 600; }
+  .beurt span { font-size: 12px; color: var(--gedempt); }
+  .beurt .kwh, .beurt .eur { text-align: right; font-weight: 600; font-size: 14px; }
+  .beurt .zonbalk { grid-column: 1 / -1; height: 4px; }
+  .tabs { position: fixed; left: 12px; right: 12px; bottom: 14px; }
+
+  .achter { position: fixed; inset: 0; background: rgba(4, 8, 16, 0.6); z-index: 60; }
+  .blad { position: fixed; left: 0; right: 0; bottom: 0; padding: 18px 18px 22px; border-radius: 26px 26px 0 0; display: flex; flex-direction: column; gap: 13px; background: #0e1726; border-top: 1px solid rgba(255, 255, 255, 0.08); z-index: 61; }
+  .blad .greep { width: 40px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.2); align-self: center; margin-top: -6px; }
+  .blad h2 { margin: 0; font-family: var(--kop); font-size: 23px; font-weight: 600; }
+  .blad .nu { margin: 2px 0 0; font-size: 13.5px; color: var(--zacht); }
+  .vraag > span { display: block; font-size: 11.5px; font-weight: 700; color: var(--gedempt); margin-bottom: 6px; letter-spacing: 0.02em; }
+  .stroom { display: flex; align-items: center; justify-content: space-between; }
+  .stroom button { width: 50px; height: 50px; border-radius: 15px; border: 0; background: rgba(255, 255, 255, 0.08); color: var(--tekst); font-size: 22px; }
+  .stroom .getal { text-align: center; }
+  .stroom .getal b { display: block; font-family: var(--kop); font-size: 52px; font-weight: 600; line-height: 1; }
+  .stroom .getal b small { font-size: 22px; margin-left: 3px; }
+  .stroom .getal span { font-size: 12.5px; color: var(--gedempt); }
+  .schaal { position: relative; height: 10px; border-radius: 5px; background: rgba(154, 170, 187, 0.22); margin-top: 10px; }
+  .schaal i { position: absolute; top: 0; bottom: 0; left: 0; width: 30%; border-radius: 5px; background: linear-gradient(90deg, rgba(247, 181, 72, 0.25), rgba(247, 181, 72, 0.7)); }
+  .schaal b { position: absolute; top: -5px; left: 20%; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 3px rgba(14, 23, 38, 0.9); }
+  .schaal-as { display: flex; justify-content: space-between; margin-top: 5px; font-size: 11px; color: var(--gedempt); }
+  .seg { display: flex; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
+  .seg button { flex: 1; height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--zacht); font: inherit; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .seg button[aria-pressed='true'] { background: rgba(255, 255, 255, 0.14); color: var(--tekst); }
+  .hoe { padding: 11px 13px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); font-size: 13px; line-height: 1.5; color: var(--zacht); }
+  .hoe b { color: var(--tekst); font-weight: 600; }
+  .onder { display: flex; align-items: center; gap: 14px; }
+  .onder .terug { border: 0; background: none; color: var(--zacht); font: inherit; font-weight: 600; font-size: 14.5px; padding: 0; }
+  .onder .zet { margin-left: auto; height: 48px; padding: 0 22px; border-radius: 15px; border: 0; background: var(--tekst); color: var(--inkt); font: inherit; font-weight: 700; font-size: 15px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="tel lucht lucht-dag">
+  <div class="inhoud">
+    <div class="kop"><h1 class="kop-1">Auto</h1><div class="autos"><span class="aan"><i style="background: var(--zon)"></i>Model 3</span><span><i style="background: var(--gedempt)"></i>EV6</span></div></div>
+    <section class="glas held">
+      <div class="boven">
+        <div><div class="stand"><i></i>Laadt op zon</div><div class="vermogen">4,1 kW<small>3 × 6 A</small></div></div>
+        <div class="pct"><b>64<sup>%</sup></b><span>312 km</span></div>
+      </div>
+      <svg viewBox="20 52 720 228" data-scene></svg>
+      <div class="feiten">
+        <div><small>LAADGRENS</small><b>80%</b><span>vol om ± 17:05</span></div>
+        <div><small>DEZE LAADBEURT</small><b>8,4 kWh · € 0,66</b><div class="zonbalk"><i style="width: 71%"></i></div><span>71% eigen zon</span></div>
+      </div>
+    </section>
+    <section class="glas advies"><span class="ik" style="background: rgba(247, 181, 72, 0.14); color: var(--zon)" data-icoon="zon"></span><div><b>Er kan meer op zon</b><span>Met 8 A in plaats van 6 A laadt de auto sneller, nog steeds op eigen zon.</span></div></section>
+    <section class="glas regel"><b>Laden</b><small>De laadpaal kiest zelf · 6 A · kabel erin sinds 11:20</small><span class="pijl">›</span></section>
+    <h3>Laadbeurten deze week</h3>
+    <section class="glas beurten" data-lijst></section>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Hoofdmenu"></nav>
+
+  <div class="achter" data-blad hidden></div>
+  <aside class="blad" data-blad hidden>
+    <span class="greep"></span>
+    <div><h2>Laden</h2><p class="nu">Nu kiest de laadpaal zelf · 6 A</p></div>
+    <div class="vraag"><span>HOOGSTE STROOM PER FASE</span>
+      <div class="stroom"><button type="button" aria-label="Minder">−</button><div class="getal"><b>8<small>A</small></b><span>5,5 kW · nog op eigen zon</span></div><button type="button" aria-label="Meer">+</button></div>
+      <div class="schaal"><i></i><b></b></div>
+      <div class="schaal-as"><span>6 A</span><span style="color: var(--zon-t); font-weight: 600">op zon tot 9 A</span><span>16 A</span></div>
+    </div>
+    <div class="vraag"><span>HOE LANG</span><div class="seg" style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px"><button type="button">1 uur</button><button type="button">Tot 18:00</button><button type="button">Tot een %</button><button type="button" aria-pressed="true">Tot de kabel eruit is</button></div></div>
+    <div class="hoe">Zonder de auto gebruikt je huis nu <b>1 A per fase</b>. Met 8 A blijft er 16 A over op je zekering van 3 × 25 A. Vol tot 80% om ± 16:20.</div>
+    <div class="onder"><button class="terug" type="button">Pauzeer</button><button class="zet" type="button">Laad met 8 A</button></div>
+  </aside>
+</div>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script src="auto-tekening.js"></script>
+<script>
+  const stand = location.hash.slice(1);
+  const $ = (s) => document.querySelector(s);
+  if (nav.tabs) nav.tabs(document.getElementById('tabs'), 'apparaten');
+  const S = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  document.querySelectorAll('[data-icoon="zon"]').forEach((el) => (el.innerHTML = S('<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>')));
+  $('[data-scene]').innerHTML = autoTekening({ pct: 64, grens: 80, kabel: 'zon' });
+
+  // Dezelfde laadbeurten als op de wand: kosten = netstroom × prijs, eigen zon is gratis.
+  const BEURTEN = [['Vandaag', '11:20 – nu', 8.4, 0.71, 0.27], ['Woensdag', '18:05 – 23:40', 22.1, 0.12, 0.27], ['Maandag', '10:45 – 15:30', 17.6, 0.88, 0.27], ['Zondag', '02:00 – 05:10 · goedkoop', 14.8, 0, 0.14]];
+  const nl = (n, d = 1) => n.toLocaleString('nl-NL', { minimumFractionDigits: d, maximumFractionDigits: d });
+  $('[data-lijst]').innerHTML = BEURTEN.map(([dag, tijd, k, z, p]) => `<div class="beurt"><div><b>${dag}</b><span>${tijd}</span></div><span class="kwh">${nl(k)} kWh</span><span class="eur">€ ${nl(k * (1 - z) * p, 2)}</span><div class="zonbalk"><i style="width: ${z * 100}%"></i></div></div>`).join('');
+  if (stand === 'laden') document.querySelectorAll('[data-blad]').forEach((el) => (el.hidden = false));
+</script>
+</body>
+</html>

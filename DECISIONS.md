@@ -252,6 +252,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [247. Eén iconenset, duotoon](#247-eén-iconenset-duotoon)
 - [255. Opbrengst: het stroombeeld vertelt meer, opgewekt uit de omvormer](#255-opbrengst-het-stroombeeld-vertelt-meer-opgewekt-uit-de-omvormer)
 - [257. Drie fouten van testers: het gevoel, Meten met, en een plat dak](#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak)
+- [259. Auto en laadpaal: een eigen pagina, en met de hand laden (ontwerp)](#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp)
 
 **Veiligheid**
 
@@ -12108,6 +12109,50 @@ kreeg in Home Assistant en in de app een lange lijst, versie voor versie.
 - **Vóór elke versie** gaan de nieuwe issues en ideeën op GitHub na, en wat
   nieuw is, komt in de prio-lijst. Lost een versie een melding uit de app op,
   dan krijgt die versie de uitkomst van de meldcode mee (besluit 250).
+
+## 259. Auto en laadpaal: een eigen pagina, en met de hand laden (ontwerp)
+
+*Onderwerp: weergave · Status: geldig*
+
+6 november 2026. Auto en laadpaal is de functie waar testers het vaakst om
+vragen (idee #123, melding #132), en stap 6 van de testerronde. Tot nu toe
+herkent de app één auto en één laadpaal en toont hij ze op een kaart (182). De
+bewoner koos in twee rondes, na de schetsen `Wand-Auto`, `Tel-Auto`,
+`Wand-Energie-Auto` en `Thuis-Tel-Auto-Advies`. Het bouwplan, met de gegevens
+die we willen, de rekenregels en de stappen, staat in
+`docs/auto-en-laadpaal.md`.
+
+*Besluit (ontwerp; nog niets gebouwd):*
+
+- **Instellen bij Energie › Auto en laadpaal:** wat in Home Assistant
+  gevonden is, met een schakelaar per apparaat; een ander apparaat kiezen; per
+  auto de accu in kWh, aan welke laadpaal hij laadt en waar hij in de tekening
+  staat (oprit, carport of garage, idee #123); per laadpaal of SunArc hem mag
+  bedienen. **Meerdere** auto's en laadpalen.
+- **Kijken en bedienen op een eigen pagina Auto,** zonder eigen tab: de
+  Thuis-kaart en de auto bij Apparaten openen hem. **De auto zelf is de
+  meter:** hij vult zich tot zijn lading, met een streep bij de laadgrens; de
+  kabel van de laadpaal is amber als hij op zon laadt. Erbij: kW en A per fase,
+  bereik, laadgrens, vol om, kabel, deze laadbeurt, en onderweg.
+- **Met de hand laden,** zoals klimaat met de hand (235): de hoogste stroom in
+  A en pauzeren, alleen als de laadpaal het kan, nooit boven de laadpaal of de
+  ruimte op de zekering. Hoe lang: 1 uur, tot een tijd, tot een % (nooit boven
+  de laadgrens van de auto) of tot de kabel eruit gaat; daarna weer de
+  laadpaal, en wie intussen zelf iets verzette, wint. Met evcc zet SunArc de
+  stand van evcc. Een nieuwe smalle deur in de schrijfgrens, die bij het bouwen
+  een eigen besluit krijgt. Automatisch op zon blijft voor B (85).
+- **Laadbeurten:** kWh, kosten (het deel van het net × de prijs van dat
+  moment; eigen zon is gratis) en het deel eigen zon.
+- **Advies, alleen als het iets zegt:** zon over ("met 8 A nog op eigen zon")
+  en bij een prijs per uur de goedkoopste uren, met de ruimte op de zekering.
+  Ook als **eigen kaart op Thuis**, met één tik "Laad met 8 A".
+- **Meldingen:** auto vol, laden gestopt met een fout, kabel vergeten.
+- **Het klimaat van een auto** telt niet als klimaat in huis (#132).
+- **Volgorde, elk een eigen versie:** 1 kiezen en herkennen, 2 de pagina Auto,
+  3 laadbeurten, 4 advies, 5 met de hand, 6 meldingen.
+
+*Wat afviel:* een eigen tab in het menu, en een overzicht van thuis geladen
+kWh voor de werkgever.
 
 ---
 

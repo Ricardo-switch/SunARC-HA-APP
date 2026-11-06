@@ -369,6 +369,7 @@ verwijzing bestaat.
   vanzelf bij ([162]). Per account kies je eenvoudig of uitgebreid, grotere
   letters en minder beweging ([164]). Om te kiezen ook de auto, de
   thuisbatterij, deze maand en de deurbel, als het huis ze heeft ([182]).
+- **Auto en laadpaal (ontwerp, nog niet gebouwd):** meerdere auto's en laadpalen, instellen bij Energie, een eigen pagina Auto met de auto als meter, met de hand laden (stroom, pauzeren, hoe lang), laadbeurten, advies op een eigen Thuis-kaart en meldingen; het bouwplan staat in `docs/auto-en-laadpaal.md` ([259]).
 - **Een profiel per bewoner** (Jij, bovenaan Instellingen): je thema op je
   eigen apparaten (donker, licht of zoals je telefoon; een scherm blijft
   donker), een van zes eigen kleuren, je
@@ -837,4 +838,5 @@ verwijzing bestaat.
 [256]: DECISIONS.md#256-de-kaart-is-experimenteel-met-3d-bag-naast-openstreetmap
 [257]: DECISIONS.md#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak
 [258]: DECISIONS.md#258-wat-er-nieuw-is-één-overzicht-per-uitgave-op-main
+[259]: DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp
 <!-- links:einde -->

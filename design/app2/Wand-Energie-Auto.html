@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Energie › Auto en laadpaal (schets)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Energie › Auto en laadpaal (schets, 6 november 2026, bij Wand-Auto).
+   * Hier stel je in; op de pagina Auto kijk en bedien je. Links wat de app in
+   * Home Assistant vond: auto's en laadpalen, elk met een schakelaar. Rechts
+   * per auto de accu, aan welke laadpaal hij laadt en waar hij in de tekening
+   * staat (ook de garage, idee 123), en of SunArc de laadpaal met de hand mag
+   * bedienen. Opbouw zoals Wand-Instellingen-Groep.
+   *   (zonder)   de Model 3 gekozen
+   *   #evcc      met evcc in huis: SunArc zet de stand van evcc
+   *   #niets     nog geen auto of laadpaal gevonden
+   */
+  main { position: relative; padding: 22px 26px 20px 22px; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+  .kopregel { display: flex; align-items: center; gap: 14px; }
+  .terug { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px 0 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.07); border: 1px solid var(--glas-rand); font-size: 14.5px; font-weight: 600; color: var(--zacht); }
+  .terug i { font-style: normal; font-size: 20px; line-height: 1; margin-top: -2px; }
+  .kopregel .kop-1 { font-size: 40px; margin-left: 4px; }
+  .samen { display: flex; gap: 8px; margin-left: 6px; }
+  .samen span { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .samen span::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .samen .goed { color: var(--mint); background: rgba(110, 231, 183, 0.1); }
+  .bewaard { margin-left: auto; font-size: 13.5px; font-weight: 600; color: var(--gedempt); }
+  .veld { flex: 1; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; min-height: 0; }
+  .lijst { align-self: start; padding: 6px; border-radius: 22px; display: flex; flex-direction: column; gap: 2px; }
+  .rij { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 1px 12px; align-items: center; min-height: 72px; padding: 8px 12px; border-radius: 16px; color: var(--tekst); position: relative; }
+  .rij .ik { grid-row: 1 / 3; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.07); }
+  .rij .ik svg { width: 21px; height: 21px; }
+  .rij b { font-size: 16px; font-weight: 600; align-self: end; }
+  .rij small { grid-column: 2; font-size: 13px; color: var(--gedempt); align-self: start; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rij.nu { background: rgba(255, 255, 255, 0.1); }
+  .rij.nu::before { content: ''; position: absolute; left: -2px; top: 18px; bottom: 18px; width: 4px; border-radius: 2px; background: var(--tekst); }
+  .vorm { position: relative; padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 14px; min-height: 0; border-radius: 24px; }
+  .vormkop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .vormkop h2 { margin: 0; }
+  .waarvoor { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 10px; border-radius: 12px; background: rgba(111, 211, 255, 0.1); color: #a9e6ff; font-size: 14px; font-weight: 700; }
+  .waarvoor svg { width: 19px; height: 19px; }
+  .erbij { font-size: 13.5px; font-weight: 700; color: var(--ijs); }
+  .verder { margin-top: auto; display: flex; gap: 12px; align-items: center; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+  .verder a { display: flex; flex-direction: column; gap: 1px; min-width: 200px; padding: 9px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--glas-rand); color: var(--tekst); }
+  .verder a small { font-size: 12px; color: var(--gedempt); font-weight: 600; }
+  .verder a b { font-size: 15px; font-weight: 600; }
+  .verder .waar { margin-right: auto; font-size: 12.5px; color: var(--gedempt); }
+
+  .twee { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 24px; min-height: 0; }
+  .kol { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+  .kol h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gedempt); }
+  .app { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 1px 12px; align-items: center; padding: 10px 12px; border-radius: 15px; background: rgba(255, 255, 255, 0.04); border: 1px solid transparent; }
+  .app.nu { background: rgba(255, 255, 255, 0.09); border-color: rgba(255, 255, 255, 0.22); }
+  .app .ik { grid-row: 1 / 3; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.07); }
+  .app .ik svg { width: 21px; height: 21px; }
+  .app b { font-size: 15px; font-weight: 600; }
+  .app small { grid-column: 2; font-size: 12.5px; color: var(--gedempt); }
+  .app .knop { grid-row: 1 / 3; grid-column: 3; }
+  .app.uit b, .app.uit small, .app.uit .ik { opacity: 0.5; }
+  .knop { width: 46px; height: 28px; border-radius: 14px; background: rgba(255, 255, 255, 0.16); position: relative; flex: none; }
+  .knop::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #c9d3dc; }
+  .knop.aan { background: var(--mint); }
+  .knop.aan::after { left: 21px; background: #fff; }
+  .mini { font-size: 12.5px; color: var(--gedempt); line-height: 1.45; }
+  .vraag { display: flex; flex-direction: column; gap: 6px; }
+  .vraag > .label { font-size: 14.5px; font-weight: 700; }
+  .vraag .uitleg { font-size: 12.5px; color: var(--gedempt); line-height: 1.4; }
+  .waarde { height: 46px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.05); padding: 0 14px; display: flex; align-items: center; font-size: 15px; font-weight: 600; }
+  .waarde span { margin-left: auto; color: var(--gedempt); font-weight: 500; font-size: 13px; }
+  .keuze { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
+  .keuze span { height: 38px; display: grid; place-items: center; border-radius: 9px; color: var(--zacht); font-weight: 700; font-size: 14px; }
+  .keuze span.aan { background: var(--tekst); color: var(--inkt); }
+  .wie { display: flex; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); align-self: start; }
+  .wie span { height: 34px; padding: 0 14px; display: flex; align-items: center; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--zacht); }
+  .wie span.aan { background: rgba(255, 255, 255, 0.14); color: var(--tekst); }
+  .schakel { display: flex; gap: 14px; align-items: center; padding: 11px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); }
+  .schakel b { display: block; font-size: 14.5px; font-weight: 700; margin-bottom: 2px; }
+  .evcc { display: flex; gap: 10px; align-items: start; padding: 11px 14px; border-radius: 14px; background: rgba(111, 211, 255, 0.08); border: 1px solid rgba(111, 211, 255, 0.25); font-size: 13.5px; color: var(--zacht); line-height: 1.45; }
+  .evcc b { color: var(--tekst); }
+  .leeg { flex: 1; display: grid; place-items: center; text-align: center; }
+  .leeg p { max-width: 460px; color: var(--zacht); font-size: 15px; line-height: 1.5; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wand lucht lucht-dag">
+  <nav class="balk" id="balk" aria-label="Hoofdmenu"></nav>
+  <main>
+    <div class="kopregel">
+      <span class="terug"><i>‹</i>Instellingen</span>
+      <h1 class="kop-1">Energie</h1>
+      <div class="samen"><span class="goed">6 klaar</span></div>
+      <span class="bewaard">Alles wordt meteen bewaard</span>
+    </div>
+
+    <div class="veld">
+      <nav class="glas lijst" aria-label="Delen van Energie">
+        <div class="rij"><span class="ik" data-icoon="euro" style="color: var(--zon)"></span><b>Contract en prijzen</b><small>prijs per uur</small></div>
+        <div class="rij"><span class="ik" data-icoon="zon" style="color: var(--zon)"></span><b>Zonnepanelen</b><small>3 vlakken, 24 panelen</small></div>
+        <div class="rij"><span class="ik" data-icoon="stekker" style="color: var(--ijs)"></span><b>Aansluiting</b><small>3 × 25 A</small></div>
+        <div class="rij"><span class="ik" data-icoon="meter" style="color: var(--mint)"></span><b>Meters</b><small>stroom, gas, 4 apparaten</small></div>
+        <div class="rij"><span class="ik" data-icoon="vlam" style="color: var(--violet)"></span><b>Verwarming</b><small>cv-ketel, aanvoer 55°</small></div>
+        <div class="rij nu"><span class="ik" data-icoon="auto" style="color: var(--mint)"></span><b>Auto en laadpaal</b><small data-rij-auto>2 auto's, 1 laadpaal</small></div>
+      </nav>
+
+      <section class="glas vorm">
+        <div class="vormkop"><h2 class="kop-2">Auto en laadpaal</h2><span class="erbij" style="font-size: 14.5px">Naar de pagina Auto ›</span></div>
+        <div class="twee" data-gevonden>
+          <div class="kol">
+            <h3>Gevonden in Home Assistant</h3>
+            <div class="app nu"><span class="ik" data-icoon="auto" style="color: var(--mint)"></span><b>Model 3</b><small>Tesla Fleet · accu, bereik, laadgrens, thuis of weg</small><span class="knop aan"></span></div>
+            <div class="app"><span class="ik" data-icoon="auto" style="color: var(--mint)"></span><b>EV6</b><small>Kia Connect · accu, bereik, laadgrens</small><span class="knop aan"></span></div>
+            <div class="app"><span class="ik" data-icoon="paal" style="color: var(--ijs)"></span><b>Easee Home</b><small>Easee · 3 fasen, 6 tot 16 A, pauzeren</small><span class="knop aan"></span></div>
+            <div class="app uit"><span class="ik" data-icoon="auto"></span><b>Golf</b><small>Volkswagen · niet van dit huis</small><span class="knop"></span></div>
+            <span class="erbij" style="margin-top: 4px">+ Een ander apparaat kiezen</span>
+            <p class="mini" style="margin: 6px 0 0">De klimaatregeling van een auto hoort bij de auto. Ze telt niet mee als klimaat in huis.</p>
+          </div>
+          <div class="kol">
+            <div class="wie"><span class="aan">Model 3</span><span>EV6</span><span>Easee Home</span></div>
+            <div class="vraag"><span class="label">Accu</span><div class="waarde">75<span>kWh</span></div><span class="uitleg">Staat in de papieren van de auto. Nodig voor de tijd waarop hij vol is.</span></div>
+            <div class="vraag"><span class="label">Laadt thuis aan</span><div class="waarde">Easee Home<span>›</span></div></div>
+            <div class="vraag"><span class="label">Staat in de tekening</span><div class="keuze"><span>Oprit</span><span>Carport</span><span class="aan">Garage</span></div></div>
+            <div class="schakel"><div style="flex: 1"><b>SunArc mag de Easee bedienen</b><span class="mini">Met de hand, op de pagina Auto: de stroom en pauzeren. Nooit boven 16 A, de grens van de laadpaal, en niet boven je zekering van 3 × 25 A.</span></div><span class="knop aan"></span></div>
+            <div class="evcc" data-evcc hidden><span class="stip" style="background: var(--ijs); margin-top: 6px"></span><span><b>evcc regelt het laden.</b> SunArc zet dan de stand van evcc (Uit, Zon, Zon en net, Snel) en niet de laadpaal zelf, zodat ze elkaar niet tegenwerken.</span></div>
+          </div>
+        </div>
+        <div class="leeg" data-niets hidden><div><p><b style="color: var(--tekst); font-size: 17px">Nog geen auto of laadpaal gevonden</b><br>Staat je auto of laadpaal in Home Assistant, dan verschijnt hij hier vanzelf. Je kunt er ook zelf een kiezen.</p><span class="erbij">+ Een apparaat kiezen</span></div></div>
+        <div class="verder">
+          <span class="waarvoor" data-icoon="vraag">Waarvoor is dit?</span>
+          <span class="waar">6 van 6</span>
+          <a><small>‹ Vorige</small><b>Verwarming</b></a>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="../../frontend/kit/iconen.js"></script>
+<script src="../../frontend/kit/teksten.nl.js"></script>
+<script src="../../frontend/kit/teksten.en.js"></script>
+<script src="../../frontend/kit/taal.js"></script>
+<script src="../../frontend/kit/nav.js"></script>
+<script>
+  const stand = location.hash.slice(1);
+  const S = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const ICOON = {
+    zon: S('<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>'),
+    stekker: S('<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>'),
+    meter: S('<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/><path d="M3 21h18"/>'),
+    euro: S('<path d="M17 6.5A7 7 0 1 0 17 17.5"/><path d="M4 10h9M4 14h9"/>'),
+    vlam: S('<path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1 1.5 2 1.5 3 1.5-1.5 1.5-5 1.5-8z"/>'),
+    vraag: S('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.1-2.4 3.8"/><path d="M12 17h.01"/>'),
+    auto: S('<path d="M4 16h16M5.5 16l1.8-5.4A2 2 0 0 1 9.2 9.2h5.6a2 2 0 0 1 1.9 1.4L18.5 16"/><path d="M4 16v2.5M20 16v2.5"/><circle cx="8" cy="16" r="1.5"/><circle cx="16" cy="16" r="1.5"/>'),
+    paal: S('<rect x="6" y="3" width="10" height="14" rx="2.5"/><path d="M9 7h4M11 17v2a2 2 0 0 0 2 2h3a2 2 0 0 0 2-2v-5"/>'),
+  };
+  document.querySelectorAll('[data-icoon]').forEach((el) => el.insertAdjacentHTML('afterbegin', ICOON[el.dataset.icoon]));
+  nav.balk(document.getElementById('balk'), 'instellingen');
+  if (stand === 'evcc') document.querySelector('[data-evcc]').hidden = false;
+  if (stand === 'niets') {
+    document.querySelector('[data-gevonden]').hidden = true;
+    document.querySelector('[data-niets]').hidden = false;
+    document.querySelector('[data-rij-auto]').textContent = 'niets gevonden';
+  }
+</script>
+</body>
+</html>
