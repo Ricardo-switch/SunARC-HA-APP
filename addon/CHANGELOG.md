@@ -1,5 +1,19 @@
 # Wat is er nieuw · What is new
 
+## 0.129.3
+
+*6 november 2026*
+
+**Beter**
+
+- Wie iets meldde via Meld een probleem, ziet na deze update wat ermee gebeurde: oost-west op een plat dak, het platte dak op Thuis, de richting van de panelen en Hoe voelt het huis
+
+*English*
+
+**Improved**
+
+- If you reported something via Report a problem, this update tells you what happened to it: east-west on a flat roof, the flat roof on Home, the direction of the panels and How does the house feel
+
 ## 0.129.2
 
 *5 november 2026*

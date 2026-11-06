@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.129.2';
+export const VERSIE = '0.129.3';
 
 export interface Nieuw {
   readonly versie: string;
@@ -68,6 +68,45 @@ export const TERUGKIJKEN = 10;
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.129.3',
+    datum: '2026-11-06',
+    beter: ['Wie iets meldde via Meld een probleem, ziet na deze update wat ermee gebeurde: oost-west op een plat dak, het platte dak op Thuis, de richting van de panelen en Hoe voelt het huis'],
+    en: { beter: ['If you reported something via Report a problem, this update tells you what happened to it: east-west on a flat roof, the flat roof on Home, the direction of the panels and How does the house feel'] },
+    meldingen: [
+      {
+        code: 'SA-HBBN',
+        uitkomst: 'opgelost',
+        tekst: 'Bij Daken en panelen kies je per dakvlak Oost-west, met de helling en per kant het aantal panelen.',
+        tekstEn: 'In Roofs and panels you choose East-west per roof plane, with the tilt and the number of panels per side.',
+        href: 'energie.html#panelen',
+        issue: 121,
+      },
+      {
+        code: 'SA-6Z6P',
+        uitkomst: 'opgelost',
+        tekst: 'Kies bij het hoofdhuis de dakvorm plat, dan krijgt het huis op Thuis een plat dak met de panelen erop.',
+        tekstEn: 'Choose the flat roof shape for the main house, and the house on Home gets a flat roof with the panels on it.',
+        href: 'energie.html#panelen',
+        issue: 131,
+      },
+      {
+        code: 'SA-QLD9',
+        uitkomst: 'instelling',
+        tekst: 'De richting komt nu uit Daken en panelen, en wat je zelf instelt gaat voor de meting. Tik op je dakvlak en zet de richting op het zuiden.',
+        tekstEn: 'The direction now comes from Roofs and panels, and what you set yourself comes before the measurement. Tap your roof plane and set the direction to south.',
+        href: 'energie.html#panelen',
+        issue: 130,
+      },
+      {
+        code: 'SA-7M76',
+        uitkomst: 'opgelost',
+        tekst: 'Een kamer die er via Inrichten bij kwam, telt nu meteen mee bij Hoe voelt het huis.',
+        tekstEn: 'A room added in Setup now counts straight away in How does the house feel.',
+        issue: 133,
+      },
+    ],
+  },
   {
     versie: '0.129.2',
     datum: '2026-11-05',
