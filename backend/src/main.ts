@@ -74,7 +74,8 @@ import type { TeDoenDienst } from './web/routes/tedoen.js';
 import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
-import { ladenView, vindOpslag } from './web/opslag.js';
+import { laadMeters, ladenView, vindOpslag } from './web/opslag.js';
+import { Laadbeurten } from './web/laadbeurten.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
 import { sunPosition } from './core/sun.js';
 import { hoofddakPlat, panelenVan, type DakVlak } from './web/daken.js';
@@ -1440,6 +1441,18 @@ const historie = new Historie({
 });
 const historieVan = (vanMs: number, totMs: number) => historie.van(vanMs, totMs);
 
+// De laadbeurten van een auto (besluit 259, stap 3): de meter van zijn laadvermogen en het net, met de prijzen van Energie.
+const laadbeurten = new Laadbeurten({
+  config: () => siteConfig,
+  meter: (auto) => (houseRegisters ? (laadMeters(houseRegisters, allStates, connectionStore?.current?.laden ?? null).find((m) => m.auto === auto)?.vermogen ?? null) : null),
+  prijzen: () => energyStore?.current?.prijzen ?? null,
+  eenheid: (id) => {
+    const e = allStates.get(id)?.attributes['unit_of_measurement'];
+    return typeof e === 'string' ? e : null;
+  },
+  vraag: (type, velden) => client.query<Record<string, { start: number | string; mean?: number | null }[]>>(type, velden),
+});
+
 /**
  * De opbrengst per dakvlak over een periode (besluit 254, stap 5): per uur wat
  * elke meter gemiddeld mat, uit de statistiek van Home Assistant, verdeeld naar
@@ -2090,6 +2103,7 @@ if (webPort != null) {
     exacteLocatie: () =>
       client.query<HaCoreConfig>('get_config').then((c) => (typeof c.latitude === 'number' && typeof c.longitude === 'number' ? { latDeg: c.latitude, lonDeg: c.longitude } : null)),
     historie: historieVan,
+    laadbeurten: (auto: string) => laadbeurten.van(auto),
     dakenOpbrengst,
     sluipverbruik,
     house: houseReport,

@@ -17,13 +17,15 @@
    * De pagina Auto (besluit 259, stap 2; schets Wand-Auto en Tel-Auto): om te
    * kijken. De auto zelf is de meter: hij vult zich tot zijn lading, met een
    * streep bij de laadgrens. Te openen vanaf de kaart op Thuis en vanaf de
-   * auto bij Apparaten; in het menu licht Apparaten op. Laden met de hand,
-   * de laadbeurten en het advies komen in de volgende stappen.
+   * auto bij Apparaten; in het menu licht Apparaten op. De laadbeurten (stap
+   * 3) staan rechts onder de laadpaal. Laden met de hand en het advies komen
+   * in de volgende stappen.
    */
   #wand main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; grid-template-rows: auto minmax(0, 1fr); gap: 16px 18px; height: 100%; min-width: 0; }
   .kop { grid-column: 1 / -1; display: flex; align-items: end; gap: 18px; }
   .terug { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--zacht); text-decoration: none; margin-bottom: 6px; }
   .terug:focus-visible, .autos button:focus-visible, .naar:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
+  .instellen { margin-left: auto; }
   .autos { display: flex; padding: 3px; border-radius: 13px; background: rgb(var(--wit) / 0.06); margin-bottom: 4px; }
   .autos[hidden] { display: none; }
   .autos button { height: 38px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 10px; background: transparent; font: inherit; font-size: 14.5px; font-weight: 600; color: var(--zacht); cursor: pointer; }
@@ -58,6 +60,8 @@
   .feiten b { display: block; margin-top: 3px; font-size: 17px; font-weight: 600; }
   .feiten span { font-size: 13px; color: var(--zacht); }
   .feiten a { color: inherit; }
+  .zonbalk { height: 5px; margin: 6px 0 4px; border-radius: 3px; background: rgb(var(--wit) / 0.08); overflow: hidden; }
+  .zonbalk i { display: block; height: 100%; border-radius: 3px; background: var(--zon); }
 
   /* Rechts: de laadpaal en wat je instelde. */
   .rechts { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
@@ -76,6 +80,17 @@
   .fase .fbalk { height: 10px; border-radius: 5px; background: rgb(var(--wit) / 0.07); overflow: hidden; }
   .fase .fbalk i { display: block; height: 100%; border-radius: 5px; }
   .kan { margin: 12px 0 0; font-size: 12.5px; color: var(--gedempt); line-height: 1.45; }
+
+  /* De laadbeurten: samen, en per beurt met zijn deel eigen zon. */
+  .beurten .som { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin-top: 12px; padding: 10px 0; border-top: 1px solid rgb(var(--wit) / 0.07); }
+  .beurten .som small { display: block; font-size: 11.5px; font-weight: 700; color: var(--gedempt); letter-spacing: 0.04em; text-transform: uppercase; }
+  .beurten .som b { display: block; margin-top: 2px; font-size: 18px; font-weight: 600; }
+  .beurt { display: grid; grid-template-columns: minmax(0, 1fr) auto 64px; gap: 2px 12px; align-items: center; padding: 9px 0 7px; border-top: 1px solid rgb(var(--wit) / 0.07); }
+  .beurt b { display: block; font-size: 14.5px; font-weight: 600; }
+  .beurt span { font-size: 12.5px; color: var(--zacht); }
+  .beurt .kwh, .beurt .eur { text-align: right; font-size: 14.5px; font-weight: 600; color: var(--tekst); }
+  .beurt .zonbalk { grid-column: 1 / -1; height: 4px; margin: 3px 0 0; }
+  .beurten .meer { margin: 6px 0 0; font-size: 12.5px; color: var(--zacht); }
   .naar { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
   .naar .pijl { color: var(--gedempt); font-size: 22px; }
   .leeg { padding: 26px 28px; border-radius: 26px; }
@@ -120,6 +135,7 @@
           <h1 class="kop-1" data-t="auto.titel"></h1>
         </div>
         <div class="autos" role="group" data-t-aria-label="auto.kies" data-autos hidden></div>
+        <a class="terug instellen" href="energie.html#auto"><span data-t="auto.instellen"></span> ›</a>
       </div>
       <div class="held-plek" style="display: flex; flex-direction: column; min-height: 0" data-held></div>
       <div class="rechts" data-rechts></div>

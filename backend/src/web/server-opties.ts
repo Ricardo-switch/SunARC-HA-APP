@@ -7,6 +7,7 @@
 import type { Achter } from './meten-vlakken.js';
 import { VERSIE } from '../version.js';
 import type { Sluipverbruik } from './sluipverbruik.js';
+import type { LaadOverzicht } from './laadbeurten.js';
 import type { CameraNu } from './cameras.js';
 import type { AanzetStand } from './assistent-aan.js';
 import type { InHuisStand } from './stem-in-huis.js';
@@ -200,6 +201,8 @@ export interface WebOptions {
   readonly dakenOpbrengst?: (vanMs: number, totMs: number) => Promise<{ vlakken: readonly { letter: string; plek: string; naam?: string | null; azimuthDeg?: number; opstelling?: string; aantal: number; kWh: number }[]; achter: Achter | null } | null>;
   /** Het sluipverbruik (besluit 192): de nachten uit de statistiek van Home Assistant. */
   readonly sluipverbruik?: Sluipverbruik;
+  /** De laadbeurten van een auto (besluit 259, stap 3), of null zonder meter van het laadvermogen. */
+  readonly laadbeurten?: (auto: string) => Promise<LaadOverzicht | null>;
   /**
    * Na het opslaan van de configuratie: opnieuw starten, zodat de regeling
    * hem leest (besluit 154). De add-on start dan vanzelf weer (besluit 151).

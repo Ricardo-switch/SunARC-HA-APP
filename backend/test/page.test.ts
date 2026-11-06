@@ -435,6 +435,25 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
               return { 'sensor.p1_meter_power': Array.from({ length: 45 * 24 }, (_, k) => ({ start: nu - k * 3_600_000, mean: (k < 5 * 24 ? 300 : 180) + (Math.floor(k / 24) % 4) * 3 })) };
             },
           }),
+          // De laadbeurten van de Tesla (besluit 259, stap 3): een die nu loopt, en twee van eerder deze week.
+          laadbeurten: async (auto: string) => {
+            if (auto !== 'tesla') return null;
+            const nu = Date.now();
+            const iso = (ms: number) => new Date(ms).toISOString();
+            return {
+              dagen: 7,
+              beurten: [
+                { van: iso(nu - 80 * 60_000), tot: iso(nu), bezig: true, kWh: 4.2, zonKWh: 3, kosten: 0.31 },
+                { van: iso(nu - 2 * 86_400_000), tot: iso(nu - 2 * 86_400_000 + 4 * 3_600_000), bezig: false, kWh: 22.1, zonKWh: 2.6, kosten: 5.27 },
+                { van: iso(nu - 3 * 86_400_000), tot: iso(nu - 3 * 86_400_000 + 3 * 3_600_000), bezig: false, kWh: 15, zonKWh: 0, kosten: 3.75 },
+              ],
+              kWh: 41.3,
+              zonKWh: 5.6,
+              kosten: 9.33,
+              perUur: false,
+              statistiek: true,
+            };
+          },
           // De integratie neerzetten (besluit 184): nagebootst, zonder map.
           integratie: {
             stand: async () => integratieNu,
@@ -3875,9 +3894,26 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       expect(await held.textContent()).toContain('280 km bereik');
       expect(await held.textContent()).toContain('80%');
       expect(await held.textContent()).toContain('Easee Home, in de garage');
-      expect(await held.textContent()).toContain('75 kWh');
+      // Tijdens het laden staat deze laadbeurt waar anders de accu staat (stap 3).
+      await expect.poll(() => held.textContent()).toContain('Deze laadbeurt4,2 kWh · € 0,31');
+      expect(await held.textContent()).toContain('71% eigen zon');
       expect(await p.locator('#tel .fase').count()).toBe(3);
-      expect(await p.locator('#tel .kan').textContent()).toBe('Laden met 6 tot 16 A.');
+      expect(await p.locator('#tel .kaart:not(.beurten) .kan').textContent()).toBe('Laden met 6 tot 16 A.');
+      // De laadbeurten van de week: samen, en per beurt, de nieuwste eerst.
+      const beurtenKaart = p.locator('#tel .beurten');
+      expect(await beurtenKaart.locator('.som').textContent()).toMatch(/41,3 kWh.*€ 9,33.*14%/s);
+      expect(await beurtenKaart.locator('.beurt').count()).toBe(3);
+      expect(await beurtenKaart.locator('.beurt').first().textContent()).toMatch(/Vandaag.*– nu.*4,2 kWh.*€ 0,31/s);
+      expect(await beurtenKaart.locator('.kan').textContent()).toContain('Eigen zon telt als gratis');
+      // De wand scrolt nooit (besluit 104): rechts de laadpaal op drie fasen en zoveel beurten als er passen.
+      const wand = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+      await wand.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+      const w = await wand.newPage();
+      await w.goto(`${baseUrl}/auto.html`);
+      await expect.poll(() => w.locator('#wand .beurten .beurt').count(), { timeout: 10_000 }).toBeGreaterThan(0);
+      expect(await w.evaluate('(() => { const r = document.querySelector("[data-rechts]"); return r.scrollHeight <= r.clientHeight + 1; })()')).toBe(true);
+      expect(await w.locator('#wand .instellen').getAttribute('href')).toBe('energie.html#auto');
+      await wand.close();
       // In het menu licht Apparaten op; de weg terug gaat daarheen.
       expect(await p.locator('#tabs [aria-current="page"]').count()).toBe(1);
       if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-auto.png'), fullPage: true });

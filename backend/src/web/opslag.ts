@@ -317,6 +317,23 @@ function laadApparaten(l: ReturnType<typeof lezer>, states: ReadonlyMap<string, 
 
 /** De thuisbatterij en de auto's in Home Assistant, met de keuzes van de bewoner (besluit 259). */
 export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null = null, nu: Date = new Date()): Opslag {
+  return opslagMet(registers, states, keuze, nu).opslag;
+}
+
+/** Per auto de meter van zijn laadvermogen, voor de laadbeurten uit de statistiek (besluit 259, stap 3). */
+export interface LaadMeter {
+  readonly auto: string;
+  /** De sensor met het laadvermogen; null als niets het meet. */
+  readonly vermogen: string | null;
+}
+
+/** De meters van de auto's: dezelfde keuze als de pagina Auto, zonder de standen. */
+export function laadMeters(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null = null): LaadMeter[] {
+  return opslagMet(registers, states, keuze, new Date()).meters;
+}
+
+function opslagMet(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null, nu: Date): { opslag: Opslag; meters: LaadMeter[] } {
+  const meters: LaadMeter[] = [];
   const l = lezer(registers, states);
   const { klasse, naamVan, pctVan } = l;
   const vermogens = (a: Apparaat) => a.entiteiten.filter((e) => e.entity_id.startsWith('sensor.') && klasse(e) === 'power');
@@ -372,8 +389,9 @@ export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaE
       return null;
     };
     // Het laadvermogen: van de laadpaal, anders een laadvermogen van de auto.
+    const laadMeter = (a: Apparaat) => vermogens(a).find((x) => a === paal || /charg|laad/.test(naamVan(x))) ?? null;
     const laadW = eerst((a) => {
-      const e = vermogens(a).find((x) => a === paal || /charg|laad/.test(naamVan(x)));
+      const e = laadMeter(a);
       return e ? watt(states.get(e.entity_id)) : null;
     });
     /** De stand van een laadpaal als woord, zoals "charging" of "connected". */
@@ -430,6 +448,7 @@ export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaE
     const kabel = bron.flatMap((a) => a.entiteiten).find((x) => x.entity_id.startsWith('binary_sensor.') && klasse(x) === 'plug');
     const kabelStaat = kabel ? states.get(kabel.entity_id) : undefined;
     const volOm = laadt ? klaarOm(wagen, pct, laadgrens, ins.accuKWh, vermogenW) : null;
+    meters.push({ auto: id, vermogen: eerst((a) => laadMeter(a)?.entity_id ?? null) });
     return {
       id,
       naam,
@@ -486,7 +505,7 @@ export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaE
   const autos: Auto[] = wagens.length
     ? wagens.map((w) => maak(w, paalVan(w.id) ?? null, w.naam))
     : palen.map((p) => maak(null, p, palen.length === 1 ? 'De auto' : p.naam));
-  return { batterij, auto: autos[0] ?? null, autos };
+  return { opslag: { batterij, auto: autos[0] ?? null, autos }, meters };
 }
 
 /** Energie › Auto en laadpaal (besluit 259): gevonden, zelf gekozen, evcc, en wat er nog te kiezen is. */

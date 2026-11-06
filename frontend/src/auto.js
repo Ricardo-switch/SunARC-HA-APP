@@ -6,8 +6,11 @@
  * pagina zet het neer. Of het laden op zon gaat, volgt uit het net nu
  * (`api/state`): komt er niets van het net, dan is het eigen zon.
  *
- * Instellen gebeurt bij Energie › Auto en laadpaal; bedienen, laadbeurten en
- * advies komen in de volgende stappen (docs/auto-en-laadpaal.md).
+ * De laadbeurten (stap 3) komen apart (`api/laadbeurten`): uit de statistiek
+ * van Home Assistant, de laatste week, met kWh, kosten en het deel eigen zon.
+ *
+ * Instellen gebeurt bij Energie › Auto en laadpaal; bedienen en advies komen
+ * in de volgende stappen (docs/auto-en-laadpaal.md).
  */
 'use strict';
 
@@ -27,6 +30,24 @@ async function laad() {
     fout = null;
   } else if (!huisData) fout = t('groep.geenVerbinding');
   if (s.status === 'fulfilled') state = s.value;
+  teken();
+}
+
+/** De laadbeurten per auto: undefined is nog onderweg, null is niets te tonen. */
+const beurten = new Map();
+const BEURT_MS = 5 * 60_000;
+
+async function laadBeurten(id, vers = false) {
+  const b = beurten.get(id);
+  if (b && (b.bezig || (!vers && Date.now() - b.at < BEURT_MS))) return;
+  beurten.set(id, { at: Date.now(), data: b?.data, bezig: true });
+  let data = b?.data ?? null;
+  try {
+    data = (await haal(`api/laadbeurten?auto=${encodeURIComponent(id)}`)).beurten ?? null;
+  } catch {
+    // Dan wat er al was.
+  }
+  beurten.set(id, { at: Date.now(), data, bezig: false });
   teken();
 }
 
@@ -109,7 +130,79 @@ const huismodelZin = (delen) => {
 };
 const plekWoord = (a) => (a.plek ? t(`auto.plek.${a.plek}`) : '');
 
-/** De drie feiten onder de auto: laadgrens en vol om, de kabel, de accu. */
+/* ---- de laadbeurten (stap 3) ---- */
+
+const zonPct = (b) => (b.kWh > 0 && b.zonKWh != null ? Math.round((b.zonKWh / b.kWh) * 100) : null);
+const zonBalk = (pct) => `<div class="zonbalk"><i style="width: ${pct}%"></i></div>`;
+
+/** De dag van een beurt: vandaag, gisteren of de dag van de week. */
+function dagVan(ms) {
+  const d = new Date(ms).toDateString();
+  if (d === new Date().toDateString()) return t('auto.beurt.vandaag');
+  if (d === new Date(Date.now() - 86_400_000).toDateString()) return t('auto.beurt.gisteren');
+  // Een week terug heeft dezelfde dag als vandaag: dan met de datum erbij.
+  const oud = Date.now() - ms > 6 * 86_400_000;
+  const w = taal.datum(ms, oud ? { weekday: 'long', day: 'numeric', month: 'short' } : { weekday: 'long' });
+  return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
+function beurtRegel(b) {
+  const tijd = `${klokVan(Date.parse(b.van))} – ${b.bezig ? t('auto.beurt.nu') : klokVan(Date.parse(b.tot))}`;
+  const z = zonPct(b);
+  return `<div class="beurt"${z != null ? ` title="${esc(t('auto.beurt.zonZin', { pct: z }))}"` : ''}>
+      <div><b>${esc(dagVan(Date.parse(b.van)))}</b><span>${esc(tijd)}</span></div>
+      <span class="kwh">${nl(b.kWh)} kWh</span><span class="eur">${b.kosten != null ? esc(taal.geld(b.kosten)) : ''}</span>
+      ${z != null ? zonBalk(z) : ''}
+    </div>`;
+}
+
+/** De laadbeurten van de laatste week: wat er samen geladen is, en per beurt. */
+function beurtenKaart(a, hoeveel) {
+  const o = beurten.get(a.id)?.data;
+  // Zonder meter van het laadvermogen: niets, de laadpaal zegt al dat het niet gemeten wordt.
+  if (o === null) return '';
+  const kop = `<h2>${esc(t('auto.beurt.kop'))}</h2><p class="onder">${esc(t('auto.beurt.periode', { n: o?.dagen ?? 7 }))}</p>`;
+  if (o === undefined) return `<section class="glas kaart beurten">${kop}<p class="kan">${esc(t('algemeen.laden'))}…</p></section>`;
+  if (!o.beurten.length) return `<section class="glas kaart beurten">${kop}<p class="kan">${esc(o.statistiek ? t('auto.beurt.geen', { n: o.dagen }) : t('auto.beurt.geenStatistiek'))}</p></section>`;
+  const zon = o.zonKWh != null && o.kWh > 0 ? Math.round((o.zonKWh / o.kWh) * 100) : null;
+  const som = `<div class="som">
+      <div><small>${esc(t('auto.beurt.geladen'))}</small><b>${nl(o.kWh)} kWh</b></div>
+      ${o.kosten != null ? `<div><small>${esc(t('auto.beurt.kosten'))}</small><b>${esc(taal.geld(o.kosten))}</b></div>` : ''}
+      ${zon != null ? `<div><small>${esc(t('auto.beurt.eigenZon'))}</small><b>${zon}%</b></div>` : ''}
+    </div>`;
+  const rest = o.beurten.length - hoeveel;
+  const uitleg = o.zonKWh == null ? t('auto.beurt.zonderNet') : o.beurten.every((b) => b.kosten == null) ? t('auto.beurt.zonderPrijs') : t(o.perUur ? 'auto.beurt.uitlegUur' : 'auto.beurt.uitleg');
+  return `<section class="glas kaart beurten">${kop}${som}
+      <div class="lijst">${o.beurten.slice(0, hoeveel).map(beurtRegel).join('')}</div>
+      <p class="meer" data-meer="${Math.max(0, rest)}"${rest > 0 ? '' : ' hidden'}>${esc(t('auto.beurt.meer', { n: Math.max(0, rest) }))}</p>
+      <p class="kan">${esc(uitleg)}</p>
+    </section>`;
+}
+
+/**
+ * De wand scrolt nooit: past de kolom niet, dan gaan er beurten uit de lijst
+ * (de oudste eerst), en zegt de regel eronder hoeveel er nog meer zijn.
+ */
+function pasIn(doos) {
+  const lijst = doos.querySelector('.beurten .lijst');
+  const meer = doos.querySelector('.beurten .meer');
+  if (!lijst || !meer) return;
+  let n = Number(meer.dataset.meer) || 0;
+  while (doos.scrollHeight > doos.clientHeight + 1 && lijst.children.length > 1) {
+    lijst.lastElementChild.remove();
+    n += 1;
+    meer.textContent = t('auto.beurt.meer', { n });
+    meer.hidden = false;
+  }
+}
+
+/** De beurt van nu, als de auto laadt. */
+function dezeBeurt(a) {
+  if (!a.laadt) return null;
+  return beurten.get(a.id)?.data?.beurten?.find((b) => b.bezig) ?? null;
+}
+
+/** De drie feiten onder de auto: laadgrens en vol om, de kabel, de accu (of deze laadbeurt). */
 function feiten(a) {
   const grens = a.laadgrens != null
     ? `<b>${nl(a.laadgrens, 0)}%</b><span>${esc(a.volOm ? t('auto.volOm', { tijd: straks(a.volOm) }) : a.pct != null && a.pct >= a.laadgrens ? t('auto.opGrens') : t('auto.inDeAuto'))}</span>`
@@ -122,10 +215,16 @@ function feiten(a) {
     : a.accuKWh != null
     ? `<small>${esc(t('auto.feit.accu'))}</small><b>${esc(t('auto.accuKwh', { kwh: nl(a.accuKWh, a.accuKWh % 1 ? 1 : 0) }))}</b><span>${esc(t('auto.accuZin'))}</span>`
     : `<small>${esc(t('auto.feit.accu'))}</small><b>${esc(t('auto.accuLeeg'))}</b><span><a href="energie.html#auto">${esc(t('auto.accuWaarom'))}</a></span>`;
+  // Tijdens het laden: deze laadbeurt in plaats van de accu (schets Wand-Auto).
+  const nu = dezeBeurt(a);
+  const z = nu ? zonPct(nu) : null;
+  const derde = nu
+    ? `<small>${esc(t('auto.beurt.deze'))}</small><b>${nl(nu.kWh)} kWh${nu.kosten != null ? ` · ${esc(taal.geld(nu.kosten))}` : ''}</b>${z != null ? `${zonBalk(z)}<span>${esc(t('auto.beurt.zonZin', { pct: z }))}</span>` : ''}`
+    : accu;
   return `<div class="feiten">
       <div><small>${esc(t('auto.feit.laadgrens'))}</small>${grens}</div>
       <div><small>${esc(t('auto.feit.kabel'))}</small><b>${esc(kabelB)}</b>${waar ? `<span>${esc(waar)}</span>` : ''}</div>
-      <div>${accu}</div>
+      <div>${derde}</div>
     </div>`;
 }
 
@@ -190,9 +289,12 @@ function tekenNu() {
     tel.innerHTML = leeg;
     return;
   }
+  void laadBeurten(a.id);
   wandHeld.innerHTML = held(a);
-  wandRechts.innerHTML = `${paalKaart(a)}${instellenKaart()}`;
-  tel.innerHTML = `${held(a)}${paalKaart(a)}${instellenKaart()}`;
+  // De wand scrolt nooit: daar de laatste beurten die passen, en Instellen bovenin; de telefoon heeft de hele week.
+  wandRechts.innerHTML = `${paalKaart(a)}${beurtenKaart(a, 3)}`;
+  pasIn(wandRechts);
+  tel.innerHTML = `${held(a)}${paalKaart(a)}${beurtenKaart(a, 20)}${instellenKaart()}`;
 }
 
 const teken = app.gebundeld(tekenNu);
@@ -214,7 +316,11 @@ app.start('apparaten');
 void laad();
 setInterval(() => void laad(), 30_000);
 // In het voorbeeldhuis verschuift de klok (besluit 237): dan meteen vers.
-addEventListener('voorbeeldklok', () => void laad());
+addEventListener('voorbeeldklok', () => {
+  void laad();
+  const a = deAuto();
+  if (a) void laadBeurten(a.id, true);
+});
 app.live((nieuw) => {
   state = nieuw;
   teken();

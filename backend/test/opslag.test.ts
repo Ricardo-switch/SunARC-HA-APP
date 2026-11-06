@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { HaEntityState } from '../src/adapters/homeassistant/client.js';
 import type { HaDevice, HaRegistryEntity } from '../src/adapters/homeassistant/discovery.js';
-import { autoApparaten, ladenView, leesLaden, vindOpslag, type LadenKeuze } from '../src/web/opslag.js';
+import { autoApparaten, laadMeters, ladenView, leesLaden, vindOpslag, type LadenKeuze } from '../src/web/opslag.js';
 
 type Meting = { id: string; klasse?: string; staat: string; eenheid?: string; naam?: string; platform: string; apparaat: string; extra?: Record<string, unknown>; sinds?: string };
 
@@ -247,6 +247,14 @@ describe('wat de pagina Auto laat zien (besluit 259, stap 2)', () => {
     expect(a).toMatchObject({ laadgrens: 80, stroomA: [6, 6, 5.9], thuis: true, kabelSinds: '2026-11-06T10:20:00Z', wegSinds: null, paalNaam: 'Easee Home', paalStroomA: { min: 6, max: 16 }, vermogenW: 4100, laadt: true });
     // Zonder accu weet de app niet hoe laat hij vol is.
     expect(a.volOm).toBeNull();
+  });
+
+  it('geeft per auto de meter van zijn laadvermogen, voor de laadbeurten (stap 3)', () => {
+    const { reg, states } = registers([tesla, easee], [...auto, ...paal]);
+    expect(laadMeters(reg, states)).toEqual([{ auto: 'tesla', vermogen: 'sensor.easee_power' }]);
+    // Zonder laadpaal en zonder laadvermogen in de auto: geen meter.
+    const alleen = registers([tesla], auto);
+    expect(laadMeters(alleen.reg, alleen.states)).toEqual([{ auto: 'tesla', vermogen: null }]);
   });
 
   it('rekent uit hoe laat hij vol is, of neemt de tijd van de auto zelf', () => {

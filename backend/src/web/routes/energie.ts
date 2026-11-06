@@ -21,6 +21,19 @@ export async function energieRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
     return true;
   }
 
+  // De laadbeurten van een auto (besluit 259, stap 3): alleen lezen, uit de statistiek.
+  if (path === '/api/laadbeurten') {
+    const auto = v.url.searchParams.get('auto') ?? '';
+    const lees = d.options.laadbeurten;
+    if (!lees || !/^[A-Za-z0-9_.:-]{1,64}$/.test(auto)) {
+      sendJson(res, lees ? 400 : 503, lees ? { fout: 'auto is het id van een auto' } : { wachten: 'laadbeurten komen van Home Assistant zodra die verbonden is' });
+      return true;
+    }
+    const uit = await lees(auto).catch(() => null);
+    sendJson(res, 200, { beurten: uit });
+    return true;
+  }
+
   if (path === '/api/aansluiting') {
     await aansluitingRoute(d, req, res, method);
     return true;

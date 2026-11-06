@@ -1,11 +1,13 @@
 # Wat is er nieuw · What is new
 
-## 0.132.0
+## 0.133.0
 
-*6 november 2026*
+*6 november 2026 · 0.132.0 – 0.133.0*
 
 **Nieuw**
 
+- De laadbeurten van de laatste week op de pagina Auto: per beurt hoeveel er geladen is, wat het kostte en welk deel eigen zon was, en alles samen
+- Tijdens het laden staat onder de auto wat deze laadbeurt tot nu toe nam en kostte
 - Een eigen pagina Auto: hoe vol de auto is, of hij laadt en met hoeveel, de stroom per fase, de laadgrens, hoe laat hij vol is, de kabel en of hij onderweg is. De auto zelf is de meter
 - De kaart van de auto op Thuis toont de auto als meter en opent de pagina Auto, net als de auto bij Apparaten
 
@@ -17,6 +19,8 @@
 
 **New**
 
+- The charging sessions of the last week on the Car page: per session how much was charged, what it cost and how much was own solar, and the total
+- While charging, the car shows what this session has taken and cost so far
 - A Car page of its own: how full the car is, whether it charges and how fast, the current per phase, the charge limit, when it is full, the cable and whether it is away. The car itself is the meter
 - The car card on Home shows the car as a meter and opens the Car page, as does the car under Devices
 
