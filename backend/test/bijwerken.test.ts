@@ -9,9 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { HaClient, type HaEntityState } from '../src/adapters/homeassistant/client.js';
-import { changelog, eigenUpdate, leesChangelog, nieuwer, updateView } from '../src/web/bijwerken.js';
+import { changelog, eigenUpdate, leesChangelog, nieuwer, perUitgave, samen, updateView } from '../src/web/bijwerken.js';
 import { wat, type MeldingenBron } from '../src/web/meldingen.js';
-import { NIEUW } from '../src/version.js';
+import { NIEUW, OP_MAIN, VERSIE } from '../src/version.js';
 
 const update = (state: string, latest: string, extra: Record<string, unknown> = {}): HaEntityState => ({
   entity_id: 'update.smart_climate_update',
@@ -24,13 +24,38 @@ const update = (state: string, latest: string, extra: Record<string, unknown> = 
 describe('bijwerken (21 oktober 2026)', () => {
   it('houdt addon/CHANGELOG.md gelijk aan wat er nieuw is (npm run changelog)', async () => {
     const bestand = await readFile(fileURLToPath(new URL('../../addon/CHANGELOG.md', import.meta.url)), 'utf8');
-    expect(bestand.replace(/\r\n/g, '\n')).toBe(changelog(NIEUW));
-    // En de app leest hem weer terug, versie voor versie.
+    expect(bestand.replace(/\r\n/g, '\n')).toBe(changelog(NIEUW, OP_MAIN));
+    // En de app leest hem weer terug, uitgave voor uitgave.
     const terug = leesChangelog(bestand);
-    expect(terug.map((n) => n.versie)).toEqual(NIEUW.map((n) => n.versie));
-    const n0 = NIEUW[0]!;
-    const regels = (x: { nieuw?: readonly string[]; beter?: readonly string[]; opgelost?: readonly string[] }) => ({ nieuw: [...(x.nieuw ?? [])], beter: [...(x.beter ?? [])], opgelost: [...(x.opgelost ?? [])] });
-    expect(terug[0]).toEqual({ versie: n0.versie, ...regels(n0), ...(n0.en ? { en: regels(n0.en) } : {}) });
+    const groepen = perUitgave(NIEUW, OP_MAIN);
+    expect(terug.map((n) => n.versie)).toEqual(groepen.map((g) => g[0]!.versie));
+    const g0 = groepen[0]!;
+    expect(terug[0]).toEqual({ versie: g0[0]!.versie, ...samen(g0), ...(g0.some((n) => n.en) ? { en: samen(g0.map((n) => n.en ?? n)) } : {}) });
+  });
+
+  it('houdt de lijst van main bij: elke versie bestaat, de nieuwste eerst, en de bovenste is de versie van nu of ouder', () => {
+    const versies = NIEUW.map((n) => n.versie);
+    for (const v of OP_MAIN) expect(versies).toContain(v);
+    expect([...OP_MAIN].sort((a, b) => (nieuwer(a, b) ? -1 : 1))).toEqual([...OP_MAIN]);
+    expect(nieuwer(OP_MAIN[0]!, VERSIE)).toBe(false);
+  });
+
+  it('zet versies die alleen op beta stonden onder de uitgave die ze naar main bracht (6 november 2026)', () => {
+    const nieuw = [
+      { versie: '0.50.1', datum: '2026-10-28', opgelost: ['Nog op beta'] },
+      { versie: '0.50.0', datum: '2026-10-27', nieuw: ['Groot'], en: { nieuw: ['Big'] } },
+      { versie: '0.49.1', datum: '2026-10-26', opgelost: ['Klein'], en: { opgelost: ['Small'] } },
+      { versie: '0.49.0', datum: '2026-10-25', beter: ['Sneller'] },
+      { versie: '0.48.0', datum: '2026-10-24', nieuw: ['Eerder'] },
+      { versie: '0.47.0', datum: '2026-10-23', nieuw: ['Oud'] },
+    ];
+    expect(perUitgave(nieuw, ['0.50.0', '0.48.0']).map((g) => g.map((n) => n.versie))).toEqual([['0.50.1'], ['0.50.0', '0.49.1', '0.49.0'], ['0.48.0'], ['0.47.0']]);
+    const md = changelog(nieuw, ['0.50.0', '0.48.0']);
+    expect(md).toContain('## 0.50.0\n\n*27 oktober 2026 · 0.49.0 – 0.50.0*');
+    expect(md).not.toContain('## 0.49.1');
+    expect(leesChangelog(md)[1]).toEqual({ versie: '0.50.0', nieuw: ['Groot'], beter: ['Sneller'], opgelost: ['Klein'], en: { nieuw: ['Big'], beter: ['Sneller'], opgelost: ['Small'] } });
+    // Zonder lijst staat elke versie apart, zoals vroeger.
+    expect(leesChangelog(changelog(nieuw)).map((n) => n.versie)).toEqual(nieuw.map((n) => n.versie));
   });
 
   it('vergelijkt versies, en vindt de update van de eigen add-on', () => {
@@ -67,12 +92,10 @@ describe('bijwerken (21 oktober 2026)', () => {
     expect(md).toContain('*English*');
     expect(md).toContain('**Fixed**');
     const en = updateView('0.46.1', update('on', '0.48.0'), md, true, 'en');
-    expect(en.notities).toEqual([
-      { versie: '0.48.0', nieuw: ['Something nice'], beter: [], opgelost: ['A bug'] },
-      { versie: '0.47.0', nieuw: [], beter: ['Sneller'], opgelost: [] },
-    ]);
+    // Eén overzicht sinds de versie van nu, onder de nieuwste.
+    expect(en.notities).toEqual([{ versie: '0.48.0', nieuw: ['Something nice'], beter: ['Sneller'], opgelost: ['A bug'] }]);
     const nl = updateView('0.46.1', update('on', '0.48.0'), md, true);
-    expect(nl.notities[0]).toEqual({ versie: '0.48.0', nieuw: ['Iets moois'], beter: [], opgelost: ['Een fout'] });
+    expect(nl.notities).toEqual([{ versie: '0.48.0', nieuw: ['Iets moois'], beter: ['Sneller'], opgelost: ['Een fout'] }]);
   });
 
   it('zet een melding klaar, die na het bijwerken onder Eerder komt', () => {

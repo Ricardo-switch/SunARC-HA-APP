@@ -295,6 +295,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [241. De integratie heet sunarc, en gaat naar de standaardlijst van HACS](#241-de-integratie-heet-sunarc-en-gaat-naar-de-standaardlijst-van-hacs)
 - [242. Uit de leerstand, één image, en Vandaag van vóór het openen](#242-uit-de-leerstand-één-image-en-vandaag-van-vóór-het-openen)
 - [249. Zoeken naar updates en opnieuw starten vanuit de app](#249-zoeken-naar-updates-en-opnieuw-starten-vanuit-de-app)
+- [258. Wat er nieuw is: één overzicht per uitgave op main](#258-wat-er-nieuw-is-één-overzicht-per-uitgave-op-main)
 
 **Kwaliteitsbewaking**
 
@@ -12081,6 +12082,32 @@ hoofddak B" zegt niets, bijvoorbeeld bij Opbrengst, waar geen tekening is.
   de vlakken van het hoofddak, anders het oude antwoord "plat"): een plaat met
   een rand, en de panelen erop in rijen, zoals op de garage. Een tik erop opent
   De zon op je daken.
+
+## 258. Wat er nieuw is: één overzicht per uitgave op main
+
+*Onderwerp: uitrol en beheer · Status: geldig*
+
+6 november 2026, op verzoek van de bewoner. Versies 0.122.0 tot en met
+0.129.1 stonden alleen op beta en kwamen samen met 0.129.2 op main. Wie bijwerkte,
+kreeg in Home Assistant en in de app een lange lijst, versie voor versie.
+
+*Besluit (versie 0.129.3):*
+
+- **De changelog per uitgave:** `addon/CHANGELOG.md` heeft per uitgave op main
+  één stuk, onder de versie die naar main ging, met de datum en de reeks (zoals
+  "0.122.0 – 0.129.2"). Wat er in de versies alleen op beta kwam, staat er
+  samen onder Nieuw, Beter en Opgelost, dezelfde regel één keer. De release op
+  GitHub neemt dat stuk over, dus ook daar staat het overzicht sinds de vorige
+  uitgave.
+- **Welke versies op main kwamen:** `OP_MAIN` in version.ts, de nieuwste eerst:
+  de tags `v<versie>` en de versie van een open PR beta → main. Bij een PR naar
+  main komt de bovenste versie erbij. Versies van vóór 0.115.0 staan elk apart.
+- **In de app:** de melding dat er een versie klaarstaat geeft één overzicht van
+  alles sinds de versie van nu. "Wat is er nieuw" na een update ook: alles sinds
+  de versie die dit toestel eerder zag (van de tien die de app kent).
+- **Vóór elke versie** gaan de nieuwe issues en ideeën op GitHub na, en wat
+  nieuw is, komt in de prio-lijst. Lost een versie een melding uit de app op,
+  dan krijgt die versie de uitkomst van de meldcode mee (besluit 250).
 
 ---
 

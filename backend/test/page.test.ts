@@ -173,7 +173,7 @@ import { exampleSite, exampleSitePath } from './site.js';
 import { readFileSync } from 'node:fs';
 import { parseSiteConfig } from '../src/config/schema.js';
 import { defaultStrategies } from '../src/index.js';
-import { VERSIE } from '../src/version.js';
+import { NIEUW, VERSIE, eersteVan } from '../src/version.js';
 import { comfortView, controleerComfort, withComfort, type Comfort } from '../src/web/comfort.js';
 import type { SiteConfig } from '../src/core/model.js';
 
@@ -1679,6 +1679,9 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     const pop = p.locator('[data-nieuwpop]');
     await pop.waitFor({ timeout: 10_000 });
     expect(await pop.textContent()).toContain(`Wat is er nieuw in ${VERSIE}`);
+    // Eén overzicht sinds de versie die je eerder zag, ook wat in een eerdere versie kwam (6 november 2026).
+    expect(await pop.textContent()).toContain(eersteVan(NIEUW[1]!));
+    expect(await pop.locator('.soort.opgelost').count()).toBeLessThanOrEqual(1);
     expect(await p.locator('[data-nieuw-dicht]').textContent()).toBe('Oké');
     await p.locator('[data-nieuw-dicht]').click();
     expect(await pop.count()).toBe(0);

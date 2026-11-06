@@ -1805,6 +1805,13 @@
       }
       n = v.nieuw?.[0];
       if (gezien == null || gezien === v.nummer || !n || n.versie !== v.nummer) return;
+      // Eén overzicht van alles sinds de versie die je eerder zag (6 november 2026), niet alleen de nieuwste.
+      const sinds = [];
+      for (const x of v.nieuw) {
+        if (x.versie === gezien) break;
+        sinds.push(x);
+      }
+      if (sinds.length > 1) n = { ...n, ...Object.fromEntries(UPDATE_SOORT.map((k) => [k, [...new Set(sinds.flatMap((x) => x[k] ?? []))]])) };
     }
     const delen = (welke ? '' : eigenUitkomsten(v.nieuw)) + UPDATE_SOORT.filter((k) => (n[k] ?? []).length).map((k) => `<div class="soort ${k}"><span class="label">${esc(soortNaam(k))}</span><ul>${n[k].map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>`).join('');
     document.body.insertAdjacentHTML('beforeend', `<div class="meldachter" data-nieuw-achter></div><div class="glas nieuwpop" role="dialog" aria-modal="true" aria-labelledby="nieuwkop" data-nieuwpop>
