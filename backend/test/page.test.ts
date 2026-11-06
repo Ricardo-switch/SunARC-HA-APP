@@ -5084,6 +5084,8 @@ return { x, y, wat: wat.slice(-3).join(' > ') };
     await context.addCookies([{ name: 'hems_sessie', value: sessionId, url: baseUrl }]);
     await context.addInitScript(() => localStorage.setItem('sc-rondleiding-gezien', '1'));
     await context.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+    // Het voorbeeld rechtstreeks, met de datum van nu: over middernacht rekende de dienst opnieuw, uit een leeg logboek.
+    await context.route(`${baseUrl}/api/thermisch`, (route) => route.fulfill({ json: THERMISCH_VOORBEELD(Date.now()) }));
     const p = await context.newPage();
     const fouten: string[] = [];
     p.on('pageerror', (e) => fouten.push(e.message));
