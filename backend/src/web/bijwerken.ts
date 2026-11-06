@@ -68,11 +68,43 @@ function blok(n: Pick<Nieuw, Soort>, lang: Lang): string[] {
   return regels;
 }
 
-/** `addon/CHANGELOG.md` uit `NIEUW`: per versie de datum en wat nieuw, beter en opgelost is, in het Nederlands en (als het er is) in het Engels. */
-export function changelog(nieuw: readonly Nieuw[]): string {
-  const delen = nieuw.map((n) => {
-    const regels = [`## ${n.versie}`, '', `*${DATUM.format(Date.parse(`${n.datum}T12:00:00Z`))}*`, ...blok(n, 'nl')];
-    if (n.en) regels.push('', '*English*', ...blok(n.en, 'en'));
+/** Wat nieuw, beter en opgelost is in een reeks versies, samen onder één kopje per soort; dezelfde regel één keer. */
+export function samen(lijst: readonly Partial<Record<Soort, readonly string[]>>[]): Record<Soort, string[]> {
+  const uit: Record<Soort, string[]> = { nieuw: [], beter: [], opgelost: [] };
+  for (const [k] of KOPPEN.nl) uit[k] = [...new Set(lijst.flatMap((n) => n[k] ?? []))];
+  return uit;
+}
+
+/**
+ * De versies per uitgave op main (6 november 2026). Wat alleen op beta stond,
+ * hoort bij de uitgave die het naar main bracht: wie van main bijwerkt, ziet
+ * één overzicht van alles sinds de vorige uitgave in plaats van een lange
+ * lijst versies. Versies van vóór de oudste in `opMain` staan elk apart.
+ */
+export function perUitgave(nieuw: readonly Nieuw[], opMain: readonly string[]): Nieuw[][] {
+  const main = new Set(opMain);
+  const oudste = opMain.reduce<string | null>((o, v) => (o == null || nieuwer(o, v) ? v : o), null);
+  const groepen: Nieuw[][] = [];
+  for (const n of nieuw) {
+    const eigen = main.has(n.versie) || oudste == null || nieuwer(oudste, n.versie);
+    const laatste = groepen.at(-1);
+    // Een uitgave begint bij zijn eigen versie; een versie alleen op beta hoort bij de uitgave erboven
+    // (bovenaan, nog niet op main: dan vormen ze samen de volgende uitgave).
+    if (eigen || !laatste) groepen.push([n]);
+    else laatste.push(n);
+  }
+  return groepen;
+}
+
+/** `addon/CHANGELOG.md` uit `NIEUW`: per uitgave op main de datum en wat nieuw, beter en opgelost is, in het Nederlands en (als het er is) in het Engels. */
+export function changelog(nieuw: readonly Nieuw[], opMain: readonly string[] = []): string {
+  const delen = perUitgave(nieuw, opMain).map((g) => {
+    const kop = g[0]!;
+    const datum = DATUM.format(Date.parse(`${kop.datum}T12:00:00Z`));
+    const reeks = g.length > 1 ? ` · ${g.at(-1)!.versie} – ${kop.versie}` : '';
+    const regels = [`## ${kop.versie}`, '', `*${datum}${reeks}*`, ...blok(samen(g), 'nl')];
+    // Engels als een versie het heeft; een versie zonder Engels geeft dan zijn Nederlands.
+    if (g.some((n) => n.en)) regels.push('', '*English*', ...blok(samen(g.map((n) => n.en ?? n)), 'en'));
     return regels.join('\n');
   });
   return `# Wat is er nieuw · What is new\n\n${delen.join('\n\n')}\n`;
@@ -137,7 +169,7 @@ export interface UpdateView {
   readonly nieuwste: string | null;
   /** Wordt er nu bijgewerkt? */
   readonly bezig: boolean;
-  /** Wat er nieuw is in elke versie na die van nu, de nieuwste eerst. */
+  /** Wat er nieuw is sinds de versie van nu: één overzicht, onder de nieuwste versie. */
   readonly notities: readonly Notitie[];
   /** Mag wie kijkt bijwerken (de beheerder)? */
   readonly magBijwerken: boolean;
@@ -147,6 +179,8 @@ export interface UpdateView {
 export function updateView(nu: string, s: HaEntityState | null, releaseNotes: string | null, magBijwerken: boolean, lang: Lang = 'nl'): UpdateView {
   const nieuwste = typeof s?.attributes['latest_version'] === 'string' ? (s.attributes['latest_version'] as string).replace(/^v/, '') : null;
   const beschikbaar = s?.state === 'on' && nieuwste != null && nieuwer(nieuwste, nu);
-  const notities = beschikbaar && releaseNotes ? leesChangelog(releaseNotes).filter((n) => nieuwer(n.versie, nu) && !nieuwer(n.versie, nieuwste!)).map((n) => notitieInTaal(n, lang)) : [];
+  const los = beschikbaar && releaseNotes ? leesChangelog(releaseNotes).filter((n) => nieuwer(n.versie, nu) && !nieuwer(n.versie, nieuwste!)).map((n) => notitieInTaal(n, lang)) : [];
+  // Eén overzicht van alles sinds de versie van nu, ook als er uitgaven tussen zitten (6 november 2026).
+  const notities: Notitie[] = los.length > 1 ? [{ versie: los[0]!.versie, ...samen(los) }] : los;
   return { beschikbaar, nu, nieuwste, bezig: s?.attributes['in_progress'] === true, notities, magBijwerken };
 }

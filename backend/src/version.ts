@@ -66,13 +66,33 @@ export function eersteVan(n: Pick<Nieuw, 'nieuw' | 'beter' | 'opgelost'>): strin
 /** Zoveel versies terug laat de app zien (besluit 133). */
 export const TERUGKIJKEN = 10;
 
+/**
+ * De versies die op main kwamen, de nieuwste eerst (6 november 2026): de tags
+ * `v<versie>`, plus de versie van een open PR beta → main. De changelog zet
+ * alles wat alleen op beta stond onder de uitgave die het naar main bracht, zo
+ * ziet wie bijwerkt één overzicht sinds de vorige uitgave. Bij een PR naar
+ * main komt de bovenste versie erbij. Oudere versies staan elk apart.
+ */
+export const OP_MAIN: readonly string[] = [
+  '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
+  '0.117.1', '0.117.0', '0.116.0', '0.115.2', '0.115.1', '0.115.0',
+];
+
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
   {
     versie: '0.129.3',
     datum: '2026-11-06',
-    beter: ['Wie iets meldde via Meld een probleem, ziet na deze update wat ermee gebeurde: oost-west op een plat dak, het platte dak op Thuis, de richting van de panelen en Hoe voelt het huis'],
-    en: { beter: ['If you reported something via Report a problem, this update tells you what happened to it: east-west on a flat roof, the flat roof on Home, the direction of the panels and How does the house feel'] },
+    beter: [
+      'Wat er nieuw is, staat in één overzicht sinds je vorige versie, ook als er versies tussen zaten: in de app, bij Home Assistant en op GitHub',
+      'Wie iets meldde via Meld een probleem, ziet na deze update wat ermee gebeurde: oost-west op een plat dak, het platte dak op Thuis, de richting van de panelen en Hoe voelt het huis',
+    ],
+    en: {
+      beter: [
+        'What is new comes in one overview since your previous version, also when versions came in between: in the app, in Home Assistant and on GitHub',
+        'If you reported something via Report a problem, this update tells you what happened to it: east-west on a flat roof, the flat roof on Home, the direction of the panels and How does the house feel',
+      ],
+    },
     meldingen: [
       {
         code: 'SA-HBBN',
