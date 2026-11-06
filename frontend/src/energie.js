@@ -40,6 +40,8 @@ const dakStaat = { scherm: 'alle', concept: null, origineel: null, genomen: fals
 })() };
 /** Het deel dat het laatst getekend werd: wie Daken en panelen opent, begint bij de vlakken. */
 let vorigDeel = null;
+/** Auto en laadpaal (besluit 259, laden.js): welk apparaat rechts openstaat. */
+const ladenStaat = { wie: null };
 
 const leeg = () => ({ versie: 1, bron: 'zelf', net: { afname: [], teruglevering: [] }, zon: [], gas: null, apparaten: [], prijzen: { stroom: null, teruglevering: null, gas: null, vastPerMaand: null } });
 /** Tarief 1 van een slimme meter is het daltarief (zelfde regel als de dienst, tarief.ts). */
@@ -83,6 +85,8 @@ async function laadAlles() {
       opZon: { ...(x?.opZon ?? {}) },
       // Apparaten uit de configuratie die van zon zijn gehaald (besluit 167): gaan mee.
       opZonUit: [...(x?.opZonUit ?? [])],
+      // Auto en laadpaal (besluit 259): wat de bewoner uitzette of zelf koos, en per auto de instelling.
+      laden: JSON.parse(JSON.stringify(x?.laden ?? { aan: {}, rol: {}, instelling: {} })),
     };
   }
   if (ei.status === 'fulfilled') {
@@ -130,6 +134,8 @@ function delen() {
     { id: 'meters', titel: t('energie.meters'), zin: e ? [e.net.afname.length ? t('energie.stroom') : null, e.gas ? t('energie.gas') : null, e.apparaten.length ? t('energie.nApparaten', { n: e.apparaten.length }) : null].filter(Boolean).join(', ') || t('instellingen.nogKiezen') : '…', stand: !e ? null : e.net.afname.length ? 'goed' : 'mist' },
     { id: 'prijzen', titel: t('energie.prijzen'), zin: !e ? '…' : p.dynamisch ? t('energie.prijsPerUur') : p.stroom == null ? t('energie.prijsMist') : t('energie.prijsPerKwh', { prijs: nl(p.stroom, 2) }), stand: !e ? null : prijsMist ? 'mist' : 'goed' },
     { id: 'verwarming', titel: t('energie.verwarming'), zin: soort ? (a.verwarming.aanvoerC ? t('energie.aanvoer', { soort, c: a.verwarming.aanvoerC }) : soort) : t('instellingen.nogKiezen'), stand: !aInfo ? null : a.verwarming.soort ? 'goed' : 'leeg' },
+    // Auto en laadpaal (besluit 259): niets gevonden mist niet; niet elk huis heeft een auto.
+    { id: 'auto', titel: t('laden.titel'), zin: laden.kortZin(aInfo) ?? '…', stand: !aInfo ? null : (aInfo.laden?.apparaten ?? []).some((x) => x.aan) ? 'goed' : 'leeg' },
   ];
 }
 
@@ -394,7 +400,7 @@ function verwarmingVorm() {
 /* Ernaast */
 
 /** Per deel hoeveel punten er bij "Waarvoor dit nodig is" staan (energie.naast.<deel>.<n>). */
-const NAAST = { panelen: 2, aansluiting: 2, meters: 2, prijzen: 3, verwarming: 2 };
+const NAAST = { panelen: 2, aansluiting: 2, meters: 2, prijzen: 3, verwarming: 2, auto: 2 };
 
 function naast(id) {
   const deel = NAAST[id] ? id : 'panelen';
@@ -426,6 +432,7 @@ function tekenNu() {
     meters: () => (e ? metersVorm() : wacht),
     prijzen: () => (e ? prijzenVorm() : wacht),
     verwarming: () => (a ? verwarmingVorm() : wacht),
+    auto: () => (a ? laden.vorm(aInfo, a, ladenStaat) : wacht),
   }[nu]?.() ?? wacht;
   // Een eigen voorvoegsel per scherm voor de namen in de tekening van boven (besluit 254): wand en telefoon staan allebei in de pagina.
   $$('[data-vorm]').forEach((el, i) => (el.innerHTML = vorm.replaceAll('dkid-', `dk${i}-`)));
@@ -446,7 +453,7 @@ function bewaarAansluiting(ookEnergie = false, zonOok = false) {
   groep.bewaarStraks(async () => {
     const opZon = Object.fromEntries(Object.entries(a.opZon).filter(([, v]) => typeof v === 'boolean'));
     // De netmeter en de omvormers alleen als ze hier gekozen zijn; anders houdt de dienst wat er stond.
-    const uit = await groep.stuur('api/aansluiting', { panelen: a.panelen, zekering: a.zekering, tarief: a.tarief, verwarming: a.verwarming, voorkantZon: a.voorkantZon, dak: a.dak, elders: a.elders, daken: a.daken, opZon, opZonUit: a.opZonUit, netmeter: a.netmeter, omvormers: a.omvormers });
+    const uit = await groep.stuur('api/aansluiting', { panelen: a.panelen, zekering: a.zekering, tarief: a.tarief, verwarming: a.verwarming, voorkantZon: a.voorkantZon, dak: a.dak, elders: a.elders, daken: a.daken, opZon, opZonUit: a.opZonUit, netmeter: a.netmeter, omvormers: a.omvormers, laden: a.laden });
     if (uit?.ok) {
       aInfo = uit.antwoord;
       // Het dak zoals de dienst het bewaarde: "klopt" en "aanpassen" worden een gewoon dak.
@@ -569,6 +576,15 @@ document.addEventListener('click', async (ev) => {
   // De dakvlakken en gebouwen in de tekening van boven zijn geen knoppen, maar wel aan te tikken (besluit 254).
   const knop = ev.target.closest('button, [data-dak-dakvlak], [data-dak-kandidaat], [data-dak-gebouw]');
   if (!knop || knop.disabled) return;
+  // Auto en laadpaal (besluit 259).
+  if (a) {
+    const wat = laden.klik(knop, aInfo, a, ladenStaat);
+    if (wat === 'teken') return teken();
+    if (wat) {
+      teken();
+      return bewaarAansluiting();
+    }
+  }
   // Het vraagteken bij Daken en panelen (Ricardo, 5 november 2026): de rondleiding opnieuw, zoals op Thuis.
   if (knop.hasAttribute('data-dak-uitleg')) {
     if (dakStaat.scherm !== 'alle') {
@@ -726,6 +742,11 @@ document.addEventListener('change', (ev) => {
   const dak = dakvlakken.verander(t, dakStaat, aInfo?.daken);
   if (dak === 'teken') return teken();
   if (dak) return bewaarDaken(dak);
+  // Auto en laadpaal (besluit 259).
+  if (a && laden.verander(t, aInfo, a, ladenStaat)) {
+    teken();
+    return bewaarAansluiting();
+  }
   // De netmeter en de omvormers (testerronde, november 2026).
   if (a && vermogens.verander(t, aInfo, a)) {
     teken();

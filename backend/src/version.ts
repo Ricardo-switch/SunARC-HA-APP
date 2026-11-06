@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.130.0';
+export const VERSIE = '0.131.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,43 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.131.0',
+    datum: '2026-11-06',
+    nieuw: [
+      'Bij Energie staat Auto en laadpaal: wat SunArc vond, elk met een schakelaar, en zelf een ander apparaat kiezen. Meerdere auto’s en laadpalen kan ook',
+      'Per auto vul je de accu in, aan welke laadpaal hij laadt en waar hij in de tekening staat: op de oprit, onder de carport of in de garage',
+    ],
+    opgelost: [
+      'De klimaatregeling van een auto telt niet meer als klimaat in huis',
+    ],
+    en: {
+      nieuw: [
+        'Energy has Car and charger: what SunArc found, each with a switch, and choose another device yourself. Several cars and chargers work too',
+        'For each car you fill in the battery, which charger it uses and where it stands in the drawing: on the driveway, under the carport or in the garage',
+      ],
+      opgelost: [
+        'A car’s climate control no longer counts as climate in the home',
+      ],
+    },
+    meldingen: [
+      {
+        code: 'SA-XSNV',
+        uitkomst: 'opgelost',
+        tekst: 'Bij Energie › Auto en laadpaal kies je zelf welk apparaat je auto is, en zet je hem in de garage. De thuisbatterij in de garage komt later.',
+        tekstEn: 'In Energy › Car and charger you choose which device is your car, and put it in the garage. The home battery in the garage comes later.',
+        href: 'energie.html#auto',
+        issue: 123,
+      },
+      {
+        code: 'SA-HX7L',
+        uitkomst: 'opgelost',
+        tekst: 'De klimaatregeling van je MICRA hoort nu bij de auto en staat niet meer als klimaat in huis.',
+        tekstEn: 'The climate control of your MICRA now belongs to the car and no longer shows as climate in the home.',
+        issue: 132,
+      },
+    ],
+  },
   {
     versie: '0.130.0',
     datum: '2026-11-06',

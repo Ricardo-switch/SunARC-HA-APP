@@ -20,7 +20,7 @@
  * verborgen zijn: die is zelf de lamp (een armatuur, zie `collect`).
  */
 
-import { vindOpslag, type Opslag } from './opslag.js';
+import { autoApparaten, vindOpslag, type Opslag } from './opslag.js';
 import { doelSoort, type DoelSoort } from './doelsoort.js';
 import type { Warmtebron } from './warmte.js';
 import { STANDAARD_DAGDELEN } from '../config/standaard.js';
@@ -1353,8 +1353,11 @@ function collect(
     .filter((e) => inConfig.has(e.entity_id) && e.device_id)
     .map((e) => devById.get(e.device_id!))
     .filter((d): d is HaDevice => d != null);
+  // Het klimaat van een auto hoort bij de auto, niet bij het huis (melding 132, besluit 259).
+  const autos = autoApparaten(registers, states);
   for (const e of registers.entities) {
     if (!e.entity_id.startsWith('climate.') || e.disabled_by || e.hidden_by || inConfig.has(e.entity_id)) continue;
+    if (e.device_id && autos.has(e.device_id)) continue;
     const eigen = e.device_id ? devById.get(e.device_id) : undefined;
     if (eigen && configDevs.some((c) => sameDevice(c, eigen))) continue;
     const st = states.get(e.entity_id);
@@ -1410,7 +1413,8 @@ function collect(
   );
   const zoneSensors = new Set(config.zones.flatMap((z) => [z.temperature.id, ...(z.temperatures ?? []).map((t) => t.id)]));
   for (const [deviceId, r] of sensorsOf) {
-    if (climateDevices.has(deviceId)) continue;
+    // Ook de binnentemperatuur van een auto is geen meter in huis (melding 132).
+    if (climateDevices.has(deviceId) || autos.has(deviceId)) continue;
     const id = r.temp ?? r.hum ?? r.motion;
     if (!id) continue;
     const dev = devices.get(deviceId);

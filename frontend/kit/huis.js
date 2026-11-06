@@ -2161,8 +2161,11 @@
       buitenAchter.push(poly([[x0 - 0.05, y0 + d + 0.08, h], [x0 + b + 0.05, y0 + d + 0.08, h], [x0 + b + 0.05, y0 + d + 0.08, h + 0.06], [x0 - 0.05, y0 + d + 0.08, h + 0.06]], 'fill="#3d4957"'));
       // De kanteldeur, met lamellen.
       const yd = y0 + d + 0.001;
-      buitenAchter.push(poly([[x0 + 0.22, yd, 0.02], [x0 + b - 0.22, yd, 0.02], [x0 + b - 0.22, yd, h - 0.18], [x0 + 0.22, yd, h - 0.18]], `fill="${gar.lampAan ? '#6b5a3c' : '#4f5c6a'}"`));
-      for (let z = 0.2; z < h - 0.2; z += 0.18) buitenAchter.push(line([[x0 + 0.22, yd + 0.001, z], [x0 + b - 0.22, yd + 0.001, z]], 'stroke="#3b4652" stroke-width="1"'));
+      if (gar.auto) bouwAutoInGarage(gar, x0, b, yd, h);
+      else {
+        buitenAchter.push(poly([[x0 + 0.22, yd, 0.02], [x0 + b - 0.22, yd, 0.02], [x0 + b - 0.22, yd, h - 0.18], [x0 + 0.22, yd, h - 0.18]], `fill="${gar.lampAan ? '#6b5a3c' : '#4f5c6a'}"`));
+        for (let z = 0.2; z < h - 0.2; z += 0.18) buitenAchter.push(line([[x0 + 0.22, yd + 0.001, z], [x0 + b - 0.22, yd + 0.001, z]], 'stroke="#3b4652" stroke-width="1"'));
+      }
       if (gar.lampAan) {
         const c = P(x0 + b / 2, yd + 0.4, 0.02);
         buitenAchter.push(`<ellipse cx="${c[0]}" cy="${c[1]}" rx="${k * 0.7}" ry="${k * 0.28}" fill="#FFD39A" opacity="0.22" filter="url(#${id}-zacht)"/>`);
@@ -2172,6 +2175,31 @@
         plaatPanelen(x0 + 0.1, y0 + 0.1, b - 0.2, d - 0.15, h + 0.06, gar.panelen, buitenAchter);
         plek.panelenGarage = [x0 + b / 2, y0 + d / 2, h + 0.3];
       }
+    }
+    /**
+     * Een auto in de garage (idee 123, besluit 259): de kanteldeur staat
+     * omhoog, binnen is het donker (of warm met de lamp aan), en de neus van de
+     * auto kijkt naar buiten. Laadt hij, dan brandt de laadpaal aan de wand.
+     */
+    function bouwAutoInGarage(gar, x0, b, yd, h) {
+      const xl = x0 + 0.22;
+      const xr = x0 + b - 0.22;
+      const top = h - 0.32;
+      // Binnen, en de opgeklapte deur erboven.
+      buitenAchter.push(poly([[xl, yd, 0.02], [xr, yd, 0.02], [xr, yd, top], [xl, yd, top]], `fill="${gar.lampAan ? '#3d3326' : '#141b24'}"`));
+      buitenAchter.push(poly([[xl, yd, top], [xr, yd, top], [xr, yd, h - 0.18], [xl, yd, h - 0.18]], 'fill="#4f5c6a"'));
+      buitenAchter.push(line([[xl, yd + 0.001, top + 0.07], [xr, yd + 0.001, top + 0.07]], 'stroke="#3b4652" stroke-width="1"'));
+      // De laadpaal aan de wand, links binnen.
+      buitenAchter.push(poly([[xl + 0.06, yd, 0.42], [xl + 0.16, yd, 0.42], [xl + 0.16, yd, 0.66], [xl + 0.06, yd, 0.66]], 'fill="#c5cfd8"'));
+      buitenAchter.push(poly([[xl + 0.085, yd, 0.56], [xl + 0.135, yd, 0.56], [xl + 0.135, yd, 0.61], [xl + 0.085, yd, 0.61]], `fill="${gar.auto.laadt ? KLEUR.mint : '#66727f'}" ${gar.auto.laadt ? 'class="sc-puls"' : ''}`));
+      // De neus van de auto: wielen, de voorkant, de lampen en de voorruit.
+      const lak = gar.auto.kleur ?? '#8fa3b8';
+      const xc = x0 + b / 2 + 0.08;
+      const hb = 0.42;
+      for (const wx of [xc - 0.4, xc + 0.3]) buitenAchter.push(poly([[wx, yd, 0.02], [wx + 0.1, yd, 0.02], [wx + 0.1, yd, 0.18], [wx, yd, 0.18]], 'fill="#0b1016"'));
+      buitenAchter.push(poly([[xc - 0.44, yd, 0.12], [xc + 0.44, yd, 0.12], [xc + 0.44, yd, hb], [xc - 0.44, yd, hb]], `fill="${schaduw(lak, 0.85)}"`));
+      for (const lx of [xc - 0.38, xc + 0.26]) buitenAchter.push(poly([[lx, yd, 0.3], [lx + 0.12, yd, 0.3], [lx + 0.12, yd, 0.36], [lx, yd, 0.36]], 'fill="#eef2e6" opacity="0.9"'));
+      buitenAchter.push(poly([[xc - 0.36, yd, hb], [xc + 0.36, yd, hb], [xc + 0.28, yd, hb + 0.24], [xc - 0.28, yd, hb + 0.24]], 'fill="#2b4562"'));
     }
     /**
      * Panelen op een plat dak (huis 3.0): rijen schuine panelen op rekken, naar
