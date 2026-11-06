@@ -1025,11 +1025,11 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await p.goto(`${baseUrl}/indeling.html#${encodeURIComponent(kamer.id)}/warmte`);
     const blad = p.locator('#wand [data-blad]');
     await blad.locator('[data-kamertab="warmte"][aria-selected="true"]').waitFor({ timeout: 10_000 });
-    // Een thermostaat die alleen verwarmt, is de thermostaat van de cv-ketel (besluit 167): geen "Wat hangt eraan?".
+    // Een thermostaat die alleen verwarmt, is de thermostaat van de cv-ketel (besluit 167). Wat eraan hangt, kies je ook daar (issue 140).
     const ketel = huis.etages.flatMap((e) => e.ruimtes).flatMap((r) => r.apparaten).find((d) => d.soort === 'klimaat' && !d.radiatorknop && d.klimaat?.kanVerwarmen && !d.klimaat.kanKoelen)!;
     expect(ketel.actuatorId).toBe(thermo.actuatorId);
     await blad.locator('.bron', { hasText: 'Thermostaat van de cv-ketel' }).waitFor({ timeout: 10_000 });
-    expect(await blad.locator(`[data-bron-nieuw="${thermo.actuatorId}"]`).count()).toBe(0);
+    expect(await blad.locator(`[data-bron-nieuw="${thermo.actuatorId}"]`).count()).toBe(1);
     // Een radiator op de cv: aan met de thermostaat van de ketel, zonder een apparaat te kiezen.
     await blad.locator('[data-bron-nieuw=""]').click();
     await blad.locator('[data-bron-soort="radiator"]').click();
