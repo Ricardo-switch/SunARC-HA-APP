@@ -11,7 +11,7 @@ import type { Geometry, SiteConfig } from '../core/model.js';
 import type { LiveSnapshot } from '../adapters/homeassistant/shadow.js';
 import { TodayCache, withHistory, type TodayReport } from './today.js';
 import { SolarHistory, learnSolar } from './solar-learn.js';
-import type { ThermischLeer } from './thermisch.js';
+import { ThermischLeer } from './thermisch.js';
 import type { YieldReport } from './yield.js';
 import type { accuJaar } from './accu.js';
 import { LANGS } from './assistant.js';
@@ -161,6 +161,22 @@ export class Diensten {
     const zon = loc ? sunPosition(Date.now(), loc.latDeg, loc.lonDeg) : null;
     const metZon = zon ? { ...snapshot, zonNu: zonNuVan(zon.elevationDeg, zon.azimuthDeg) } : snapshot;
     return { ...snapshot, bewoner: residentView(config, metZon, taal) };
+  }
+
+  /**
+   * Hoe het huis warmte vasthoudt, op de achtergrond (6 november 2026): kort na
+   * het opstarten als er nog niets bewaard is, en verder elke nacht. Zo hoeft
+   * een pagina nooit te wachten op het lezen van een half jaar logboek.
+   */
+  startThermisch(): void {
+    const logDir = this.options.logDir;
+    if (logDir == null) return;
+    this.thermisch ??= new ThermischLeer({ logDir });
+    this.thermisch.achtergrond(() => this.config(), { meld: (tekst) => this.options.write(`  ${tekst}`) });
+  }
+
+  stopThermisch(): void {
+    this.thermisch?.stop();
   }
 
   /** De configuratie zoals hij nu is (besluit 130). */

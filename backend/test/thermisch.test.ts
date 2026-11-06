@@ -2,9 +2,13 @@
  * Hoe je huis warmte vasthoudt (besluit 231): uit een nagemaakt logboek met
  * een bekende kamer haalt het leren dezelfde getallen terug.
  */
-import { describe, expect, it } from 'vitest';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 
-import { leerThermisch, type ThermischMoment } from '../src/web/thermisch.js';
+import type { SiteConfig } from '../src/core/model.js';
+import { THERMISCH_FILE, ThermischLeer, leerThermisch, type ThermischMoment } from '../src/web/thermisch.js';
 
 const BUITEN = 5;
 const K = 0.01;
@@ -72,5 +76,87 @@ describe('hoe je huis warmte vasthoudt (besluit 231)', () => {
 
   it('heeft zonder logboek niets te zeggen', () => {
     expect(leerThermisch([], ZONES, Date.now()).zones).toEqual([]);
+  });
+});
+
+/*
+ * Rekenen op de achtergrond (6 november 2026): per kwartier optellen tijdens
+ * het lezen, de uitkomst bewaren, en een pagina krijgt meteen wat er is.
+ */
+describe('warmte vasthouden op de achtergrond', () => {
+  const CONFIG = {
+    timezone: 'Europe/Amsterdam',
+    zones: [{ id: 'kamer', name: 'Kamer', actuatorIds: ['nest', 'airco'] }],
+    actuators: [
+      { id: 'nest', name: 'Nest', capabilities: { canHeat: true, canCool: false } },
+      { id: 'airco', name: 'Airco kamer', capabilities: { canHeat: true, canCool: true } },
+    ],
+  } as unknown as SiteConfig;
+
+  /** Het nagemaakte logboek als dagbestanden, in de vorm van het echte logboek. */
+  async function logMap(dagen: number): Promise<string> {
+    const dir = await mkdtemp(join(tmpdir(), 'hems-thermisch-'));
+    const perDag = new Map<string, string[]>();
+    for (const m of logboek(dagen)) {
+      const dag = new Date(m.tMs).toISOString().slice(0, 10);
+      const regel = { t: m.tMs, zonesT: m.zones.map((z) => [z.id, z.temperatureC, 'none']), obs: m.observed, buitenC: m.outdoorC, zonW: m.solarW };
+      (perDag.get(dag) ?? perDag.set(dag, []).get(dag)!).push(JSON.stringify(regel));
+    }
+    for (const [dag, regels] of perDag) await writeFile(join(dir, `decisions-${dag}.ndjson`), `${regels.join('\n')}\n`);
+    return dir;
+  }
+
+  it('leert uit het logboek hetzelfde als uit de momenten, en bewaart het', async () => {
+    const dir = await logMap(25);
+    try {
+      const nu = Date.UTC(2026, 9, 26, 12);
+      const leer = new ThermischLeer({ logDir: dir, now: () => nu });
+      expect(await leer.bewaard()).toBeNull();
+      const r = (await leer.bijwerken(CONFIG))!;
+      const verwacht = leerThermisch(logboek(25), ZONES, nu, 'Europe/Amsterdam');
+      expect(r).toEqual(verwacht);
+      expect(r.dag).toBe('2026-10-26');
+      const opSchijf = JSON.parse(await readFile(join(dir, THERMISCH_FILE), 'utf-8'));
+      expect(opSchijf).toEqual(verwacht);
+      // Na een herstart komt het van schijf, zonder te rekenen.
+      const weer = new ThermischLeer({ logDir: dir, now: () => nu });
+      expect(await weer.bewaard()).toEqual(verwacht);
+      expect(weer.nodig('Europe/Amsterdam')).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('vernieuwt een rapport van gisteren pas in de nacht, in de tijdzone van het huis', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'hems-thermisch-'));
+    try {
+      await writeFile(join(dir, THERMISCH_FILE), JSON.stringify({ versie: 1, dag: '2026-11-05', sindsMs: null, dagen: 0, zones: [], stand: 'leert' }));
+      let nu = Date.UTC(2026, 10, 6, 1, 30); // 02:30 in Amsterdam
+      const leer = new ThermischLeer({ logDir: dir, now: () => nu });
+      await leer.bewaard();
+      expect(leer.nodig('Europe/Amsterdam')).toBe(false);
+      nu = Date.UTC(2026, 10, 6, 2, 30); // 03:30
+      expect(leer.nodig('Europe/Amsterdam')).toBe(true);
+      // Zonder rapport altijd.
+      expect(new ThermischLeer({ logDir: dir }).nodig('Europe/Amsterdam')).toBe(true);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('rekent op de achtergrond als er nog niets is, en schrijft het bestand', async () => {
+    const dir = await logMap(3);
+    const leer = new ThermischLeer({ logDir: dir });
+    try {
+      const meldingen: string[] = [];
+      leer.achtergrond(() => CONFIG, { eersteMs: 0, elkeMs: 60_000, meld: (t) => meldingen.push(t) });
+      await vi.waitFor(() => expect(meldingen.length).toBe(1), { timeout: 5_000 });
+      expect(meldingen[0]).toMatch(/uitgerekend/);
+      expect(leer.current).not.toBeNull();
+      expect(JSON.parse(await readFile(join(dir, THERMISCH_FILE), 'utf-8')).versie).toBe(1);
+    } finally {
+      leer.stop();
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

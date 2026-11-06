@@ -8,7 +8,7 @@
  */
 'use strict';
 
-const { $$, esc, haal } = app;
+const { $$, esc } = app;
 
 const d = { site: null, huis: null, functies: null, energie: null, aansluiting: null, state: null, divergence: null, opbrengst: null, accu: null, thermisch: null, zon: null, klaar: null };
 /** Laat alleen deze stand zien, of alles. */
@@ -16,11 +16,8 @@ let filter = null;
 
 async function laadAlles() {
   const deuren = { site: 'api/site', huis: 'api/huis', functies: 'api/functies', energie: 'api/energie', aansluiting: 'api/aansluiting', state: 'api/state', divergence: 'api/divergence', opbrengst: 'api/opbrengst?soort=maand', accu: 'api/accu', thermisch: 'api/thermisch', zon: 'api/zon', klaar: 'api/klaarzetten', sluip: 'api/sluipverbruik' };
-  const r = await Promise.allSettled(Object.values(deuren).map((p) => haal(p)));
-  Object.keys(deuren).forEach((k, i) => {
-    if (r[i].status === 'fulfilled') d[k] = r[i].value;
-  });
-  teken();
+  // Tekenen zodra het huis bekend is, en bij elke bron die daarna binnenkomt (basis.js).
+  await app.laadBronnen(deuren, d, teken, ['site', 'huis', 'functies']);
 }
 
 /** Zes groepen (besluit 187): wat het huis eerst leert staat apart, en de kosten ook. */

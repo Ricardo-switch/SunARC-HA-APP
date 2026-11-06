@@ -1,5 +1,21 @@
 # Wat is er nieuw · What is new
 
+## 0.129.4
+
+*6 november 2026*
+
+**Opgelost**
+
+- Wat je huis kan en Hoe ver je huis is staan meteen op het scherm, ook als een onderdeel nog laadt
+- Hoe je huis warmte vasthoudt wordt elke nacht uitgerekend, met veel minder geheugen, en loopt niet meer vast
+
+*English*
+
+**Fixed**
+
+- What your house can do and How far your house is show up right away, even while one part is still loading
+- How your home holds heat is worked out every night, with far less memory, and no longer gets stuck
+
 ## 0.129.3
 
 *6 november 2026*

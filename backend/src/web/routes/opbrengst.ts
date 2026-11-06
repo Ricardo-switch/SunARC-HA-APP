@@ -159,8 +159,9 @@ export async function opbrengstRoutes(d: Diensten, v: Verzoek): Promise<boolean>
 
   /*
    * Hoe je huis warmte vasthoudt (besluit 231): per zone hoe snel hij afkoelt,
-   * wat de zon doet en wat elk apparaat doet, uit het logboek. Eén keer per dag
-   * uitgerekend; de eerste keer duurt het een paar seconden.
+   * wat de zon doet en wat elk apparaat doet, uit het logboek. Elke nacht op de
+   * achtergrond uitgerekend (6 november 2026); hier meteen wat er bewaard is, of
+   * null zolang de eerste berekening nog loopt.
    */
   if (path === '/api/thermisch') {
     const config = d.config();
@@ -170,7 +171,10 @@ export async function opbrengstRoutes(d: Diensten, v: Verzoek): Promise<boolean>
     }
     d.thermisch ??= new ThermischLeer({ logDir });
     try {
-      sendJson(res, 200, await d.thermisch.bijwerken(config));
+      const bewaard = await d.thermisch.bewaard();
+      // Nog nooit uitgerekend: alvast beginnen, zonder erop te wachten.
+      if (bewaard == null) void d.thermisch.bijwerken(config).catch(() => undefined);
+      sendJson(res, 200, bewaard);
     } catch (error) {
       sendJson(res, 500, { fout: (error as Error).message });
     }

@@ -501,6 +501,7 @@ export class WebServer {
       const a = eigen.address();
       this.#eigenPort = typeof a === 'object' && a != null ? a.port : this.#d.options.eigenPoort!.port;
     }
+    this.#d.startThermisch();
     return typeof address === 'object' && address != null ? address.port : this.#d.options.port;
   }
 
@@ -510,6 +511,7 @@ export class WebServer {
   }
 
   async stop(): Promise<void> {
+    this.#d.stopThermisch();
     this.#d.live.sluit();
     // Open microfoons (besluit 150) houden de server anders open.
     for (const socket of this.#luistersockets) socket.destroy();

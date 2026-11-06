@@ -710,6 +710,29 @@
     };
   }
 
+  /**
+   * Veel bronnen tegelijk, en tekenen zodra er iets is (6 november 2026): eerst
+   * als de bronnen in `eerst` er zijn, daarna opnieuw bij elke bron die
+   * binnenkomt. Eén trage bron houdt zo nooit meer de hele pagina tegen. Een
+   * bron die niet antwoordt, houdt wat hij de vorige keer gaf.
+   */
+  async function laadBronnen(deuren, d, teken, eerst = []) {
+    let getekend = false;
+    const een = (k) =>
+      haal(deuren[k])
+        .then((v) => {
+          d[k] = v;
+        }, () => undefined)
+        .then(() => {
+          if (getekend) teken();
+        });
+    const alle = Object.fromEntries(Object.keys(deuren).map((k) => [k, een(k)]));
+    await Promise.all(eerst.filter((k) => k in alle).map((k) => alle[k]));
+    getekend = true;
+    teken();
+    await Promise.all(Object.values(alle));
+  }
+
   /** Welke stand er te zien is: '#wand' of '#tel'. Alleen die wordt getekend. */
   const zicht = () => (telStand() ? '#tel' : '#wand');
 
@@ -2082,5 +2105,5 @@
     return Promise.resolve(false);
   }
 
-  global.app = { kanApparaatSpreken, zegMetApparaat, huisSoort, persoonlijk, $$, metLidwoord, nl, zet, esc, bijnaOp, klokVan, wanneer, LINKS, telStand, schaal, haal, deur, tijdVanDeDag, lucht, luchtVan, klok, live, start, verwachting, gebundeld, zicht, aanbellen, offline, online, inHA, volledigGekozen, zetVolledig, naarHA, zetWeergave, weergave: () => weergaveNu, zetThema, kleurVan, tekstKleur, houToegang, updateKlaar, bijwerkVenster, bijVerandering, kanInstalleren, geinstalleerd, installeer, naarHAScherm, terugknop, onthoudInrichten, vergeetInrichten, segmenten, koffieKnop, jouwMeldingen };
+  global.app = { laadBronnen, kanApparaatSpreken, zegMetApparaat, huisSoort, persoonlijk, $$, metLidwoord, nl, zet, esc, bijnaOp, klokVan, wanneer, LINKS, telStand, schaal, haal, deur, tijdVanDeDag, lucht, luchtVan, klok, live, start, verwachting, gebundeld, zicht, aanbellen, offline, online, inHA, volledigGekozen, zetVolledig, naarHA, zetWeergave, weergave: () => weergaveNu, zetThema, kleurVan, tekstKleur, houToegang, updateKlaar, bijwerkVenster, bijVerandering, kanInstalleren, geinstalleerd, installeer, naarHAScherm, terugknop, onthoudInrichten, vergeetInrichten, segmenten, koffieKnop, jouwMeldingen };
 })(window);
