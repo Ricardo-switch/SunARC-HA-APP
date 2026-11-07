@@ -392,3 +392,27 @@ describe('een stekker met de hand (besluit 265)', async () => {
     expect(validateConnection({ ...leeg, bedienen: { [id]: 'ja' } }, found).ok).toBe(false);
   });
 });
+
+/* ---------------------------------- vaste tijden (besluit 266) */
+
+describe('een stekker op een vaste tijd (besluit 266)', async () => {
+  const { leesStap } = await import('../src/web/gepland.js');
+  const { voerStapUit } = await import('../src/web/gepland-uit.js');
+
+  it('een geplande stap is aan of uit, voor een vaste duur of tot een klok', () => {
+    expect(leesStap({ pad: 'api/stekker', body: { id: 'stekker-tuinhuis', aan: true, duurMin: 120 } })).toMatchObject({ pad: 'api/stekker' });
+    expect(leesStap({ pad: 'api/stekker', body: { id: 'stekker-tuinhuis', aan: false, klok: '22:00' } })).toMatchObject({ pad: 'api/stekker' });
+    expect(typeof leesStap({ pad: 'api/stekker', body: { id: 'stekker-tuinhuis', aan: true, duurMin: 7 } })).toBe('string');
+    expect(typeof leesStap({ pad: 'api/stekker', body: { id: 'switch.tuinhuis', aan: true, duurMin: 60 } })).toBe('string');
+    expect(typeof leesStap({ pad: 'api/stekker', body: { id: 'stekker-tuinhuis', duurMin: 60 } })).toBe('string');
+  });
+
+  it('voert hem uit door de deur van met de hand, en niets zonder die deur', async () => {
+    const gedaan: unknown[] = [];
+    const deur = { tz: 'Europe/Amsterdam', stekker: async (id: string, aan: boolean, tot: unknown) => (gedaan.push([id, aan, tot]), { ok: true }) };
+    expect(await voerStapUit({ pad: 'api/stekker', body: { id: 'stekker-tuinhuis', aan: true, duurMin: 60 } }, deur)).toEqual({ ok: true });
+    expect(await voerStapUit({ pad: 'api/stekker', body: { id: 'stekker-tuinhuis', aan: false, klok: '22:00' } }, deur)).toEqual({ ok: true });
+    expect(gedaan).toEqual([['stekker-tuinhuis', true, { duurMin: 60 }], ['stekker-tuinhuis', false, { klok: '22:00' }]]);
+    expect(await voerStapUit({ pad: 'api/stekker', body: { id: 'stekker-tuinhuis', aan: true, duurMin: 60 } }, { tz: 'Europe/Amsterdam', stekker: null })).toBeNull();
+  });
+});

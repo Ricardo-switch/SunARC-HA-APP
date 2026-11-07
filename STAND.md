@@ -143,7 +143,8 @@ verwijzing bestaat.
   met een marge van een vijfde van wat hij trekt, en nooit van het net; zijn
   vermogen leert de dienst of geeft de bewoner op. Meekijken, nog niet
   schakelen ([264], 0.138.0). Met de hand aan of uit, met een eind, als de
-  bewoner hem toeliet; daarna weer zoals hij was ([265], 0.139.0).
+  bewoner hem toeliet; daarna weer zoals hij was ([265], 0.139.0). Op vaste
+  tijden bij Nieuw in Vast en gepland ([266], 0.140.0).
 - **Terugkijken:** Opbrengst rekent per dag, week, maand of jaar met de meters
   en prijzen die de app bewaart, overgenomen uit het Energie-dashboard of zelf
   ingesteld; de cijfers komen uit de statistiek van Home Assistant ([102]).
@@ -854,4 +855,5 @@ verwijzing bestaat.
 [263]: DECISIONS.md#263-meldingen-van-de-auto-en-kabel-vergeten-om-een-vaste-tijd
 [264]: DECISIONS.md#264-een-slimme-stekker-als-apparaat-op-zon
 [265]: DECISIONS.md#265-een-slimme-stekker-met-de-hand-een-smalle-deur-per-stekker
+[266]: DECISIONS.md#266-een-slimme-stekker-op-vaste-tijden-bij-vast-en-gepland
 <!-- links:einde -->

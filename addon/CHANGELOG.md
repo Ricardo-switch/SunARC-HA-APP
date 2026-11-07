@@ -1,11 +1,12 @@
 # Wat is er nieuw · What is new
 
-## 0.139.0
+## 0.140.0
 
-*7 november 2026 · 0.138.0 – 0.139.0*
+*7 november 2026 · 0.138.0 – 0.140.0*
 
 **Nieuw**
 
+- Een slimme stekker op vaste tijden: bij Nieuw in Vast en gepland kies je hem, wanneer (elke dag, werkdagen, een tijd of bij zonsondergang), aan of uit, en hoe lang
 - Een slimme stekker met de hand: tik op de kaart bij Apparaten en zet hem aan of uit voor 30 minuten, een of twee uur, of tot een tijd. Daarna staat hij weer zoals hij was
 - Per stekker kies je bij Regeling › Op zon of SunArc hem mag aan- en uitzetten; weg is nee
 - Wat met de hand aan of uit staat, zie je ook bij Te doen, met Terug
@@ -21,6 +22,7 @@
 
 **New**
 
+- A smart plug on fixed times: in New in Fixed and planned you pick it, when (every day, weekdays, a time or at sunset), on or off, and for how long
 - A smart plug by hand: tap its card in Devices and switch it on or off for 30 minutes, one or two hours, or until a time. Then it is back as it was
 - For each plug you choose in Control › On solar whether SunArc may switch it on and off; the default is no
 - What is on or off by hand also shows in To do, with Back

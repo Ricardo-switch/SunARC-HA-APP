@@ -1521,6 +1521,11 @@ async function voerGeplandUit(h: Herinnering): Promise<void> {
         }
       : null,
     witgoed: witgoed ? (id) => witgoed!.nuStarten(id) : null,
+    // Een slimme stekker op een vaste tijd (besluit 266): dezelfde deur als met de hand (265).
+    stekker: inHuisMetDeuren ? async (id, aan, tot) => {
+      const r = await stekkerhand.zet(id, aan, tot);
+      return r.ok ? { ok: true } : { ok: false, reden: r.reden };
+    } : null,
     tz: siteConfig?.timezone ?? 'Europe/Amsterdam',
   };
   for (const s of h.opdracht?.stappen ?? []) {

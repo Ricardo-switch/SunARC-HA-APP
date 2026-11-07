@@ -31,7 +31,9 @@
   const en = () => global.taal.code === 'en';
   const STUKKEN = ['wat', 'wanneer', 'hoe', 'klaar'];
   /** De volgorde van de soorten, in een kamer en in de zin. */
-  const SOORTEN = ['licht', 'scherm', 'scene', 'klimaat', 'stekker', 'witgoed'];
+  const SOORTEN = ['licht', 'scherm', 'scene', 'klimaat', 'stekker', 'plug', 'witgoed'];
+  /** Een slimme stekker (besluit 266): zo lang aan of uit, in minuten. */
+  const PLUG_DUUR = { m30: 30, uur1: 60, uur2: 120, uur4: 240 };
   /** Zoveel stappen neemt de dienst in één taak (MAX_STAPPEN in routes/tedoen.ts). */
   const MAX_STAPPEN = 12;
   const IK = {
@@ -40,6 +42,7 @@
     scherm: iconen.binnen('screen'),
     klimaat: iconen.binnen('klimaat'),
     stekker: iconen.binnen('stekker'),
+    plug: iconen.binnen('stekker'),
     witgoed: iconen.binnen('witgoed'),
     mic: iconen.binnen('mic'),
   };
@@ -158,7 +161,7 @@
     st = {
       stuk: 'wat',
       kies: [],
-      hoe: { licht: { aan: true }, scherm: { actie: 'dicht' }, klimaat: null, stekker: { tot: 'uur1' } },
+      hoe: { licht: { aan: true }, scherm: { actie: 'dicht' }, klimaat: null, stekker: { tot: 'uur1' }, plug: { aan: true, tot: 'uur1' } },
       los: {},
       losOpen: [],
       wanneerGekozen: false,
@@ -184,9 +187,9 @@
   }
 
   async function laadBron() {
-    const [h, k, w, z] = await Promise.allSettled([haal('api/huis'), haal('api/hand'), haal('api/witgoed'), haal('api/zon')]);
+    const [h, k, w, z, s] = await Promise.allSettled([haal('api/huis'), haal('api/hand'), haal('api/witgoed'), haal('api/zon'), haal('api/stekker')]);
     const ok = (x) => (x.status === 'fulfilled' ? x.value : null);
-    bron = { huis: ok(h), hand: ok(k), witgoed: ok(w), zon: ok(z) };
+    bron = { huis: ok(h), hand: ok(k), witgoed: ok(w), zon: ok(z), stekker: ok(s) };
     teken();
   }
 
@@ -223,6 +226,9 @@
       for (const a of h.apparaten ?? []) if ((a.modi ?? []).some((m) => !m.niet)) zet(kamerVan(a.kamer), { soort: 'klimaat', id: a.id, naam: a.naam, klimaat: a });
       for (const s of h.schakelaars ?? []) zet(kamerVan(s.kamer), { soort: 'stekker', id: s.id, naam: s.naam });
     }
+    // De slimme stekkers die SunArc mag schakelen (besluit 266), dubbel met een warmtebron hierboven niet.
+    const alStekker = new Set((h?.aan ? h.schakelaars ?? [] : []).map((s) => s.naam));
+    for (const s of bron?.stekker?.stekkers ?? []) if (s.mag && !alStekker.has(s.naam)) zet(overig, { soort: 'plug', id: s.id, naam: s.naam });
     for (const w of bron?.witgoed?.apparaten ?? []) zet(kamerVan(w.kamer), { soort: 'witgoed', id: w.id, naam: w.naam });
     for (const k of [...kamers, overig]) k.items.sort((a, b) => SOORTEN.indexOf(a.soort) - SOORTEN.indexOf(b.soort));
     const uit = etages.map((e) => ({ ...e, kamers: e.kamers.filter((k) => k.items.length) })).filter((e) => e.kamers.length);
@@ -282,6 +288,7 @@
       else if (i.soort === 'scene') uit.push({ pad: 'api/scene', body: { id: i.id } });
       else if (i.soort === 'klimaat') uit.push({ pad: 'api/hand', body: { id: i.id, modus: h.modus, doelC: h.doelC, tot: h.tot ?? 'doel' } });
       else if (i.soort === 'stekker') uit.push({ pad: 'api/hand', body: { id: i.id, tot: h.tot ?? 'uur1' } });
+      else if (i.soort === 'plug') uit.push({ pad: 'api/stekker', body: { id: i.id, aan: h.aan !== false, duurMin: PLUG_DUUR[h.tot] ?? 60 } });
       else if (i.soort === 'witgoed') uit.push({ pad: 'api/witgoed', body: { id: i.id, start: true } });
     }
     return uit;
@@ -292,7 +299,7 @@
     const uit = [];
     for (const i of gekozen()) {
       const h = hoeVan(i);
-      const actie = i.soort === 'licht' || i.soort === 'stekker' ? (h.aan === false ? 'uit' : 'aan') : i.soort === 'scherm' ? (h.actie ?? 'dicht') : i.soort === 'klimaat' ? h.modus : 'start';
+      const actie = i.soort === 'licht' || i.soort === 'stekker' || i.soort === 'plug' ? (h.aan === false ? 'uit' : 'aan') : i.soort === 'scherm' ? (h.actie ?? 'dicht') : i.soort === 'klimaat' ? h.modus : 'start';
       const sleutel = `${i.soort}|${actie}|${h.doelC ?? ''}|${h.tot ?? ''}`;
       let g = uit.find((x) => x.sleutel === sleutel);
       if (!g) uit.push((g = { sleutel, soort: i.soort, actie, hoe: h, items: [] }));
@@ -322,7 +329,7 @@
     const n = g.items.length > 1 ? 'n' : '1';
     const namen = `<span class="tk-stuk${st.stuk === 'wat' ? ' open' : ''}" data-pl-stuk="wat">${esc(opsom(g.items.map(lidwoord)))}</span>`;
     if (g.soort === 'scene' || g.soort === 'witgoed') return t(`tk.start.${n}`, { namen });
-    const duur = g.soort === 'klimaat' || g.soort === 'stekker' ? t(`tk.duur.${g.hoe.tot ?? (g.soort === 'stekker' ? 'uur1' : 'doel')}`) : '';
+    const duur = g.soort === 'klimaat' || g.soort === 'stekker' || g.soort === 'plug' ? t(`tk.duur.${g.hoe.tot ?? (g.soort === 'klimaat' ? 'doel' : 'uur1')}`) : '';
     const actie = g.soort === 'klimaat' ? t(`tk.a.${g.actie}.${n}`, { doel: graden(g.hoe.doelC) }) : t(`tk.a.${g.actie}.${n}`);
     const hoe = `<span class="tk-stuk${st.stuk === 'hoe' ? ' open' : ''}" data-pl-stuk="hoe">${esc(actie + duur)}</span>`;
     return t(`tk.gaan.${n}`, { namen, actie: hoe });
@@ -373,6 +380,7 @@
       if (g.soort === 'scene') return t('pl.wat.scene', { naam: namen });
       if (g.soort === 'klimaat') return t(g.actie === 'koelen' ? 'pl.wat.koelen' : 'pl.wat.verwarmen', { naam: namen, doel: graden(g.hoe.doelC) });
       if (g.soort === 'stekker') return t('pl.wat.stekker', { naam: namen });
+      if (g.soort === 'plug') return t(g.actie === 'uit' ? 'pl.wat.plugUit' : 'pl.wat.stekker', { naam: namen });
       return t('pl.wat.witgoed', { naam: namen });
     });
     const tekst = groot(delen.map((d, i) => (i ? d.charAt(0).toLowerCase() + d.slice(1) : d)).join(', '));
@@ -437,13 +445,15 @@
       return `<div class="tk-seg">${['dicht', ...(half ? ['half'] : []), 'open'].map((a) => b('actie', a, t(`pl.${a}`), (h.actie ?? 'dicht') === a)).join('')}</div>`;
     }
     if (soort === 'stekker') return `<div class="tk-seg">${['uur1', 'uur2', 'dagdeel'].map((x) => b('tot', x, t(`pl.tot.${x}`), (h.tot ?? 'uur1') === x)).join('')}</div>`;
+    // Een slimme stekker (besluit 266): aan of uit, en hoe lang; daarna weer zoals hij was.
+    if (soort === 'plug') return `<div class="tk-klimaat"><div class="tk-seg">${b('aan', '1', t('pl.aan'), h.aan !== false)}${b('aan', '0', t('pl.uit'), h.aan === false)}</div><div class="tk-seg">${Object.keys(PLUG_DUUR).map((x) => b('tot', x, t(`pl.tot.${x}`), (h.tot ?? 'uur1') === x)).join('')}</div></div>`;
     return '';
   }
 
   function hoeHtml() {
     const lijst = gekozen();
     const rijen = [];
-    for (const soort of ['licht', 'scherm', 'klimaat', 'stekker']) {
+    for (const soort of ['licht', 'scherm', 'klimaat', 'stekker', 'plug']) {
       const items = lijst.filter((i) => i.soort === soort);
       if (!items.length) continue;
       const namen = opsom(items.map((i) => i.naam));

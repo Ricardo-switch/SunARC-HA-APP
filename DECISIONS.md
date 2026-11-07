@@ -259,6 +259,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [259. Auto en laadpaal: een eigen pagina, en met de hand laden (ontwerp)](#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp)
 - [260. Je dag als eigen stap, en hoe warm per kamer](#260-je-dag-als-eigen-stap-en-hoe-warm-per-kamer)
 - [263. Meldingen van de auto, en kabel vergeten om een vaste tijd](#263-meldingen-van-de-auto-en-kabel-vergeten-om-een-vaste-tijd)
+- [266. Een slimme stekker op vaste tijden, bij Vast en gepland](#266-een-slimme-stekker-op-vaste-tijden-bij-vast-en-gepland)
 
 **Veiligheid**
 
@@ -12452,6 +12453,32 @@ van de drie, en de schrijfdeur die de andere twee straks ook gebruiken.
 
 *Nog niet:* vaste tijden bij Vast en gepland, en op zon met een minimum per
 dag.
+
+---
+
+## 266. Een slimme stekker op vaste tijden, bij Vast en gepland
+
+*Onderwerp: weergave · Status: geldig*
+
+7 november 2026, de tweede tijdschakelaar-functie na [265]. De bewoner vroeg of
+vaste tijden niet beter bij Vast en gepland passen: ja. Daar staan de licht-,
+scherm- en klimaattaken al, met elke dag, werkdagen, gekozen dagen en de zon.
+
+*Besluit:*
+
+- **Bij Nieuw in Vast en gepland** ([240]) staat een slimme stekker die SunArc
+  mag schakelen onder Overig, met het stekkericoon, als soort "Slimme
+  stekkers". Bij Hoe: aan of uit, en hoe lang (30 minuten, 1, 2 of 4 uur).
+  De zin zegt het: "Elke dag om 07:00 gaat de ontvochtiger aan voor vier uur."
+- **De stap** is `api/stekker` met `{ id, aan, duurMin }` of `{ id, aan, klok }`
+  (`LATER_MAG`, nagekeken in `leesStap`). Op zijn moment gaat hij door de deur
+  van met de hand (265): alleen in de add-on, alleen als de bewoner hem
+  toeliet, en daarna weer zoals hij was. Er komt geen deur bij.
+- **Een warmtebron op een stekker** uit Indeling (235) blijft zoals hij was;
+  staat dezelfde stekker er ook als slimme stekker, dan één keer.
+- **Versie 0.140.0.**
+
+*Nog niet:* op zon met een minimum per dag.
 
 ---
 
