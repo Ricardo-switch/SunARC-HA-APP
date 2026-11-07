@@ -137,6 +137,10 @@ export interface HeatStoreExplanation {
   readonly targetC?: number;
   /** Stookt hij nu, gemeten of aan de schakelaar. */
   readonly heating: boolean;
+  /** Bij een stekker met een eigen meter (besluit 264): wat hij nu trekt, in W. */
+  readonly powerW?: number;
+  /** Bij een stekker die op zon wacht (besluit 264): hoeveel zon hij vraagt om aan te gaan, in W. */
+  readonly needW?: number;
   /** "Klaar om" en de start die daarvoor uiterlijk nodig is. */
   readonly readyByMs?: number;
   readonly latestStartMs?: number;

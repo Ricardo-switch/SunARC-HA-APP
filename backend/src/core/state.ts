@@ -180,7 +180,7 @@ export interface SystemState {
 }
 
 /** Wat de dienst bij een buffer onthoudt en bij elk besluit toevoegt (besluit 186). */
-export type HeatStoreExtra = Pick<HeatStoreState, 'readyBy' | 'legionellaAtMs' | 'lastFullMs'>;
+export type HeatStoreExtra = Pick<HeatStoreState, 'readyBy' | 'legionellaAtMs' | 'lastFullMs' | 'learnedW'>;
 
 export interface HeatStoreState {
   /** De watertemperatuur; `missing` als er geen meter is. */
@@ -198,6 +198,11 @@ export interface HeatStoreState {
    * stond aan en trok bijna niets), in epoch-ms. Null: onbekend.
    */
   readonly lastFullMs?: number | null;
+  /**
+   * Bij een stekker (besluit 264): wat hij trok de laatste keer dat hij aan
+   * was en echt iets vroeg, in W, zoals de dienst het zag. Null: nog nooit gezien.
+   */
+  readonly learnedW?: number | null;
 }
 
 export interface DeferrableState {

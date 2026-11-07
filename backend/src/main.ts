@@ -83,7 +83,7 @@ import { sunPosition } from './core/sun.js';
 import { hoofddakPlat, panelenVan, type DakVlak } from './web/daken.js';
 import { inNederland } from './web/bag3d.js';
 import { aanvullenUitMeter, achterblijven, meetVlakken, metMeting, opbrengstPerVlak, verdeelDag, type Achter, type MeterGroep, type VlakStand, type Verdeling } from './web/meten-vlakken.js';
-import { findHeatStores } from './web/buffers-vinden.js';
+import { findHeatStores, findPlugs, type FoundHeatStore } from './web/buffers-vinden.js';
 import { kiesLigging, meetLigging, omvormerUitType, type Meting, type PanelenAntwoord } from './web/ligging.js';
 import { alarmSensoren, vindRookmelders } from './web/rookmelders.js';
 import { eigenUpdate, updateView, type UpdateView } from './web/bijwerken.js';
@@ -677,6 +677,18 @@ if (laadhand) {
     );
   }, 60_000).unref();
 }
+/**
+ * De boiler en de jacuzzi (besluit 186) en de slimme stekkers (besluit 264),
+ * zoals ze nu in Home Assistant staan. Een schakelaar die de regeling al
+ * bedient, is geen losse stekker.
+ */
+function vindBuffers(): FoundHeatStore[] {
+  if (!houseRegisters) return [];
+  const buffers = findHeatStores(allStates, houseRegisters.entities, houseRegisters.devices);
+  const bekend = new Set([...(siteConfig?.actuators ?? []).map((a) => a.ref.id), ...buffers.map((b) => b.actuator)]);
+  return [...buffers, ...findPlugs(allStates, houseRegisters.entities, houseRegisters.devices, bekend)];
+}
+
 /** De radiatorknoppen buiten de regeling (besluit 126), met hun kamer: die zet de hand direct (besluit 235). */
 function handKnoppen(): { id: string; naam: string; kamer: string }[] {
   const regeling = new Set((siteConfig?.actuators ?? []).map((a) => a.ref.id));
@@ -1277,6 +1289,16 @@ function autoBel(timeZone: string): Pick<Parameters<typeof meldingenBron>[0], 'a
     handKlaar: (laadhand?.klaar ?? []).map((k) => ({ ...k, naam: autos.find((a) => a.id === k.auto)?.naam ?? k.auto })),
   };
 }
+/** Wat de bel van de slimme stekkers weet (besluit 264); null zolang de registers er niet zijn. */
+function stekkerBel(cfg: SiteConfig): NonNullable<Parameters<typeof meldingenBron>[0]['stekkers']> | null {
+  if (!houseRegisters) return null;
+  const inRegeling = new Set((cfg.heatStores ?? []).map((h) => h.actuator.id));
+  const gekozen = new Set((connectionStore?.current?.buffers ?? []).filter((b) => b.opZon).map((b) => b.actuator));
+  const meters = energyStore?.current ? new Set(energyStore.current.apparaten.map((a) => a.id)) : null;
+  return vindBuffers()
+    .filter((b) => b.soort === 'stekker')
+    .map((b) => ({ id: b.id, naam: b.naam, opZon: inRegeling.has(b.actuator) || gekozen.has(b.actuator), meter: b.energy ?? null, meterErin: meters == null || (b.energy != null && meters.has(b.energy)) }));
+}
 function meldingenRonde(): void {
   const cfg = siteConfig;
   const h = cfg ? houseReport() : null;
@@ -1301,6 +1323,8 @@ function meldingenRonde(): void {
     sluip: sluipVoorBel(sluipverbruik.laatste(), Date.now(), cfg.timezone),
     // De auto (besluit 263): vol, een fout, kabel vergeten, en laden met de hand dat klaar is.
     ...autoBel(cfg.timezone),
+    // De slimme stekkers (besluit 264): gevonden, en zijn meter bij Energie.
+    stekkers: stekkerBel(cfg),
   });
   if (bron == null) return;
   meldingen.bij(bron);
@@ -1969,7 +1993,7 @@ async function klaarPunten(lang?: Lang): Promise<KlaarPunt[]> {
     netMeter: Number.isFinite(netWaarde),
     zon: { heeft: baseConfig?.solarProduction != null && Number.isFinite(Number(allStates.get(baseConfig.solarProduction.id)?.state)), intervalS: solarPace.intervalS },
     energieDashboard: (prefs?.energy_sources ?? []).some((b) => b.type === 'grid'),
-    apparatenOpZon: houseRegisters ? findAppliances(allStates, houseRegisters.entities, houseRegisters.devices).length + findHeatStores(allStates, houseRegisters.entities, houseRegisters.devices).length : 0,
+    apparatenOpZon: houseRegisters ? findAppliances(allStates, houseRegisters.entities, houseRegisters.devices).length + vindBuffers().length : 0,
     cameras: new Set((gevonden?.cameras ?? []).map((c) => c.naam)).size,
     deurbel: (gevonden?.melders ?? []).length > 0,
     rookmelders: houseRegisters ? vindRookmelders(houseRegisters.entities, houseRegisters.devices, allStates).length : 0,
@@ -2492,8 +2516,8 @@ function connectionDoor(store: ConnectionStore, base: NonNullable<typeof baseCon
   const found = () => ({
     fasen: findPhases(allStates.values()),
     apparaten: houseRegisters ? findAppliances(allStates, houseRegisters.entities, houseRegisters.devices) : [],
-    // De boiler en de jacuzzi (besluit 186).
-    buffers: houseRegisters ? findHeatStores(allStates, houseRegisters.entities, houseRegisters.devices) : [],
+    // De boiler en de jacuzzi (besluit 186), en de slimme stekkers (besluit 264).
+    buffers: vindBuffers(),
     // Hoe de panelen liggen (besluit 157): om "klopt" te kunnen bewaren.
     meting: metingNu(),
     omvormerGevonden: omvormerGevonden(),

@@ -368,13 +368,18 @@ export interface Deferrable {
  * ondergrens vast, verwarmt op zon naar een hoger doel, en haalt een doel op
  * tijd ("klaar om"), zonder zon in de goedkoopste uren.
  */
-export const HEAT_STORE_KINDS = ['boiler', 'jacuzzi'] as const;
+export const HEAT_STORE_KINDS = ['boiler', 'jacuzzi', 'stekker'] as const;
 export const HEAT_STORE_CONTROLS = ['switch', 'setpoint', 'diverter'] as const;
 
 export interface HeatStore {
   readonly id: string;
   readonly name: string;
-  /** Voor de woorden en het beeld; de regeling is voor beide hetzelfde. */
+  /**
+   * Voor de woorden en het beeld; de regeling is voor een boiler en een
+   * jacuzzi hetzelfde. Een `stekker` (besluit 264) is een slimme stekker met
+   * iets erachter: aan zolang er zon over is, uit als die wegvalt. Hij kent
+   * geen temperatuur, geen ondergrens en nooit van het net.
+   */
   readonly kind: (typeof HEAT_STORE_KINDS)[number];
   /**
    * Hoe hij stuurt. `switch`: aan en uit, zoals een slimme stekker of de

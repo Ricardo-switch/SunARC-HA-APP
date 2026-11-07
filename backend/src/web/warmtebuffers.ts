@@ -20,6 +20,7 @@ import { join } from 'node:path';
 import type { HeatStoreExplanation } from '../core/decision.js';
 import type { SiteConfig } from '../core/model.js';
 import type { HeatStoreExtra } from '../core/state.js';
+import { HEATING_W } from '../core/warmtebuffer.js';
 import { isDal, type Tarieven } from './tarief.js';
 
 export const BUFFERS_FILE = 'warmtebuffers.json';
@@ -34,6 +35,8 @@ interface Bewaard {
   readonly klaarOm: Readonly<Record<string, { readonly atMs: number; readonly targetC: number }>>;
   readonly legionella: Readonly<Record<string, number>>;
   readonly vol: Readonly<Record<string, number>>;
+  /** Wat een stekker trok toen hij aan was (besluit 264), in W. */
+  readonly vermogen?: Readonly<Record<string, number>>;
 }
 
 export interface BufferOptions {
@@ -78,7 +81,7 @@ export class BufferStore {
           (e): e is [string, { atMs: number; targetC: number }] => known.has(e[0]) && typeof e[1] === 'object' && e[1] != null && isGetal(e[1].atMs) && isGetal(e[1].targetC),
         ),
       );
-      this.#current = { klaarOm, legionella: tijden(raw['legionella']), vol: tijden(raw['vol']) };
+      this.#current = { klaarOm, legionella: tijden(raw['legionella']), vol: tijden(raw['vol']), vermogen: tijden(raw['vermogen']) };
     } catch {
       this.#current = { klaarOm: {}, legionella: {}, vol: {} };
     }
@@ -93,6 +96,7 @@ export class BufferStore {
           readyBy: this.#current.klaarOm[h.id] ?? null,
           legionellaAtMs: this.#current.legionella[h.id] ?? null,
           lastFullMs: this.#current.vol[h.id] ?? null,
+          learnedW: this.#current.vermogen?.[h.id] ?? null,
         },
       ]),
     );
@@ -105,6 +109,7 @@ export class BufferStore {
     const id = b['id'];
     const h = (this.#options.config.heatStores ?? []).find((x) => x.id === id);
     if (typeof id !== 'string' || h == null) return { ok: false, status: 404, reden: 'dat apparaat kent SunArc niet als warmtebuffer' };
+    if (h.kind === 'stekker') return { ok: false, status: 400, reden: 'een stekker heeft geen klaar om' };
     const t = this.#now();
     const klaarOm = b['klaarOm'];
     if (klaarOm !== null && (!isGetal(klaarOm) || klaarOm <= t || klaarOm > t + MAX_AHEAD_MS)) {
@@ -134,6 +139,7 @@ export class BufferStore {
     const t = this.#now();
     const legionella = { ...this.#current.legionella };
     const vol = { ...this.#current.vol };
+    const vermogen = { ...this.#current.vermogen };
     let changed = false;
     for (const e of explanations ?? []) {
       const h = (this.#options.config.heatStores ?? []).find((x) => x.id === e.id);
@@ -147,10 +153,19 @@ export class BufferStore {
         vol[h.id] = t;
         changed = true;
       }
+      // Een stekker die aan is en iets trekt (besluit 264): dat is zijn vermogen.
+      // Alleen een verschil van meer dan een tiende: anders schrijft elk besluit het bestand.
+      if (h.kind === 'stekker' && e.heating && e.powerW != null && e.powerW > HEATING_W) {
+        const was = vermogen[h.id];
+        if (was == null || Math.abs(e.powerW - was) > was * 0.1) {
+          vermogen[h.id] = e.powerW;
+          changed = true;
+        }
+      }
     }
     const klaarOm = Object.fromEntries(Object.entries(this.#current.klaarOm).filter(([, k]) => k.atMs > t));
     if (Object.keys(klaarOm).length !== Object.keys(this.#current.klaarOm).length) changed = true;
-    if (changed) await this.#save({ klaarOm, legionella, vol });
+    if (changed) await this.#save({ klaarOm, legionella, vol, vermogen });
   }
 
   #writing: Promise<void> = Promise.resolve();

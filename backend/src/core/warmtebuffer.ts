@@ -19,6 +19,11 @@
  * - **nooit** in de failsafe, in een stand waarin de bewoner de regeling
  *   terugtrok, of bij een start die de hoofdzekering niet draagt.
  *
+ * Een **slimme stekker** (besluit 264) gaat alleen op zon: nooit van het net,
+ * geen temperatuur. Hij vraagt wat hij de laatste keer trok (of wat de bewoner
+ * opgaf), en eenmaal aan mag hij een vijfde daarvan van het net halen voor hij
+ * uit zou gaan: zo gaat hij bij een wolkje niet meteen weer uit.
+ *
  * Hooguit één start per beslissing (besluit 68); een buffer die al stookt, mag
  * door met de tolerantie van een draaiend apparaat (besluit 51).
  *
@@ -47,6 +52,9 @@ const OVERDUE_MS = WEEK_MS + 24 * 3_600_000;
 const PLUG_FULL_MS = 20 * 3_600_000;
 const PLUG_EMPTY_MS = 24 * 3_600_000;
 
+/** Een stekker die aan is, mag zo'n deel van wat hij trekt van het net halen (besluit 264). */
+export const PLUG_MARGIN = 0.2;
+
 /** Een sleutel in de uitkomsten van de arbiter, apart van de uitstelbare apparaten. */
 export const claimKey = (id: string) => `warmte:${id}`;
 
@@ -57,9 +65,24 @@ function heatingNow(s: HeatStoreState): boolean {
   return s.on.ok && s.on.value;
 }
 
-/** Wat hij nu trekt als hij stookt: gemeten, of de schatting. */
+/** Wat hij vraagt bij een start: bij een stekker wat hij de laatste keer trok, anders de schatting. */
+function needW(h: HeatStore, s: HeatStoreState): number {
+  return h.kind === 'stekker' && s.learnedW != null && s.learnedW > HEATING_W ? s.learnedW : h.estimatedW;
+}
+
+/** Wat hij nu trekt als hij stookt: gemeten, of wat hij vraagt. */
 function drawW(h: HeatStore, s: HeatStoreState): number {
-  return s.powerW?.ok ? s.powerW.value : h.estimatedW;
+  return s.powerW?.ok ? s.powerW.value : needW(h, s);
+}
+
+/** Hoeveel een buffer die al stookt van het net mag halen voor hij uit zou gaan (besluit 264). */
+function marginW(h: HeatStore, draw: number): number {
+  return h.kind === 'stekker' ? Math.round(draw * PLUG_MARGIN) : 0;
+}
+
+/** Waartegen een buffer die al stookt zich meet: een stekker tegen wat hij nu trekt. */
+function keepW(h: HeatStore, draw: number): number {
+  return h.kind === 'stekker' ? draw : h.estimatedW;
 }
 
 /**
@@ -75,11 +98,13 @@ function inCheap(ctx: DecisionContext): boolean {
   return (ctx.state.cheapWindows ?? []).some((w) => w.fromMs <= ctx.nowMs && ctx.nowMs < w.toMs);
 }
 
-type Basis = Pick<HeatStoreExplanation, 'id' | 'heating' | 'temperatureC'>;
-type Zon = Basis & Pick<HeatStoreExplanation, 'targetC' | 'readyByMs' | 'latestStartMs'> & { readonly drawW: number };
+type Basis = Pick<HeatStoreExplanation, 'id' | 'heating' | 'temperatureC' | 'powerW'>;
+type Zon = Basis & Pick<HeatStoreExplanation, 'targetC' | 'readyByMs' | 'latestStartMs'> & { readonly drawW: number; readonly needW: number };
 
 /** Moet hij nu van het net, en waarom? Null: alleen op zon. */
 function vanHetNet(ctx: DecisionContext, h: HeatStore, s: HeatStoreState, temp: number | null): Omit<HeatStoreExplanation, keyof Basis | 'state'> | null {
+  // Een stekker gaat alleen op zon (besluit 264).
+  if (h.kind === 'stekker') return null;
   const now = ctx.nowMs;
   if (temp != null && temp < h.minC) return { reason: 'below_minimum', targetC: h.minC };
 
@@ -113,7 +138,7 @@ function vooraf(ctx: DecisionContext, h: HeatStore): { readonly klaar: HeatStore
   if (s == null) return { klaar: { id: h.id, state: 'unknown', reason: 'reading_unavailable', heating: false } };
   const heating = heatingNow(s);
   const temp = s.temperatureC.ok ? s.temperatureC.value : null;
-  const basis: Basis = { id: h.id, heating, ...(temp != null ? { temperatureC: temp } : {}) };
+  const basis: Basis = { id: h.id, heating, ...(temp != null ? { temperatureC: temp } : {}), ...(h.kind === 'stekker' && s.powerW?.ok ? { powerW: Math.round(s.powerW.value) } : {}) };
   if (h.temperature != null && temp == null) return { klaar: { ...basis, state: 'unknown', reason: 'reading_unavailable' } };
   if (ctx.failsafeActive) return { klaar: { ...basis, state: 'waiting', reason: 'failsafe_unreliable_input' } };
   if (isHandsOff(ctx.mode)) return { klaar: { ...basis, state: 'waiting', reason: 'mode_excludes_action' } };
@@ -121,7 +146,7 @@ function vooraf(ctx: DecisionContext, h: HeatStore): { readonly klaar: HeatStore
   // De hoofdzekering gaat voor alles bij een start, ook voor de ondergrens (besluit 78).
   if (!heating) {
     for (const phase of ctx.phases) {
-      if (phase.signedA == null || Math.abs(phase.signedA + h.estimatedW / phase.voltageV) > phase.limitA) {
+      if (phase.signedA == null || Math.abs(phase.signedA + needW(h, s) / phase.voltageV) > phase.limitA) {
         return { klaar: { ...basis, state: 'waiting', reason: 'insufficient_current_budget' } };
       }
     }
@@ -142,7 +167,7 @@ function vooraf(ctx: DecisionContext, h: HeatStore): { readonly klaar: HeatStore
   if (temp == null && s.on.ok && s.on.value && s.powerW?.ok && s.powerW.value <= HEATING_W) {
     return { klaar: { ...basis, state: 'full', reason: 'target_reached' } };
   }
-  return { zon: { ...basis, ...(temp != null ? { targetC } : {}), ...tijd, drawW: drawW(h, s) } };
+  return { zon: { ...basis, ...(temp != null ? { targetC } : {}), ...tijd, drawW: drawW(h, s), needW: needW(h, s) } };
 }
 
 /** De buffers die op zon wachten, voor de volgorde op zon (besluit 176). */
@@ -150,7 +175,10 @@ export function heatStoreClaims(ctx: DecisionContext): SunClaim[] {
   return (ctx.config.heatStores ?? []).flatMap((h): SunClaim[] => {
     const v = vooraf(ctx, h);
     if (!('zon' in v)) return [];
-    return [{ id: h.id, kind: 'heatStore', estimatedW: h.estimatedW, ...(v.zon.heating ? { runningW: v.zon.drawW } : {}) }];
+    const z = v.zon;
+    if (!z.heating) return [{ id: h.id, kind: 'heatStore', estimatedW: z.needW }];
+    const marge = marginW(h, z.drawW);
+    return [{ id: h.id, kind: 'heatStore', estimatedW: keepW(h, z.drawW), runningW: z.drawW, ...(marge > 0 ? { marginW: marge } : {}) }];
   });
 }
 
@@ -178,7 +206,9 @@ export function heatStoreDecisions(
   return list.map((h): HeatStoreExplanation => {
     const v = vooraf(ctx, h);
     if ('klaar' in v) return v.klaar;
-    const { drawW: eigen, ...z } = v.zon;
+    const { drawW: eigen, needW: nodig, ...rest } = v.zon;
+    // Een stekker zegt hoeveel zon hij vraagt (besluit 264): zo weet de bewoner waarop hij wacht.
+    const z = h.kind === 'stekker' ? { ...rest, needW: Math.round(nodig) } : rest;
     const claim = claims?.get(claimKey(h.id));
     if (claim) {
       if (claim.accepted) return { ...z, state: 'would_heat', reason: 'surplus_available' };
@@ -188,13 +218,13 @@ export function heatStoreDecisions(
     if (z.heating) {
       // Hij stookt al: zijn eigen verbruik zit in wat het net nu levert, en hij
       // mag door met de tolerantie van een draaiend apparaat (besluit 51).
-      if (vrijVoorDraaiend(ctx, used, eigen) >= h.estimatedW) return { ...z, state: 'would_heat', reason: 'surplus_available' };
+      if (vrijVoorDraaiend(ctx, used, eigen) + marginW(h, eigen) >= keepW(h, eigen)) return { ...z, state: 'would_heat', reason: 'surplus_available' };
       return { ...z, state: 'waiting', reason: 'surplus_insufficient' };
     }
     if (started || ctx.stabilisationActive) return { ...z, state: 'waiting', reason: 'stabilisation_active' };
     const free = ctx.availableW - used - ctx.config.power.stopImportW;
-    if (free >= h.estimatedW) {
-      used += h.estimatedW;
+    if (free >= nodig) {
+      used += nodig;
       started = true;
       return { ...z, state: 'would_heat', reason: 'surplus_available' };
     }

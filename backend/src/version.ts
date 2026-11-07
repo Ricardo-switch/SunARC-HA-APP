@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.137.0';
+export const VERSIE = '0.138.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,24 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.138.0',
+    datum: '2026-11-07',
+    nieuw: [
+      'Slimme stekkers: SunArc vindt ze zelf en zegt het bij de bel. Zet er een op zon bij Regeling, dan zie je bij Apparaten wanneer hij aan kan op eigen zon',
+      'Meet de stekker zijn eigen verbruik, dan vraagt de bel om de meter toe te voegen; daarna staat hij bij Opbrengst',
+      'Meet hij zijn vermogen zelf, dan onthoudt SunArc wat hij trekt. Zonder meter vul je het in',
+    ],
+    beter: ['Bij Energie › Meters staan meters per dag, gisteren of maand niet meer tussen die van een apparaat, en twee meters met dezelfde naam krijgen hun id erachter'],
+    en: {
+      nieuw: [
+        'Smart plugs: SunArc finds them itself and tells you at the bell. Put one on solar in Control, and Devices shows when it can be on with your own solar',
+        'If the plug measures its own use, the bell asks you to add the meter; then it shows under Yield',
+        'If it measures its power itself, SunArc remembers what it draws. Without a meter you fill it in',
+      ],
+      beter: ['In Energy › Meters, meters per day, yesterday or month no longer sit among those of a device, and two meters with the same name get their id added'],
+    },
+  },
   {
     versie: '0.137.0',
     datum: '2026-11-07',

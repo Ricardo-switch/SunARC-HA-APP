@@ -79,6 +79,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [176. Apparaten op zon in de voorrang: een lijst Op zon](#176-apparaten-op-zon-in-de-voorrang-een-lijst-op-zon)
 - [186. Warmte bewaren: de boiler en de jacuzzi op zon](#186-warmte-bewaren-de-boiler-en-de-jacuzzi-op-zon)
 - [194. Een huis zonder slimme regeling: de app draait ook zonder zones](#194-een-huis-zonder-slimme-regeling-de-app-draait-ook-zonder-zones)
+- [264. Een slimme stekker als apparaat op zon](#264-een-slimme-stekker-als-apparaat-op-zon)
 
 **Configuratie en onboarding**
 
@@ -12362,6 +12363,56 @@ laatste was eerst de vraag waar de vertrektijd vandaan komt. De bewoner koos:
   telefoon, standaard aan, buiten de nachtrust. Wie al keuzes had, krijgt hem
   ook aan.
 - **Versie 0.137.0.** Daarmee zijn de zes stappen van [259] gebouwd.
+
+---
+
+## 264. Een slimme stekker als apparaat op zon
+
+*Onderwerp: kern en regeling · Status: geldig*
+
+7 november 2026, issue 136 (een idee van een tester met SONOFF-stekkers).
+De bewoner koos: stekkers zelf vinden, een melding als er een gevonden is en
+een om zijn meter toe te voegen, de naam uit Home Assistant met een vast
+stekkericoon als soort, en voorlopig meekijken op zon zoals de rest. Getest
+met de stekker voor de verwarming van het tuinhuis.
+
+*Besluit:*
+
+- **Een stekker is een soort warmte bewaren** (`kind: 'stekker'` bij
+  [186]): aan zolang er zon over is, uit als die wegvalt, met de volgorde op
+  zon, de hoofdzekering en de stabilisatie van de boiler. Maar zonder graden:
+  geen ondergrens, geen klaar om, en **nooit van het net**, ook niet in de
+  goedkoopste uren. Staat hij aan en trekt hij niets, dan "vraagt hij niets".
+- **Vinden** (`findPlugs` in `buffers-vinden.ts`): per apparaat in Home
+  Assistant één schakelaar die geen instelling is, op een apparaat dat een
+  stekker heet (naam of model) of zijn eigen vermogen meet, en verder niets
+  anders is: geen airco, lamp, laadpaal, accu, boiler of witgoed. Alleen
+  `outlet` is te weinig: Tuya noemt elk relais zo (de spiegel in de badkamer).
+  Wat de regeling al bedient, slaat hij over. De naam is die van het
+  apparaat; de soort is het vaste icoon.
+- **Het vermogen:** meet hij het zelf, dan onthoudt de dienst wat hij de
+  laatste keer trok toen hij aan was (`warmtebuffers.json`), en vraagt hij
+  dat bij een start. Zonder meter vult de bewoner het in bij Regeling › Op
+  zon (50 tot 3.680 W); weg is 1.000 W.
+- **De marge:** eenmaal aan mag hij een vijfde van wat hij trekt van het net
+  halen voordat hij uit zou gaan (`PLUG_MARGIN`), bovenop de tolerantie van
+  een draaiend apparaat (51). Zo gaat hij bij een wolkje niet meteen uit.
+- **Twee meldingen bij de bel** (soort `stekker`, niet op de telefoon):
+  *Stekker gevonden*, tot hij op zon staat (dan stil weg); en *Meter van …
+  toevoegen* als hij een kWh-meter heeft die niet bij Energie › Meters staat,
+  met "staat erbij" onder Eerder. Zolang de registers er na een start nog
+  niet zijn, blijft staan wat er stond.
+- **Bij Energie › Meters** telt een meter van gisteren, een week of een maand
+  als een teller die opnieuw begint, niet als apparaat, en krijgen twee meters
+  met dezelfde naam hun id erachter: een stekker geeft de stand, vandaag,
+  gisteren en de maand allemaal dezelfde naam.
+- **Er gaat niets naar Home Assistant.** SunArc zegt alleen wat hij zou doen;
+  schakelen komt in een eigen besluit.
+- **Versie 0.138.0.**
+
+*Nog niet:* met de hand met een eind, vaste tijden bij Vast en gepland, en op
+zon met een minimum per dag. De bewoner koos alle drie, met toestemming per
+stekker zoals bij de laadpaal (262).
 
 ---
 

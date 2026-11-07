@@ -18,6 +18,8 @@ let aInfo = null;
 let opZon = {};
 /** Apparaten uit de configuratie die de bewoner van zon haalde (besluit 167). */
 let opZonUit = [];
+/** Wat de bewoner opgaf bij een stekker zonder eigen meter (besluit 264), in W. */
+let vermogen = {};
 let zon = null;
 
 async function laadAlles() {
@@ -29,6 +31,7 @@ async function laadAlles() {
     aInfo = a.value;
     opZon = { ...(aInfo.antwoorden?.opZon ?? {}) };
     opZonUit = [...(aInfo.antwoorden?.opZonUit ?? [])];
+    vermogen = { ...(aInfo.antwoorden?.vermogen ?? {}) };
   }
   if (z.status === 'fulfilled') zon = z.value;
   teken();
@@ -95,12 +98,24 @@ function opZonRij(naam, aan, data) {
   return `<div class="regelrij"><div class="l"><b>${esc(naam)}</b><span>${esc(t(aan ? 'regeling.startZon' : 'regeling.startNiet'))}</span></div><button type="button" class="schakelaar" role="switch" aria-checked="${aan}" aria-label="${esc(t('regeling.naamOpZon', { naam }))}" ${data}></button></div>`;
 }
 
+/**
+ * Een slimme stekker (besluit 264): met zijn icoon, aan als er zon over is.
+ * Meet hij zijn vermogen niet zelf, dan vraagt de rij hoeveel hij trekt.
+ */
+function stekkerRij(x) {
+  const aan = opZon[x.id] === true;
+  const veld = aan && !x.meet
+    ? `<label class="veldnaam" style="margin-top: 6px">${esc(t('regeling.stekkerVermogen'))}<input class="invoer" type="number" inputmode="numeric" min="50" max="3680" step="10" data-vermogen="${esc(x.id)}" value="${vermogen[x.id] ?? ''}" placeholder="1000"></label>`
+    : '';
+  return `<div class="regelrij"><div class="l"><b><span aria-hidden="true" style="display: inline-flex; vertical-align: -3px">${iconen.svg('stekker', { grootte: 16 })}</span> ${esc(x.naam)}</b><span>${esc(t(aan ? 'regeling.stekkerZon' : 'regeling.stekkerNiet'))}</span>${veld}</div><button type="button" class="schakelaar" role="switch" aria-checked="${aan}" aria-label="${esc(t('regeling.naamOpZon', { naam: x.naam }))}" data-opzon="${esc(x.id)}"></button></div>`;
+}
+
 function opZonVorm() {
   if (!aInfo) return `<p class="klein">${esc(t('algemeen.laden'))}…</p>`;
   const vast = new Set(aInfo.configuratie.apparaten.map((x) => x.id));
   const rijen = [];
   for (const x of aInfo.configuratie.apparaten) rijen.push(opZonRij(x.naam, !opZonUit.includes(x.id), `data-opzon-vast="${esc(x.id)}"`));
-  for (const x of aInfo.gevonden.apparaten) if (!vast.has(x.id)) rijen.push(opZonRij(x.naam, opZon[x.id] === true, `data-opzon="${esc(x.id)}"`));
+  for (const x of aInfo.gevonden.apparaten) if (!vast.has(x.id)) rijen.push(x.soort === 'stekker' ? stekkerRij(x) : opZonRij(x.naam, opZon[x.id] === true, `data-opzon="${esc(x.id)}"`));
   const nu = uitstelbaar().map((x) => `<div class="regelrij"><div class="l"><b>${esc(x.naam)}</b><span>${esc(x.stand)}</span></div></div>`).join('');
   return `<h2 class="kop-2">${esc(t('instellingen.opZon'))}</h2>
     <p class="klein" style="margin: 0">${esc(t('regeling.opZonUitleg'))}</p>
@@ -142,6 +157,19 @@ document.addEventListener('click', (e) => {
     opZonUit = aan ? opZonUit.filter((x) => x !== id) : [...new Set([...opZonUit, id])];
   }
   teken();
+  bewaar();
+});
+
+// Het vermogen van een stekker zonder eigen meter (besluit 264): bewaard als je het veld verlaat.
+document.addEventListener('change', (e) => {
+  const veld = e.target.closest?.('[data-vermogen]');
+  if (!veld || !aInfo) return;
+  const w = Math.round(Number(veld.value));
+  vermogen = { ...vermogen, [veld.dataset.vermogen]: veld.value === '' ? null : Math.min(3680, Math.max(50, w)) };
+  bewaar();
+});
+
+function bewaar() {
   // De aansluiting bewaart alles samen: de rest zoals het was, ook hoe de panelen liggen.
   const x = aInfo.antwoorden ?? {};
   const body = {
@@ -155,6 +183,7 @@ document.addEventListener('click', (e) => {
     ...(x.elders ? { elders: x.elders } : {}),
     opZon: Object.fromEntries(Object.entries(opZon).filter(([, v]) => typeof v === 'boolean')),
     opZonUit,
+    vermogen,
   };
   groep.bewaarStraks(async () => {
     const uit = await groep.stuur('api/aansluiting', body);
@@ -164,7 +193,7 @@ document.addEventListener('click', (e) => {
     }
     return uit;
   });
-});
+}
 
 /* ------------------------------------------------------------ starten */
 

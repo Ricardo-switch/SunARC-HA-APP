@@ -158,7 +158,29 @@ function tank(b) {
   return `<svg class="ring" viewBox="0 0 64 64" role="img" aria-label="${esc(label)}"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#4d86c9"/><stop offset="0.55" stop-color="#ff9a6b"/><stop offset="1" stop-color="#ff6a3d"/></linearGradient><clipPath id="${id}-v"><rect x="18" y="6" width="28" height="52" rx="12"/></clipPath></defs><rect x="18" y="6" width="28" height="52" rx="12" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/><g clip-path="url(#${id}-v)"><rect x="18" y="${58 - hoog}" width="28" height="${hoog}" fill="url(#${id})"/></g>${b.bron === 'zon' ? '<path d="M14 13h36" stroke="#F7B548" stroke-width="1.5" stroke-dasharray="3 3"/>' : ''}${tekst}</svg>`;
 }
 
+/**
+ * Een slimme stekker (besluit 264): het vaste stekkericoon, de naam uit Home
+ * Assistant, wat hij nu trekt, en of hij op zon aan zou gaan of uit. SunArc
+ * kijkt mee; schakelen doet hij nog niet.
+ */
+function stekkerKaart(b) {
+  const aan = b.stookt;
+  // Zoals bij de airco's: op zon of wachtend op zon geel, aan zonder zon gloed.
+  const kleur = aan && b.stand === 'waiting' ? 'var(--gloed)' : b.stand === 'would_heat' || b.stand === 'waiting' ? 'var(--zon)' : 'var(--net)';
+  const kw = b.vermogenW != null && b.vermogenW >= 5 ? `${nl(b.vermogenW / 1000)}<span>${esc(t('apparaten.kwNu'))}</span>` : '';
+  const el = document.createElement('section');
+  el.className = 'glas app';
+  el.dataset.actief = String(aan || b.stand === 'would_heat');
+  el.innerHTML = `
+    <div class="kopje"><span class="ik">${iconen.svg('stekker')}</span><div><b>${esc(b.naam)}</b><span class="mini">${esc(t('apparaten.stekker'))}</span></div><div class="kw">${kw}</div></div>
+    <div class="stand"><i style="background: ${kleur}"></i>${esc(b.kop)}</div>
+    <p class="mini zin">${esc(b.zin)}</p>
+    <p class="mini etiket">${esc(t(aan ? 'apparaten.stekkerAan' : 'apparaten.stekkerUit'))} · ${esc(t('apparaten.kijktMee'))}</p>`;
+  return el;
+}
+
 function bufferKaart(b) {
+  if (b.soort === 'stekker') return stekkerKaart(b);
   const kleur = b.bron === 'zon' ? '#F7B548' : b.bron === 'net' ? '#ff9a6b' : '#6EE7B7';
   const toon = b.bron === 'zon' ? 'zon-t' : b.bron === 'net' ? 'gloed-t' : b.stand === 'full' ? 'mint-t' : '';
   const deel = b.temperatuurC == null ? 0 : Math.max(0, Math.min(1, (b.temperatuurC - 20) / Math.max(1, b.zonC - 20)));
@@ -330,7 +352,12 @@ function nietOpZon(a) {
   const el = document.createElement('a');
   el.className = 'glas app niet';
   el.href = 'regeling.html#opzon';
-  el.innerHTML = `
+  // Een stekker met zijn vaste icoon (besluit 264).
+  el.innerHTML = a.soort === 'stekker'
+    ? `
+    <div class="kopje"><span class="ik">${iconen.svg('stekker')}</span><div><b>${esc(a.naam)}</b><span class="mini">${esc(t('apparaten.nietOpZon'))}</span></div></div>
+    <p class="mini zin">${esc(t('apparaten.stekkerOpZon'))}</p>`
+    : `
     <div class="boven">${ring({ gestippeld: true })}<div><b>${esc(a.naam)}</b><span class="klein">${esc(t('apparaten.nietOpZon'))}</span></div></div>
     <p class="mini zin">${esc(t('apparaten.zetOpZon'))}</p>`;
   return el;
