@@ -411,7 +411,9 @@ const dakvlakken = (() => {
     // Uit de kaart (5 november 2026): experimenteel, met de bron; kiezen gaat bij Wat kan bij jouw huis (6 november).
     const balk = huis?.bron === 'kaart' ? kaartBalk(huis, tk) : '';
     const mist = d.vlakken.filter((v) => !plaatsVan(d, v).getekend).map((v) => v.letter);
-    const noten = [...(mist.length ? [t('daken.nietBoven', { n: mist.length, letters: mist.join(', ') })] : []), ...(huis?.bron === 'kaart' && tk?.omgeving.length ? [t('daken.kandidaatTip')] : [])];
+    // Hoe je een gebouw schuift: tik op zijn naam (7 november 2026); in het scherm van het gebouw staat het al.
+    const schuifTip = huis && s.scherm !== 'gebouw' ? [t('daken.blok.tip')] : [];
+    const noten = [...(mist.length ? [t('daken.nietBoven', { n: mist.length, letters: mist.join(', ') })] : []), ...(huis?.bron === 'kaart' && tk?.omgeving.length ? [t('daken.kandidaatTip')] : []), ...schuifTip];
     const noot = noten.length ? `<p class="dk-noot">${esc(noten.join(' '))}</p>` : '';
     return `<div class="pan-podium dk-podium">${tk ? bovenSvg(d, s) : ''}<span class="dk-noord" aria-hidden="true"><svg viewBox="0 0 10 7"><path d="M5 0L10 7H0z"/></svg>N</span>${noot}${balk}</div>`;
   }
@@ -636,7 +638,12 @@ const dakvlakken = (() => {
   function watKan(d, s) {
     const nu = inGebruik(d);
     const ks = kaartStanden(d, s);
-    const zelf = wkRegel('zelf', t('daken.wk.zelf'), esc(t('daken.wk.zelfZin')), nu === 'zelf' ? wkGebruik() : wkKies('data-dak-zonderkaart', t('daken.wk.zelf')), nu === 'zelf' ? ' aan' : '');
+    // Zelf tekenen in gebruik: een knop die het huis opent om te slepen en op maat te zetten (Ricardo, 7 november 2026: hij vond de ingang niet).
+    const huisId = d.tekening?.gebouwen.find((g) => g.soort === 'hoofdhuis')?.id;
+    const zelfAan = nu === 'zelf' && huisId;
+    const zelf = zelfAan
+      ? wkRegel('zelf', t('daken.wk.zelf'), `<span class="wk-ja">${esc(t('daken.wk.gebruik'))}</span> · ${esc(t('daken.wk.zelfAan'))}`, `<button type="button" class="wk-knop" data-dak-gebouw="${esc(huisId)}">${esc(t('daken.wk.teken'))}</button>`, ' aan')
+      : wkRegel('zelf', t('daken.wk.zelf'), esc(t('daken.wk.zelfZin')), nu === 'zelf' ? wkGebruik() : wkKies('data-dak-zonderkaart', t('daken.wk.zelf')), nu === 'zelf' ? ' aan' : '');
     // De plek: staat hij uit, dan naar die instelling in Home Assistant.
     const plekRechts = d.kaart ? wkStand('ja', t('daken.wk.aan')) : window.app?.inHA?.() ? `<button type="button" class="wk-kies" data-dak-plekha>${esc(t('daken.wk.stelIn'))}</button>` : wkStand('nee', t('daken.wk.uit'));
     const plek = wkRegel('plek', t('daken.wk.plek'), d.kaart ? esc(t('daken.wk.plekZin')) : `<span class="wk-nee">${esc(t('daken.wk.uit'))}</span> ${esc(t('daken.wk.inHA'))}`, plekRechts);

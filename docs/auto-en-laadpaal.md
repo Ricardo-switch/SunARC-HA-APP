@@ -1,8 +1,9 @@
 # Auto en laadpaal: het bouwplan
 
 Stand 6 november 2026. Het ontwerp is besloten ([besluit 259](../DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp));
-stap 1 is gebouwd in 0.131.0, stap 2 in 0.132.0 en stap 3 in 0.133.0 (zie
-"wat er gebouwd is"), de rest nog niet. Dit document is de overdracht: alles wat nodig is
+alle zes stappen zijn gebouwd: 1 in 0.131.0, 2 in 0.132.0, 3 in 0.133.0, 4 in
+0.135.0, 5 in 0.136.0 en 6 in 0.137.0 (zie "wat er gebouwd is"). Wat nog open
+staat, staat onder "Nog open". Dit document is de overdracht: alles wat nodig is
 om het in een nieuwe sessie op te pakken, zonder het gesprek van 6 november.
 
 ## Waarom
@@ -240,6 +241,105 @@ lijst in `client.ts`). Laden wordt er een, naar het voorbeeld van `isHandCall`:
   half vijf, de dagen ervoor op zon, 's avonds en 's nachts (`laadWOp` in
   `nep-ha.ts`); het net neemt het laadvermogen mee af.
 
+## Stap 4: wat er gebouwd is (0.135.0)
+
+- `backend/src/web/laadadvies.ts`: per auto `zon` en `goedkoop`, elk null als
+  het niets zegt. `GET api/laadadvies` geeft `{ adviezen }` op auto-id; de
+  dienst rekent met het net en de stroom per fase uit het laatste besluit
+  (`explanation.budget`, `explanation.phases`) en de prijzen per uur uit de
+  attributen van de prijs-entiteit van Energie (`main.ts`, `laadadviezen`).
+- **Zon:** `meer` als hij laadt en er gaat stroom terug: de hoogste stroom per
+  fase die op zon past (wat hij neemt plus wat teruggaat, gedeeld door 230 ×
+  fasen). `minder` als er stroom van het net komt en een lagere stroom (vanaf
+  de laagste van de laadpaal) wel op zon past. `start` als de kabel erin zit,
+  hij niet laadt en niet vol is, en de zon genoeg is voor de laagste stroom
+  (zonder te laden telt de app de fasen die de laadpaal meet: de veilige
+  kant). Nooit boven de laadpaal (zonder opgave 6 tot 16 A) en nooit boven de
+  ruimte op de zekering: de zekering min de marge min wat er op de drukste
+  fase loopt, alleen als elke fase gemeten is. Wat er overblijft op de
+  zekering staat erbij (`overA`).
+- Een thuisbatterij die de zon opneemt, gaat voor (besluit 85): wat naar de
+  batterij gaat, is niet over. In het voorbeeldhuis is er daarom meestal geen
+  zonadvies.
+- **Goedkoop:** alleen met een prijs per uur. `prijzenVooruit` leest Nord
+  Pool, ENTSO-e, EnergyZero, Frank Energie, Zonneplan, Amber en wat er zo
+  uitziet (een lijst met tijd en prijs); kwartieren worden uren, en de schaal
+  volgt uit de prijs van nu. Het goedkoopste aaneengesloten blok in de komende
+  24 uur, zo lang als de auto nodig heeft tot zijn laadgrens met de hoogste
+  stroom van de laadpaal (zonder accu drie uur, hooguit acht), en alleen als
+  het minstens € 0,05 per kWh scheelt met nu en niet nu al begint. Tibber geeft
+  geen lijst in zijn attributen; daar staat het advies er (nog) niet.
+  `nietNodig` als hij nu op zon laadt en vóór dat blok vol is.
+- De pagina Auto: het advies onder de auto (op de wand in twee kolommen,
+  passend zonder scrollen). Thuis: een eigen kaart direct boven de kaart van
+  de auto, alleen als die op Thuis staat; eerst de zon, anders de goedkope
+  uren (niet als ze vandaag niet nodig zijn). Geen eigen keuze bij Kaart
+  toevoegen: het advies hoort bij de kaart van de auto. "Laad met 8 A" komt
+  in stap 5.
+- De bewaking per fase uit de testerronde (stap 7, de schets van een kaart
+  per fase) is nog niet gebouwd; het advies leest de fasen zelf.
+
+## Stap 5: wat er gebouwd is (0.136.0, besluit 262)
+
+- **Herkennen** (`opslag.ts`, `laadBedieningen`): per auto het apparaat met de
+  knoppen, de laadpaal eerst en anders de auto. De stroom: een `number` in A,
+  bij voorkeur met dynamic, charg, laad, current of amp in de naam en niet
+  circuit, fase of min; onder 6 A begint het bij 6. Pauzeren: een `switch`
+  met charg, laad, pause of resume (bij alleen "pause" is aan de pauze), of
+  anders een paar knoppen (pause/stop en resume/start). Klimaat, klep, schema
+  en herstart vallen af.
+- **Mag het:** `bedienen` per apparaat in `aansluiting.json` onder `laden`
+  (weg is nee); bij Energie de schakelaar "SunArc mag … bedienen" bij het
+  apparaat dat het kan. Met evcc in huis nooit.
+- **De dienst** (`laadhand.ts`, `Laadhand`): `zet` (stroom of pauze, met
+  `tot` uur, tijd, pct of kabel), `terugNu`, en elke minuut `ronde`. Terug
+  alleen wat nog staat zoals de app het zette; bij knoppen hervat hij als de
+  auto niet laadt en de kabel erin zit. Bewaard in `laadhand.json`. De grens
+  op de zekering komt uit `zekeringVoor` in `main.ts`.
+- **De deur:** `isLaadCall` in `client.ts`, met `laadMag()` als lijst: wat mag,
+  en wat er nog terug moet (ook onder 6 A, zoals het stond).
+- **`api/laden`:** GET per auto `stroom`, `pauze`, `mag`, `evcc`,
+  `zekeringA` en `actief`, met `aan: false` op de NAS; POST `{ auto, stroomA
+  | pauze, tot, totMs?, pct? }` of `{ auto, terug: true }`. Voor de rol
+  bewoner.
+- **De pagina:** het blad Laden (de lagen van het blad bij Apparaten): de
+  stroom met min en plus en een balk met wat op zon past en wat de zekering
+  toelaat, hoe lang, wat erna gebeurt, Pauzeer of Terug naar de laadpaal, en
+  Laad met n A. Op de telefoon een regel onder het advies; op de wand een rij
+  in de kaart van de laadpaal (daar zonder vermogen en "kan", die staan bij de
+  auto en in het blad; de wand scrolt nooit). `auto.html?laden#id` opent het
+  blad meteen.
+- **Laad met 8 A** bij het advies, op de pagina en op Thuis (met Meer keuzes),
+  tot de kabel eruit gaat; niet bij "start" (dan laadt de auto niet, en zet
+  een stroom hem niet aan).
+- **Het voorbeeldhuis:** de laadpaal heeft `number.laadpaal_laadstroom` (6 tot
+  16 A) en `switch.laadpaal_laden`, en laadt met die stroom; bedienen staat
+  daar aan.
+- **Nog niet:** de eigen dienst van Easee, de stand van evcc, de balk van de
+  dag in het blad (zon, goedkope uren, tot wanneer), en de assistent.
+
+## Stap 6: wat er gebouwd is (0.137.0, besluit 263)
+
+- **De bel** (`meldingen.ts`, `autoMeldingen`): soort `auto`, met per auto
+  `AutoBel` uit `main.ts` (`autoBel`): lading, laadgrens, kabel, thuis, de
+  fout van de laadpaal (`Auto.fout` in `opslag.ts`: een stand met error,
+  fault, fout of storing), sinds wanneer de kabel erin zit, en kabel vergeten
+  als minuut van de dag en %. De klok van het huis gaat mee (`minuut`, `dag`,
+  `gisteren`).
+- **Vol:** `auto-vol:<auto>:<kabel erin sinds>`, zolang de kabel erin zit en
+  hij op de laadgrens (of 100%) staat. **Fout:** `auto-fout:<auto>:<…>`.
+  **Kabel vergeten:** `auto-kabel:<auto>:<avond>`, van de tijd tot zes uur,
+  thuis, zonder kabel en onder het %. **Met de hand klaar:**
+  `auto-hand:<auto>:<ms>`, een half uur, uit `Laadhand.klaar` (alleen op de
+  tijd of het %, niet als de kabel eruit ging).
+- **De keuze:** `kabel: { om, pct }` per auto onder `laden.instelling` in
+  `aansluiting.json`; weg is 21:00 en 50%, `pct` null is uit. Bij Energie bij
+  een auto die zijn lading meet: Uit, Onder 30/50/70% en de tijd.
+- **De telefoon** (`push.ts`): groep `auto`, standaard aan, niet dringend
+  (dus niet in de nachtrust); een bewaarde keuze zonder `auto` telt als aan.
+  Bij Jij › Meldingen op de telefoon de regel De auto.
+- In het voorbeeldhuis komt rond half vijf "Elektrische auto is vol".
+
 ## De stappen, elk een eigen versie
 
 1. **Kiezen en herkennen.** `opslag.ts` naar lijsten van auto's en laadpalen,
@@ -272,7 +372,8 @@ Daarna, in B: automatisch laden op zon, binnen de volgorde van besluit 85
 
 - Echte gegevens van testers per merk (zie hierboven).
 - René (#123): welke autokoppeling.
-- De vertrektijd voor de melding "kabel vergeten".
+- Een vertrektijd (uit de auto of de agenda) voor kabel vergeten: gekozen is
+  een vaste avondcheck (besluit 263); later eventueel erbij.
 - Een auto die aan meer laadpalen laadt, en een laadpaal met twee punten.
 - Laders op één fase, en wisselen tussen één en drie fasen.
 - De Engelse teksten (de app is tweetalig, besluit 185).

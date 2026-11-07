@@ -193,7 +193,8 @@ function agendaBlad() {
  */
 let proef = '';
 function tekenMeldingen() {
-  const m = v.tel.meldingen;
+  // De auto (besluit 263) staat aan zolang je niets koos.
+  const m = { auto: true, ...v.tel.meldingen };
   const lijst = v.telefoons ?? [];
   const tel = mijnTelefoon();
   const keus = (sleutel, titel, onder, dringend) =>
@@ -210,6 +211,7 @@ function tekenMeldingen() {
       ${keus('onderhoud', t('jij.meld.onderhoud'), t('jij.meld.onderhoudZin', { tot: m.tot }), false)}
       ${keus('versie', t('jij.meld.versie'), t('jij.meld.versieZin'), false)}
       ${keus('sluip', t('jij.meld.sluip'), t('jij.meld.sluipZin', { tot: m.tot }), false)}
+      ${keus('auto', t('jij.meld.auto'), t('jij.meld.autoZin'), false)}
       <p class="uitleg">${esc(t('jij.meld.weerGoed'))}</p>
     </section>
     ${lijst.length

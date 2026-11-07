@@ -7,7 +7,9 @@
  *    al een uur niet reageert, een meter die niets levert): dringend, altijd,
  *    ook 's nachts; standaard aan;
  *  - **een batterij of filter bijna op** en **een nieuwe versie**: overdag;
- *    wat 's nachts opkomt, wacht tot het einde van de nachtrust; standaard uit.
+ *    wat 's nachts opkomt, wacht tot het einde van de nachtrust; standaard uit;
+ *  - **de auto** (besluit 263): vol, een fout, kabel vergeten, met de hand
+ *    klaar; buiten de nachtrust, standaard aan.
  *
  * Komt iets vanzelf goed, dan vervangt de app de melding op de telefoon stil
  * door "weer goed" (hetzelfde label, zonder geluid). Wat langer dan een dag
@@ -39,14 +41,16 @@ export interface MeldingKeus {
   readonly versie: boolean;
   /** Opvallend sluipverbruik, de ochtend erna (besluit 79 en 192). */
   readonly sluip: boolean;
+  /** De auto (besluit 263); weg is aan. */
+  readonly auto?: boolean;
   /** De nachtrust, als uu:mm: dan alleen wat dringend is. */
   readonly van: string;
   readonly tot: string;
   /** Het apparaat van de telefoon in Home Assistant, of null: die van je persoon. */
   readonly telefoon: string | null;
 }
-export const STANDAARD_MELDINGEN: MeldingKeus = { rook: true, regeling: true, onderhoud: false, versie: false, sluip: true, van: '23:00', tot: '07:00', telefoon: null };
-export type MeldingGroep = 'rook' | 'regeling' | 'onderhoud' | 'versie' | 'sluip';
+export const STANDAARD_MELDINGEN: MeldingKeus = { rook: true, regeling: true, onderhoud: false, versie: false, sluip: true, auto: true, van: '23:00', tot: '07:00', telefoon: null };
+export type MeldingGroep = 'rook' | 'regeling' | 'onderhoud' | 'versie' | 'sluip' | 'auto';
 
 /** Bij welke keus een melding hoort; null: alleen bij de bel. */
 export function groepVan(soort: MeldingSoort): MeldingGroep | null {
@@ -55,6 +59,7 @@ export function groepVan(soort: MeldingSoort): MeldingGroep | null {
   if (soort === 'batterij' || soort === 'filter') return 'onderhoud';
   if (soort === 'update') return 'versie';
   if (soort === 'sluip') return 'sluip';
+  if (soort === 'auto') return 'auto';
   return null;
 }
 const dringend = (g: MeldingGroep) => g === 'rook' || g === 'regeling';
@@ -191,7 +196,8 @@ export function teSturen(meldingen: readonly Melding[], ontvangers: readonly Ont
     for (const melding of meldingen) {
       const m = inTaal(melding, taal);
       const g = groepVan(m.soort);
-      if (g == null || !o.keus[g]) continue;
+      // De auto staat aan als hij er nog niet was (besluit 263).
+      if (g == null || !(o.keus[g] ?? (g === 'auto'))) continue;
       const sleutel = `${o.account}|${m.id}`;
       const was = uit[sleutel];
       const tag = `smart-climate-${m.id}`.replace(/[^a-zA-Z0-9_-]/g, '-');

@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.134.0';
+export const VERSIE = '0.137.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -74,12 +74,66 @@ export const TERUGKIJKEN = 10;
  * main komt de bovenste versie erbij. Oudere versies staan elk apart.
  */
 export const OP_MAIN: readonly string[] = [
-  '0.134.0', '0.131.2', '0.130.0', '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
+  '0.137.0', '0.134.0', '0.131.2', '0.130.0', '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
   '0.117.1', '0.117.0', '0.116.0', '0.115.2', '0.115.1', '0.115.0',
 ];
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.137.0',
+    datum: '2026-11-07',
+    nieuw: [
+      'Meldingen van de auto: vol, laden gestopt met een fout van de laadpaal, en laden met de hand dat klaar is',
+      'Kabel vergeten: staat de auto \'s avonds thuis zonder kabel en te leeg, dan krijg je een melding. De tijd en het % kies je bij Energie › Auto en laadpaal',
+      'Op de telefoon een eigen keuze De auto, standaard aan, niet in je nachtrust',
+    ],
+    en: {
+      nieuw: [
+        'Notifications for the car: full, charging stopped by a charger error, and charging by hand that is done',
+        'Cable forgotten: if the car is home in the evening without the cable and too low, you get a notification. Choose the time and the % in Energy › Car and charger',
+        'On the phone its own choice The car, on by default, not during your night rest',
+      ],
+    },
+  },
+  {
+    versie: '0.136.0',
+    datum: '2026-11-07',
+    nieuw: [
+      'Laden met de hand op de pagina Auto: de hoogste stroom per fase of pauzeren, voor een uur, tot een tijd, tot een % of tot de kabel eruit gaat. Daarna kiest de laadpaal weer zelf',
+      'Laad met 8 A met één tik op de advieskaart, als er meer zon over is',
+      'Bij Energie › Auto en laadpaal zet je aan of SunArc de laadpaal mag bedienen; nooit boven de laadpaal of je zekering',
+    ],
+    beter: [
+      'Bij Zelf tekenen opent Teken je huis meteen je huis om te schuiven, te draaien en op maat te zetten, en de tekening zegt dat je op de naam van een gebouw tikt',
+    ],
+    en: {
+      nieuw: [
+        'Charging by hand on the Car page: the highest current per phase or pausing, for an hour, until a time, until a % or until the cable comes out. After that the charger decides again',
+        'Charge at 8 A with one tap on the advice card, when there is more solar to spare',
+        'In Energy › Car and charger you allow SunArc to control the charger; never above the charger or your main fuse',
+      ],
+      beter: [
+        "Under Draw it yourself, Draw your house opens your house right away to move, turn and resize it, and the drawing says to tap a building's name",
+      ],
+    },
+  },
+  {
+    versie: '0.135.0',
+    datum: '2026-11-07',
+    nieuw: [
+      'Advies bij de auto: is er meer zon over dan de auto neemt, dan zie je met hoeveel ampère hij nog op eigen zon laadt, binnen je laadpaal en je zekering',
+      'Met een prijs per uur: de goedkoopste uren om te laden, hoe ver de auto dan komt en wat het ongeveer kost',
+      'Het advies staat onder de auto en als eigen kaart op Thuis, boven de kaart van de auto, en alleen als er iets te winnen is',
+    ],
+    en: {
+      nieuw: [
+        'Advice for the car: when there is more solar to spare than the car takes, you see how many amps it can charge with on your own solar, within your charger and your main fuse',
+        'With an hourly price: the cheapest hours to charge, how far the car gets and roughly what it costs',
+        'The advice shows under the car and as its own card on Home, above the car card, and only when there is something to gain',
+      ],
+    },
+  },
   {
     versie: '0.134.0',
     datum: '2026-11-06',

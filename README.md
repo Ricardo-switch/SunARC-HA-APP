@@ -171,7 +171,7 @@ Home Assistant then shows **New device discovered: SunArc**; click **Add**. You 
 - The app sits behind the Home Assistant login (Ingress). No port is open, unless you turn on the separate port for Tailscale yourself.
 - Its own AppArmor profile: security rating 8, the highest.
 - The images are built on GitHub and signed with Cosign.
-- SunArc writes to Home Assistant only through narrow doors: lights, scenes, blinds, the start button of an appliance waiting for solar power, and manual climate control with an end time. A test proves nothing else gets through. Why the add-on may write to the Home Assistant configuration is explained in the add-on documentation.
+- SunArc writes to Home Assistant only through narrow doors: lights, scenes, blinds, the start button of an appliance waiting for solar power, and manual climate control and manual charging with an end time (charging only when you allow it). A test proves nothing else gets through. Why the add-on may write to the Home Assistant configuration is explained in the add-on documentation.
 - Found a weakness? See [SECURITY.md](SECURITY.md).
 
 ## How it works

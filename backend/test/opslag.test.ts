@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { HaEntityState } from '../src/adapters/homeassistant/client.js';
 import type { HaDevice, HaRegistryEntity } from '../src/adapters/homeassistant/discovery.js';
-import { autoApparaten, laadMeters, ladenView, leesLaden, vindOpslag, type LadenKeuze } from '../src/web/opslag.js';
+import { autoApparaten, laadBedieningen, laadMeters, ladenView, leesLaden, vindOpslag, type LadenKeuze } from '../src/web/opslag.js';
 
 type Meting = { id: string; klasse?: string; staat: string; eenheid?: string; naam?: string; platform: string; apparaat: string; extra?: Record<string, unknown>; sinds?: string };
 
@@ -22,7 +22,7 @@ function huis(apparaten: HaDevice[], metingen: Meting[], keuze: LadenKeuze | nul
   const { reg, states } = registers(apparaten, metingen);
   return vindOpslag(reg, states, keuze, nu);
 }
-const geenKeuze = { plek: null, accuKWh: null, laadpaal: null, paalNaam: null, paalStroomA: null, laadgrens: null, stroomA: null, volOm: null, thuis: null, kabelSinds: null, wegSinds: null };
+const geenKeuze = { plek: null, accuKWh: null, laadpaal: null, paalNaam: null, paalStroomA: null, laadgrens: null, stroomA: null, volOm: null, thuis: null, kabelSinds: null, wegSinds: null, fout: null };
 
 const knop: HaDevice = { id: 'knop', area_id: null, name: 'Knop hal', manufacturer: 'IKEA', model: 'STYRBAR' };
 const knopBatterij: Meting = { id: 'sensor.knop_batterij', klasse: 'battery', staat: '80', eenheid: '%', platform: 'zha', apparaat: 'knop' };
@@ -86,6 +86,9 @@ describe('de thuisbatterij en de auto (besluit 182)', () => {
     expect(paal('charging', '7.4')).toEqual({ id: 'easee', naam: 'De auto', pct: null, aangesloten: true, laadt: true, vermogenW: 7400, bereikKm: null, ...geenKeuze, paalNaam: 'Easee Home' });
     expect(paal('disconnected', '0')).toMatchObject({ aangesloten: false, laadt: false });
     expect(paal('awaiting_start', '0')).toMatchObject({ aangesloten: true, laadt: false });
+    // Een fout van de laadpaal (besluit 263): voor de bel.
+    expect(paal('error', '0')).toMatchObject({ fout: 'error' });
+    expect(paal('charging', '7.4')).toMatchObject({ fout: null });
   });
 });
 
@@ -109,6 +112,44 @@ describe('meer auto’s en laadpalen, en wat de bewoner koos (besluit 259)', () 
     { id: 'switch.easee_charger_enabled', staat: 'on', naam: 'Charger enabled', platform: 'easee', apparaat: 'easee' },
     { id: 'sensor.knop_batterij', klasse: 'battery', staat: '80', eenheid: '%', platform: 'zha', apparaat: 'knop' },
   ];
+
+  it('weet per auto wat SunArc met de hand mag bedienen (besluit 262)', () => {
+    const { reg, states } = registers([tesla, easee], metingen.filter((m) => m.apparaat !== 'kia'));
+    const keuze: LadenKeuze = { aan: {}, rol: {}, instelling: {}, bedienen: { easee: true } };
+    expect(laadBedieningen(reg, states, keuze)).toEqual([
+      {
+        auto: 'tesla',
+        apparaat: 'easee',
+        stroom: { id: 'number.easee_dynamic_charger_limit', min: 6, max: 32, stap: 1, nuA: 16 },
+        pauze: { soort: 'schakelaar', id: 'switch.easee_charger_enabled', omgekeerd: false },
+        mag: true,
+        evcc: false,
+      },
+    ]);
+    // Zonder toestemming bij Energie mag het niet; Energie ziet dat hij het kan.
+    expect(laadBedieningen(reg, states, null)[0]).toMatchObject({ mag: false });
+    expect(ladenView(reg, states, keuze).apparaten.find((x) => x.id === 'easee')).toMatchObject({ kanBedienen: true, bedienen: true });
+    // Met evcc in huis bedient SunArc de laadpaal niet zelf.
+    const evcc: HaDevice = { id: 'evcc', area_id: null, name: 'Garage', manufacturer: 'evcc', model: 'Loadpoint' };
+    const met = registers([tesla, easee, evcc], [...metingen.filter((m) => m.apparaat !== 'kia'), { id: 'select.evcc_garage_mode', staat: 'pv', platform: 'evcc_intg', apparaat: 'evcc' }]);
+    expect(laadBedieningen(met.reg, met.states, keuze)[0]).toMatchObject({ mag: false, evcc: true });
+    // Een pauzeknop die aan is als hij stilstaat, en een paar knoppen.
+    const knoppen = registers([easee], [
+      { id: 'switch.wallbox_pause', staat: 'off', naam: 'Pause', platform: 'easee', apparaat: 'easee' },
+      { id: 'sensor.easee_power', klasse: 'power', staat: '0', eenheid: 'W', platform: 'easee', apparaat: 'easee' },
+    ]);
+    expect(laadBedieningen(knoppen.reg, knoppen.states)[0]!.pauze).toEqual({ soort: 'schakelaar', id: 'switch.wallbox_pause', omgekeerd: true });
+    const paar = registers([easee], [
+      { id: 'button.ohme_pause_charge', staat: 'unknown', naam: 'Pause charge', platform: 'easee', apparaat: 'easee' },
+      { id: 'button.ohme_resume_charge', staat: 'unknown', naam: 'Resume charge', platform: 'easee', apparaat: 'easee' },
+      { id: 'button.ohme_restart', staat: 'unknown', naam: 'Restart', platform: 'easee', apparaat: 'easee' },
+      { id: 'sensor.easee_power', klasse: 'power', staat: '0', eenheid: 'W', platform: 'easee', apparaat: 'easee' },
+    ]);
+    expect(laadBedieningen(paar.reg, paar.states)[0]!.pauze).toEqual({ soort: 'knoppen', pauze: 'button.ohme_pause_charge', hervat: 'button.ohme_resume_charge' });
+    // Bewaren: alleen ja telt, per apparaat.
+    expect(leesLaden({ aan: {}, rol: {}, instelling: {}, bedienen: { easee: true, kia: false } })).toEqual({ keuze: { aan: {}, rol: {}, instelling: {}, bedienen: { easee: true } } });
+    expect(leesLaden({ bedienen: { easee: 'ja' } })).toEqual({ fout: 'auto en laadpaal: bedienen is per apparaat ja of nee' });
+  });
 
   it('vindt twee auto’s en een laadpaal, met wat elk meet en kan', () => {
     const { reg, states } = registers([tesla, kia, easee, knop], metingen);

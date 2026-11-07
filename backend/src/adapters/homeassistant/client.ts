@@ -144,6 +144,8 @@ export interface HaClientOptions {
    * vaatwasser uit de lijst, zonder iets erbij. Leeg of weg: dicht.
    */
   readonly allowStart?: () => readonly string[];
+  /** Laden met de hand (besluit 262): de laadstroom, de laadschakelaar en de pauzeknoppen van laadpalen die mogen. */
+  readonly allowLaden?: () => { readonly stroom: readonly { readonly id: string; readonly min: number; readonly max: number }[]; readonly schakelaars: readonly string[]; readonly knoppen: readonly string[] };
   /**
    * Of deze client een AI-taak van Home Assistant om een tekst mag vragen
    * (besluit 148): precies `ai_task.generate_data`, via `generateData`, met
@@ -324,6 +326,32 @@ export function isHandCall(
   return false;
 }
 
+/**
+ * Laden met de hand (besluit 262): de hoogste laadstroom op één getal uit de
+ * lijst, binnen zijn bereik; een laadschakelaar aan of uit; een pauze- of
+ * hervatknop. Precies die velden, op één entiteit.
+ */
+export function isLaadCall(
+  domain: string,
+  service: string,
+  data: Record<string, unknown>,
+  target: Record<string, unknown>,
+  mag: { readonly stroom: readonly { readonly id: string; readonly min: number; readonly max: number }[]; readonly schakelaars: readonly string[]; readonly knoppen: readonly string[] },
+): boolean {
+  if (Object.keys(target).some((k) => k !== 'entity_id')) return false;
+  const id = target['entity_id'];
+  if (typeof id !== 'string' || !id.startsWith(`${domain}.`)) return false;
+  const keys = Object.keys(data);
+  if (domain === 'number' && service === 'set_value') {
+    const s = mag.stroom.find((x) => x.id === id);
+    const v = data['value'];
+    return s != null && keys.length === 1 && keys[0] === 'value' && typeof v === 'number' && Number.isFinite(v) && v >= s.min && v <= s.max;
+  }
+  if (domain === 'switch' && mag.schakelaars.includes(id)) return (service === 'turn_on' || service === 'turn_off') && keys.length === 0;
+  if (domain === 'button' && mag.knoppen.includes(id)) return service === 'press' && keys.length === 0;
+  return false;
+}
+
 /** Witgoed starten (ronde 5): `button.press` op één startknop uit de lijst, verder niets. */
 export function isStartCall(domain: string, service: string, data: Record<string, unknown>, target: Record<string, unknown>, mag: readonly string[]): boolean {
   if (domain !== 'button' || service !== 'press' || Object.keys(data).length > 0) return false;
@@ -373,11 +401,12 @@ export declare interface HaClient {
 }
 
 export class HaClient extends EventEmitter {
-  readonly #options: Required<Omit<HaClientOptions, 'allowWrites' | 'allowLights' | 'allowScenes' | 'allowCovers' | 'allowAiTask' | 'allowListen' | 'allowUpdate' | 'allowNotify' | 'allowKnoppen' | 'allowHand' | 'allowStart' | 'allowTodo'>> & {
+  readonly #options: Required<Omit<HaClientOptions, 'allowWrites' | 'allowLights' | 'allowScenes' | 'allowCovers' | 'allowAiTask' | 'allowListen' | 'allowUpdate' | 'allowNotify' | 'allowKnoppen' | 'allowHand' | 'allowStart' | 'allowLaden' | 'allowTodo'>> & {
     allowUpdate: () => string | null;
     allowKnoppen: () => { readonly entiteiten: readonly string[]; readonly opties: readonly string[] };
     allowHand: () => { readonly klimaat: readonly string[]; readonly schakelaars: readonly string[] };
     allowStart: () => readonly string[];
+    allowLaden: () => { readonly stroom: readonly { readonly id: string; readonly min: number; readonly max: number }[]; readonly schakelaars: readonly string[]; readonly knoppen: readonly string[] };
     allowNotify: boolean;
     allowWrites: boolean;
     allowLights: boolean;
@@ -408,6 +437,7 @@ export class HaClient extends EventEmitter {
       allowKnoppen: options.allowKnoppen ?? (() => ({ entiteiten: [], opties: [] })),
       allowHand: options.allowHand ?? (() => ({ klimaat: [], schakelaars: [] })),
       allowStart: options.allowStart ?? (() => []),
+      allowLaden: options.allowLaden ?? (() => ({ stroom: [], schakelaars: [], knoppen: [] })),
       allowAiTask: options.allowAiTask ?? false,
       allowListen: options.allowListen ?? false,
       allowTodo: options.allowTodo ?? false,
@@ -810,7 +840,8 @@ export class HaClient extends EventEmitter {
       (this.#options.allowTodo && isTodoCall(domain, service, data, target)) ||
       isKnopCall(domain, service, data, target, this.#options.allowKnoppen()) ||
       isHandCall(domain, service, data, target, this.#options.allowHand()) ||
-      isStartCall(domain, service, data, target, this.#options.allowStart());
+      isStartCall(domain, service, data, target, this.#options.allowStart()) ||
+      isLaadCall(domain, service, data, target, this.#options.allowLaden());
     if (!allowed) {
       throw new Error(
         `Schrijven staat uit: ${domain}.${service} is niet verstuurd. ` +

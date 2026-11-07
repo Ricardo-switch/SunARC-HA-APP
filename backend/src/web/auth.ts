@@ -41,6 +41,8 @@ export const DOOR_ROLES: Readonly<Record<string, Role>> = {
   // Klimaat met de hand (besluit 235) en witgoed starten (besluit 238): voor wie in huis woont.
   '/api/hand': 'bewoner',
   '/api/witgoed': 'bewoner',
+  // Laden met de hand (besluit 262): voor wie in huis woont, zoals klimaat met de hand.
+  '/api/laden': 'bewoner',
   // Te doen (besluit 216): voor wie in huis woont, en de wand.
   '/api/te-doen': 'bewoner',
   // Hoe het voelt mag zonder inlog (besluit 134): het verandert niets aan het huis.

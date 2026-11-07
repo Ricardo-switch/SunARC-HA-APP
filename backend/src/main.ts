@@ -74,8 +74,10 @@ import type { TeDoenDienst } from './web/routes/tedoen.js';
 import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
-import { laadMeters, ladenView, vindOpslag } from './web/opslag.js';
+import { KABEL_STANDAARD, laadBedieningen, laadMeters, ladenView, vindOpslag } from './web/opslag.js';
+import { Laadhand, laadMag } from './web/laadhand.js';
 import { Laadbeurten } from './web/laadbeurten.js';
+import { laadAdvies, prijzenVooruit, type LaadAdvies } from './web/laadadvies.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
 import { sunPosition } from './core/sun.js';
 import { hoofddakPlat, panelenVan, type DakVlak } from './web/daken.js';
@@ -478,6 +480,8 @@ const client = new HaClient({
   // Klimaat met de hand (besluit 235): de airco's op verwarmen en de stekkers, als de brug aan staat of er nog iets terug moet.
   // Witgoed starten (ronde 5, besluit 238): alleen de startknop van een droger of vaatwasser, alleen in de add-on.
   allowStart: (): readonly string[] => witgoed?.knoppen() ?? [],
+  // Laden met de hand (besluit 262): de laadpalen die de bewoner aanzette, en wat er nog terug moet. Alleen in de add-on.
+  allowLaden: () => (laadhand ? laadMag(laadBedieningenNu(), laadhand.terugzetten) : { stroom: [], schakelaars: [], knoppen: [] }),
   allowHand: (): { readonly klimaat: readonly string[]; readonly schakelaars: readonly string[] } =>
     klimaatAan() || (handbediening?.terugzetten.length ?? 0) > 0 ? { klimaat: [...new Set([...HAND_KLIMAAT, ...handKnoppen().map((k) => k.id), ...(handbediening?.terugzetten ?? []).filter((t) => t.thermostaat).map((t) => t.id)])], schakelaars: [...new Set([...handSchakelaars().map((s) => s.id), ...(handbediening?.terugzetten ?? []).filter((t) => t.modus === 'aan').map((t) => t.id)])] } : { klimaat: [], schakelaars: [] },
 });
@@ -644,6 +648,35 @@ const handbediening: Handbediening | null = inHuisMetDeuren
       map: logDir !== '' ? logDir : null,
     })
   : null;
+/** Wat er per auto met de hand te bedienen is (besluit 262). */
+function laadBedieningenNu() {
+  return houseRegisters ? laadBedieningen(houseRegisters, allStates, connectionStore?.current?.laden ?? null) : [];
+}
+/*
+ * Laden met de hand (besluit 262, stap 5 van besluit 259): de hoogste
+ * laadstroom of pauzeren, met een eind. Alleen in de add-on (en het
+ * voorbeeldhuis), zoals klimaat met de hand; de NAS kijkt mee.
+ */
+const laadhand: Laadhand | null = inHuisMetDeuren
+  ? new Laadhand({
+      state: (id) => allStates.get(id),
+      zetStroom: (id, a): Promise<void> => client.callService('number', 'set_value', { value: a }, { entity_id: id }),
+      schakel: (id, aan): Promise<void> => client.callService('switch', aan ? 'turn_on' : 'turn_off', {}, { entity_id: id }),
+      druk: (id): Promise<void> => client.callService('button', 'press', {}, { entity_id: id }),
+      auto: (id) => huisNu('nl')?.opslag?.autos.find((a) => a.id === id) ?? null,
+      bediening: (id) => laadBedieningenNu().find((b) => b.auto === id) ?? null,
+      zekeringA: (id) => zekeringVoor(id),
+      map: logDir !== '' ? logDir : null,
+    })
+  : null;
+if (laadhand) {
+  setInterval(() => {
+    laadhand.ronde().then(
+      (gedaan) => gedaan.forEach((g) => console.log(`[laden met de hand] ${g}`)),
+      (e: unknown) => console.warn(`[laden met de hand] terugzetten lukte niet: ${(e as Error).message}`),
+    );
+  }, 60_000).unref();
+}
 /** De radiatorknoppen buiten de regeling (besluit 126), met hun kamer: die zet de hand direct (besluit 235). */
 function handKnoppen(): { id: string; naam: string; kamer: string }[] {
   const regeling = new Set((siteConfig?.actuators ?? []).map((a) => a.ref.id));
@@ -1210,6 +1243,40 @@ const meldingen = logDir !== '' ? new MeldingenStore({ logDir }) : null;
 const voorkeuren = logDir !== '' ? new VoorkeurenStore(logDir) : null;
 await voorkeuren?.load();
 await meldingen?.load();
+/** Wat de bel van de auto's weet (besluit 263): de auto's met hun keuze voor kabel vergeten, en de klok van het huis. */
+function autoBel(timeZone: string): Pick<Parameters<typeof meldingenBron>[0], 'autos' | 'handKlaar'> {
+  const autos = huisNu('nl')?.opslag?.autos ?? [];
+  if (!autos.length) return {};
+  const nu = Date.now();
+  const p = partsIn(nu, timeZone);
+  const q = partsIn(zonedMidnight(p.y, p.m, p.d, timeZone) - 12 * 3_600_000, timeZone);
+  const dag = (x: { y: number; m: number; d: number }) => `${x.y}-${String(x.m).padStart(2, '0')}-${String(x.d).padStart(2, '0')}`;
+  const minuut = (uu: string) => Number(uu.slice(0, 2)) * 60 + Number(uu.slice(3, 5));
+  const instelling = connectionStore?.current?.laden?.instelling ?? {};
+  return {
+    autos: {
+      minuut: p.h * 60 + p.mi,
+      dag: dag(p),
+      gisteren: dag(q),
+      lijst: autos.map((a) => {
+        // Weg is 21:00 en 50%; null is uit. Zonder lading in procenten kan het niet.
+        const k = instelling[a.id]?.kabel === undefined ? KABEL_STANDAARD : instelling[a.id]!.kabel!;
+        return {
+          id: a.id,
+          naam: a.naam,
+          pct: a.pct,
+          grens: a.laadgrens,
+          aangesloten: a.aangesloten,
+          thuis: a.thuis,
+          fout: a.fout,
+          kabelSindsMs: a.kabelSinds ? Date.parse(a.kabelSinds) : null,
+          kabel: k.pct != null && a.pct != null ? { om: minuut(k.om), pct: k.pct } : null,
+        };
+      }),
+    },
+    handKlaar: (laadhand?.klaar ?? []).map((k) => ({ ...k, naam: autos.find((a) => a.id === k.auto)?.naam ?? k.auto })),
+  };
+}
 function meldingenRonde(): void {
   const cfg = siteConfig;
   const h = cfg ? houseReport() : null;
@@ -1232,6 +1299,8 @@ function meldingenRonde(): void {
     profiel: runner?.latest?.explanation.profile ?? null,
     hoofd: bewonersStore ? hoofdVan(bewonersStore.current) : null,
     sluip: sluipVoorBel(sluipverbruik.laatste(), Date.now(), cfg.timezone),
+    // De auto (besluit 263): vol, een fout, kabel vergeten, en laden met de hand dat klaar is.
+    ...autoBel(cfg.timezone),
   });
   if (bron == null) return;
   meldingen.bij(bron);
@@ -1563,6 +1632,50 @@ const huisNu = (lang: Lang) => {
   huisBewaard.set(lang, { sleutel, atMs: Date.now(), huis: plat });
   return plat;
 };
+/**
+ * Het advies per auto (besluit 259, stap 4): uit het net en de stroom per fase
+ * van het laatste besluit, en de prijzen per uur uit de prijs-entiteit van
+ * Energie. Alleen lezen.
+ */
+/** De fasen van de aansluiting uit het laatste besluit, alleen als ze alle gemeten zijn. */
+const fasenNu = () => {
+  const e = runner?.latest?.explanation ?? null;
+  const grid = siteConfig?.grid;
+  return e?.phases && grid && e.phases.length > 0 && e.phases.every((p) => p.bron === 'gemeten' && p.currentA != null)
+    ? e.phases.map((p) => ({ stroomA: p.currentA!, zekeringA: grid.phases.find((g) => g.id === p.id)?.maxA ?? p.limitA + grid.marginA, grensA: p.limitA }))
+    : null;
+};
+/**
+ * De hoogste stroom per fase die er met de hand voor een auto op de zekering
+ * past (besluit 262): wat hij nu neemt plus de ruimte op de drukste fase; zonder
+ * meting per fase de zekering min de marge; zonder aansluiting niets.
+ */
+function zekeringVoor(id: string): number | null {
+  const grid = siteConfig?.grid;
+  if (!grid || !grid.phases.length) return null;
+  const fasen = fasenNu();
+  if (!fasen) return Math.min(...grid.phases.map((p) => p.maxA - grid.marginA));
+  const a = huisNu('nl')?.opslag?.autos.find((x) => x.id === id);
+  const nuA = a?.laadt ? Math.max(0, ...(a.stroomA ?? [])) : 0;
+  // Nooit boven de zekering zelf: bij teruglevering loopt er op een fase soms minder dan de auto neemt.
+  return Math.floor(Math.min(nuA + Math.min(...fasen.map((f) => f.grensA - f.stroomA)), ...fasen.map((f) => f.grensA)));
+}
+const laadadviezen = (): Record<string, LaadAdvies> => {
+  const autos = huisNu('nl')?.opslag?.autos ?? [];
+  if (!autos.length || !siteConfig) return {};
+  const e = runner?.latest?.explanation ?? null;
+  const netW = e && siteConfig.power.gridPower ? e.budget.gridPowerW : null;
+  const fasen = fasenNu();
+  const nuMs = Date.now();
+  const prijsId = energyStore?.current?.prijzen.dynamisch?.prijsEntiteit ?? null;
+  const prijsStaat = prijsId ? allStates.get(prijsId) : undefined;
+  const eenheid = typeof prijsStaat?.attributes['unit_of_measurement'] === 'string' ? (prijsStaat.attributes['unit_of_measurement'] as string) : null;
+  const prijzen = prijsStaat ? prijzenVooruit(prijsStaat.attributes, prijsStaat.state, eenheid, nuMs) : [];
+  const nu = prijsStaat ? Number(prijsStaat.state) : NaN;
+  const prijsNu = Number.isFinite(nu) ? nu / (/mwh/i.test(eenheid ?? '') ? 1000 : /ct|cent/i.test(eenheid ?? '') ? 100 : 1) : null;
+  return Object.fromEntries(autos.map((a) => [a.id, laadAdvies(a, { nuMs, netW, fasen, prijzen, prijsNu })]));
+};
+
 /** Het huis, met de stand in woorden in de taal van de app; zonder taal Nederlands. */
 const houseReport = (lang: Lang = 'nl') => {
   const h = huisNu(lang);
@@ -2105,6 +2218,17 @@ if (webPort != null) {
       client.query<HaCoreConfig>('get_config').then((c) => (typeof c.latitude === 'number' && typeof c.longitude === 'number' ? { latDeg: c.latitude, lonDeg: c.longitude } : null)),
     historie: historieVan,
     laadbeurten: (auto: string) => laadbeurten.van(auto),
+    laadadvies: laadadviezen,
+    // Laden met de hand (besluit 262): alleen in de add-on; de NAS laat het blad zonder knoppen zien.
+    ...(laadhand
+      ? {
+          laden: {
+            standen: async () => (await Promise.all((huisNu('nl')?.opslag?.autos ?? []).map((a) => laadhand.stand(a.id)))).filter((x) => x != null),
+            zet: (id: string, v: Parameters<Laadhand['zet']>[1]) => laadhand.zet(id, v),
+            terug: (id: string) => laadhand.terugNu(id),
+          },
+        }
+      : {}),
     dakenOpbrengst,
     sluipverbruik,
     house: houseReport,

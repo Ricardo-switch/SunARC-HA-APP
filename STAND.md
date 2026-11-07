@@ -370,7 +370,7 @@ verwijzing bestaat.
   vanzelf bij ([162]). Per account kies je eenvoudig of uitgebreid, grotere
   letters en minder beweging ([164]). Om te kiezen ook de auto, de
   thuisbatterij, deze maand en de deurbel, als het huis ze heeft ([182]).
-- **Auto en laadpaal (stap 1 tot en met 3 van 6 gebouwd, 0.131.0 tot 0.133.0):** Energie › Auto en laadpaal herkent auto's, laadpalen en evcc, met een schakelaar per apparaat, zelf kiezen, en per auto de accu, de laadpaal en de plek (ook de garage, idee 123); het klimaat van een auto telt niet als klimaat in huis (melding 132). De pagina Auto toont de auto als meter, met laden, stroom per fase, laadgrens, vol om, kabel en onderweg; de Thuis-kaart en Apparaten openen hem (0.132.0). De laadbeurten van de laatste week staan erop, met kWh, kosten en het deel eigen zon, uit de statistiek van Home Assistant (0.133.0). Nog te bouwen: met de hand laden (stroom, pauzeren, hoe lang), advies op een eigen Thuis-kaart en meldingen; het bouwplan staat in `docs/auto-en-laadpaal.md` ([259]).
+- **Auto en laadpaal (alle zes stappen gebouwd, 0.131.0 tot 0.137.0):** Energie › Auto en laadpaal herkent auto's, laadpalen en evcc, met een schakelaar per apparaat, zelf kiezen, en per auto de accu, de laadpaal en de plek (ook de garage, idee 123); het klimaat van een auto telt niet als klimaat in huis (melding 132). De pagina Auto toont de auto als meter, met laden, stroom per fase, laadgrens, vol om, kabel en onderweg; de Thuis-kaart en Apparaten openen hem (0.132.0). De laadbeurten van de laatste week staan erop, met kWh, kosten en het deel eigen zon, uit de statistiek van Home Assistant (0.133.0). Het advies staat onder de auto en als eigen kaart op Thuis boven de auto: meer of minder stroom op zon, binnen de laadpaal en de zekering, of beginnen met de kabel erin; met een prijs per uur de goedkoopste uren (0.135.0). Laden met de hand: de hoogste stroom of pauzeren, met een eind, door een eigen smalle deur, alleen als de bewoner het bij Energie toeliet ([262], 0.136.0). Meldingen: vol, een fout van de laadpaal, met de hand klaar, en kabel vergeten met een vaste avondcheck per auto; op de telefoon de keuze De auto ([263], 0.137.0); het bouwplan staat in `docs/auto-en-laadpaal.md` ([259]).
 - **Een profiel per bewoner** (Jij, bovenaan Instellingen): je thema op je
   eigen apparaten (donker, licht of zoals je telefoon; een scherm blijft
   donker), een van zes eigen kleuren, je
@@ -535,7 +535,9 @@ verwijzing bestaat.
   ([101]) naar eigen bestanden, lampen aan en uit ([97]) en de scènes van de
   eigen ruimtes ([100]). De eigen add-on bijwerken mag alleen met
   `update.install` op zijn eigen update ([171]), en zoeken met
-  `homeassistant.update_entity` op diezelfde update ([249]). Klimaat en screens blijven
+  `homeassistant.update_entity` op diezelfde update ([249]). Laden met de hand heeft een
+  eigen deur: de laadstroom, de laadschakelaar en de pauzeknoppen van een
+  laadpaal die de bewoner toeliet ([262]). Klimaat en screens blijven
   dicht tot B.
 - **De weergave luistert,** maar alleen om te lezen ([23]). De hele app vraagt
   een inlog met je Home Assistant-account, ook kijken ([147]); de dienst
@@ -842,4 +844,6 @@ verwijzing bestaat.
 [259]: DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp
 [260]: DECISIONS.md#260-je-dag-als-eigen-stap-en-hoe-warm-per-kamer
 [261]: DECISIONS.md#261-wat-kan-bij-jouw-huis-de-kaarten-nagaan-de-bewoner-kiest
+[262]: DECISIONS.md#262-laden-met-de-hand-een-smalle-deur-naar-de-laadpaal
+[263]: DECISIONS.md#263-meldingen-van-de-auto-en-kabel-vergeten-om-een-vaste-tijd
 <!-- links:einde -->

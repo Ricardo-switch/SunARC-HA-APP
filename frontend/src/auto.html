@@ -18,8 +18,8 @@
    * kijken. De auto zelf is de meter: hij vult zich tot zijn lading, met een
    * streep bij de laadgrens. Te openen vanaf de kaart op Thuis en vanaf de
    * auto bij Apparaten; in het menu licht Apparaten op. De laadbeurten (stap
-   * 3) staan rechts onder de laadpaal. Laden met de hand en het advies komen
-   * in de volgende stappen.
+   * 3) staan rechts onder de laadpaal, het advies (stap 4) onder de auto.
+   * Laden met de hand komt in de volgende stap.
    */
   #wand main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; grid-template-rows: auto minmax(0, 1fr); gap: 16px 18px; height: 100%; min-width: 0; }
   .kop { grid-column: 1 / -1; display: flex; align-items: end; gap: 18px; }
@@ -62,6 +62,55 @@
   .feiten a { color: inherit; }
   .zonbalk { height: 5px; margin: 6px 0 4px; border-radius: 3px; background: rgb(var(--wit) / 0.08); overflow: hidden; }
   .zonbalk i { display: block; height: 100%; border-radius: 3px; background: var(--zon); }
+
+  /* Het advies: zon en prijs, alleen wat iets zegt. */
+  [data-held] { gap: 14px; }
+  .advies { flex: none; padding: 14px 18px; border-radius: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .advies.een { grid-template-columns: 1fr; }
+  .advies > div { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .advies .ik { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; }
+  .advies .ik svg { width: 19px; height: 19px; }
+  .advies .zon .ik { background: rgba(247, 181, 72, 0.14); color: var(--zon); }
+  .advies .goedkoop .ik { background: rgba(143, 134, 255, 0.14); color: var(--violet-t); }
+  .advies b { display: block; font-size: 14.5px; font-weight: 600; }
+  .advies span { font-size: 13px; color: var(--zacht); line-height: 1.4; }
+
+  /* Laden met de hand (stap 5): de regel die het blad opent, en het blad (schets Wand-Auto, Tel-Auto). */
+  .ladenregel { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 14px 20px; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+  .ladenregel b { display: block; font-size: 16px; font-weight: 600; }
+  .ladenregel span:not(.pijl) { font-size: 13px; color: var(--zacht); }
+  .ladenregel .pijl { color: var(--gedempt); font-size: 22px; }
+  .ladenrij { width: 100%; border: 0; border-top: 1px solid rgb(var(--wit) / 0.07); background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+  .ladenrij b { color: var(--tekst); }
+  .ladenrij:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
+  .ladenregel:focus-visible, .snel:focus-visible { outline: 2px solid var(--tekst); outline-offset: 2px; }
+  .advies .snel { margin-top: 8px; height: 34px; padding: 0 14px; border: 0; border-radius: 11px; background: var(--tekst); color: var(--inkt); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+  .advies .snel:disabled { opacity: 0.5; }
+  .laadblad .vraag > span { display: block; font-size: 12px; font-weight: 700; color: var(--gedempt); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .laadblad .stroom { display: flex; align-items: center; justify-content: space-between; }
+  .laadblad .stroom button { width: 52px; height: 52px; border-radius: 16px; border: 0; background: rgb(var(--wit) / 0.08); color: var(--tekst); font-size: 24px; cursor: pointer; }
+  .laadblad .stroom button:disabled, .laadblad .tot-pct button:disabled { opacity: 0.35; cursor: default; }
+  .laadblad .stroom .getal { text-align: center; }
+  .laadblad .stroom .getal b { display: block; font-family: var(--kop); font-size: 60px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
+  .laadblad .stroom .getal b small { font-size: 26px; margin-left: 4px; letter-spacing: 0; }
+  .laadblad .stroom .getal span { font-size: 13px; color: var(--gedempt); }
+  .laadblad .schaal { position: relative; height: 12px; border-radius: 6px; background: rgb(154 170 187 / 0.22); margin-top: 10px; }
+  .laadblad .schaal i { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+  .laadblad .schaal i.zon { background: linear-gradient(90deg, rgba(247, 181, 72, 0.25), rgba(247, 181, 72, 0.7)); }
+  .laadblad .schaal i.dicht { background: repeating-linear-gradient(135deg, rgb(var(--wit) / 0.12) 0 4px, transparent 4px 8px); }
+  .laadblad .schaal b { position: absolute; top: -5px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 3px rgba(11, 20, 36, 0.8); }
+  .laadblad .schaal-as { display: flex; justify-content: space-between; margin-top: 5px; font-size: 11.5px; color: var(--gedempt); }
+  .laadblad .schaal-as .zon-t { font-weight: 600; }
+  .laadblad .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; border-radius: 12px; background: rgb(var(--wit) / 0.06); }
+  .laadblad .seg button { height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--zacht); font: inherit; font-size: 13.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+  .laadblad .seg button[aria-pressed='true'] { background: rgb(var(--wit) / 0.14); color: var(--tekst); }
+  .laadblad .seg button:disabled { opacity: 0.35; cursor: default; }
+  .laadblad .tot-pct { display: grid; grid-template-columns: 40px 64px 40px minmax(0, 1fr); gap: 10px; align-items: center; margin-top: 8px; }
+  .laadblad .tot-pct button { width: 40px; height: 40px; border-radius: 12px; border: 0; background: rgb(var(--wit) / 0.08); color: var(--tekst); font-size: 20px; cursor: pointer; }
+  .laadblad .tot-pct b { text-align: center; font-family: var(--kop); font-size: 26px; font-weight: 600; }
+  .laadblad .tot-pct span { font-size: 12.5px; color: var(--gedempt); line-height: 1.4; }
+  .laadblad .kan { margin: 0; }
+  .laadblad .kan a { color: var(--zacht); }
 
   /* Rechts: de laadpaal en wat je instelde. */
   .rechts { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
@@ -120,6 +169,7 @@
   #tel .feiten b { font-size: 15px; margin-top: 2px; }
   #tel .feiten span { font-size: 12.5px; }
   #tel .kaart { padding: 16px; border-radius: 20px; }
+  #tel .advies { grid-template-columns: 1fr; gap: 14px; padding: 14px 16px; }
   #tel .kaart h2 { font-size: 21px; }
   #tel .leeg { padding: 18px; border-radius: 20px; }
   #tel .leeg h2 { font-size: 22px; }

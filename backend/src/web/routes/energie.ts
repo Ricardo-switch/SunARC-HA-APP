@@ -35,6 +35,23 @@ export async function energieRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
     return true;
   }
 
+  // Het advies per auto (besluit 259, stap 4): alleen lezen, uit het net, de fasen en de prijzen van nu.
+  if (path === '/api/laadadvies') {
+    const lees = d.options.laadadvies;
+    if (!lees) {
+      sendJson(res, 503, { wachten: 'het advies komt van Home Assistant zodra die verbonden is' });
+      return true;
+    }
+    sendJson(res, 200, { adviezen: lees() });
+    return true;
+  }
+
+  // Laden met de hand (besluit 262): de stand per auto, of een stroom, pauze of terug.
+  if (path === '/api/laden') {
+    await ladenRoute(d, req, res, method);
+    return true;
+  }
+
   if (path === '/api/aansluiting') {
     await aansluitingRoute(d, req, res, method);
     return true;
@@ -96,6 +113,53 @@ export async function energieRoute(d: Diensten, req: IncomingMessage, res: Serve
   // Kent Home Assistant geen prijs per uur, dan de sensoren die er een geven (issue 119): die kun je in Home Assistant bij Energie zetten.
   const prijsSensoren = dyn ? [] : (energy.source.prijsSensoren?.() ?? []);
   sendJson(res, 200, { instellingen: energy.store.current, voorstel, dashboardPrijzen, dashboard, meters, prijsNu, prijsSensoren, ...(fout ? { fout } : {}) });
+}
+
+/**
+ * Laden met de hand (besluit 262). GET: per auto wat kan en wat er loopt.
+ * POST `{ auto, stroomA | pauze, tot, totMs?, pct? }`, of `{ auto, terug: true }`.
+ * Zonder de deur (de NAS) zegt GET `aan: false`, en kan er niets.
+ */
+async function ladenRoute(d: Diensten, req: IncomingMessage, res: ServerResponse, method: string): Promise<void> {
+  const laden = d.options.laden;
+  if (method !== 'POST') {
+    sendJson(res, 200, laden ? { aan: true, autos: await laden.standen() } : { aan: false, autos: [] });
+    return;
+  }
+  if (!laden) {
+    sendJson(res, 503, { fout: 'Laden met de hand kan alleen in de add-on' });
+    return;
+  }
+  let body: Record<string, unknown>;
+  try {
+    body = (await readJson(req)) as Record<string, unknown>;
+  } catch (error) {
+    sendJson(res, 400, { fout: (error as Error).message });
+    return;
+  }
+  const auto = body?.['auto'];
+  if (typeof auto !== 'string' || !/^[A-Za-z0-9_.:-]{1,64}$/.test(auto)) {
+    sendJson(res, 400, { fout: 'auto is het id van een auto' });
+    return;
+  }
+  if (body['terug'] === true) {
+    sendJson(res, 200, { ok: await laden.terug(auto) });
+    return;
+  }
+  const tot = body['tot'];
+  if (tot !== 'uur' && tot !== 'tijd' && tot !== 'pct' && tot !== 'kabel') {
+    sendJson(res, 400, { fout: 'tot is uur, tijd, pct of kabel' });
+    return;
+  }
+  const getal = (k: string) => (typeof body[k] === 'number' ? (body[k] as number) : undefined);
+  const uit = await laden.zet(auto, {
+    tot,
+    ...(body['pauze'] === true ? { pauze: true } : {}),
+    ...(getal('stroomA') != null ? { stroomA: getal('stroomA')! } : {}),
+    ...(getal('totMs') != null ? { totMs: getal('totMs')! } : {}),
+    ...(getal('pct') != null ? { pct: getal('pct')! } : {}),
+  }).catch((e: Error) => ({ ok: false as const, reden: `Home Assistant nam het niet aan: ${e.message}` }));
+  sendJson(res, uit.ok ? 200 : 409, uit.ok ? uit : { fout: uit.reden });
 }
 
 /** De zon en je aansluiting (besluit 103): wat er staat, of de antwoorden bewaren. */

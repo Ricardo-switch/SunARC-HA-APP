@@ -32,6 +32,9 @@ export interface BronInvoer {
   readonly sluip?: SluipBel | null;
   /** Een dakvlak dat op minstens drie zonnige dagen achterbleef (besluit 254, stap 5), of null. */
   readonly dakAchter?: NonNullable<MeldingenBron['dak']> | null;
+  /** De auto's en laden met de hand dat klaar is (besluit 263). */
+  readonly autos?: MeldingenBron['autos'];
+  readonly handKlaar?: MeldingenBron['handKlaar'];
 }
 
 /** De bron voor de bel, of null als bijna alles tegelijk weg is: dan is Home Assistant zelf weg. */
@@ -77,6 +80,8 @@ export function meldingenBron(i: BronInvoer): MeldingenBron | null {
     panelen: { voorstel: i.panelenVoorstel },
     sluip: i.sluip ?? null,
     dak: i.dakAchter ?? null,
+    autos: i.autos ?? null,
+    handKlaar: i.handKlaar ?? [],
     winterdagen: i.winterdagen,
     // Wiens comfort er geldt (besluit 147), voor één melding bij een wissel.
     comfort: (() => {
