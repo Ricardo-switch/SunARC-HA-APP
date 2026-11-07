@@ -126,9 +126,10 @@ export interface ConnectionAnswers {
   /**
    * De boiler en de jacuzzi (besluit 186) en de slimme stekkers (besluit 264):
    * gevonden, en of ze op zon mogen. `opgegevenW` is wat de bewoner opgaf bij
-   * een stekker zonder eigen meter.
+   * een stekker zonder eigen meter; `bedienen` of SunArc hem mag schakelen
+   * (besluit 265), weg is nee.
    */
-  readonly buffers?: readonly (FoundHeatStore & { readonly opZon: boolean; readonly opgegevenW?: number })[];
+  readonly buffers?: readonly (FoundHeatStore & { readonly opZon: boolean; readonly opgegevenW?: number; readonly bedienen?: boolean })[];
   /**
    * Apparaten uit de configuratie die de bewoner uitzette (besluit 167): die
    * starten niet meer op zon. Eerst stond daar alleen "Aan".
@@ -560,6 +561,13 @@ export function validateConnection(
     if (!(found.buffers ?? []).some((x) => x.id === id && x.soort === 'stekker')) return { ok: false, reden: `geen stekker: ${id}` };
     if (v !== null && !(Number.isInteger(v) && (v as number) >= 50 && (v as number) <= PLUG_MAX_W)) return { ok: false, reden: `het vermogen van een stekker is een heel getal van 50 tot ${PLUG_MAX_W} W` };
   }
+  // Mag SunArc de stekker schakelen (besluit 265): ja of nee; wat de pagina niet stuurt, blijft.
+  const bedienenRaw = (typeof b['bedienen'] === 'object' && b['bedienen'] != null && !Array.isArray(b['bedienen']) ? b['bedienen'] : {}) as Record<string, unknown>;
+  for (const [id, v] of Object.entries(bedienenRaw)) {
+    if (!(found.buffers ?? []).some((x) => x.id === id && x.soort === 'stekker')) return { ok: false, reden: `geen stekker: ${id}` };
+    if (typeof v !== 'boolean') return { ok: false, reden: `bedienen is ja of nee (${id})` };
+  }
+  const bedienen = (id: string): boolean => (id in bedienenRaw ? bedienenRaw[id] === true : vorige?.buffers?.find((x) => x.id === id)?.bedienen === true);
   const opgegeven = (id: string): number | undefined => {
     const v = id in vermogenRaw ? vermogenRaw[id] : vorige?.buffers?.find((x) => x.id === id)?.opgegevenW;
     return typeof v === 'number' ? v : undefined;
@@ -628,7 +636,8 @@ export function validateConnection(
         ? {
             buffers: found.buffers!.map((b) => {
               const w = b.soort === 'stekker' ? opgegeven(b.id) : undefined;
-              return { ...b, opZon: opZonRaw[b.id] === true, ...(w != null ? { opgegevenW: w } : {}) };
+              const mag = b.soort === 'stekker' && bedienen(b.id);
+              return { ...b, opZon: opZonRaw[b.id] === true, ...(w != null ? { opgegevenW: w } : {}), ...(mag ? { bedienen: true } : {}) };
             }),
           }
         : {}),
@@ -708,7 +717,7 @@ function readAnswers(raw: unknown): ConnectionAnswers | null {
     : [];
   // De boiler en de jacuzzi (besluit 186): alleen wat compleet is.
   const buffers = Array.isArray(r['buffers'])
-    ? (r['buffers'] as (FoundHeatStore & { opZon: boolean; opgegevenW?: number })[]).filter(
+    ? (r['buffers'] as (FoundHeatStore & { opZon: boolean; opgegevenW?: number; bedienen?: boolean })[]).filter(
         (b) => typeof b?.id === 'string' && typeof b.naam === 'string' && typeof b.actuator === 'string' && (b.soort === 'boiler' || b.soort === 'jacuzzi' || b.soort === 'stekker') && ['switch', 'setpoint', 'diverter'].includes(b.control) && typeof b.estimatedW === 'number',
       )
     : [];
@@ -718,6 +727,7 @@ function readAnswers(raw: unknown): ConnectionAnswers | null {
       opZon: Object.fromEntries([...apparaten, ...buffers].map((a) => [a.id, a.opZon === true])),
       opZonUit: Array.isArray(r['opZonUit']) ? r['opZonUit'] : [],
       vermogen: Object.fromEntries(buffers.flatMap((b) => (b.soort === 'stekker' && typeof b.opgegevenW === 'number' ? [[b.id, b.opgegevenW]] : []))),
+      bedienen: Object.fromEntries(buffers.flatMap((b) => (b.soort === 'stekker' && b.bedienen === true ? [[b.id, true]] : []))),
     },
     { fasen, apparaten, buffers },
   );
@@ -782,6 +792,8 @@ export interface ConnectionView {
     readonly opZonUit: readonly string[];
     /** Wat de bewoner opgaf bij een stekker zonder eigen meter (besluit 264), in W. */
     readonly vermogen: Readonly<Record<string, number>>;
+    /** De stekkers die SunArc mag schakelen (besluit 265). */
+    readonly bedienen: readonly string[];
     /** De netmeter en de omvormers die de bewoner koos (testerronde, november 2026). */
     readonly netmeter: Netmeter | null;
     readonly omvormers: readonly string[];
@@ -961,6 +973,7 @@ export function connectionView(c: ConnectionContext, lang: Lang = 'nl'): Connect
           opZon: Object.fromEntries([...c.answers.apparaten, ...(c.answers.buffers ?? [])].map((a) => [a.id, a.opZon])),
           opZonUit: c.answers.opZonUit ?? [],
           vermogen: Object.fromEntries((c.answers.buffers ?? []).flatMap((b) => (b.opgegevenW != null ? [[b.id, b.opgegevenW]] : []))),
+          bedienen: (c.answers.buffers ?? []).filter((b) => b.bedienen === true).map((b) => b.id),
           netmeter: c.answers.netmeter ?? null,
           omvormers: c.answers.omvormers ?? [],
           daken: c.answers.daken ?? null,

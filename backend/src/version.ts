@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.138.0';
+export const VERSIE = '0.139.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,22 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.139.0',
+    datum: '2026-11-07',
+    nieuw: [
+      'Een slimme stekker met de hand: tik op de kaart bij Apparaten en zet hem aan of uit voor 30 minuten, een of twee uur, of tot een tijd. Daarna staat hij weer zoals hij was',
+      'Per stekker kies je bij Regeling › Op zon of SunArc hem mag aan- en uitzetten; weg is nee',
+      'Wat met de hand aan of uit staat, zie je ook bij Te doen, met Terug',
+    ],
+    en: {
+      nieuw: [
+        'A smart plug by hand: tap its card in Devices and switch it on or off for 30 minutes, one or two hours, or until a time. Then it is back as it was',
+        'For each plug you choose in Control › On solar whether SunArc may switch it on and off; the default is no',
+        'What is on or off by hand also shows in To do, with Back',
+      ],
+    },
+  },
   {
     versie: '0.138.0',
     datum: '2026-11-07',

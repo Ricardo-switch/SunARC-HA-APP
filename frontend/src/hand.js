@@ -8,7 +8,9 @@
  *    hoe lang (1 uur, 2 uur, tot het eind van het dagdeel, of tot het doel),
  *    de dag als balk, en eerlijk via welke knop het gaat;
  *  - witgoed dat op zon wacht: hoe laat hij uiterlijk klaar moet zijn, en Nu
- *    starten.
+ *    starten;
+ *  - een slimme stekker (besluit 265): aan of uit, voor 30 minuten, een of
+ *    twee uur, of tot een tijd; daarna weer zoals hij was.
  *
  * Op Apparaten staat het blad op de wand rechts naast de kaarten en op de
  * telefoon van onderen; bij een kamer staat het in het blad van de kamer zelf.
@@ -24,6 +26,8 @@
 
   let data = null;
   let witgoed = null;
+  /** De slimme stekkers (besluit 265): `{ aan, stekkers }` van `api/stekker`. */
+  let stekkers = null;
   /**
    * Wat er open is: een klimaatapparaat `{ id, modus, doel, tot, plek }`, of
    * witgoed `{ wg, stap }`; null zonder blad. Met `plek` staat het blad in die
@@ -34,6 +38,7 @@
 
   const graden = (n) => `${nl(n, Number.isInteger(n) ? 0 : 1)}°`;
   const vind = (id) => (data?.apparaten ?? []).find((a) => a.id === id) ?? null;
+  const stekkerVan = (id) => (stekkers?.stekkers ?? []).find((s) => s.id === id) ?? null;
 
   /** Het klimaatapparaat bij een apparaat uit het huis: via het apparaat uit de configuratie, of zijn naam in Home Assistant. */
   function bij(d) {
@@ -61,7 +66,7 @@
     const pct = (ms) => Math.max(0, Math.min(100, ((ms - d.getTime()) / 86_400_000) * 100));
     const nu = pct(Date.now());
     const tot = pct(totMs);
-    return `<div class="hand-dag" role="img" aria-label="${esc(t('hand.balkUitleg', { klok: klokVan(totMs) }))}"><div class="balk24"><i class="hand" style="left: ${nu.toFixed(1)}%; width: ${Math.max(1, tot - nu).toFixed(1)}%"></i><b style="left: ${nu.toFixed(1)}%"></b></div><div class="assen"><span style="left: 0; transform: none">0</span><span style="left: ${nu.toFixed(1)}%; transform: translateX(-100%); padding-right: 4px">${esc(t('hand.nu'))}</span><span style="left: ${Math.min(tot, 76).toFixed(1)}%; transform: none" class="tot">${esc(label)}</span><span style="right: 0; left: auto; transform: none">24</span></div></div>`;
+    return `<div class="hand-dag" role="img" aria-label="${esc(t('hand.balkUitleg', { klok: klokVan(totMs) }))}"><div class="balk24"><i class="hand" style="left: ${nu.toFixed(1)}%; width: ${Math.max(1, tot - nu).toFixed(1)}%"></i><b style="left: ${nu.toFixed(1)}%"></b></div><div class="assen"><span style="left: 0; transform: none">0</span><span style="left: ${nu.toFixed(1)}%; transform: translateX(-100%); padding-right: 4px">${esc(t('hand.nu'))}</span><span style="left: ${Math.min(tot, 76).toFixed(1)}%; transform: none" class="tot">${esc(label)}</span>${tot > 55 ? '' : '<span style="right: 0; left: auto; transform: none">24</span>'}</div></div>`;
   }
 
   /** De draaiknop: een boog van het laagste tot het hoogste doel, met het doel en wat het nu is. */
@@ -153,6 +158,79 @@
       <div class="hand-onder">${nu}<button type="button" class="hand-zet" data-hand-sluit>${esc(t('witgoed.begrepen'))}</button></div>`;
   }
 
+  /* ------------------------------------------- een slimme stekker (265) */
+
+  /** Tot wanneer: 30 minuten, een of twee uur, of de eerstvolgende keer dat het die tijd is. */
+  function stekkerTot(o) {
+    if (o.tot === 'm30') return Date.now() + 30 * 60_000;
+    if (o.tot === 'u1') return Date.now() + 3_600_000;
+    if (o.tot === 'u2') return Date.now() + 2 * 3_600_000;
+    const [u, m] = String(o.tijd ?? '22:00').split(':').map(Number);
+    const d = new Date();
+    d.setHours(u || 0, m || 0, 0, 0);
+    if (d.getTime() <= Date.now() + 60_000) d.setDate(d.getDate() + 1);
+    return d.getTime();
+  }
+
+  /** Wat de stekker nu doet, als korte zin: aan of uit, wat hij trekt, en met de hand tot wanneer. */
+  function stekkerZin(s) {
+    return [
+      s.aan == null ? null : t(s.aan ? 'apparaten.stekkerAan' : 'apparaten.stekkerUit'),
+      s.vermogenW != null && s.vermogenW >= 5 ? `${nl(s.vermogenW / 1000)} kW` : null,
+      s.actief ? t(s.actief.aan ? 'hand.stekkerAanTot' : 'hand.stekkerUitTot', { klok: klokVan(s.actief.totMs) }) : null,
+    ].filter(Boolean).join(' · ');
+  }
+
+  function stekkerBlad(s) {
+    const totMs = stekkerTot(open);
+    const klok = klokVan(totMs);
+    const wat = seg(t('hand.wat'), [
+      ['aan', t('hand.stekkerAanKort'), open.aan, 'data-st-aan'],
+      ['uit', t('hand.stekkerUitKort'), !open.aan, 'data-st-aan'],
+    ]);
+    const lang = seg(t('hand.hoeLang'), [
+      ['m30', t('hand.min30'), open.tot === 'm30', 'data-st-tot'],
+      ['u1', t('hand.uur1'), open.tot === 'u1', 'data-st-tot'],
+      ['u2', t('hand.uur2'), open.tot === 'u2', 'data-st-tot'],
+      ['tijd', t('hand.totEenTijd'), open.tot === 'tijd', 'data-st-tot'],
+    ]);
+    const tijd = open.tot === 'tijd' ? `<label class="veldnaam">${esc(t('hand.totHoeLaat'))}<input class="invoer" type="time" data-st-tijd value="${esc(open.tijd)}"></label>` : '';
+    const hoe = !stekkers?.aan
+      ? { let: true, tekst: t('hand.stekkerAlleenAddon') }
+      : !s.toegelaten
+        ? { let: true, tekst: t('hand.stekkerToelaten') }
+        : { tekst: t('hand.stekkerDaarna', { klok }) };
+    const terugKnop = s.actief ? `<button type="button" class="hand-terug" data-st-terug>${esc(t('hand.stekkerTerug'))}</button>` : '';
+    const toelaten = stekkers?.aan && !s.toegelaten ? `<a class="hand-terug" href="regeling.html#opzon">${esc(t('hand.stekkerNaarRegeling'))}</a>` : '';
+    return `${kopVan(s.naam, stekkerZin(s) || t('apparaten.stekker'))}
+      <div class="hand-vraag"><span>${esc(t('hand.wat'))}</span>${wat}</div>
+      <div class="hand-vraag"><span>${esc(t('hand.hoeLang'))}</span>${lang}</div>
+      ${tijd}
+      ${dagbalk(totMs, t(open.aan ? 'hand.stekkerBalkAan' : 'hand.stekkerBalkUit', { klok }))}
+      <div class="hand-hoe${hoe.let ? ' let' : ''}">${esc(hoe.tekst)}</div>
+      ${fout ? `<p class="hand-fout">${esc(fout)}</p>` : ''}
+      <div class="hand-onder">${terugKnop}${toelaten}<button type="button" class="hand-zet" data-st-zet ${s.mag ? '' : 'disabled'}>${esc(t(open.aan ? 'hand.stekkerZetAan' : 'hand.stekkerZetUit', { klok }))}</button></div>`;
+  }
+
+  async function laadStekkers() {
+    try {
+      stekkers = await haal('api/stekker');
+    } catch {
+      stekkers = null;
+    }
+    return stekkers;
+  }
+
+  /** Opent het blad van een stekker; staat hij uit, dan begint het blad bij aan. */
+  async function openStekker(id) {
+    await laadStekkers();
+    const s = stekkerVan(id);
+    if (!s) return;
+    open = { st: id, aan: s.actief ? s.actief.aan : s.aan !== true, tot: 'u1', tijd: '22:00' };
+    fout = '';
+    teken();
+  }
+
   /** Het blad van witgoed: uiterlijk klaar, en Nu starten (besluit 238); staat hij niet klaar, de uitleg. */
   function witgoedBlad(d) {
     if (!d.kanKiezen) return witgoedUitleg(d, (witgoed?.apparaten ?? []).find((x) => x.id === d.id));
@@ -194,14 +272,15 @@
     }
     // Niet 'tel': die klasse is in kit.css het telefoonframe van de schetsen, 390 breed (2 november 2026).
     laag.classList.toggle('op-tel', telStand());
-    const naam = open.wg ? open.wg.naam : vind(open.id)?.naam ?? '';
+    const naam = open.wg ? open.wg.naam : open.st ? stekkerVan(open.st)?.naam ?? '' : vind(open.id)?.naam ?? '';
     laag.setAttribute('aria-label', naam);
-    const inhoud = open.wg ? witgoedBlad(open.wg) : (() => {
+    const st = open.st ? stekkerVan(open.st) : null;
+    const inhoud = open.wg ? witgoedBlad(open.wg) : open.st ? (st ? stekkerBlad(st) : '') : (() => {
       const a = vind(open.id);
       return a ? blad(a, true) : '';
     })();
     laag.innerHTML = `<div class="hand-achter" data-hand-sluit></div><div class="hand-vel"><section class="glas hand-blad">${inhoud}</section></div>`;
-    global.dispatchEvent(new CustomEvent('handblad', { detail: { id: open.wg ? open.wg.id : open.id } }));
+    global.dispatchEvent(new CustomEvent('handblad', { detail: { id: open.wg ? open.wg.id : open.st ?? open.id } }));
   }
 
   /** Begint een klimaatapparaat: wat er met de hand staat, wat het nu doet (een airco die koelt), of het doel van zijn knop. */
@@ -266,7 +345,7 @@
       return false;
     }
     fout = '';
-    await laad();
+    await (pad === 'api/stekker' ? laadStekkers() : laad());
     global.dispatchEvent(new CustomEvent('handveranderd'));
     return true;
   }
@@ -298,6 +377,14 @@
       if (await stuur('api/uitstel', { id: open.wg.id, klaarVoor: s?.waarde ?? null })) open = null;
     } else if (el('[data-wg-start]')) {
       if (await stuur('api/witgoed', { id: open.wg.id, start: true })) open = null;
+    } else if ((x = el('[data-st-aan]'))) open.aan = x.dataset.stAan === 'aan';
+    else if ((x = el('[data-st-tot]'))) open.tot = x.dataset.stTot;
+    else if (el('[data-st-terug]')) {
+      if (await stuur('api/stekker', { id: open.st, terug: true })) open = null;
+    } else if (el('[data-st-zet]')) {
+      // De keuze, niet het tijdstip: de dienst rekent het eind zelf uit, ook als de klok van de telefoon afwijkt.
+      const wanneer = open.tot === 'tijd' ? { klok: open.tijd } : { duurMin: { m30: 30, u1: 60, u2: 120 }[open.tot] ?? 60 };
+      if (await stuur('api/stekker', { id: open.st, aan: open.aan, ...wanneer })) open = null;
     } else return;
     teken();
   });
@@ -308,7 +395,7 @@
    */
   let uitstelbaar = [];
   async function laadNu() {
-    const [h, s] = await Promise.allSettled([laad(), haal('api/state')]);
+    const [h, s] = await Promise.allSettled([laad(), haal('api/state'), laadStekkers()]);
     if (s.status === 'fulfilled') uitstelbaar = s.value?.bewoner?.uitstelbaar ?? [];
     return h.status === 'fulfilled';
   }
@@ -319,13 +406,24 @@
   function nuHtml() {
     const klimaat = (data?.apparaten ?? []).filter((a) => a.actief).map((a) => `<div class="nu-regel"><span class="ik">${IK.klimaat}</span><div><b>${esc(a.naam)}</b><span>${esc(nuZin(a))}</span></div><button type="button" data-nu-terug="${esc(a.id)}">${esc(t('hand.terugKort'))}</button></div>`);
     const wit = uitstelbaar.filter((d) => d.kanKiezen).map((d) => `<a class="nu-regel" href="apparaten.html#wg-${encodeURIComponent(d.id)}"><span class="ik">${IK.witgoed}</span><div><b>${esc(t('witgoed.opZon', { naam: d.naam }))}</b><span>${esc(d.klaarVoor ? t('witgoed.klaarVoorKort', { klok: d.klaarVoor }) : t('witgoed.geenHaastKort'))}</span></div><em>${esc(t('witgoed.aanpassen'))}</em></a>`);
-    return [...klimaat, ...wit].join('');
+    // Een stekker met de hand (besluit 265), met Terug.
+    const stek = (stekkers?.stekkers ?? []).filter((s) => s.actief).map((s) => `<div class="nu-regel"><span class="ik">${iconen.svg('stekker')}</span><div><b>${esc(s.naam)}</b><span>${esc(t(s.actief.aan ? 'hand.stekkerAanTot' : 'hand.stekkerUitTot', { klok: klokVan(s.actief.totMs) }))}</span></div>${stekkers?.aan ? `<button type="button" data-nu-stekker="${esc(s.id)}">${esc(t('hand.terugKort'))}</button>` : ''}</div>`);
+    return [...klimaat, ...stek, ...wit].join('');
   }
   document.addEventListener('click', async (e) => {
     const k = e.target.closest('[data-nu-terug]');
-    if (!k) return;
-    k.disabled = true;
-    await stuur('api/hand', { id: k.dataset.nuTerug, terug: true });
+    const s = e.target.closest('[data-nu-stekker]');
+    if (!k && !s) return;
+    (k ?? s).disabled = true;
+    if (k) await stuur('api/hand', { id: k.dataset.nuTerug, terug: true });
+    else await stuur('api/stekker', { id: s.dataset.nuStekker, terug: true });
+  });
+  // De tijd van een stekker: bij het verlaten van het veld, zodat typen niet onderbroken wordt.
+  document.addEventListener('change', (e) => {
+    const v = e.target.closest?.('[data-st-tijd]');
+    if (!v || !open?.st) return;
+    open.tijd = v.value || open.tijd;
+    teken();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -335,5 +433,5 @@
     }
   });
 
-  global.hand = { laad, laadNu, nuHtml, openen, inPlek, openWitgoed, bij, data: () => data, nuZin, sluit: () => { open = null; teken(); } };
+  global.hand = { laad, laadNu, nuHtml, openen, inPlek, openWitgoed, openStekker, laadStekkers, stekker: stekkerVan, stekkerZin, bij, data: () => data, nuZin, sluit: () => { open = null; teken(); } };
 })(window);

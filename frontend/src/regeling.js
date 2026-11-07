@@ -20,6 +20,8 @@ let opZon = {};
 let opZonUit = [];
 /** Wat de bewoner opgaf bij een stekker zonder eigen meter (besluit 264), in W. */
 let vermogen = {};
+/** De stekkers die SunArc mag schakelen (besluit 265). */
+let bedienen = new Set();
 let zon = null;
 
 async function laadAlles() {
@@ -32,6 +34,7 @@ async function laadAlles() {
     opZon = { ...(aInfo.antwoorden?.opZon ?? {}) };
     opZonUit = [...(aInfo.antwoorden?.opZonUit ?? [])];
     vermogen = { ...(aInfo.antwoorden?.vermogen ?? {}) };
+    bedienen = new Set(aInfo.antwoorden?.bedienen ?? []);
   }
   if (z.status === 'fulfilled') zon = z.value;
   teken();
@@ -107,7 +110,10 @@ function stekkerRij(x) {
   const veld = aan && !x.meet
     ? `<label class="veldnaam" style="margin-top: 6px">${esc(t('regeling.stekkerVermogen'))}<input class="invoer" type="number" inputmode="numeric" min="50" max="3680" step="10" data-vermogen="${esc(x.id)}" value="${vermogen[x.id] ?? ''}" placeholder="1000"></label>`
     : '';
-  return `<div class="regelrij"><div class="l"><b><span aria-hidden="true" style="display: inline-flex; vertical-align: -3px">${iconen.svg('stekker', { grootte: 16 })}</span> ${esc(x.naam)}</b><span>${esc(t(aan ? 'regeling.stekkerZon' : 'regeling.stekkerNiet'))}</span>${veld}</div><button type="button" class="schakelaar" role="switch" aria-checked="${aan}" aria-label="${esc(t('regeling.naamOpZon', { naam: x.naam }))}" data-opzon="${esc(x.id)}"></button></div>`;
+  // Mag SunArc hem schakelen (besluit 265): met de hand, en straks op tijd; weg is nee.
+  const mag = bedienen.has(x.id);
+  const bedien = `<div class="regelrij" style="padding-left: 22px"><div class="l"><b style="font-weight: 500">${esc(t('regeling.stekkerBedienen'))}</b><span>${esc(t(mag ? 'regeling.stekkerBedienenJa' : 'regeling.stekkerBedienenNee'))}</span></div><button type="button" class="schakelaar" role="switch" aria-checked="${mag}" aria-label="${esc(t('regeling.stekkerBedienenVan', { naam: x.naam }))}" data-bedienen="${esc(x.id)}"></button></div>`;
+  return `<div class="regelrij"><div class="l"><b><span aria-hidden="true" style="display: inline-flex; vertical-align: -3px">${iconen.svg('stekker', { grootte: 16 })}</span> ${esc(x.naam)}</b><span>${esc(t(aan ? 'regeling.stekkerZon' : 'regeling.stekkerNiet'))}</span>${veld}</div><button type="button" class="schakelaar" role="switch" aria-checked="${aan}" aria-label="${esc(t('regeling.naamOpZon', { naam: x.naam }))}" data-opzon="${esc(x.id)}"></button></div>${bedien}`;
 }
 
 function opZonVorm() {
@@ -148,10 +154,14 @@ function tekenNu() {
 /* ------------------------------------------------------------ bewaren */
 
 document.addEventListener('click', (e) => {
-  const knop = e.target.closest('[data-opzon], [data-opzon-vast]');
+  const knop = e.target.closest('[data-opzon], [data-opzon-vast], [data-bedienen]');
   if (!knop || !aInfo) return;
   const aan = knop.getAttribute('aria-checked') !== 'true';
-  if (knop.dataset.opzon) opZon[knop.dataset.opzon] = aan;
+  if (knop.dataset.bedienen) {
+    bedienen = new Set(bedienen);
+    if (aan) bedienen.add(knop.dataset.bedienen);
+    else bedienen.delete(knop.dataset.bedienen);
+  } else if (knop.dataset.opzon) opZon[knop.dataset.opzon] = aan;
   else {
     const id = knop.dataset.opzonVast;
     opZonUit = aan ? opZonUit.filter((x) => x !== id) : [...new Set([...opZonUit, id])];
@@ -184,6 +194,8 @@ function bewaar() {
     opZon: Object.fromEntries(Object.entries(opZon).filter(([, v]) => typeof v === 'boolean')),
     opZonUit,
     vermogen,
+    // Per stekker ja of nee (besluit 265): alleen de stekkers die er nu zijn.
+    bedienen: Object.fromEntries((aInfo.gevonden?.apparaten ?? []).filter((x) => x.soort === 'stekker').map((x) => [x.id, bedienen.has(x.id)])),
   };
   groep.bewaarStraks(async () => {
     const uit = await groep.stuur('api/aansluiting', body);

@@ -76,6 +76,7 @@ import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.j
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
 import { KABEL_STANDAARD, laadBedieningen, laadMeters, ladenView, vindOpslag } from './web/opslag.js';
 import { Laadhand, laadMag } from './web/laadhand.js';
+import { Stekkerhand, stekkerMag, type StekkerBekend, type StekkerTot } from './web/stekkerhand.js';
 import { Laadbeurten } from './web/laadbeurten.js';
 import { laadAdvies, prijzenVooruit, type LaadAdvies } from './web/laadadvies.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
@@ -482,8 +483,21 @@ const client = new HaClient({
   allowStart: (): readonly string[] => witgoed?.knoppen() ?? [],
   // Laden met de hand (besluit 262): de laadpalen die de bewoner aanzette, en wat er nog terug moet. Alleen in de add-on.
   allowLaden: () => (laadhand ? laadMag(laadBedieningenNu(), laadhand.terugzetten) : { stroom: [], schakelaars: [], knoppen: [] }),
-  allowHand: (): { readonly klimaat: readonly string[]; readonly schakelaars: readonly string[] } =>
-    klimaatAan() || (handbediening?.terugzetten.length ?? 0) > 0 ? { klimaat: [...new Set([...HAND_KLIMAAT, ...handKnoppen().map((k) => k.id), ...(handbediening?.terugzetten ?? []).filter((t) => t.thermostaat).map((t) => t.id)])], schakelaars: [...new Set([...handSchakelaars().map((s) => s.id), ...(handbediening?.terugzetten ?? []).filter((t) => t.modus === 'aan').map((t) => t.id)])] } : { klimaat: [], schakelaars: [] },
+  // De slimme stekkers die de bewoner toeliet (besluit 265) gaan door dezelfde deur, los van de klimaatbrug.
+  allowHand: (): { readonly klimaat: readonly string[]; readonly schakelaars: readonly string[] } => {
+    // Zolang de dienst nog opstart, bestaat `stekkerhand` nog niet: dan geen stekkers.
+    const stekkers = (() => {
+      try {
+        return inHuisMetDeuren ? stekkerMag(stekkersBekend(), stekkerhand.terugzetten) : [];
+      } catch {
+        return [];
+      }
+    })();
+    const klimaat = klimaatAan() || (handbediening?.terugzetten.length ?? 0) > 0
+      ? { klimaat: [...new Set([...HAND_KLIMAAT, ...handKnoppen().map((k) => k.id), ...(handbediening?.terugzetten ?? []).filter((t) => t.thermostaat).map((t) => t.id)])], schakelaars: [...handSchakelaars().map((s) => s.id), ...(handbediening?.terugzetten ?? []).filter((t) => t.modus === 'aan').map((t) => t.id)] }
+      : { klimaat: [], schakelaars: [] };
+    return { klimaat: klimaat.klimaat, schakelaars: [...new Set([...klimaat.schakelaars, ...stekkers])] };
+  },
 });
 
 // De twee verwijzen naar elkaar: de runner duwt besluiten naar de weergave, de
@@ -669,6 +683,32 @@ const laadhand: Laadhand | null = inHuisMetDeuren
       map: logDir !== '' ? logDir : null,
     })
   : null;
+/*
+ * Een slimme stekker met de hand (besluit 265): aan of uit met een eind,
+ * alleen de stekkers die de bewoner toeliet. Schakelen alleen in de add-on;
+ * elders kijkt het blad mee.
+ */
+function stekkersBekend(): StekkerBekend[] {
+  const mag = new Set((connectionStore?.current?.buffers ?? []).filter((b) => b.bedienen === true).map((b) => b.id));
+  return vindBuffers()
+    .filter((b) => b.soort === 'stekker')
+    .map((b) => ({ id: b.id, naam: b.naam, actuator: b.actuator, ...(b.power ? { power: b.power } : {}), mag: mag.has(b.id) }));
+}
+const stekkerhand = new Stekkerhand({
+  state: (id) => allStates.get(id),
+  schakel: (id, aan): Promise<void> => client.callService('switch', aan ? 'turn_on' : 'turn_off', {}, { entity_id: id }),
+  stekkers: stekkersBekend,
+  tijdzone: () => siteConfig?.timezone ?? 'Europe/Amsterdam',
+  map: inHuisMetDeuren && logDir !== '' ? logDir : null,
+});
+if (inHuisMetDeuren) {
+  setInterval(() => {
+    stekkerhand.ronde().then(
+      (gedaan) => gedaan.forEach((g) => console.log(`[stekker met de hand] ${g}`)),
+      (e: unknown) => console.warn(`[stekker met de hand] terugzetten lukte niet: ${(e as Error).message}`),
+    );
+  }, 60_000).unref();
+}
 if (laadhand) {
   setInterval(() => {
     laadhand.ronde().then(
@@ -2253,6 +2293,11 @@ if (webPort != null) {
           },
         }
       : {}),
+    // Een slimme stekker met de hand (besluit 265): de stand overal, schakelen alleen in de add-on.
+    stekkers: {
+      standen: () => stekkerhand.standen(inHuisMetDeuren),
+      ...(inHuisMetDeuren ? { zet: (id: string, aan: boolean, tot: StekkerTot) => stekkerhand.zet(id, aan, tot), terug: (id: string) => stekkerhand.terugNu(id) } : {}),
+    },
     dakenOpbrengst,
     sluipverbruik,
     house: houseReport,

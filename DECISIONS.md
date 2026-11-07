@@ -46,6 +46,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [210. De klimaatbrug: tot stap B via de knoppen van het oude systeem](#210-de-klimaatbrug-tot-stap-b-via-de-knoppen-van-het-oude-systeem)
 - [235. Klimaat met de hand: elk apparaat, via de knop of direct, met een eindtijd](#235-klimaat-met-de-hand-elk-apparaat-via-de-knop-of-direct-met-een-eindtijd)
 - [262. Laden met de hand: een smalle deur naar de laadpaal](#262-laden-met-de-hand-een-smalle-deur-naar-de-laadpaal)
+- [265. Een slimme stekker met de hand: een smalle deur per stekker](#265-een-slimme-stekker-met-de-hand-een-smalle-deur-per-stekker)
 
 **Kern en regeling**
 
@@ -12413,6 +12414,44 @@ met de stekker voor de verwarming van het tuinhuis.
 *Nog niet:* met de hand met een eind, vaste tijden bij Vast en gepland, en op
 zon met een minimum per dag. De bewoner koos alle drie, met toestemming per
 stekker zoals bij de laadpaal (262).
+
+---
+
+## 265. Een slimme stekker met de hand: een smalle deur per stekker
+
+*Onderwerp: visie en principes · Status: geldig*
+
+7 november 2026, het vervolg op [264]. De bewoner wilde de kaart van een
+stekker aanklikbaar, met functies van een slimme tijdschakelaar: met de hand
+met een eind, vaste tijden en op zon met een minimum. Dit besluit is de eerste
+van de drie, en de schrijfdeur die de andere twee straks ook gebruiken.
+
+*Besluit:*
+
+- **Wat er door de deur mag:** `switch.turn_on` en `turn_off`, zonder velden,
+  op de schakelaar van een stekker die de bewoner toeliet. Het gaat door de
+  bestaande deur van met de hand (`isHandCall`, de lijst `schakelaars`), maar
+  los van de klimaatbrug: de stekkers staan er altijd in als ze toegelaten
+  zijn, of als er nog iets terug moet.
+- **Per stekker toelaten**, zoals de laadpaal (262): bij Regeling › Op zon
+  staat onder elke stekker "SunArc mag hem aan- en uitzetten". Weg is nee.
+  Bewaard bij de antwoorden van de aansluiting (`bedienen`).
+- **Alleen in de add-on** (en het voorbeeldhuis); de NAS laat het blad zien
+  met "kan alleen in de add-on".
+- **Altijd met een eind,** hooguit een dag: 30 minuten, een of twee uur, of
+  tot een tijd. De pagina stuurt de keuze (minuten of een klok); de dienst
+  rekent het eind zelf uit, in de tijdzone van het huis, zodat een telefoon
+  met een andere klok niets uitmaakt.
+- **Daarna terug zoals hij was**, maar alleen als hij nog staat zoals de app
+  hem zette: wie intussen zelf schakelde, wint. Wat terug moet staat in
+  `stekkerhand.json`. Terug kan ook meteen, in het blad en bij Te doen.
+- **De regeling schakelt nog niets:** op zon blijft meekijken (264).
+- **Het voorbeeldhuis** krijgt een ontvochtiger op een slimme stekker, op zon
+  en toegelaten, om het te proberen.
+- **Versie 0.139.0.**
+
+*Nog niet:* vaste tijden bij Vast en gepland, en op zon met een minimum per
+dag.
 
 ---
 

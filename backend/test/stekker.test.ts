@@ -300,3 +300,95 @@ describe('de meters van een stekker bij Energie (besluit 264)', () => {
     for (const id of ['energy_today', 'energy_yesterday', 'energy_month']) expect(meterRole(`sensor.${P}_${id}`, 'Smart plug - verwarming tuinhuis Energie', 'energy')).toBe('periode');
   });
 });
+
+/* ---------------------------------------- met de hand (besluit 265) */
+
+describe('een stekker met de hand (besluit 265)', async () => {
+  const { Stekkerhand, stekkerMag, STEKKER_MAX_MS } = await import('../src/web/stekkerhand.js');
+  const { isHandCall } = await import('../src/adapters/homeassistant/client.js');
+  const T0 = Date.UTC(2026, 10, 7, 12, 0, 0);
+
+  function huis(mag = true, stand = 'off') {
+    const toestand = new Map<string, string>([[`switch.${P}`, stand], [`sensor.${P}_power`, '0']]);
+    const geschakeld: [string, boolean][] = [];
+    let nu = T0;
+    const h = new Stekkerhand({
+      state: (id) => (toestand.has(id) ? { state: toestand.get(id)! } : undefined),
+      schakel: async (id, aan) => {
+        geschakeld.push([id, aan]);
+        toestand.set(id, aan ? 'on' : 'off');
+      },
+      stekkers: () => [{ id: 'stekker-tuinhuis', naam: 'Tuinhuis', actuator: `switch.${P}`, power: `sensor.${P}_power`, mag }],
+      nu: () => nu,
+      map: null,
+    });
+    return { h, toestand, geschakeld, verder: (ms: number) => (nu += ms) };
+  }
+
+  it('zet hem aan tot een tijd, en daarna weer uit', async () => {
+    const { h, geschakeld, verder } = huis();
+    const uit = await h.zet('stekker-tuinhuis', true, T0 + UUR);
+    expect(uit).toMatchObject({ ok: true, terug: { aan: true, was: false, totMs: T0 + UUR } });
+    expect((await h.standen())[0]).toMatchObject({ aan: true, mag: true, actief: { aan: true, totMs: T0 + UUR } });
+    verder(30 * 60_000);
+    expect(await h.ronde()).toEqual([]);
+    verder(31 * 60_000);
+    expect(await h.ronde()).toEqual([`switch.${P} uit`]);
+    expect(geschakeld).toEqual([[`switch.${P}`, true], [`switch.${P}`, false]]);
+    expect(h.terugzetten).toEqual([]);
+  });
+
+  it('wie intussen zelf schakelde, wint; en uit tot een tijd zet hem daarna weer aan', async () => {
+    const zelf = huis();
+    await zelf.h.zet('stekker-tuinhuis', true, T0 + UUR);
+    zelf.toestand.set(`switch.${P}`, 'off');
+    zelf.verder(2 * UUR);
+    expect(await zelf.h.ronde()).toEqual([]);
+    const uit = huis(true, 'on');
+    await uit.h.zet('stekker-tuinhuis', false, T0 + UUR);
+    uit.verder(2 * UUR);
+    expect(await uit.h.ronde()).toEqual([`switch.${P} aan`]);
+  });
+
+  it('alleen als de bewoner hem toeliet, met een eind binnen een dag; en de standen zonder deur kijken mee', async () => {
+    expect(await huis(false).h.zet('stekker-tuinhuis', true, T0 + UUR)).toMatchObject({ ok: false });
+    const { h } = huis();
+    expect(await h.zet('stekker-tuinhuis', true, T0 + STEKKER_MAX_MS + 60_000)).toMatchObject({ ok: false });
+    expect(await h.zet('stekker-tuinhuis', true, T0 - 1)).toMatchObject({ ok: false });
+    expect(await h.zet('iets-anders', true, T0 + UUR)).toMatchObject({ ok: false });
+    expect((await h.standen(false))[0]).toMatchObject({ mag: false, toegelaten: true });
+  });
+
+  it('rekent het eind zelf uit: minuten, of de eerstvolgende keer dat het die tijd is', async () => {
+    const { h } = huis();
+    expect(h.totMsVan({ duurMin: 30 })).toBe(T0 + 30 * 60_000);
+    // 12:00 UTC is 13:00 in Amsterdam: 22:00 is vanavond, 08:00 morgen.
+    expect(h.totMsVan({ klok: '22:00' })).toBe(Date.UTC(2026, 10, 7, 21, 0, 0));
+    expect(h.totMsVan({ klok: '08:00' })).toBe(Date.UTC(2026, 10, 8, 7, 0, 0));
+    expect(h.totMsVan({ klok: '25:00' })).toBeNull();
+    expect(await h.zet('stekker-tuinhuis', true, { klok: '22:00' })).toMatchObject({ ok: true, terug: { totMs: Date.UTC(2026, 10, 7, 21, 0, 0) } });
+  });
+
+  it('de deur laat alleen aan en uit door op een toegelaten stekker', () => {
+    const lijst = stekkerMag([{ id: 'a', naam: 'A', actuator: `switch.${P}`, mag: true }, { id: 'b', naam: 'B', actuator: 'switch.b', mag: false }], []);
+    expect(lijst).toEqual([`switch.${P}`]);
+    const mag = { klimaat: [], schakelaars: lijst };
+    expect(isHandCall('switch', 'turn_on', {}, { entity_id: `switch.${P}` }, mag)).toBe(true);
+    expect(isHandCall('switch', 'turn_off', {}, { entity_id: `switch.${P}` }, mag)).toBe(true);
+    expect(isHandCall('switch', 'toggle', {}, { entity_id: `switch.${P}` }, mag)).toBe(false);
+    expect(isHandCall('switch', 'turn_on', {}, { entity_id: 'switch.b' }, mag)).toBe(false);
+    expect(isHandCall('switch', 'turn_on', { brightness: 1 }, { entity_id: `switch.${P}` }, mag)).toBe(false);
+  });
+
+  it('bewaart de toestemming per stekker, en houdt hem als de pagina hem niet meestuurt', () => {
+    const found = { fasen: [], apparaten: [], buffers: gevonden() };
+    const id = 'stekker-smart-plug-verwarming-tuinhuis';
+    const ja = validateConnection({ ...leeg, bedienen: { [id]: true } }, found);
+    expect(ja.ok && ja.answers.buffers?.[0]?.bedienen).toBe(true);
+    const blijft = validateConnection({ ...leeg }, found, ja.ok ? ja.answers : null);
+    expect(blijft.ok && blijft.answers.buffers?.[0]?.bedienen).toBe(true);
+    const nee = validateConnection({ ...leeg, bedienen: { [id]: false } }, found, ja.ok ? ja.answers : null);
+    expect(nee.ok && nee.answers.buffers?.[0]?.bedienen).toBeUndefined();
+    expect(validateConnection({ ...leeg, bedienen: { [id]: 'ja' } }, found).ok).toBe(false);
+  });
+});

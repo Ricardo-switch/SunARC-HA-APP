@@ -1,11 +1,14 @@
 # Wat is er nieuw · What is new
 
-## 0.138.0
+## 0.139.0
 
-*7 november 2026*
+*7 november 2026 · 0.138.0 – 0.139.0*
 
 **Nieuw**
 
+- Een slimme stekker met de hand: tik op de kaart bij Apparaten en zet hem aan of uit voor 30 minuten, een of twee uur, of tot een tijd. Daarna staat hij weer zoals hij was
+- Per stekker kies je bij Regeling › Op zon of SunArc hem mag aan- en uitzetten; weg is nee
+- Wat met de hand aan of uit staat, zie je ook bij Te doen, met Terug
 - Slimme stekkers: SunArc vindt ze zelf en zegt het bij de bel. Zet er een op zon bij Regeling, dan zie je bij Apparaten wanneer hij aan kan op eigen zon
 - Meet de stekker zijn eigen verbruik, dan vraagt de bel om de meter toe te voegen; daarna staat hij bij Opbrengst
 - Meet hij zijn vermogen zelf, dan onthoudt SunArc wat hij trekt. Zonder meter vul je het in
@@ -18,6 +21,9 @@
 
 **New**
 
+- A smart plug by hand: tap its card in Devices and switch it on or off for 30 minutes, one or two hours, or until a time. Then it is back as it was
+- For each plug you choose in Control › On solar whether SunArc may switch it on and off; the default is no
+- What is on or off by hand also shows in To do, with Back
 - Smart plugs: SunArc finds them itself and tells you at the bell. Put one on solar in Control, and Devices shows when it can be on with your own solar
 - If the plug measures its own use, the bell asks you to add the meter; then it shows under Yield
 - If it measures its power itself, SunArc remembers what it draws. Without a meter you fill it in

@@ -171,11 +171,23 @@ function stekkerKaart(b) {
   const el = document.createElement('section');
   el.className = 'glas app';
   el.dataset.actief = String(aan || b.stand === 'would_heat');
+  // Met de hand (besluit 265): in zonkleur, met tot wanneer.
+  const metHand = hand.stekker(b.id)?.actief;
   el.innerHTML = `
     <div class="kopje"><span class="ik">${iconen.svg('stekker')}</span><div><b>${esc(b.naam)}</b><span class="mini">${esc(t('apparaten.stekker'))}</span></div><div class="kw">${kw}</div></div>
     <div class="stand"><i style="background: ${kleur}"></i>${esc(b.kop)}</div>
-    <p class="mini zin">${esc(b.zin)}</p>
-    <p class="mini etiket">${esc(t(aan ? 'apparaten.stekkerAan' : 'apparaten.stekkerUit'))} · ${esc(t('apparaten.kijktMee'))}</p>`;
+    ${metHand ? `<p class="mini zin" style="color: var(--zon-t); font-weight: 600">${esc(t(metHand.aan ? 'hand.stekkerAanTot' : 'hand.stekkerUitTot', { klok: klokVan(metHand.totMs) }))}</p>` : `<p class="mini zin">${esc(b.zin)}</p>`}
+    <p class="mini etiket">${esc(t(aan ? 'apparaten.stekkerAan' : 'apparaten.stekkerUit'))} · ${esc(t(hand.stekker(b.id)?.toegelaten ? 'apparaten.stekkerMag' : 'apparaten.kijktMee'))}</p>`;
+  return stekkerBlad(el, b.id, b.naam);
+}
+
+/** Een tik op een stekker opent zijn blad (besluit 265): aan of uit, met een eind. */
+function stekkerBlad(el, id, naam) {
+  el.dataset.blad = 'stekker';
+  el.dataset.stekker = id;
+  el.tabIndex = 0;
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-label', t('apparaten.stekkerOpen', { naam }));
   return el;
 }
 
@@ -349,15 +361,20 @@ function ladingKaart(soort, o) {
 
 /** Een apparaat dat de dienst vond maar dat (nog) niet op zon staat. */
 function nietOpZon(a) {
+  // Een stekker opent zijn blad, ook als hij niet op zon staat (besluit 265).
+  if (a.soort === 'stekker') {
+    const s = hand.stekker(a.id);
+    const el = document.createElement('section');
+    el.className = 'glas app niet';
+    el.innerHTML = `
+    <div class="kopje"><span class="ik">${iconen.svg('stekker')}</span><div><b>${esc(a.naam)}</b><span class="mini">${esc(t('apparaten.nietOpZon'))}</span></div></div>
+    ${s?.actief ? `<p class="mini zin" style="color: var(--zon-t); font-weight: 600">${esc(hand.stekkerZin(s))}</p>` : `<p class="mini zin">${esc(t('apparaten.stekkerOpZon'))}</p>`}`;
+    return stekkerBlad(el, a.id, a.naam);
+  }
   const el = document.createElement('a');
   el.className = 'glas app niet';
   el.href = 'regeling.html#opzon';
-  // Een stekker met zijn vaste icoon (besluit 264).
-  el.innerHTML = a.soort === 'stekker'
-    ? `
-    <div class="kopje"><span class="ik">${iconen.svg('stekker')}</span><div><b>${esc(a.naam)}</b><span class="mini">${esc(t('apparaten.nietOpZon'))}</span></div></div>
-    <p class="mini zin">${esc(t('apparaten.stekkerOpZon'))}</p>`
-    : `
+  el.innerHTML = `
     <div class="boven">${ring({ gestippeld: true })}<div><b>${esc(a.naam)}</b><span class="klein">${esc(t('apparaten.nietOpZon'))}</span></div></div>
     <p class="mini zin">${esc(t('apparaten.zetOpZon'))}</p>`;
   return el;
@@ -482,7 +499,7 @@ app.start('apparaten');
 void laadAlles();
 // Het blad van een apparaat (besluit 238): een tik op een klimaatapparaat of witgoed dat op zon wacht.
 async function laadHand() {
-  await hand.laad();
+  await Promise.allSettled([hand.laad(), hand.laadStekkers()]);
   teken();
 }
 void laadHand();
@@ -491,6 +508,7 @@ addEventListener('handveranderd', () => void laadAlles());
 function openBlad(kaartEl) {
   if (kaartEl.dataset.blad === 'klimaat') void hand.openen(kaartEl.dataset.klimaat);
   else if (kaartEl.dataset.blad === 'witgoed' && witgoedNu.has(kaartEl.dataset.wg)) void hand.openWitgoed(witgoedNu.get(kaartEl.dataset.wg));
+  else if (kaartEl.dataset.blad === 'stekker') void hand.openStekker(kaartEl.dataset.stekker);
   else return;
   $$('.app.gekozen').forEach((x) => x.classList.remove('gekozen'));
   kaartEl.classList.add('gekozen');
