@@ -7,22 +7,22 @@ import { describe, expect, it } from 'vitest';
 
 import type { HaEntityState } from '../src/adapters/homeassistant/client.js';
 import type { HaDevice, HaRegistryEntity } from '../src/adapters/homeassistant/discovery.js';
-import { autoApparaten, ladenView, leesLaden, vindOpslag, type LadenKeuze } from '../src/web/opslag.js';
+import { autoApparaten, laadMeters, ladenView, leesLaden, vindOpslag, type LadenKeuze } from '../src/web/opslag.js';
 
-type Meting = { id: string; klasse?: string; staat: string; eenheid?: string; naam?: string; platform: string; apparaat: string; extra?: Record<string, unknown> };
+type Meting = { id: string; klasse?: string; staat: string; eenheid?: string; naam?: string; platform: string; apparaat: string; extra?: Record<string, unknown>; sinds?: string };
 
 function registers(apparaten: HaDevice[], metingen: Meting[]) {
   const entities: HaRegistryEntity[] = metingen.map((m) => ({ entity_id: m.id, device_id: m.apparaat, platform: m.platform, original_device_class: m.klasse ?? null, original_name: m.naam ?? null }));
   const states = new Map<string, HaEntityState>(
-    metingen.map((m) => [m.id, { entity_id: m.id, state: m.staat, attributes: { ...(m.eenheid ? { unit_of_measurement: m.eenheid } : {}), ...(m.naam ? { friendly_name: m.naam } : {}), ...(m.extra ?? {}) }, last_changed: '', last_updated: '' }]),
+    metingen.map((m) => [m.id, { entity_id: m.id, state: m.staat, attributes: { ...(m.eenheid ? { unit_of_measurement: m.eenheid } : {}), ...(m.naam ? { friendly_name: m.naam } : {}), ...(m.extra ?? {}) }, last_changed: m.sinds ?? '', last_updated: '' }]),
   );
   return { reg: { devices: apparaten, entities }, states };
 }
-function huis(apparaten: HaDevice[], metingen: Meting[], keuze: LadenKeuze | null = null) {
+function huis(apparaten: HaDevice[], metingen: Meting[], keuze: LadenKeuze | null = null, nu?: Date) {
   const { reg, states } = registers(apparaten, metingen);
-  return vindOpslag(reg, states, keuze);
+  return vindOpslag(reg, states, keuze, nu);
 }
-const geenKeuze = { plek: null, accuKWh: null, laadpaal: null };
+const geenKeuze = { plek: null, accuKWh: null, laadpaal: null, paalNaam: null, paalStroomA: null, laadgrens: null, stroomA: null, volOm: null, thuis: null, kabelSinds: null, wegSinds: null };
 
 const knop: HaDevice = { id: 'knop', area_id: null, name: 'Knop hal', manufacturer: 'IKEA', model: 'STYRBAR' };
 const knopBatterij: Meting = { id: 'sensor.knop_batterij', klasse: 'battery', staat: '80', eenheid: '%', platform: 'zha', apparaat: 'knop' };
@@ -83,7 +83,7 @@ describe('de thuisbatterij en de auto (besluit 182)', () => {
       { id: 'sensor.easee_status', staat: status, naam: 'Easee status', platform: 'easee', apparaat: 'easee' },
       { id: 'sensor.easee_power', klasse: 'power', staat: w, eenheid: 'kW', naam: 'Easee power', platform: 'easee', apparaat: 'easee' },
     ]).auto;
-    expect(paal('charging', '7.4')).toEqual({ id: 'easee', naam: 'De auto', pct: null, aangesloten: true, laadt: true, vermogenW: 7400, bereikKm: null, ...geenKeuze });
+    expect(paal('charging', '7.4')).toEqual({ id: 'easee', naam: 'De auto', pct: null, aangesloten: true, laadt: true, vermogenW: 7400, bereikKm: null, ...geenKeuze, paalNaam: 'Easee Home' });
     expect(paal('disconnected', '0')).toMatchObject({ aangesloten: false, laadt: false });
     expect(paal('awaiting_start', '0')).toMatchObject({ aangesloten: true, laadt: false });
   });
@@ -217,5 +217,77 @@ describe('meer auto’s en laadpalen, en wat de bewoner koos (besluit 259)', () 
     expect(leesLaden({ instelling: { x: { accuKWh: 900 } } })).toHaveProperty('fout');
     expect(leesLaden({ instelling: { x: { plek: 'dak' } } })).toHaveProperty('fout');
     expect(leesLaden({ aan: { 'kapot id met spaties': true } })).toHaveProperty('fout');
+  });
+});
+
+describe('wat de pagina Auto laat zien (besluit 259, stap 2)', () => {
+  const tesla: HaDevice = { id: 'tesla', area_id: null, name: 'Model 3', manufacturer: 'Tesla', model: 'Model 3' };
+  const easee: HaDevice = { id: 'easee', area_id: null, name: 'Easee Home', manufacturer: 'Easee', model: 'Home' };
+  const nu = new Date('2026-11-06T12:02:00Z');
+  const auto: Meting[] = [
+    { id: 'sensor.model_3_battery', klasse: 'battery', staat: '60', eenheid: '%', platform: 'teslemetry', apparaat: 'tesla' },
+    { id: 'sensor.model_3_range', klasse: 'distance', staat: '300', eenheid: 'km', naam: 'Battery range', platform: 'teslemetry', apparaat: 'tesla' },
+    { id: 'number.model_3_charge_limit', staat: '80', eenheid: '%', naam: 'Charge limit', platform: 'teslemetry', apparaat: 'tesla' },
+    { id: 'binary_sensor.model_3_charge_cable', klasse: 'plug', staat: 'on', platform: 'teslemetry', apparaat: 'tesla', sinds: '2026-11-06T10:20:00Z' },
+    { id: 'device_tracker.model_3_location', staat: 'home', platform: 'teslemetry', apparaat: 'tesla' },
+  ];
+  const paal: Meting[] = [
+    { id: 'sensor.easee_status', staat: 'charging', naam: 'Easee status', platform: 'easee', apparaat: 'easee' },
+    { id: 'sensor.easee_power', klasse: 'power', staat: '4.1', eenheid: 'kW', naam: 'Easee power', platform: 'easee', apparaat: 'easee' },
+    { id: 'sensor.easee_current_l1', klasse: 'current', staat: '6.02', eenheid: 'A', naam: 'Current L1', platform: 'easee', apparaat: 'easee' },
+    { id: 'sensor.easee_current_l3', klasse: 'current', staat: '5.9', eenheid: 'A', naam: 'Current L3', platform: 'easee', apparaat: 'easee' },
+    { id: 'sensor.easee_current_l2', klasse: 'current', staat: '6', eenheid: 'A', naam: 'Current L2', platform: 'easee', apparaat: 'easee' },
+    // Een grens, geen meting: telt niet als stroom.
+    { id: 'sensor.easee_dynamic_circuit_current_p1', klasse: 'current', staat: '16', eenheid: 'A', naam: 'Dynamic circuit current P1', platform: 'easee', apparaat: 'easee' },
+    { id: 'number.easee_dynamic_charger_limit', staat: '16', eenheid: 'A', naam: 'Dynamic charger limit', platform: 'easee', apparaat: 'easee', extra: { min: 6, max: 16 } },
+  ];
+
+  it('geeft de laadgrens, de stroom per fase, de kabel en de laadpaal', () => {
+    const a = huis([tesla, easee], [...auto, ...paal], null, nu).auto!;
+    expect(a).toMatchObject({ laadgrens: 80, stroomA: [6, 6, 5.9], thuis: true, kabelSinds: '2026-11-06T10:20:00Z', wegSinds: null, paalNaam: 'Easee Home', paalStroomA: { min: 6, max: 16 }, vermogenW: 4100, laadt: true });
+    // Zonder accu weet de app niet hoe laat hij vol is.
+    expect(a.volOm).toBeNull();
+  });
+
+  it('geeft per auto de meter van zijn laadvermogen, voor de laadbeurten (stap 3)', () => {
+    const { reg, states } = registers([tesla, easee], [...auto, ...paal]);
+    expect(laadMeters(reg, states)).toEqual([{ auto: 'tesla', vermogen: 'sensor.easee_power' }]);
+    // Zonder laadpaal en zonder laadvermogen in de auto: geen meter.
+    const alleen = registers([tesla], auto);
+    expect(laadMeters(alleen.reg, alleen.states)).toEqual([{ auto: 'tesla', vermogen: null }]);
+  });
+
+  it('rekent uit hoe laat hij vol is, of neemt de tijd van de auto zelf', () => {
+    const keuze: LadenKeuze = { aan: {}, rol: {}, instelling: { tesla: { accuKWh: 75, laadpaal: null, plek: null } } };
+    // (80 − 60)% van 75 kWh = 15 kWh, met 4,1 kW: 3 uur 40, naar boven op vijf minuten.
+    expect(huis([tesla, easee], [...auto, ...paal], keuze, nu).auto!.volOm).toBe('2026-11-06T15:45:00.000Z');
+    const zelf: Meting = { id: 'sensor.model_3_time_to_full_charge', klasse: 'duration', staat: '95', eenheid: 'min', naam: 'Time to full charge', platform: 'teslemetry', apparaat: 'tesla' };
+    expect(huis([tesla, easee], [...auto, zelf, ...paal], keuze, nu).auto!.volOm).toBe('2026-11-06T13:37:00.000Z');
+    // Laadt hij niet, dan geen tijd.
+    const rust = paal.map((m) => (m.id === 'sensor.easee_status' ? { ...m, staat: 'connected' } : m.id === 'sensor.easee_power' ? { ...m, staat: '0' } : m));
+    expect(huis([tesla, easee], [...auto, ...rust], keuze, nu).auto!.volOm).toBeNull();
+  });
+
+  it('leest een Nissan MICRA zoals in melding 132: lading, bereik, laden en de laadtijd die over is', () => {
+    const micra: HaDevice = { id: 'micra', area_id: null, name: 'MICRA', manufacturer: 'Nissan', model: '2025 MICRA' };
+    const m = (id: string, klasse: string | undefined, staat: string, naam: string, eenheid?: string): Meting => ({ id, ...(klasse ? { klasse } : {}), staat, naam, ...(eenheid ? { eenheid } : {}), platform: 'nissan_connect', apparaat: 'micra' });
+    const a = huis([micra], [
+      m('climate.micra_climate', undefined, 'off', 'Climate'),
+      m('binary_sensor.micra_charging', 'battery_charging', 'on', 'Charging'),
+      m('binary_sensor.micra_plugged_in', 'plug', 'on', 'Plugged In'),
+      m('sensor.micra_last_updated', 'timestamp', '2026-11-05T18:03:22.382000+00:00', 'Last Updated'),
+      m('sensor.micra_range', 'distance', '287', 'Range', 'km'),
+      m('sensor.micra_battery_level', 'battery', '99', 'Battery Level', '%'),
+      m('sensor.micra_charge_time', 'duration', '0.0666666666666667', 'Charge Time', 'h'),
+      m('sensor.micra_odometer', 'distance', '13883.0', 'Odometer', 'km'),
+      m('device_tracker.micra_location', undefined, 'home', 'Location'),
+      m('sensor.micra_internal_temperature', 'temperature', '18.0', 'Internal Temperature', '°C'),
+    ], null, nu).auto!;
+    expect(a).toMatchObject({ id: 'micra', pct: 99, bereikKm: 287, laadt: true, aangesloten: true, thuis: true, laadgrens: null, volOm: '2026-11-06T12:06:00.000Z' });
+  });
+
+  it('zegt dat de auto weg is, en sinds wanneer', () => {
+    const weg = auto.map((m) => (m.id.startsWith('device_tracker.') ? { ...m, staat: 'not_home', sinds: '2026-11-06T07:10:00Z' } : m.id.startsWith('binary_sensor.') ? { ...m, staat: 'off' } : m));
+    expect(huis([tesla], weg, null, nu).auto).toMatchObject({ thuis: false, wegSinds: '2026-11-06T07:10:00Z', kabelSinds: null, aangesloten: false });
   });
 });

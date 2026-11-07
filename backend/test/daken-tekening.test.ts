@@ -84,6 +84,36 @@ describe('de gebouwen zonder kaart', () => {
     const eigen = gebouw({ omtrek: rechthoek(9, 7, 45), bron: 'kaart' });
     expect(gebouwenNu({ ...daken([vlak()]), gebouwen: [eigen] })[0]).toBe(eigen);
   });
+
+  it('laat een voorgestelde dakvorm de vlakken volgen, maar niet wat de bewoner koos (issue 143)', () => {
+    const rek = [vlak({ opstelling: 'rek', tiltDeg: 15 })];
+    expect(gebouwenNu({ ...daken(rek), gebouwen: [gebouw({ bron: 'schatting' })] })[0]?.dakvorm).toBe('plat');
+    expect(gebouwenNu({ ...daken(rek), gebouwen: [gebouw({ dakBron: 'bewoner' })] })[0]?.dakvorm).toBe('zadel');
+    expect(gebouwenNu({ ...daken([vlak()]), gebouwen: [gebouw({ dakvorm: 'plat' })] })[0]?.dakvorm).toBe('zadel');
+  });
+
+  it('geeft het huis zonder vlakken een plat dak als Inrichten dat zegt', () => {
+    expect(gebouwenNu(daken([]), { huisPlat: true })[0]?.dakvorm).toBe('plat');
+    expect(gebouwenNu(daken([]))[0]?.dakvorm).toBe('zadel');
+    expect(gebouwenNu({ ...daken([]), gebouwen: [gebouw()] }, { huisPlat: true })[0]?.dakvorm).toBe('plat');
+  });
+});
+
+describe('blokken van de bewoner (stap 2b)', () => {
+  it('geeft elk gebouw zijn maat mee, om op maat te maken', () => {
+    const tk = tekening({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [gebouw({ omtrek: rechthoek(12, 7, 30, [2, 1]), bron: 'bewoner' })] });
+    const m = tk.gebouwen[0]!.maat;
+    expect(m.lengte).toBeCloseTo(12, 1);
+    expect(m.breedte).toBeCloseTo(7, 1);
+    expect(m.asDeg).toBe(30);
+    expect(m.midden[0]).toBeCloseTo(2, 1);
+  });
+
+  it('houdt een blok van de bewoner, ook zonder vlakken erop', () => {
+    const tuin = gebouw({ id: 'tuinhuis', soort: 'tuinhuis', bron: 'bewoner', omtrek: rechthoek(3, 3, 0, [0, -15]), dakvorm: 'zadel' });
+    const g = gebouwenNu({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [gebouw(), tuin] });
+    expect(g.find((x) => x.id === 'tuinhuis')).toMatchObject({ bron: 'bewoner', dakvorm: 'zadel' });
+  });
 });
 
 describe('de vlakken op de tekening', () => {

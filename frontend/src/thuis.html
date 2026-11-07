@@ -341,6 +341,8 @@
   .lading .getal { font-size: 34px; line-height: 1; grid-row: 1 / 3; }
   .laadbalk { height: 10px; border-radius: 5px; background: rgb(var(--wit) / 0.08); overflow: hidden; }
   .laadbalk i { display: block; height: 100%; border-radius: 5px; }
+  /* De auto als meter (besluit 259, stap 2): dezelfde tekening als op de pagina Auto. */
+  .autometer svg { display: block; width: 100%; max-width: 230px; height: auto; justify-self: end; }
   .lading small { font-size: 13.5px; font-weight: 600; min-height: 1em; }
   .maanddrie { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
   .maanddrie div { padding: 10px 10px 9px; border-radius: 14px; background: rgb(var(--wit) / 0.05); }
@@ -643,7 +645,7 @@
           <div class="gevoelblok" data-gevoel></div>
         </section>
         <section class="glas kaart morgenkaart" data-kaart="morgen" data-t-data-naam="thuis.kaart.morgen" data-t-data-leeg="thuis.leeg.morgen" data-morgen hidden></section>
-        <a class="glas kaart ladingkaart" href="apparaten.html#auto" data-kaart="auto" data-t-data-naam="thuis.kaart.auto" data-t-data-leeg="thuis.leeg.auto" data-auto hidden></a>
+        <a class="glas kaart ladingkaart" href="auto.html" data-kaart="auto" data-t-data-naam="thuis.kaart.auto" data-t-data-leeg="thuis.leeg.auto" data-auto hidden></a>
         <a class="glas kaart ladingkaart" href="apparaten.html#batterij" data-kaart="batterij" data-t-data-naam="thuis.kaart.batterij" data-t-data-leeg="thuis.leeg.batterij" data-batterij hidden></a>
         <a class="glas kaart maandkaart" href="opbrengst.html" data-kaart="maand" data-t-data-naam="thuis.kaart.maand" data-t-data-leeg="thuis.leeg.maand" data-maand hidden></a>
         <section class="glas kaart deurbelkaart" data-kaart="deurbel" data-t-data-naam="thuis.cam.kop" data-t-data-leeg="thuis.leeg.deurbel" data-deurbelkaart hidden></section>
@@ -702,7 +704,7 @@
         <p class="dag-eenvoudig" data-dag-eenvoudig></p>
       </a>
       <section class="glas kaart morgenkaart" data-kaart="morgen" data-t-data-naam="thuis.kaart.morgen" data-t-data-leeg="thuis.leeg.morgen" data-morgen hidden></section>
-      <a class="glas kaart ladingkaart" href="apparaten.html#auto" data-kaart="auto" data-t-data-naam="thuis.kaart.auto" data-t-data-leeg="thuis.leeg.auto" data-auto hidden></a>
+      <a class="glas kaart ladingkaart" href="auto.html" data-kaart="auto" data-t-data-naam="thuis.kaart.auto" data-t-data-leeg="thuis.leeg.auto" data-auto hidden></a>
       <a class="glas kaart ladingkaart" href="apparaten.html#batterij" data-kaart="batterij" data-t-data-naam="thuis.kaart.batterij" data-t-data-leeg="thuis.leeg.batterij" data-batterij hidden></a>
       <a class="glas kaart maandkaart" href="opbrengst.html" data-kaart="maand" data-t-data-naam="thuis.kaart.maand" data-t-data-leeg="thuis.leeg.maand" data-maand hidden></a>
       <section class="glas kaart deurbelkaart" data-kaart="deurbel" data-t-data-naam="thuis.cam.kop" data-t-data-leeg="thuis.leeg.deurbel" data-deurbelkaart hidden></section>
@@ -734,6 +736,7 @@
   <script src="kit/taal.js"></script>
   <script src="kit/nav.js"></script>
   <script src="kit/huis.js"></script>
+  <script src="kit/auto-tekening.js"></script>
   <script src="basis.js"></script>
   <script src="huismodel.js"></script>
   <script src="gevoel.js"></script>

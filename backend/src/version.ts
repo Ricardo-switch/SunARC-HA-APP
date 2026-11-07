@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.131.2';
+export const VERSIE = '0.134.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -74,12 +74,102 @@ export const TERUGKIJKEN = 10;
  * main komt de bovenste versie erbij. Oudere versies staan elk apart.
  */
 export const OP_MAIN: readonly string[] = [
-  '0.131.2', '0.130.0', '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
+  '0.134.0', '0.131.2', '0.130.0', '0.129.3', '0.129.2', '0.121.2', '0.121.0', '0.120.0', '0.119.0', '0.118.0',
   '0.117.1', '0.117.0', '0.116.0', '0.115.2', '0.115.1', '0.115.0',
 ];
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.134.0',
+    datum: '2026-11-06',
+    nieuw: [
+      'Bij Daken en panelen zie je wat kan bij jouw huis: zelf tekenen, je plek uit Home Assistant, de plattegrond en de 3D-kaart van Nederland, elk met wat ze vonden. Jij kiest waar je huis uit getekend wordt',
+      'Zelf tekenen: tik een gebouw aan en sleep het op zijn plek, draai het met het rondje, en zet de lengte en breedte. Een gebouw zonder panelen zet je erbij via Dak of vlak erbij',
+      'Komt je huis uit de 3D-kaart van Nederland, dan staat bij elk schuin vlak op het huis wat de laser mat, naast de meting, met Neem over',
+    ],
+    beter: [
+      'Kijk wat kan neemt niets over: eerst zie je of je huis, alleen je wijk of niets in de kaart staat. Staat je plek uit, dan brengt Stel in je naar die instelling in Home Assistant',
+      'De stap Hoe ze liggen in Inrichten zegt wat kan bij jouw huis, met een link naar Daken en panelen',
+    ],
+    en: {
+      nieuw: [
+        'Roofs and panels shows what your house allows: drawing it yourself, your location from Home Assistant, the street map and the 3D map of the Netherlands, each with what they found. You choose what your house is drawn from',
+        'Draw it yourself: tap a building and drag it into place, rotate it with the circle, and set its length and width. Add a building without panels under Add a roof or plane',
+        'If your house comes from the 3D map of the Netherlands, each sloped plane on the house shows what the laser measured, next to the measurement, with Use this',
+      ],
+      beter: [
+        'See what works takes nothing over: first you see whether your house, only your area or nothing is on the map. If your location is not set, Set it takes you to that setting in Home Assistant',
+        'The step How they lie in Set up says what your house allows, with a link to Roofs and panels',
+      ],
+    },
+  },
+  {
+    versie: '0.133.1',
+    datum: '2026-11-06',
+    opgelost: [
+      'Een plat dak blijft plat op Thuis, ook nadat je de panelen aanpast. Ook Plat dak bij Inrichten telt mee',
+      'Bij Daken en panelen heet Naar één kant nu Op rekken: daar stel je de helling in van panelen die schuin op een plat dak staan',
+    ],
+    en: {
+      opgelost: [
+        'A flat roof stays flat on Home, also after you change the panels. Flat roof in Set up counts too',
+        'In Roofs and panels, One direction is now called On racks: that is where you set the tilt of panels tilted on a flat roof',
+      ],
+    },
+    meldingen: [
+      {
+        code: 'SA-VLFF',
+        uitkomst: 'opgelost',
+        tekst: 'Het huis op Thuis volgde een dakvorm die SunArc eerder had voorgesteld. Nu volgt het je panelen: liggen ze op rekken of plat, dan is het dak plat. Kies je bij Daken en panelen › het huis zelf een dakvorm, dan blijft die staan.',
+        tekstEn: 'The house on Home followed a roof shape SunArc had suggested earlier. Now it follows your panels: on racks or lying flat means a flat roof. If you pick a roof shape yourself in Roofs and panels › the house, it stays.',
+        href: 'energie.html#panelen',
+        issue: 143,
+      },
+      {
+        code: 'SA-TASW',
+        uitkomst: 'opgelost',
+        tekst: 'Plat liggend heeft geen helling. Staan je panelen schuin op een plat dak, kies dan Op rekken (eerst Naar één kant), of Oost-west: daar stel je de helling en de richting in.',
+        tekstEn: 'Lying flat has no tilt. If your panels are tilted on a flat roof, choose On racks (formerly One direction), or East-west: there you set the tilt and direction.',
+        href: 'energie.html#panelen',
+        issue: 141,
+      },
+    ],
+  },
+  {
+    versie: '0.133.0',
+    datum: '2026-11-06',
+    nieuw: [
+      'De laadbeurten van de laatste week op de pagina Auto: per beurt hoeveel er geladen is, wat het kostte en welk deel eigen zon was, en alles samen',
+      'Tijdens het laden staat onder de auto wat deze laadbeurt tot nu toe nam en kostte',
+    ],
+    en: {
+      nieuw: [
+        'The charging sessions of the last week on the Car page: per session how much was charged, what it cost and how much was own solar, and the total',
+        'While charging, the car shows what this session has taken and cost so far',
+      ],
+    },
+  },
+  {
+    versie: '0.132.0',
+    datum: '2026-11-06',
+    nieuw: [
+      'Een eigen pagina Auto: hoe vol de auto is, of hij laadt en met hoeveel, de stroom per fase, de laadgrens, hoe laat hij vol is, de kabel en of hij onderweg is. De auto zelf is de meter',
+      'De kaart van de auto op Thuis toont de auto als meter en opent de pagina Auto, net als de auto bij Apparaten',
+    ],
+    beter: [
+      'SunArc leest bij meer auto’s hoe lang het laden nog duurt, zoals bij NissanConnect',
+    ],
+    en: {
+      nieuw: [
+        'A Car page of its own: how full the car is, whether it charges and how fast, the current per phase, the charge limit, when it is full, the cable and whether it is away. The car itself is the meter',
+        'The car card on Home shows the car as a meter and opens the Car page, as does the car under Devices',
+      ],
+      beter: [
+        'SunArc reads how long charging still takes for more cars, such as with NissanConnect',
+      ],
+    },
+  },
   {
     versie: '0.131.2',
     datum: '2026-11-06',

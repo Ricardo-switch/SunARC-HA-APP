@@ -252,7 +252,7 @@ verwijzing bestaat.
   de app, met een woordzoeker ([115]).
 - **Het jaar in Opbrengst** begint op de startdatum van het contract ([116]).
 - **Een prijs per uur** (Zonneplan, Tibber): Opbrengst rekent met de kostentellers van Home Assistant, en Energie toont de prijs van nu ([251]).
-- **Daken en panelen, elk vlak apart**: van boven met de omtrek uit de kaart, dakvorm per gebouw, de meting per vlak, een grens per omvormer, per vlak op Thuis en in Opbrengst, een vlak dat achterblijft, een korte stap in Inrichten en een eigen rondleiding ([254]); de kaart is experimenteel, met 3D BAG naast OpenStreetMap ([256]).
+- **Daken en panelen, elk vlak apart**: van boven met de omtrek uit de kaart, dakvorm per gebouw, de meting per vlak, een grens per omvormer, per vlak op Thuis en in Opbrengst, een vlak dat achterblijft, een korte stap in Inrichten en een eigen rondleiding ([254]); de kaart is experimenteel, met 3D BAG naast OpenStreetMap ([256]); wat kan bij jouw huis zegt per kaart wat hij vond, en de bewoner kiest ([261]); zelf tekenen met blokken die je sleept, draait en op maat maakt, en de helling uit de 3D-kaart naast de meting ([254], [256]).
 - **Opbrengst in drie kolommen**, met een stroombeeld dat de zon per dakvlak, de kosten, terug, Altijd aan en gas apart laat zien; opgewekt komt uit de omvormer ([255]).
 - **Drie fouten van testers opgelost**: het gevoel kent de zones van nu, Meten met kan echt uit (en kiest geen watertemperatuur), en een plat dak op Thuis ([257]).
 - **Je dag en hoe warm** in Inrichten: eerst een eigen stap met de dag als balk (voorverwarmen, overdag en 's nachts, te schuiven), dan per kamer overdag en 's nachts, verwarmen en koelen, elk getal aan te tikken; het hele huis is wat de meeste kamers hebben, en een kamer volgt het tot hij een eigen getal krijgt ([260]).
@@ -370,7 +370,7 @@ verwijzing bestaat.
   vanzelf bij ([162]). Per account kies je eenvoudig of uitgebreid, grotere
   letters en minder beweging ([164]). Om te kiezen ook de auto, de
   thuisbatterij, deze maand en de deurbel, als het huis ze heeft ([182]).
-- **Auto en laadpaal (stap 1 van 6 gebouwd in 0.131.0):** Energie › Auto en laadpaal herkent auto's, laadpalen en evcc, met een schakelaar per apparaat, zelf kiezen, en per auto de accu, de laadpaal en de plek (ook de garage, idee 123); het klimaat van een auto telt niet als klimaat in huis (melding 132). Nog te bouwen: een eigen pagina Auto met de auto als meter, met de hand laden (stroom, pauzeren, hoe lang), laadbeurten, advies op een eigen Thuis-kaart en meldingen; het bouwplan staat in `docs/auto-en-laadpaal.md` ([259]).
+- **Auto en laadpaal (stap 1 tot en met 3 van 6 gebouwd, 0.131.0 tot 0.133.0):** Energie › Auto en laadpaal herkent auto's, laadpalen en evcc, met een schakelaar per apparaat, zelf kiezen, en per auto de accu, de laadpaal en de plek (ook de garage, idee 123); het klimaat van een auto telt niet als klimaat in huis (melding 132). De pagina Auto toont de auto als meter, met laden, stroom per fase, laadgrens, vol om, kabel en onderweg; de Thuis-kaart en Apparaten openen hem (0.132.0). De laadbeurten van de laatste week staan erop, met kWh, kosten en het deel eigen zon, uit de statistiek van Home Assistant (0.133.0). Nog te bouwen: met de hand laden (stroom, pauzeren, hoe lang), advies op een eigen Thuis-kaart en meldingen; het bouwplan staat in `docs/auto-en-laadpaal.md` ([259]).
 - **Een profiel per bewoner** (Jij, bovenaan Instellingen): je thema op je
   eigen apparaten (donker, licht of zoals je telefoon; een scherm blijft
   donker), een van zes eigen kleuren, je
@@ -841,4 +841,5 @@ verwijzing bestaat.
 [258]: DECISIONS.md#258-wat-er-nieuw-is-één-overzicht-per-uitgave-op-main
 [259]: DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp
 [260]: DECISIONS.md#260-je-dag-als-eigen-stap-en-hoe-warm-per-kamer
+[261]: DECISIONS.md#261-wat-kan-bij-jouw-huis-de-kaarten-nagaan-de-bewoner-kiest
 <!-- links:einde -->

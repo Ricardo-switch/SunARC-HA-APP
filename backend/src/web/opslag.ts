@@ -67,6 +67,25 @@ export interface Auto {
   readonly accuKWh: number | null;
   /** De laadpaal waar hij aan laadt, of null. */
   readonly laadpaal: string | null;
+  /*
+   * Voor de pagina Auto (besluit 259, stap 2): alleen wat Home Assistant
+   * meet, of wat er eerlijk uit volgt.
+   */
+  /** De naam van de laadpaal, of null zonder laadpaal. */
+  readonly paalNaam: string | null;
+  /** De laagste en hoogste stroom van de laadpaal in A, als hij die kent. */
+  readonly paalStroomA: { readonly min: number; readonly max: number } | null;
+  /** De laadgrens in procenten, zoals ingesteld in de auto of de laadpaal. */
+  readonly laadgrens: number | null;
+  /** De stroom per fase in A, gemeten; null als niets het meet. */
+  readonly stroomA: readonly number[] | null;
+  /** Hoe laat hij op de laadgrens is (ISO): van de auto zelf, of berekend uit de accu en het vermogen. */
+  readonly volOm: string | null;
+  /** Of de auto thuis is, uit zijn plek in Home Assistant; null als niets het zegt. */
+  readonly thuis: boolean | null;
+  /** Sinds wanneer de kabel erin zit (ISO), of sinds wanneer de auto weg is. */
+  readonly kabelSinds: string | null;
+  readonly wegSinds: string | null;
 }
 
 export interface Opslag {
@@ -144,6 +163,15 @@ const BATTERIJ_TYPE = /\b(batter(y|ij)|accu|powerwall|luna|storage|opslag|sessy|
 const LEVEREN_POSITIEF = /^(powerwall|tesla_gateway|ecoflow|ecoflow_cloud)$/;
 /** Onder dit vermogen doet hij niets: een paar watt is ruis. */
 const RUST_W = 40;
+/** Een laadgrens: tot hoe vol de auto laadt. */
+const LAADGRENS = /charge.?limit|target.?soc|charge.?target|laadgrens|max.?soc|limit.?soc|soc.?limit/;
+/** Een stroom die een grens is en geen meting, zoals de dynamische grens van een Easee. */
+const GEEN_METING = /max|limit|offered|dynamic|allowed|grens|setpoint|target|circuit/;
+/** Klaar om: een tijdstip of een resterende duur van de auto. */
+const KLAAR_TIJD = /charg|laad|ready|klaar|full|vol\b|end|eind|finish/;
+const KLAAR_DUUR = /remaining|resterend|time.?to|tijd.?tot|until|left|charg(e|ing).?(time|duration)|laadtijd/;
+/** Een duur die al voorbij is, zoals hoe lang de laadbeurt al duurt. */
+const GEEN_KLAAR = /elapsed|session|sessie|spent|verstreken|last|laatste/;
 /** Klassen die bij laden horen: een apparaat zonder geen ervan is geen kandidaat. */
 const LAAD_KLASSEN = new Set(['battery', 'distance', 'power', 'current', 'energy', 'plug', 'battery_charging']);
 
@@ -242,7 +270,7 @@ function watVan(a: Apparaat, l: ReturnType<typeof lezer>, states: ReadonlyMap<st
     const eenheid = String(s?.attributes['unit_of_measurement'] ?? '');
     if (d === 'sensor' && k === 'battery' && eenheid === '%') wat.add('lading');
     if (d === 'sensor' && k === 'distance' && BEREIK.test(n) && !GEEN_BEREIK.test(n)) wat.add('bereik');
-    if ((d === 'number' || d === 'sensor') && /charge.?limit|target.?soc|charge.?target|laadgrens|max.?soc|limit.?soc|soc.?limit/.test(n)) wat.add('laadgrens');
+    if ((d === 'number' || d === 'sensor') && LAADGRENS.test(n)) wat.add('laadgrens');
     if (d === 'binary_sensor' && k === 'plug') wat.add('kabel');
     if (d === 'binary_sensor' && k === 'battery_charging') wat.add('laadt');
     if (d === 'device_tracker') wat.add('thuis');
@@ -288,7 +316,24 @@ function laadApparaten(l: ReturnType<typeof lezer>, states: ReadonlyMap<string, 
 }
 
 /** De thuisbatterij en de auto's in Home Assistant, met de keuzes van de bewoner (besluit 259). */
-export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null = null): Opslag {
+export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null = null, nu: Date = new Date()): Opslag {
+  return opslagMet(registers, states, keuze, nu).opslag;
+}
+
+/** Per auto de meter van zijn laadvermogen, voor de laadbeurten uit de statistiek (besluit 259, stap 3). */
+export interface LaadMeter {
+  readonly auto: string;
+  /** De sensor met het laadvermogen; null als niets het meet. */
+  readonly vermogen: string | null;
+}
+
+/** De meters van de auto's: dezelfde keuze als de pagina Auto, zonder de standen. */
+export function laadMeters(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null = null): LaadMeter[] {
+  return opslagMet(registers, states, keuze, new Date()).meters;
+}
+
+function opslagMet(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null, nu: Date): { opslag: Opslag; meters: LaadMeter[] } {
+  const meters: LaadMeter[] = [];
   const l = lezer(registers, states);
   const { klasse, naamVan, pctVan } = l;
   const vermogens = (a: Apparaat) => a.entiteiten.filter((e) => e.entity_id.startsWith('sensor.') && klasse(e) === 'power');
@@ -331,7 +376,10 @@ export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaE
     return palen.find((p) => p.id === gekozen) ?? (palen.length === 1 && gekozen == null ? palen[0]! : null);
   };
 
-  const maak = (wagen: Apparaat | null, paal: Apparaat | null, naam: string): Auto => {
+  type Gevonden = (typeof lijst)[number];
+  const maak = (wagenItem: Gevonden | null, paalItem: Gevonden | null, naam: string): Auto => {
+    const wagen = wagenItem?.bron ?? null;
+    const paal = paalItem?.bron ?? null;
     const bron = [wagen, paal].filter((x): x is Apparaat => x != null);
     const eerst = <T>(f: (a: Apparaat) => T | null): T | null => {
       for (const a of bron) {
@@ -341,8 +389,9 @@ export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaE
       return null;
     };
     // Het laadvermogen: van de laadpaal, anders een laadvermogen van de auto.
+    const laadMeter = (a: Apparaat) => vermogens(a).find((x) => a === paal || /charg|laad/.test(naamVan(x))) ?? null;
     const laadW = eerst((a) => {
-      const e = vermogens(a).find((x) => a === paal || /charg|laad/.test(naamVan(x)));
+      const e = laadMeter(a);
       return e ? watt(states.get(e.entity_id)) : null;
     });
     /** De stand van een laadpaal als woord, zoals "charging" of "connected". */
@@ -367,24 +416,96 @@ export function vindOpslag(registers: Registers, states: ReadonlyMap<string, HaE
       : null;
     const id = (wagen ?? paal)!.device.id;
     const ins = instelling(id);
+    const pct = eerst(pctVan);
+    const vermogenW = laadW == null ? null : Math.round(laadW);
+
+    /* ---- voor de pagina Auto (stap 2) ---- */
+    // De laadgrens: een getal of sensor in procenten, van de auto en anders van de laadpaal.
+    const laadgrens = eerst((a) => {
+      for (const e of a.entiteiten) {
+        if (!/^(number|sensor)\./.test(e.entity_id) || !LAADGRENS.test(naamVan(e))) continue;
+        const s = states.get(e.entity_id);
+        const n = getal(s);
+        const eenheid = String(s?.attributes['unit_of_measurement'] ?? '%');
+        if (n != null && n > 0 && n <= 100 && eenheid === '%') return Math.round(n);
+      }
+      return null;
+    });
+    // De stroom per fase: gemeten, geen grens; van de laadpaal, anders van de auto.
+    const stroomA = eerst((a) => {
+      const metingen = a.entiteiten
+        .filter((e) => e.entity_id.startsWith('sensor.') && klasse(e) === 'current' && !GEEN_METING.test(naamVan(e)))
+        .map((e) => ({ fase: /(?:^|[\s_.-])(?:l|p|phase|fase)[\s_]*([123])(?![0-9])/.exec(naamVan(e))?.[1] ?? null, a: getal(states.get(e.entity_id)) }))
+        .filter((x): x is { fase: string | null; a: number } => x.a != null && x.a >= 0 && x.a < 100);
+      const perFase = metingen.filter((x) => x.fase != null).sort((x, y) => x.fase!.localeCompare(y.fase!));
+      const lijst = perFase.length ? perFase.slice(0, 3) : metingen.slice(0, 1);
+      return lijst.length ? lijst.map((x) => Math.round(x.a * 10) / 10) : null;
+    });
+    // De plek van de auto: thuis of weg, uit zijn device_tracker.
+    const tracker = wagen?.entiteiten.find((e) => e.entity_id.startsWith('device_tracker.'));
+    const plekStaat = tracker ? states.get(tracker.entity_id) : undefined;
+    const thuis = !plekStaat || plekStaat.state === 'unknown' || plekStaat.state === 'unavailable' ? null : plekStaat.state === 'home';
+    const kabel = bron.flatMap((a) => a.entiteiten).find((x) => x.entity_id.startsWith('binary_sensor.') && klasse(x) === 'plug');
+    const kabelStaat = kabel ? states.get(kabel.entity_id) : undefined;
+    const volOm = laadt ? klaarOm(wagen, pct, laadgrens, ins.accuKWh, vermogenW) : null;
+    meters.push({ auto: id, vermogen: eerst((a) => laadMeter(a)?.entity_id ?? null) });
     return {
       id,
       naam,
-      pct: eerst(pctVan),
+      pct,
       aangesloten,
       laadt,
-      vermogenW: laadW == null ? null : Math.round(laadW),
+      vermogenW,
       bereikKm: bereik,
       plek: ins.plek,
       accuKWh: wagen ? ins.accuKWh : null,
       laadpaal: paal && wagen ? paal.device.id : null,
+      paalNaam: paalItem?.naam ?? null,
+      paalStroomA: paalItem?.stroomA ?? null,
+      laadgrens,
+      stroomA,
+      volOm,
+      thuis,
+      kabelSinds: kabelStaat?.state === 'on' ? kabelStaat.last_changed || null : null,
+      wegSinds: thuis === false ? plekStaat?.last_changed || null : null,
     };
   };
 
+  /**
+   * Hoe laat de auto op zijn laadgrens is (docs/auto-en-laadpaal.md): zegt de
+   * auto het zelf, dan dat; anders (grens − lading) × accu / vermogen, op vijf
+   * minuten. Zonder accu, lading of vermogen: niet.
+   */
+  function klaarOm(wagen: Apparaat | null, pct: number | null, grens: number | null, accuKWh: number | null, w: number | null): string | null {
+    for (const e of wagen?.entiteiten ?? []) {
+      if (!e.entity_id.startsWith('sensor.')) continue;
+      const k = klasse(e);
+      const n = naamVan(e);
+      const s = states.get(e.entity_id);
+      if (k === 'timestamp' && KLAAR_TIJD.test(n)) {
+        const t = Date.parse(s?.state ?? '');
+        if (Number.isFinite(t) && t > nu.getTime() && t - nu.getTime() < 3 * 86_400_000) return new Date(t).toISOString();
+      }
+      // Ook de laadtijd van NissanConnect: wat er nog over is (melding 132).
+      if (k === 'duration' && KLAAR_TIJD.test(n) && KLAAR_DUUR.test(n) && !GEEN_KLAAR.test(n)) {
+        const d = getal(s);
+        const eenheid = String(s?.attributes['unit_of_measurement'] ?? 'min');
+        const ms = d == null ? null : d * (eenheid === 'h' ? 3_600_000 : eenheid === 's' ? 1000 : eenheid === 'd' ? 86_400_000 : 60_000);
+        if (ms != null && ms > 0 && ms < 3 * 86_400_000) return new Date(nu.getTime() + ms).toISOString();
+      }
+    }
+    const doel = grens ?? 100;
+    if (pct == null || accuKWh == null || w == null || w < 500 || pct >= doel) return null;
+    const uren = (((doel - pct) / 100) * accuKWh) / (w / 1000);
+    if (uren > 72) return null;
+    const vijf = 5 * 60_000;
+    return new Date(Math.ceil((nu.getTime() + uren * 3_600_000) / vijf) * vijf).toISOString();
+  }
+
   const autos: Auto[] = wagens.length
-    ? wagens.map((w) => maak(w.bron, paalVan(w.id)?.bron ?? null, w.naam))
-    : palen.map((p) => maak(null, p.bron, palen.length === 1 ? 'De auto' : p.naam));
-  return { batterij, auto: autos[0] ?? null, autos };
+    ? wagens.map((w) => maak(w, paalVan(w.id) ?? null, w.naam))
+    : palen.map((p) => maak(null, p, palen.length === 1 ? 'De auto' : p.naam));
+  return { opslag: { batterij, auto: autos[0] ?? null, autos }, meters };
 }
 
 /** Energie › Auto en laadpaal (besluit 259): gevonden, zelf gekozen, evcc, en wat er nog te kiezen is. */

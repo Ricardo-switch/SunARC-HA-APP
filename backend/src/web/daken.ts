@@ -74,13 +74,22 @@ export type Xy = readonly [number, number];
 export interface Gebouw {
   readonly id: string;
   readonly soort: GebouwSoort;
-  /** `kaart`: de omtrek uit OpenStreetMap; `schatting`: een blok op een gangbare plek. */
-  readonly bron: 'kaart' | 'schatting';
+  /**
+   * `kaart`: de omtrek uit de kaart (ook als de bewoner hem verschoof of
+   * draaide); `schatting`: een blok op een gangbare plek; `bewoner`: een blok
+   * dat de bewoner zelf neerzette of op maat maakte (stap 2b).
+   */
+  readonly bron: 'kaart' | 'schatting' | 'bewoner';
   readonly omtrek: readonly Xy[];
   readonly dakvorm: Dakvorm;
   readonly nokDeg: number;
   /** Uit welke kaart de omtrek kwam (5 november 2026): 3D BAG of OpenStreetMap, voor de naamsvermelding. */
   readonly kaart?: 'bag3d' | 'osm';
+  /**
+   * Wie de dakvorm gaf (issue 143): de bewoner, of de kaart (3D BAG meet het
+   * dak). Weg: een voorstel, dat de vlakken erop volgt.
+   */
+  readonly dakBron?: 'bewoner' | 'kaart';
 }
 
 export interface Daken {
@@ -95,6 +104,56 @@ export interface Daken {
   readonly omgeving?: readonly (readonly Xy[])[];
   /** Wat elke omvormer hooguit levert, als de bewoner het invulde (stap 4), in W per sensor. */
   readonly grenzen?: Readonly<Record<string, number>>;
+  /** Wat de kaarten over het huis zeiden, de laatste keer dat de bewoner keek (6 november 2026). */
+  readonly kaartStand?: KaartStand;
+  /**
+   * De dakvlakken van het hoofdhuis uit 3D BAG (6 november 2026), als het huis
+   * daaruit getekend is: richting, helling en oppervlak, gemeten met een laser.
+   * De pagina zet ze naast de meting, met Neem over.
+   */
+  readonly kaartDak?: readonly KaartDakvlak[];
+}
+
+export interface KaartDakvlak {
+  readonly azimuthDeg: number;
+  readonly tiltDeg: number;
+  readonly m2: number;
+}
+
+function leesKaartDak(x: unknown): KaartDakvlak[] | null {
+  if (!Array.isArray(x) || x.length > 24) return null;
+  const uit: KaartDakvlak[] = [];
+  for (const v of x) {
+    const r = (typeof v === 'object' && v != null ? v : {}) as Record<string, unknown>;
+    if (!getal(r['azimuthDeg'], 0, 360) || !getal(r['tiltDeg'], 0, 90) || !getal(r['m2'], 0, 5000)) return null;
+    uit.push({ azimuthDeg: r['azimuthDeg'] as number, tiltDeg: r['tiltDeg'] as number, m2: r['m2'] as number });
+  }
+  return uit;
+}
+
+/**
+ * Wat kan bij jouw huis (Ricardo, 6 november 2026): per kaart of hij het huis
+ * kent (`huis`), alleen de wijk (`wijk`), niets (`niets`), geen antwoord gaf
+ * (`fout`), of daar niet komt (`buiten`: 3D BAG buiten Nederland). Alleen
+ * deze woorden en de dag; geen plek en geen vormen.
+ */
+export const KAART_STANDEN = ['huis', 'wijk', 'niets', 'fout', 'buiten'] as const;
+export type KaartStandWoord = (typeof KAART_STANDEN)[number];
+export interface KaartStand {
+  readonly osm: KaartStandWoord;
+  readonly bag3d: KaartStandWoord;
+  /** De dag van het kijken, YYYY-MM-DD. */
+  readonly datum: string;
+}
+
+function leesKaartStand(x: unknown): KaartStand | null {
+  if (typeof x !== 'object' || x == null || Array.isArray(x)) return null;
+  const r = x as Record<string, unknown>;
+  const woord = (v: unknown) => (KAART_STANDEN.includes(v as KaartStandWoord) ? (v as KaartStandWoord) : null);
+  const osm = woord(r['osm']);
+  const bag3d = woord(r['bag3d']);
+  const datum = typeof r['datum'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r['datum']) ? r['datum'] : null;
+  return osm && bag3d && datum ? { osm, bag3d, datum } : null;
 }
 
 /** Panelen op een ander dak (besluit 187), zoals bij de antwoorden. */
@@ -161,11 +220,12 @@ function leesGebouwen(x: unknown): Gebouw[] | { fout: string } {
     const omtrek = leesOmtrek(r['omtrek']);
     if (typeof id !== 'string' || !/^[a-z]{2,12}(-\d{1,2})?$/.test(id) || ids.has(id)) return { fout: 'elk gebouw heeft een eigen naam' };
     ids.add(id);
-    if (!GEBOUW_SOORTEN.includes(r['soort'] as GebouwSoort) || !DAKVORMEN.includes(r['dakvorm'] as Dakvorm) || (r['bron'] !== 'kaart' && r['bron'] !== 'schatting') || !getal(r['nokDeg'], 0, 360) || !omtrek) {
+    if (!GEBOUW_SOORTEN.includes(r['soort'] as GebouwSoort) || !DAKVORMEN.includes(r['dakvorm'] as Dakvorm) || !['kaart', 'schatting', 'bewoner'].includes(r['bron'] as string) || !getal(r['nokDeg'], 0, 360) || !omtrek) {
       return { fout: `gebouw ${id}: een soort, een dakvorm, de nok en een omtrek in meters` };
     }
     const kaart = r['kaart'] === 'bag3d' || r['kaart'] === 'osm' ? r['kaart'] : null;
-    uit.push({ id, soort: r['soort'] as GebouwSoort, bron: r['bron'] as Gebouw['bron'], omtrek, dakvorm: r['dakvorm'] as Dakvorm, nokDeg: r['nokDeg'] as number, ...(kaart && r['bron'] === 'kaart' ? { kaart } : {}) });
+    const dakBron = r['dakBron'] === 'bewoner' || r['dakBron'] === 'kaart' ? r['dakBron'] : null;
+    uit.push({ id, soort: r['soort'] as GebouwSoort, bron: r['bron'] as Gebouw['bron'], omtrek, dakvorm: r['dakvorm'] as Dakvorm, nokDeg: r['nokDeg'] as number, ...(kaart && r['bron'] === 'kaart' ? { kaart } : {}), ...(dakBron ? { dakBron } : {}) });
   }
   return uit;
 }
@@ -187,6 +247,10 @@ export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: strin
     return { fout: 'de grens per omvormer is 100 tot 100.000 W' };
   }
   const grenzen = grenzenRaw as Record<string, number>;
+  const kaartStand = r['kaartStand'] == null ? null : leesKaartStand(r['kaartStand']);
+  if (r['kaartStand'] != null && !kaartStand) return { fout: 'wat de kaarten zeiden: osm en bag3d met een stand, en de dag' };
+  const kaartDak = r['kaartDak'] == null ? null : leesKaartDak(r['kaartDak']);
+  if (r['kaartDak'] != null && !kaartDak) return { fout: 'het dak uit de kaart: tot 24 vlakken met richting, helling en oppervlak' };
   const voorgevel = r['voorgevelDeg'] ?? null;
   if (voorgevel !== null && !getal(voorgevel, 0, 360)) return { fout: 'de voorkant is 0 tot 360°' };
   const omvormerW = r['omvormerW'] ?? null;
@@ -242,6 +306,8 @@ export function leesDaken(raw: unknown): { daken: Daken | null } | { fout: strin
       ...(gebouwen.length ? { gebouwen } : {}),
       ...(omgeving.length ? { omgeving: omgeving as Xy[][] } : {}),
       ...(Object.keys(grenzen).length ? { grenzen: { ...grenzen } } : {}),
+      ...(kaartStand ? { kaartStand } : {}),
+      ...(kaartDak?.length ? { kaartDak } : {}),
     },
   };
 }
@@ -349,14 +415,19 @@ export function dakenUitOud(o: OudeDaken): Daken {
 
 /**
  * Heeft het hoofdhuis een plat dak (issue 131)? Zoals de bewoner het opgaf: de
- * dakvorm van het hoofdhuis bij Daken en panelen, anders de vlakken van het
- * hoofddak (allemaal op rekken, oost-west of plat), anders het oude antwoord.
+ * dakvorm van het hoofdhuis als de bewoner of 3D BAG hem gaf, anders de
+ * vlakken van het hoofddak (allemaal op rekken, oost-west of plat), anders de
+ * voorgestelde dakvorm, het antwoord "plat dak" bij Inrichten of het oude
+ * antwoord. Een voorgestelde dakvorm bleef eerst staan als de vlakken
+ * veranderden (issue 143): dan bleef Thuis een puntdak tonen.
  */
-export function hoofddakPlat(daken: Daken | null | undefined, ligging: string | null | undefined): boolean {
+export function hoofddakPlat(daken: Daken | null | undefined, ligging: string | null | undefined, inrichtenPlat = false): boolean {
   const huis = daken?.gebouwen?.find((g) => g.soort === 'hoofdhuis');
-  if (huis) return huis.dakvorm === 'plat';
+  if (huis?.dakBron) return huis.dakvorm === 'plat';
   const hoofd = (daken?.vlakken ?? []).filter((v) => v.plek === 'hoofddak');
   if (hoofd.length) return hoofd.every((v) => v.opstelling !== 'schuin');
+  if (inrichtenPlat) return true;
+  if (huis) return huis.dakvorm === 'plat';
   return ligging === 'plat';
 }
 

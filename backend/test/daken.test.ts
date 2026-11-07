@@ -62,9 +62,44 @@ describe('een plat dak op het hoofdhuis (issue 131)', () => {
     expect(hoofddakPlat(null, 'plat')).toBe(true);
     expect(hoofddakPlat(null, 'voorkant')).toBe(false);
   });
+
+  it('volgt de vlakken als de dakvorm een voorstel was, en het antwoord bij Inrichten (issue 143)', () => {
+    const huis = (dakvorm: 'plat' | 'zadel', dakBron?: 'bewoner' | 'kaart') => ({ id: 'huis', soort: 'hoofdhuis' as const, bron: 'schatting' as const, omtrek: [[0, 0], [10, 0], [10, 9], [0, 9]] as [number, number][], dakvorm, nokDeg: 0, ...(dakBron ? { dakBron } : {}) });
+    // Eerst een schuin vlak bewaard (voorstel zadel), daarna op rekken: plat.
+    const rek = [vlak({ opstelling: 'rek', tiltDeg: 15 })];
+    expect(hoofddakPlat({ vlakken: rek, voorgevelDeg: 180, omvormerW: null, gebouwen: [huis('zadel')] }, null)).toBe(true);
+    // Wat de bewoner of 3D BAG gaf, blijft.
+    expect(hoofddakPlat({ vlakken: rek, voorgevelDeg: 180, omvormerW: null, gebouwen: [huis('zadel', 'bewoner')] }, null)).toBe(false);
+    expect(hoofddakPlat({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [huis('plat', 'kaart')] }, null)).toBe(true);
+    // Zonder vlakken op het hoofddak: plat dak bij Inrichten.
+    expect(hoofddakPlat({ vlakken: [], voorgevelDeg: 180, omvormerW: null, gebouwen: [huis('zadel')] }, null, true)).toBe(true);
+    expect(hoofddakPlat(null, 'voorkant', true)).toBe(true);
+  });
+
+  it('leest een blok dat de bewoner zelf neerzette (stap 2b)', () => {
+    const g = { id: 'tuinhuis', soort: 'tuinhuis', bron: 'bewoner', omtrek: [[0, 0], [3, 0], [3, 3], [0, 3]], dakvorm: 'zadel', nokDeg: 0 };
+    const r = leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [g] });
+    expect('daken' in r && r.daken?.gebouwen?.[0]?.bron).toBe('bewoner');
+    expect(leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [{ ...g, bron: 'buurman' }] })).toHaveProperty('fout');
+  });
+
+  it('leest wie de dakvorm gaf, en laat iets anders weg', () => {
+    const g = { id: 'huis', soort: 'hoofdhuis', bron: 'kaart', omtrek: [[0, 0], [10, 0], [10, 9]], dakvorm: 'plat', nokDeg: 0 };
+    const r = leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [{ ...g, dakBron: 'bewoner' }] });
+    expect('daken' in r && r.daken?.gebouwen?.[0]?.dakBron).toBe('bewoner');
+    const x = leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, gebouwen: [{ ...g, dakBron: 'buurman' }] });
+    expect('daken' in x && x.daken?.gebouwen?.[0]).not.toHaveProperty('dakBron');
+  });
 });
 
 describe('lezen', () => {
+  it('leest wat de kaarten zeiden, alleen met bekende woorden en een dag (6 november 2026)', () => {
+    const r = leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, kaartStand: { osm: 'wijk', bag3d: 'buiten', datum: '2026-11-06' } });
+    expect('daken' in r && r.daken?.kaartStand).toEqual({ osm: 'wijk', bag3d: 'buiten', datum: '2026-11-06' });
+    expect(leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, kaartStand: { osm: 'ja', bag3d: 'huis', datum: '2026-11-06' } })).toHaveProperty('fout');
+    expect(leesDaken({ vlakken: [vlak()], voorgevelDeg: 180, omvormerW: null, kaartStand: { osm: 'huis', bag3d: 'huis', datum: 'gisteren' } })).toHaveProperty('fout');
+  });
+
   it('neemt een goed vlak over en vult de bron aan', () => {
     const { bron: _weg, ...zonder } = vlak();
     const r = leesDaken({ vlakken: [zonder], voorgevelDeg: 180, omvormerW: null });

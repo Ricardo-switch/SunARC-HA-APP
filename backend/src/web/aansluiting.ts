@@ -28,7 +28,7 @@ import { heatStoreConfig, type FoundHeatStore } from './buffers-vinden.js';
 import { tekening, type Tekening } from './daken-tekening.js';
 import { metMeting, nuPerVlak, type Achter, type VlakStand, type Verdeling } from './meten-vlakken.js';
 import type { SunPosition } from '../core/sun.js';
-import { leesDaken, piekVan, type Daken, type DakVlak } from './daken.js';
+import { leesDaken, piekVan, type Daken, type DakVlak, type KaartDakvlak, type KaartStand } from './daken.js';
 import { leesLaden, type LadenKeuze, type LadenView } from './opslag.js';
 import { VOORKANT_ZON, aantalVan, dakUitAanpassing, dakUitMeting, dakenNu, liggingView, type Dak, type LiggingView, type Meting, type VoorkantZon } from './ligging.js';
 
@@ -822,6 +822,12 @@ export interface DakenView {
   readonly tekening: Tekening;
   /** Kan SunArc de omtrek uit de kaart halen (is de plek van het huis bekend)? */
   readonly kaart: boolean;
+  /** Ligt het huis in Nederland (3D BAG)? In huis nagegaan, zonder iets te vragen (6 november 2026). */
+  readonly nederland: boolean;
+  /** Wat de kaarten zeiden, de laatste keer dat de bewoner keek; null als hij nog niet keek. */
+  readonly kaartStand: KaartStand | null;
+  /** De dakvlakken van het hoofdhuis uit 3D BAG, naast de meting; null zonder. */
+  readonly kaartDak: readonly KaartDakvlak[] | null;
 }
 
 function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): DakenView {
@@ -856,8 +862,11 @@ function dakenView(i: Parameters<typeof dakenNu>[0], c: ConnectionContext): Dake
       return nuPerVlak([...groepen].map(([id, vlakken]) => ({ vlakken, meterW: id ? w(id) : somW })), c.zonNu);
     })(),
     achter: c.vlakMeting?.achter ?? null,
-    tekening: tekening(daken),
+    tekening: tekening(daken, c.huisPlat ? { huisPlat: true } : {}),
     kaart: c.kaart ?? false,
+    nederland: c.nederland ?? false,
+    kaartStand: daken.kaartStand ?? null,
+    kaartDak: daken.kaartDak ?? null,
   };
 }
 
@@ -866,6 +875,10 @@ export interface ConnectionContext {
   readonly base: SiteConfig;
   readonly found: { readonly fasen: readonly FoundPhase[]; readonly apparaten: readonly FoundAppliance[]; readonly buffers?: readonly FoundHeatStore[]; readonly vermogens?: readonly FoundPower[] };
   readonly applied: Pick<Applied, 'toegevoegd' | 'overgeslagen'>;
+  /** Zei de bewoner bij Inrichten dat het huis een plat dak heeft (issue 143)? */
+  readonly huisPlat?: boolean;
+  /** Ligt het huis in Nederland, voor 3D BAG (6 november 2026)? */
+  readonly nederland?: boolean;
   /** De netmeter en de omvormers in de configuratie waarmee de regeling draait. */
   readonly inGebruik?: { readonly netmeter: Netmeter | null; readonly omvormers: readonly string[] };
   /** De antwoorden bij de start, om te zien of er iets veranderde. */

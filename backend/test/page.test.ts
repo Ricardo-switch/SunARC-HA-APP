@@ -435,6 +435,25 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
               return { 'sensor.p1_meter_power': Array.from({ length: 45 * 24 }, (_, k) => ({ start: nu - k * 3_600_000, mean: (k < 5 * 24 ? 300 : 180) + (Math.floor(k / 24) % 4) * 3 })) };
             },
           }),
+          // De laadbeurten van de Tesla (besluit 259, stap 3): een die nu loopt, en twee van eerder deze week.
+          laadbeurten: async (auto: string) => {
+            if (auto !== 'tesla') return null;
+            const nu = Date.now();
+            const iso = (ms: number) => new Date(ms).toISOString();
+            return {
+              dagen: 7,
+              beurten: [
+                { van: iso(nu - 80 * 60_000), tot: iso(nu), bezig: true, kWh: 4.2, zonKWh: 3, kosten: 0.31 },
+                { van: iso(nu - 2 * 86_400_000), tot: iso(nu - 2 * 86_400_000 + 4 * 3_600_000), bezig: false, kWh: 22.1, zonKWh: 2.6, kosten: 5.27 },
+                { van: iso(nu - 3 * 86_400_000), tot: iso(nu - 3 * 86_400_000 + 3 * 3_600_000), bezig: false, kWh: 15, zonKWh: 0, kosten: 3.75 },
+              ],
+              kWh: 41.3,
+              zonKWh: 5.6,
+              kosten: 9.33,
+              perUur: false,
+              statistiek: true,
+            };
+          },
           // De integratie neerzetten (besluit 184): nagebootst, zonder map.
           integratie: {
             stand: async () => integratieNu,
@@ -516,6 +535,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
                 answers: connStore.current,
                 solar: { naam: 'Zonnepanelen', intervalS: 61, platform: 'solaredge_modbus_multi' },
                 kaart: true,
+                nederland: true,
               }),
           },
           // De kaart (besluit 254 en 5 november 2026): een nagemaakte plek, OpenStreetMap en 3D BAG; er gaat niets naar buiten.
@@ -672,11 +692,11 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await wand.locator('.dk h3', { hasText: 'Waar de panelen liggen' }).waitFor();
     await wand.locator('svg.dk-boven .dk-gebouw').first().waitFor();
     expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
-    // De eerste keer een eigen rondleiding (besluit 254): vijf stops op de pagina, dan Klaar; daarna niet meer.
+    // De eerste keer een eigen rondleiding (besluit 254): zes stops op de pagina (ook Wat kan bij jouw huis, 261), dan Klaar; daarna niet meer.
     const rond = p.locator('.rl-kaart');
     await rond.locator('h2', { hasText: 'Je huis van boven' }).waitFor({ timeout: 5_000 });
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-rond-daken1.png') });
-    for (const kop of ['Elk vlak apart', 'Van boven of het huis', 'Je huis, met de panelen erop', 'Een vlak erbij', 'Omvormers en meters']) {
+    for (const kop of ['Elk vlak apart', 'Van boven of het huis', 'Je huis, met de panelen erop', 'Een vlak erbij', 'Wat kan bij jouw huis', 'Omvormers en meters']) {
         await rond.locator('[data-rl-volgende]').click();
       await rond.locator('h2', { hasText: kop }).waitFor();
       if (process.env.HEMS_PAGE_SHOT) await p.waitForTimeout(500).then(() => p.screenshot({ path: process.env.HEMS_PAGE_SHOT!.replace('.png', `-rond-${kop.split(' ')[0]}.png`) }));
@@ -735,17 +755,68 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await venster.waitFor({ state: 'detached' });
     await wand.locator('[data-dak-kaart]').click();
     await venster.locator('[data-kk-kaart]').click();
+    // Wat kan bij jouw huis (6 november 2026): eerst zien wat de kaarten vonden, dan zelf kiezen.
+    const wk = wand.locator('.wk');
+    await wk.locator('.wk-regel', { hasText: '3D-kaart van Nederland' }).locator('[data-dak-bron="bag3d"]').waitFor({ timeout: 5_000 });
+    expect(await wk.locator('.wk-regel', { hasText: 'Plattegrond' }).textContent()).toContain('Je huis staat erin');
+    expect(await wk.locator('.wk-regel', { hasText: 'Zelf tekenen' }).textContent()).toContain('In gebruik');
+    await expect.poll(() => connStore.current?.daken?.kaartStand, { timeout: 5_000 }).toMatchObject({ osm: 'huis', bag3d: 'huis' });
+    expect(connStore.current?.daken?.gebouwen?.find((g) => g.soort === 'hoofdhuis')?.bron ?? 'schatting').toBe('schatting');
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-watkan.png') });
+    expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
+    await wk.locator('[data-dak-bron="bag3d"]').click();
     await wand.locator('.kk-balk a[href="https://docs.3dbag.nl/en/copyright"]').waitFor({ timeout: 5_000 });
+    expect(await wk.locator('.wk-regel', { hasText: '3D-kaart van Nederland' }).textContent()).toContain('In gebruik');
     // Het tuinhuis staat niet in 3D BAG, wel in OpenStreetMap: die bron staat er dan ook bij.
     await wand.locator('.kk-balk a[href="https://www.openstreetmap.org/copyright"]').waitFor();
     if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-kaartbalk.png') });
     await expect.poll(() => connStore.current?.daken?.gebouwen?.find((g) => g.soort === 'hoofdhuis'), { timeout: 5_000 }).toMatchObject({ bron: 'kaart', kaart: 'bag3d', dakvorm: 'zadel', nokDeg: 0 });
     expect(connStore.current?.daken?.omgeving).toHaveLength(2);
+    // De helling uit de 3D-kaart naast de meting (6 november 2026): bij vlak A, met Neem over.
+    await expect.poll(() => connStore.current?.daken?.kaartDak?.length ?? 0, { timeout: 5_000 }).toBeGreaterThan(1);
+    await wand.locator('[data-dak-open="A"]').click();
+    const kaartDak = wand.locator('.dk-kaartdak');
+    expect(await kaartDak.textContent()).toContain('De 3D-kaart zegt 90°, helling 45°');
+    await kaartDak.locator('[data-dak-neemkaart]').click();
+    await wand.locator('.dk-kaartdak', { hasText: 'Klopt met de 3D-kaart' }).waitFor();
+    await wand.locator('[data-dak-bewaar]').click();
+    await expect.poll(() => connStore.current?.daken?.vlakken.find((v) => v.letter === 'A'), { timeout: 5_000 }).toMatchObject({ azimuthDeg: 90, tiltDeg: 45, bron: 'bewoner' });
     await wand.locator('[data-dak-zonderkaart]').click();
     await p.locator('.kk-venster [data-kk-zonder]').click();
-    await wand.locator('[data-dak-kaart]').waitFor({ timeout: 5_000 });
-    expect(connStore.current?.daken?.gebouwen ?? []).toEqual([]);
+    await expect.poll(() => connStore.current?.daken?.gebouwen ?? [], { timeout: 5_000 }).toEqual([]);
+    expect(connStore.current?.daken?.kaartDak).toBeUndefined();
+    await wand.locator('.wk-regel.aan', { hasText: 'Zelf tekenen' }).waitFor({ timeout: 5_000 });
     expect(connStore.current?.daken?.vlakken.some((v) => v.plek === 'uitbouw')).toBe(true);
+    // Stap 2b (6 november 2026): het huis slepen, op maat maken, en een blok erbij en weer weg.
+    await wand.locator('[data-dak-gebouw="huis"]').click();
+    const romp = wand.locator('.dk-gebouw[data-dak-sleep="huis"] .dk-romp');
+    await romp.waitFor();
+    // De pagina kan net opnieuw tekenen (het antwoord op het vorige bewaren): wacht tot het blok stil staat.
+    await expect.poll(async () => (await romp.boundingBox()) != null, { timeout: 5_000 }).toBe(true);
+    await p.waitForTimeout(300);
+    const rb = (await romp.boundingBox())!;
+    await p.mouse.move(rb.x + rb.width / 2, rb.y + rb.height / 2);
+    await p.mouse.down();
+    await p.mouse.move(rb.x + rb.width / 2 + 40, rb.y + rb.height / 2, { steps: 6 });
+    await p.mouse.up();
+    const huisNu = () => connStore.current?.daken?.gebouwen?.find((g) => g.id === 'huis');
+    await expect.poll(() => huisNu()?.bron, { timeout: 5_000 }).toBe('bewoner');
+    const oost = (g: { omtrek: readonly (readonly [number, number])[] } | undefined) => (g ? g.omtrek.reduce((x, q) => x + q[0], 0) / g.omtrek.length : 0);
+    expect(oost(huisNu())).toBeGreaterThan(1);
+    // Na het slepen geen vlak erbij: het loslaten was geen tik op een dakvlak.
+    await wand.locator('.dk-maat').waitFor();
+    const lang = (await wand.locator('[data-dak-maat="lengte"]').first().locator('xpath=..').locator('b').textContent())!;
+    await wand.locator('[data-dak-maat="lengte"][data-d="1"]').click();
+    await expect.poll(async () => wand.locator('[data-dak-maat="lengte"]').first().locator('xpath=..').locator('b').textContent(), { timeout: 5_000 }).not.toBe(lang);
+    if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-blok.png') });
+    expect(await p.evaluate<boolean>('document.documentElement.scrollHeight <= innerHeight + 1')).toBe(true);
+    await wand.locator('[data-dak-scherm="alle"]').first().click();
+    await wand.locator('[data-dak-scherm="erbij"]').click();
+    await wand.locator('[data-dak-blok]').click();
+    await wand.locator('[data-dak-erbijgebouw="tuinhuis"]').click();
+    await expect.poll(() => connStore.current?.daken?.gebouwen?.find((g) => g.soort === 'tuinhuis'), { timeout: 5_000 }).toMatchObject({ bron: 'bewoner' });
+    await wand.locator('[data-dak-blokweg]').click();
+    await expect.poll(() => connStore.current?.daken?.gebouwen?.some((g) => g.soort === 'tuinhuis'), { timeout: 5_000 }).toBe(false);
     // De zekering uit de configuratie staat voorgekozen, en is te wijzigen (besluit 117).
     await wand.locator('[data-delen] .deel', { hasText: 'Aansluiting' }).click();
     await wand.locator('[data-vorm] h2', { hasText: 'Aansluiting' }).waitFor();
@@ -2917,6 +2988,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     // De kaart: de melding als blad, daarna de balk onder de tekening, niet erover.
     await tel.locator('[data-dak-kaart]').click();
     await p.locator('.kk-venster [data-kk-kaart]').click();
+    await tel.locator('[data-dak-bron="bag3d"]').click();
     const balk = tel.locator('.kk-balk');
     await balk.waitFor({ timeout: 5_000 });
     const b = await boven.boundingBox();
@@ -3816,7 +3888,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     p.on('pageerror', (e) => fouten.push(e.message));
     extraOpslag = {
       batterij: { id: 'sessy', naam: 'De batterij', pct: 54, vermogenW: -900, stand: 'levert' },
-      auto: { id: 'tesla', naam: 'Tesla Model 3', pct: 62, aangesloten: true, laadt: true, vermogenW: 3200, bereikKm: 280, plek: null, accuKWh: null, laadpaal: null },
+      auto: { id: 'tesla', naam: 'Tesla Model 3', pct: 62, aangesloten: true, laadt: true, vermogenW: 3200, bereikKm: 280, plek: 'garage', accuKWh: 75, laadpaal: 'easee', paalNaam: 'Easee Home', paalStroomA: { min: 6, max: 16 }, laadgrens: 80, stroomA: [4.6, 4.6, 4.7], volOm: null, thuis: true, kabelSinds: null, wegSinds: null },
       autos: [],
     };
     extraOpslag = { ...extraOpslag, autos: [extraOpslag.auto!] };
@@ -3830,7 +3902,9 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       const kaart = (id: string) => p.locator(`#tel [data-kaart="${id}"]`);
       await expect.poll(() => kaart('auto').textContent(), { timeout: 10_000 }).toContain('62%');
       expect(await kaart('auto').textContent()).toContain('Laadt, 3,2 kW · 280 km');
-      expect(await kaart('auto').getAttribute('href')).toBe('apparaten.html#auto');
+      // De auto als meter (besluit 259, stap 2), en een tik opent de pagina Auto.
+      expect(await kaart('auto').getAttribute('href')).toBe('auto.html');
+      expect(await kaart('auto').locator('.kvol .autometer svg').count()).toBe(1);
       expect(await kaart('batterij').textContent()).toContain('Levert 0,9 kW aan het huis');
       // Deze maand: met meters wat er opgewekt en zelf gebruikt is (na de test van Opbrengst), zonder wat er nodig is.
       await expect.poll(() => kaart('maand').textContent()).toMatch(/kWh opgewekt.*zelf gebruikt|Kies eerst je meters/);
@@ -3864,10 +3938,42 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       await p.locator('[data-kiesblad] [data-cam-klaar]').click();
       await expect.poll(() => kaart('deurbel').locator('.kvol .cambeeld').count()).toBe(1);
       expect((await (await fetch(`${baseUrl}/api/voorkeuren`)).json() as { tel: { cameras: string[] } }).tel.cameras).toEqual(['camera.deurbel_duidelijk']);
-      // Een tik op de auto: bij Apparaten, op de kaart van de auto, met de batterij ernaast.
+      // Een tik op de auto: de pagina Auto (besluit 259, stap 2), met de lading, de laadgrens en de laadpaal.
       await kaart('auto').click();
-      await p.waitForURL(/apparaten\.html#auto$/);
+      await p.waitForURL(/auto\.html$/);
+      const held = p.locator('#tel .held');
+      await expect.poll(() => held.textContent(), { timeout: 10_000 }).toContain('62%');
+      expect(await held.textContent()).toContain('3,2 kW3 × 5 A');
+      expect(await held.textContent()).toContain('280 km bereik');
+      expect(await held.textContent()).toContain('80%');
+      expect(await held.textContent()).toContain('Easee Home, in de garage');
+      // Tijdens het laden staat deze laadbeurt waar anders de accu staat (stap 3).
+      await expect.poll(() => held.textContent()).toContain('Deze laadbeurt4,2 kWh · € 0,31');
+      expect(await held.textContent()).toContain('71% eigen zon');
+      expect(await p.locator('#tel .fase').count()).toBe(3);
+      expect(await p.locator('#tel .kaart:not(.beurten) .kan').textContent()).toBe('Laden met 6 tot 16 A.');
+      // De laadbeurten van de week: samen, en per beurt, de nieuwste eerst.
+      const beurtenKaart = p.locator('#tel .beurten');
+      expect(await beurtenKaart.locator('.som').textContent()).toMatch(/41,3 kWh.*€ 9,33.*14%/s);
+      expect(await beurtenKaart.locator('.beurt').count()).toBe(3);
+      expect(await beurtenKaart.locator('.beurt').first().textContent()).toMatch(/Vandaag.*– nu.*4,2 kWh.*€ 0,31/s);
+      expect(await beurtenKaart.locator('.kan').textContent()).toContain('Eigen zon telt als gratis');
+      // De wand scrolt nooit (besluit 104): rechts de laadpaal op drie fasen en zoveel beurten als er passen.
+      const wand = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
+      await wand.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
+      const w = await wand.newPage();
+      await w.goto(`${baseUrl}/auto.html`);
+      await expect.poll(() => w.locator('#wand .beurten .beurt').count(), { timeout: 10_000 }).toBeGreaterThan(0);
+      expect(await w.evaluate('(() => { const r = document.querySelector("[data-rechts]"); return r.scrollHeight <= r.clientHeight + 1; })()')).toBe(true);
+      expect(await w.locator('#wand .instellen').getAttribute('href')).toBe('energie.html#auto');
+      await wand.close();
+      // In het menu licht Apparaten op; de weg terug gaat daarheen.
+      expect(await p.locator('#tabs [aria-current="page"]').count()).toBe(1);
+      if (process.env.HEMS_PAGE_SHOT) await p.screenshot({ path: process.env.HEMS_PAGE_SHOT.replace('.png', '-auto.png'), fullPage: true });
+      // Bij Apparaten: de kaart van de auto, met de batterij ernaast; een tik op de auto opent zijn pagina.
+      await p.goto(`${baseUrl}/apparaten.html#auto`);
       const autoKaart = p.locator('#tel [data-lading="auto"]');
+      await expect.poll(() => autoKaart.getAttribute('href')).toBe('auto.html#tesla');
       await expect.poll(() => autoKaart.textContent()).toContain('Tesla Model 3');
       expect(await autoKaart.textContent()).toContain('Nog 280 km rijden.');
       expect(await p.locator('#tel [data-lading="batterij"]').textContent()).toContain('Levert aan het huis');
@@ -4458,7 +4564,8 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
         for (let i = 1; i <= 10; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - i * 14 }] });
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         await p.waitForTimeout(250);
-        const na = await p.locator(l.sel).evaluate((el) => el.scrollTop);
+        // Tekent de pagina tijdens het vegen opnieuw, dan is de lijst weg: dat telt ook als vast.
+        const na = await p.locator(l.sel).evaluate((el) => el.scrollTop, undefined, { timeout: 2_000 }).catch(() => -1);
         geveegd++;
         if (na <= voor) vast.push(`${pagina}: ${l.sel}`);
       }

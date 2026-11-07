@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wand · Daken en panelen, wat kan bij jouw huis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../frontend/kit/kit.css">
+<style>
+  /*
+   * Wat kan bij jouw huis (schets, 6 november 2026, idee van Ricardo): een
+   * detectie bij Daken en panelen. Iedereen heeft de basis; SunArc gaat na of
+   * de plek in Home Assistant aan staat, of je wijk en je huis in
+   * OpenStreetMap staan, en of 3D BAG je huis kent. De bewoner kiest welke.
+   * De plek en "ligt in Nederland" gaan meteen in huis na; OpenStreetMap en
+   * 3D BAG pas na Kijk wat kan, met de melding van besluit 256.
+   * Standen: standaard voor het kijken, #na met alles gevonden (3D BAG in
+   * gebruik), #wijk (buiten Nederland, alleen de wijk in OpenStreetMap),
+   * #geenplek (geen plek in Home Assistant).
+   * Ronde 2 (Ricardo): geen technische namen in de regels (Zelf tekenen, Je
+   * plek, Plattegrond, 3D-kaart van Nederland); de bronnen staan klein onder de
+   * tekening. Staat de plek uit, dan brengt Stel in je naar die instelling in
+   * Home Assistant.
+   * Achtergrond: de echte pagina (screens/Daken-achtergrond.png).
+   */
+  .scherm { position: relative; width: 1340px; height: 800px; overflow: hidden; background: #0b1424 url('screens/Daken-achtergrond.png') 0 0 / 1340px 800px no-repeat; }
+  .wk { position: absolute; left: 901px; top: 352px; width: 388px; padding: 10px 10px 8px; border-radius: 18px; background: rgb(255 255 255 / 0.045); border: 1px solid rgb(255 255 255 / 0.08); display: flex; flex-direction: column; gap: 3px; }
+  .wk-kop { display: flex; align-items: center; gap: 8px; padding: 0 4px 3px; }
+  .wk-kop h3 { margin: 0; font: 600 15px var(--kop); color: var(--tekst); flex: 1; }
+  .wk-proef { height: 22px; padding: 0 9px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; background: rgb(169 156 255 / 0.16); color: #c9c1ff; font-size: 11.5px; font-weight: 800; }
+  .wk-proef svg { width: 12px; height: 12px; }
+  .wk-regel { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 5px 6px; border-radius: 12px; min-height: 40px; }
+  .wk-regel.aan { background: rgb(247 181 72 / 0.08); box-shadow: inset 0 0 0 1.5px rgb(247 181 72 / 0.55); }
+  .wk-regel.uit { opacity: 0.5; }
+  .wk-ik { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: rgb(255 255 255 / 0.07); color: var(--zacht); }
+  .wk-ik svg { width: 16px; height: 16px; }
+  .wk-tekst { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .wk-tekst b { font-size: 13.5px; color: var(--tekst); }
+  .wk-tekst small { font-size: 12px; color: var(--zacht); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wk-stand { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .wk-stand i { width: 9px; height: 9px; border-radius: 50%; }
+  .wk-ja { color: #6ee7b7; } .wk-ja i { background: #6ee7b7; }
+  .wk-half { color: #f7b548; } .wk-half i { background: #f7b548; }
+  .wk-nee { color: #ff8a6b; } .wk-nee i { background: #ff8a6b; }
+  .wk-nog { color: var(--gedempt); } .wk-nog i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--gedempt); }
+  .wk-kies { height: 30px; padding: 0 12px; border-radius: 10px; background: rgb(255 255 255 / 0.08); color: var(--tekst); font-size: 12.5px; font-weight: 700; display: inline-flex; align-items: center; }
+  .wk-gebruik { height: 30px; padding: 0 10px; border-radius: 10px; color: #f7b548; font-size: 12.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; }
+  .wk-gebruik svg { width: 14px; height: 14px; }
+  .wk-voet { display: flex; align-items: center; gap: 10px; padding: 4px 2px 0; }
+  .wk-voet small { flex: 1; font-size: 12px; color: var(--zacht); line-height: 1.35; }
+  .wk-voet a { color: #6fd3ff; font-weight: 700; text-decoration: none; }
+  .wk-knop { height: 36px; padding: 0 16px; border-radius: 12px; background: #f3e9d6; color: #0b1424; font-size: 13.5px; font-weight: 800; display: inline-flex; align-items: center; white-space: nowrap; }
+  .wk-link { color: #6fd3ff; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  /* Op de tekening: de bron, klein onderaan (naamsvermelding). */
+  .wk-bron { position: absolute; left: 452px; top: 650px; width: 420px; font-size: 11.5px; line-height: 1.4; color: var(--zacht); }
+  .wk-bron a { color: var(--zacht); }
+  /* Het huis uit 3D BAG in de tekening (stand #na). */
+  .wk-huis { position: absolute; left: 520px; top: 300px; width: 240px; height: 270px; border: 2px solid #9cc0e4; background: rgb(11 20 36 / 0.0); }
+</style>
+</head>
+<body>
+<div class="scherm">
+
+  <!-- Voor het kijken: de plek en Nederland zijn al nagegaan, in huis. -->
+  <section class="wk" data-stand="voor">
+    <div class="wk-kop"><h3>Wat kan bij jouw huis</h3><span class="wk-proef"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/></svg>Experimenteel</span></div>
+    <div class="wk-regel aan"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12 12 4l9 8"/><path d="M6 10v10h12V10"/></svg></span><span class="wk-tekst"><b>Zelf tekenen</b><small>Een blok langs de voorgevel</small></span><span class="wk-gebruik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg>In gebruik</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="wk-tekst"><b>Je plek</b><small>Uit Home Assistant, om je huis te vinden</small></span><span class="wk-stand wk-ja"><i></i>Staat aan</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M9 5v12M15 7v12"/></svg></span><span class="wk-tekst"><b>Plattegrond</b><small>De omtrek van je huis en de buren</small></span><span class="wk-stand wk-nog"><i></i>Nog niet gekeken</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13 9 7l6 4 6-5v12H3z"/><path d="M9 7v11M15 11v7"/></svg></span><span class="wk-tekst"><b>3D-kaart van Nederland</b><small>Ook je dak, met een laser gemeten</small></span><span class="wk-stand wk-nog"><i></i>Nog niet gekeken</span></div>
+    <div class="wk-voet"><small>Alleen je wijk gaat naar buiten, nooit je adres.</small><span class="wk-knop">Kijk wat kan</span></div>
+  </section>
+
+  <!-- Na het kijken: alles gevonden, 3D BAG in gebruik. -->
+  <div data-stand="na"><div class="wk-huis"></div></div>
+  <section class="wk" data-stand="na">
+    <div class="wk-kop"><h3>Wat kan bij jouw huis</h3><span class="wk-proef"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/></svg>Experimenteel</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12 12 4l9 8"/><path d="M6 10v10h12V10"/></svg></span><span class="wk-tekst"><b>Zelf tekenen</b><small>Een blok langs de voorgevel</small></span><span class="wk-kies">Kies</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="wk-tekst"><b>Je plek</b><small>Uit Home Assistant, om je huis te vinden</small></span><span class="wk-stand wk-ja"><i></i>Staat aan</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M9 5v12M15 7v12"/></svg></span><span class="wk-tekst"><b>Plattegrond</b><small><span class="wk-ja">Je huis staat erin</span> · met 3 gebouwen ernaast</small></span><span class="wk-kies">Kies</span></div>
+    <div class="wk-regel aan"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13 9 7l6 4 6-5v12H3z"/><path d="M9 7v11M15 11v7"/></svg></span><span class="wk-tekst"><b>3D-kaart van Nederland</b><small><span class="wk-ja">Je huis staat erin</span> · zadeldak, 44°</small></span><span class="wk-gebruik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg>In gebruik</span></div>
+    <div class="wk-voet"><small>Gekeken op 6 november</small><span class="wk-link">Opnieuw kijken</span></div>
+  </section>
+  <div class="wk-bron" data-stand="na">Omtrek uit de kaart · <a>© 3DBAG by tudelft3d and 3DGI, vorm aangepast</a> · <a>© OpenStreetMap-bijdragers</a></div>
+
+  <!-- Buiten Nederland, en in OpenStreetMap alleen de wijk. -->
+  <section class="wk" data-stand="wijk">
+    <div class="wk-kop"><h3>Wat kan bij jouw huis</h3><span class="wk-proef"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/></svg>Experimenteel</span></div>
+    <div class="wk-regel aan"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12 12 4l9 8"/><path d="M6 10v10h12V10"/></svg></span><span class="wk-tekst"><b>Zelf tekenen</b><small>Een blok, zelf op zijn plek te schuiven</small></span><span class="wk-gebruik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg>In gebruik</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="wk-tekst"><b>Je plek</b><small>Uit Home Assistant, om je huis te vinden</small></span><span class="wk-stand wk-ja"><i></i>Staat aan</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M9 5v12M15 7v12"/></svg></span><span class="wk-tekst"><b>Plattegrond</b><small><span class="wk-half">Je wijk wel, je huis niet</span> · plek in de tuin?</small></span><span class="wk-stand wk-half"><i></i>Half</span></div>
+    <div class="wk-regel uit"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13 9 7l6 4 6-5v12H3z"/><path d="M9 7v11M15 11v7"/></svg></span><span class="wk-tekst"><b>3D-kaart van Nederland</b><small>Alleen in Nederland</small></span><span class="wk-stand wk-nee"><i></i>Niet hier</span></div>
+    <div class="wk-voet"><small>Gekeken op 6 november.</small><span class="wk-link">Opnieuw kijken</span></div>
+  </section>
+
+  <!-- Geen plek in Home Assistant: dan kan alleen de basis. -->
+  <section class="wk" data-stand="geenplek">
+    <div class="wk-kop"><h3>Wat kan bij jouw huis</h3></div>
+    <div class="wk-regel aan"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12 12 4l9 8"/><path d="M6 10v10h12V10"/></svg></span><span class="wk-tekst"><b>Zelf tekenen</b><small>Een blok langs de voorgevel</small></span><span class="wk-gebruik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg>In gebruik</span></div>
+    <div class="wk-regel"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="wk-tekst"><b>Je plek</b><small><span class="wk-nee">Staat uit</span> in Home Assistant</small></span><span class="wk-kies">Stel in</span></div>
+    <div class="wk-regel uit"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M9 5v12M15 7v12"/></svg></span><span class="wk-tekst"><b>Plattegrond</b><small>Kan zodra je plek aan staat</small></span><span class="wk-stand wk-nog"><i></i>Wacht</span></div>
+    <div class="wk-regel uit"><span class="wk-ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13 9 7l6 4 6-5v12H3z"/><path d="M9 7v11M15 11v7"/></svg></span><span class="wk-tekst"><b>3D-kaart van Nederland</b><small>Kan zodra je plek aan staat</small></span><span class="wk-stand wk-nog"><i></i>Wacht</span></div>
+  </section>
+</div>
+<script>
+  const toon = { '#na': 'na', '#wijk': 'wijk', '#geenplek': 'geenplek' }[location.hash] ?? 'voor';
+  document.querySelectorAll('[data-stand]').forEach((el) => { if (!el.dataset.stand.split(' ').includes(toon)) el.remove(); });
+  addEventListener('hashchange', () => location.reload());
+</script>
+</body>
+</html>

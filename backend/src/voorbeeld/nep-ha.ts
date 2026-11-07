@@ -342,7 +342,9 @@ export class NepHa {
         const kWh = id === ENERGIE[0] ? (verbruikWh - zelf) / 1000 : id === ENERGIE[1] ? (zonWh - zelf) / 1000 : id === ENERGIE[2] ? zonWh / 1000 : 0;
         const deel = stap / 3_600_000;
         som += kWh * deel;
-        const mean = id === 'sensor.omvormer_vermogen' ? zonWh : id === 'sensor.p1_vermogen' ? verbruikWh - zonWh : undefined;
+        // De auto laadt mee (besluit 259, stap 3): zijn vermogen, en het net neemt het af.
+        const autoW = laadWOp(t, this.#nu());
+        const mean = id === 'sensor.omvormer_vermogen' ? zonWh : id === 'sensor.p1_vermogen' ? verbruikWh - zonWh + autoW : id === 'sensor.laadpaal_vermogen' ? autoW : undefined;
         rijen.push({ start: t, end: t + stap, change: kWh * deel, sum: som, ...(mean != null ? { mean } : {}) });
       }
       uit[id] = periode === 'day' || periode === 'week' || periode === 'month' ? bundel(rijen, periode) : rijen;
@@ -376,6 +378,31 @@ export class NepHa {
 const NIET = Symbol('niet');
 
 /** Uren samenvoegen tot dagen, weken of maanden, zoals de recorder dat doet. */
+/**
+ * Het laadvermogen van de auto in het voorbeeldhuis, voor de laadbeurten van
+ * de week (besluit 259, stap 3): vandaag op zon van elf tot half vijf, zoals de
+ * auto nu doet; de dagen ervoor een paar beurten op zon, 's avonds en 's nachts.
+ */
+function laadWOp(ms: number, nuMs: number): number {
+  const plek = ms + 3_600_000;
+  const dag = Math.floor(plek / 86_400_000);
+  const m = Math.floor((plek % 86_400_000) / 60_000);
+  if (dag === Math.floor((nuMs + 3_600_000) / 86_400_000)) return m >= 660 && m < 990 ? 1400 : 0;
+  const binnen = (van: number, tot: number) => m >= van && m < tot;
+  switch (((dag % 7) + 7) % 7) {
+    case 1:
+      return binnen(1275, 1425) ? 7200 : 0;
+    case 3:
+      return binnen(640, 930) ? 3600 : 0;
+    case 5:
+      return binnen(120, 300) ? 5000 : 0;
+    case 6:
+      return binnen(705, 870) ? 2800 : 0;
+    default:
+      return 0;
+  }
+}
+
 function bundel(rijen: readonly { start: number; change?: number; sum?: number }[], periode: string): unknown[] {
   const sleutel = (t: number) => {
     const d = new Date(t + 3_600_000);
