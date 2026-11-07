@@ -18,8 +18,8 @@
    * kijken. De auto zelf is de meter: hij vult zich tot zijn lading, met een
    * streep bij de laadgrens. Te openen vanaf de kaart op Thuis en vanaf de
    * auto bij Apparaten; in het menu licht Apparaten op. De laadbeurten (stap
-   * 3) staan rechts onder de laadpaal. Laden met de hand en het advies komen
-   * in de volgende stappen.
+   * 3) staan rechts onder de laadpaal, het advies (stap 4) onder de auto.
+   * Laden met de hand komt in de volgende stap.
    */
   #wand main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; grid-template-rows: auto minmax(0, 1fr); gap: 16px 18px; height: 100%; min-width: 0; }
   .kop { grid-column: 1 / -1; display: flex; align-items: end; gap: 18px; }
@@ -62,6 +62,18 @@
   .feiten a { color: inherit; }
   .zonbalk { height: 5px; margin: 6px 0 4px; border-radius: 3px; background: rgb(var(--wit) / 0.08); overflow: hidden; }
   .zonbalk i { display: block; height: 100%; border-radius: 3px; background: var(--zon); }
+
+  /* Het advies: zon en prijs, alleen wat iets zegt. */
+  [data-held] { gap: 14px; }
+  .advies { flex: none; padding: 14px 18px; border-radius: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .advies.een { grid-template-columns: 1fr; }
+  .advies > div { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .advies .ik { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; }
+  .advies .ik svg { width: 19px; height: 19px; }
+  .advies .zon .ik { background: rgba(247, 181, 72, 0.14); color: var(--zon); }
+  .advies .goedkoop .ik { background: rgba(143, 134, 255, 0.14); color: var(--violet-t); }
+  .advies b { display: block; font-size: 14.5px; font-weight: 600; }
+  .advies span { font-size: 13px; color: var(--zacht); line-height: 1.4; }
 
   /* Rechts: de laadpaal en wat je instelde. */
   .rechts { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
@@ -120,6 +132,7 @@
   #tel .feiten b { font-size: 15px; margin-top: 2px; }
   #tel .feiten span { font-size: 12.5px; }
   #tel .kaart { padding: 16px; border-radius: 20px; }
+  #tel .advies { grid-template-columns: 1fr; gap: 14px; padding: 14px 16px; }
   #tel .kaart h2 { font-size: 21px; }
   #tel .leeg { padding: 18px; border-radius: 20px; }
   #tel .leeg h2 { font-size: 22px; }

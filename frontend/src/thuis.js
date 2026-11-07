@@ -581,6 +581,8 @@ eigen.metCameras(camerasAlle);
 /** Het sluipverbruik (besluit 192): hooguit elk half uur; de dienst haalt het uit Home Assistant. */
 let sluip = null;
 let sluipOp = 0;
+/** Het advies per auto (besluit 259, stap 4): alleen met de kaart van de auto op Thuis. */
+let laadAdvies = null;
 let verbruikOp = 0;
 const staatErin = (id) => $$(`[data-kaart="${id}"]`).some((el) => !el.hasAttribute('data-uit'));
 const kw = (w) => `${getal(Math.abs(w) / 1000, 1)} kW`;
@@ -633,6 +635,13 @@ async function kaartGegevens() {
     cameras = await haal('api/cameras');
   } catch {
     cameras = null;
+  }
+  if (staatErin('auto')) {
+    try {
+      laadAdvies = (await haal('api/laadadvies')).adviezen ?? null;
+    } catch {
+      // Dan wat er al was.
+    }
   }
   // Zonder panelen (besluit 196): wat het huis vandaag gebruikte, en de goedkope uren; hooguit elke tien minuten.
   if (app.huisSoort()?.zon === false && staatErin('vandaag') && nu - verbruikOp > 10 * 60_000) {
@@ -702,12 +711,65 @@ function autoMeter(a, zin, naam) {
   return `<div class="lading autometer"><span class="getal">${getal(a.pct, 0)}%</span><svg viewBox="196 62 508 208" aria-hidden="true">${beeld}</svg><small style="color: ${a.laadt ? 'var(--mint-t)' : 'var(--zacht)'}">${esc(zin)}</small></div>`;
 }
 
+/** Vannacht, vandaag of morgen, voor het goedkoopste blok. */
+function wanneerBlok(ms) {
+  const uur = Number(taal.klok(ms).slice(0, 2));
+  if (uur < 7 && ms - Date.now() < 18 * 3_600_000) return t('auto.advies.vannacht');
+  return new Date(ms).toDateString() === new Date().toDateString() ? t('auto.advies.vandaag') : t('auto.advies.morgen');
+}
+
+/**
+ * Het advies bij de auto (besluit 259, stap 4; schets Thuis-Tel-Auto-Advies):
+ * een eigen kaart boven de kaart van de auto, alleen als het iets zegt. Eerst
+ * de zon; anders de goedkoopste uren, als hij die vandaag nodig heeft. Geen
+ * eigen keuze bij Kaart toevoegen: hij hoort bij de kaart van de auto.
+ */
+function adviesHtml() {
+  const autos = huisData?.opslag?.autos ?? [];
+  const metZon = autos.find((x) => laadAdvies?.[x.id]?.zon);
+  const metPrijs = autos.find((x) => laadAdvies?.[x.id]?.goedkoop && !laadAdvies[x.id].goedkoop.nietNodig);
+  const a = metZon ?? metPrijs;
+  if (!a) return '';
+  const href = `auto.html#${encodeURIComponent(a.id)}`;
+  const kop = (ik, titel) => `<div class="kaartkop"><span class="ik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconen.binnen(ik)}</svg></span><h2 class="kop-3">${esc(titel)}</h2><span class="pijl" aria-hidden="true">›</span></div>`;
+  if (metZon) {
+    const z = laadAdvies[a.id].zon;
+    const groot = z.soort === 'minder' ? t('auto.advies.thuis.vanNet', { kw: getal(z.kW, 1) }) : t('auto.advies.thuis.zonOver', { kw: getal(z.kW, 1) });
+    return `<a class="laadadvies" href="${href}">${kop('zon', t(`auto.advies.${z.soort}.kop`))}<div class="groot">${esc(groot)}</div><p>${esc(t(`auto.advies.thuis.${z.soort}`, { naam: a.naam, nu: z.nuA ?? '', met: z.metA }))}</p></a>`;
+  }
+  const g = laadAdvies[a.id].goedkoop;
+  const van = Date.parse(g.van);
+  const groot = `${klok(van)} – ${klok(Date.parse(g.tot))} · ${taal.geld(g.prijs)}`;
+  const zin = [
+    a.pct != null ? t('auto.advies.thuis.staatOp', { naam: a.naam, pct: getal(a.pct, 0) }) : '',
+    g.totPct != null && g.kosten != null ? t(g.totPct >= (a.laadgrens ?? 100) ? 'auto.advies.genoeg' : 'auto.advies.komtTot', { pct: g.totPct, uren: g.uren, kosten: taal.geld(g.kosten) }) : '',
+    g.prijsNu != null ? t('auto.advies.thuis.prijsNu', { prijs: taal.geld(g.prijsNu) }) : '',
+  ].filter(Boolean).join(' ');
+  return `<a class="laadadvies paars" href="${href}">${kop('klok', t('auto.advies.thuis.goedkoopKop', { wanneer: wanneerBlok(van) }))}<div class="groot">${esc(groot)}</div><p>${esc(zin)}</p></a>`;
+}
+
+/** Het advies staat direct boven de kaart van de auto, en alleen als die er staat. */
+function zetAdvies() {
+  const html = adviesHtml();
+  $$('[data-laadadvies]').forEach((el) => {
+    const auto = el.parentElement?.querySelector(':scope > [data-kaart="auto"]');
+    const zien = !!html && !!auto && !auto.hidden && !auto.hasAttribute('data-uit') && !document.body.classList.contains('aanpassen');
+    if (auto && el.nextElementSibling !== auto) auto.before(el);
+    el.hidden = !zien;
+    if (zien && el.dataset.html !== html) {
+      el.innerHTML = html;
+      el.dataset.html = html;
+    }
+  });
+}
+
 function tekenLading() {
   const a = huisData?.opslag?.auto ?? null;
   const autoZin = !a ? '' : a.laadt ? (a.vermogenW ? t('thuis.lading.laadtMet', { kw: kw(a.vermogenW) }) : t('thuis.lading.laadt')) : a.aangesloten === true ? t('thuis.lading.aangesloten') : a.aangesloten === false ? t('thuis.lading.nietAangesloten') : '';
   const bereik = a?.bereikKm != null ? `${autoZin ? ' · ' : ''}${getal(a.bereikKm, 0)} km` : '';
   // Elke kaart een eigen naam voor zijn tekening: een verborgen kaart mag de andere niet kleuren.
   zetKaart('[data-auto]', 'auto', (i) => a ? `${vol(`${kaartKop('auto', a.naam)}${autoMeter(a, autoZin + bereik, `thuis-auto-${i}`)}`)}${tegel({ id: 'auto', naam: a.naam, waarde: a.pct == null ? '–' : `${getal(a.pct, 0)}%`, zin: autoZin + bereik, toon: a.laadt ? 'var(--mint-t)' : '', beeld: ring(a.pct, a.laadt ? 'var(--mint)' : 'var(--net)') })}` : '', !!a);
+  zetAdvies();
   const b = huisData?.opslag?.batterij ?? null;
   const st = b?.stand;
   const bZin = st === 'laadt' ? t('thuis.lading.laadtMet', { kw: kw(b.vermogenW) }) : st === 'levert' ? t('thuis.lading.levert', { kw: kw(b.vermogenW) }) : st === 'rust' ? t('thuis.lading.rust') : '';

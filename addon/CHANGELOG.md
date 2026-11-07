@@ -1,5 +1,23 @@
 # Wat is er nieuw · What is new
 
+## 0.135.0
+
+*7 november 2026*
+
+**Nieuw**
+
+- Advies bij de auto: is er meer zon over dan de auto neemt, dan zie je met hoeveel ampère hij nog op eigen zon laadt, binnen je laadpaal en je zekering
+- Met een prijs per uur: de goedkoopste uren om te laden, hoe ver de auto dan komt en wat het ongeveer kost
+- Het advies staat onder de auto en als eigen kaart op Thuis, boven de kaart van de auto, en alleen als er iets te winnen is
+
+*English*
+
+**New**
+
+- Advice for the car: when there is more solar to spare than the car takes, you see how many amps it can charge with on your own solar, within your charger and your main fuse
+- With an hourly price: the cheapest hours to charge, how far the car gets and roughly what it costs
+- The advice shows under the car and as its own card on Home, above the car card, and only when there is something to gain
+
 ## 0.134.0
 
 *6 november 2026 · 0.132.0 – 0.134.0*

@@ -35,6 +35,17 @@ export async function energieRoutes(d: Diensten, v: Verzoek): Promise<boolean> {
     return true;
   }
 
+  // Het advies per auto (besluit 259, stap 4): alleen lezen, uit het net, de fasen en de prijzen van nu.
+  if (path === '/api/laadadvies') {
+    const lees = d.options.laadadvies;
+    if (!lees) {
+      sendJson(res, 503, { wachten: 'het advies komt van Home Assistant zodra die verbonden is' });
+      return true;
+    }
+    sendJson(res, 200, { adviezen: lees() });
+    return true;
+  }
+
   if (path === '/api/aansluiting') {
     await aansluitingRoute(d, req, res, method);
     return true;

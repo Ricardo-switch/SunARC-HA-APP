@@ -435,6 +435,16 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
               return { 'sensor.p1_meter_power': Array.from({ length: 45 * 24 }, (_, k) => ({ start: nu - k * 3_600_000, mean: (k < 5 * 24 ? 300 : 180) + (Math.floor(k / 24) % 4) * 3 })) };
             },
           }),
+          // Het advies bij de Tesla (besluit 259, stap 4): meer op zon, en de goedkoopste uren over twee dagen.
+          laadadvies: () => {
+            const van = Math.floor(Date.now() / 3_600_000) * 3_600_000 + 40 * 3_600_000;
+            return {
+              tesla: {
+                zon: { soort: 'meer', kW: 1.8, nuA: 5, metA: 8, fasen: 3, overA: 16, zekering: { fasen: 3, ampere: 25 } },
+                goedkoop: { van: new Date(van).toISOString(), tot: new Date(van + 3 * 3_600_000).toISOString(), prijs: 0.14, prijsNu: 0.3, uren: 3, totPct: 80, kosten: 4.6, nietNodig: false },
+              },
+            };
+          },
           // De laadbeurten van de Tesla (besluit 259, stap 3): een die nu loopt, en twee van eerder deze week.
           laadbeurten: async (auto: string) => {
             if (auto !== 'tesla') return null;
@@ -3905,6 +3915,13 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       // De auto als meter (besluit 259, stap 2), en een tik opent de pagina Auto.
       expect(await kaart('auto').getAttribute('href')).toBe('auto.html');
       expect(await kaart('auto').locator('.kvol .autometer svg').count()).toBe(1);
+      // Het advies (stap 4): een eigen kaart direct boven de auto, naar de pagina van die auto.
+      const advies = p.locator('#tel [data-laadadvies]');
+      await expect.poll(() => advies.textContent()).toContain('Er kan meer op zon');
+      expect(await advies.textContent()).toContain('1,8 kW zon over');
+      expect(await advies.textContent()).toContain('Tesla Model 3 laadt met 5 A. Met 8 A gaat het sneller');
+      expect(await advies.locator('a').getAttribute('href')).toBe('auto.html#tesla');
+      expect(await advies.evaluate((el) => el.nextElementSibling?.getAttribute('data-kaart'))).toBe('auto');
       expect(await kaart('batterij').textContent()).toContain('Levert 0,9 kW aan het huis');
       // Deze maand: met meters wat er opgewekt en zelf gebruikt is (na de test van Opbrengst), zonder wat er nodig is.
       await expect.poll(() => kaart('maand').textContent()).toMatch(/kWh opgewekt.*zelf gebruikt|Kies eerst je meters/);
@@ -3958,6 +3975,10 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       expect(await beurtenKaart.locator('.beurt').count()).toBe(3);
       expect(await beurtenKaart.locator('.beurt').first().textContent()).toMatch(/Vandaag.*– nu.*4,2 kWh.*€ 0,31/s);
       expect(await beurtenKaart.locator('.kan').textContent()).toContain('Eigen zon telt als gratis');
+      // Het advies onder de auto: zon met de ruimte op de zekering, en de goedkoopste uren met hoe ver hij komt.
+      const adviesAuto = p.locator('#tel .advies');
+      expect(await adviesAuto.locator('.zon').textContent()).toContain('Met 8 A in plaats van 5 A laadt de auto sneller, nog steeds op eigen zon. Er blijft 16 A over op je zekering van 3 × 25 A.');
+      expect(await adviesAuto.locator('.goedkoop').textContent()).toMatch(/Goedkoopst morgen \d\d:00–\d\d:00.*€ 0,14 per kWh, de helft van nu\. Genoeg om tot 80% te laden, voor ongeveer € 4,60\./s);
       // De wand scrolt nooit (besluit 104): rechts de laadpaal op drie fasen en zoveel beurten als er passen.
       const wand = await browser.newContext({ viewport: { width: 1280, height: 800 }, timezoneId: 'UTC', locale: 'nl-NL' });
       await wand.route((url) => !url.href.startsWith(baseUrl), (route) => route.abort());
@@ -3965,6 +3986,9 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       await w.goto(`${baseUrl}/auto.html`);
       await expect.poll(() => w.locator('#wand .beurten .beurt').count(), { timeout: 10_000 }).toBeGreaterThan(0);
       expect(await w.evaluate('(() => { const r = document.querySelector("[data-rechts]"); return r.scrollHeight <= r.clientHeight + 1; })()')).toBe(true);
+      // Links de auto met het advies eronder, ook zonder te scrollen.
+      await expect.poll(() => w.locator('#wand .advies > div').count()).toBe(2);
+      expect(await w.evaluate('(() => { const h = document.querySelector("[data-held]"); return h.scrollHeight <= h.clientHeight + 1; })()')).toBe(true);
       expect(await w.locator('#wand .instellen').getAttribute('href')).toBe('energie.html#auto');
       await wand.close();
       // In het menu licht Apparaten op; de weg terug gaat daarheen.

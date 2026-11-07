@@ -9,8 +9,11 @@
  * De laadbeurten (stap 3) komen apart (`api/laadbeurten`): uit de statistiek
  * van Home Assistant, de laatste week, met kWh, kosten en het deel eigen zon.
  *
- * Instellen gebeurt bij Energie › Auto en laadpaal; bedienen en advies komen
- * in de volgende stappen (docs/auto-en-laadpaal.md).
+ * Het advies (stap 4) komt ook apart (`api/laadadvies`): zon over en de
+ * goedkoopste uren, alleen als het iets zegt; onder de auto.
+ *
+ * Instellen gebeurt bij Energie › Auto en laadpaal; bedienen komt in de
+ * volgende stap (docs/auto-en-laadpaal.md).
  */
 'use strict';
 
@@ -20,11 +23,14 @@ const { t } = taal;
 let huisData = null;
 let state = null;
 let fout = null;
+/** Het advies per auto (stap 4), of null zolang de dienst niets zegt. */
+let adviezen = null;
 /** De gekozen auto: uit het adres (auto.html#id), anders de eerste. */
 let gekozen = decodeURIComponent(location.hash.slice(1)) || null;
 
 async function laad() {
-  const [h, s] = await Promise.allSettled([haal('api/huis'), haal('api/state')]);
+  const [h, s, ad] = await Promise.allSettled([haal('api/huis'), haal('api/state'), haal('api/laadadvies')]);
+  if (ad.status === 'fulfilled') adviezen = ad.value?.adviezen ?? null;
   if (h.status === 'fulfilled') {
     huisData = h.value;
     fout = null;
@@ -260,6 +266,48 @@ function paalKaart(a) {
     </section>`;
 }
 
+/* ---- het advies (stap 4) ---- */
+
+const SVG = (naam) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconen.binnen(naam)}</svg>`;
+
+/** Vannacht, vandaag of morgen, voor het goedkoopste blok. */
+function wanneerBlok(ms) {
+  const uur = Number(taal.klok(ms).slice(0, 2));
+  if (uur < 7 && ms - Date.now() < 18 * 3_600_000) return t('auto.advies.vannacht');
+  return new Date(ms).toDateString() === new Date().toDateString() ? t('auto.advies.vandaag') : t('auto.advies.morgen');
+}
+
+/** De zin bij de zon: wat er kan, en wat er overblijft op de zekering. */
+function zonZin(z) {
+  const zin = t(`auto.advies.${z.soort}.zin`, { met: z.metA, nu: z.nuA ?? '', kw: nl(z.kW) });
+  return z.overA != null && z.zekering ? `${zin} ${t('auto.advies.zekering', { a: z.overA, fasen: z.zekering.fasen, ampere: z.zekering.ampere })}` : zin;
+}
+
+/** De zin bij het goedkoopste blok: de prijs, en hoe ver hij komt. */
+function goedkoopZin(g, a) {
+  const deel = g.prijsNu != null ? (g.prijs <= g.prijsNu * 0.55 ? t('auto.advies.helft') : t('auto.advies.nu', { prijs: taal.geld(g.prijsNu) })) : '';
+  const prijs = `${t('auto.advies.perKwh', { prijs: taal.geld(g.prijs) })}${deel ? `, ${deel}` : ''}.`;
+  const verder = g.nietNodig && a.volOm
+    ? t('auto.advies.nietNodig', { tijd: klokVan(Date.parse(a.volOm)) })
+    : g.totPct != null && g.kosten != null
+    ? t(g.totPct >= (a.laadgrens ?? 100) ? 'auto.advies.genoeg' : 'auto.advies.komtTot', { pct: g.totPct, uren: g.uren, kosten: taal.geld(g.kosten) })
+    : '';
+  return `${prijs}${verder ? ` ${verder}` : ''}`;
+}
+
+/** Het advies onder de auto: zon en prijs, alleen wat iets zegt (schets Wand-Auto). */
+function adviesKaart(a) {
+  const ad = adviezen?.[a.id];
+  const delen = [];
+  if (ad?.zon) delen.push(`<div class="zon"><span class="ik">${SVG('zon')}</span><div><b>${esc(t(`auto.advies.${ad.zon.soort}.kop`))}</b><span>${esc(zonZin(ad.zon))}</span></div></div>`);
+  if (ad?.goedkoop) {
+    const g = ad.goedkoop;
+    const kop = t('auto.advies.goedkoop.kop', { wanneer: wanneerBlok(Date.parse(g.van)), van: klokVan(Date.parse(g.van)), tot: klokVan(Date.parse(g.tot)) });
+    delen.push(`<div class="goedkoop"><span class="ik">${SVG('klok')}</span><div><b>${esc(kop)}</b><span>${esc(goedkoopZin(g, a))}</span></div></div>`);
+  }
+  return delen.length ? `<section class="glas advies${delen.length === 1 ? ' een' : ''}" data-advies>${delen.join('')}</section>` : '';
+}
+
 function instellenKaart() {
   return `<a class="glas kaart naar" href="energie.html#auto"><div><h2>${esc(t('auto.instellen'))}</h2><p class="onder">${esc(t('auto.instellenZin'))}</p></div><span class="pijl" aria-hidden="true">›</span></a>`;
 }
@@ -290,11 +338,11 @@ function tekenNu() {
     return;
   }
   void laadBeurten(a.id);
-  wandHeld.innerHTML = held(a);
+  wandHeld.innerHTML = `${held(a)}${adviesKaart(a)}`;
   // De wand scrolt nooit: daar de laatste beurten die passen, en Instellen bovenin; de telefoon heeft de hele week.
   wandRechts.innerHTML = `${paalKaart(a)}${beurtenKaart(a, 3)}`;
   pasIn(wandRechts);
-  tel.innerHTML = `${held(a)}${paalKaart(a)}${beurtenKaart(a, 20)}${instellenKaart()}`;
+  tel.innerHTML = `${held(a)}${adviesKaart(a)}${paalKaart(a)}${beurtenKaart(a, 20)}${instellenKaart()}`;
 }
 
 const teken = app.gebundeld(tekenNu);

@@ -8,6 +8,7 @@ import type { Achter } from './meten-vlakken.js';
 import { VERSIE } from '../version.js';
 import type { Sluipverbruik } from './sluipverbruik.js';
 import type { LaadOverzicht } from './laadbeurten.js';
+import type { LaadAdvies } from './laadadvies.js';
 import type { CameraNu } from './cameras.js';
 import type { AanzetStand } from './assistent-aan.js';
 import type { InHuisStand } from './stem-in-huis.js';
@@ -203,6 +204,8 @@ export interface WebOptions {
   readonly sluipverbruik?: Sluipverbruik;
   /** De laadbeurten van een auto (besluit 259, stap 3), of null zonder meter van het laadvermogen. */
   readonly laadbeurten?: (auto: string) => Promise<LaadOverzicht | null>;
+  /** Het advies per auto (besluit 259, stap 4): zon over en de goedkoopste uren, alleen als het iets zegt. */
+  readonly laadadvies?: () => Readonly<Record<string, LaadAdvies>>;
   /**
    * Na het opslaan van de configuratie: opnieuw starten, zodat de regeling
    * hem leest (besluit 154). De add-on start dan vanzelf weer (besluit 151).

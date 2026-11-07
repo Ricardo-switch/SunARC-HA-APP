@@ -76,6 +76,7 @@ import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.j
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
 import { laadMeters, ladenView, vindOpslag } from './web/opslag.js';
 import { Laadbeurten } from './web/laadbeurten.js';
+import { laadAdvies, prijzenVooruit, type LaadAdvies } from './web/laadadvies.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
 import { sunPosition } from './core/sun.js';
 import { hoofddakPlat, panelenVan, type DakVlak } from './web/daken.js';
@@ -1563,6 +1564,30 @@ const huisNu = (lang: Lang) => {
   huisBewaard.set(lang, { sleutel, atMs: Date.now(), huis: plat });
   return plat;
 };
+/**
+ * Het advies per auto (besluit 259, stap 4): uit het net en de stroom per fase
+ * van het laatste besluit, en de prijzen per uur uit de prijs-entiteit van
+ * Energie. Alleen lezen.
+ */
+const laadadviezen = (): Record<string, LaadAdvies> => {
+  const autos = huisNu('nl')?.opslag?.autos ?? [];
+  if (!autos.length || !siteConfig) return {};
+  const e = runner?.latest?.explanation ?? null;
+  const netW = e && siteConfig.power.gridPower ? e.budget.gridPowerW : null;
+  const grid = siteConfig.grid;
+  const fasen = e?.phases && grid && e.phases.length > 0 && e.phases.every((p) => p.bron === 'gemeten' && p.currentA != null)
+    ? e.phases.map((p) => ({ stroomA: p.currentA!, zekeringA: grid.phases.find((g) => g.id === p.id)?.maxA ?? p.limitA + grid.marginA, grensA: p.limitA }))
+    : null;
+  const nuMs = Date.now();
+  const prijsId = energyStore?.current?.prijzen.dynamisch?.prijsEntiteit ?? null;
+  const prijsStaat = prijsId ? allStates.get(prijsId) : undefined;
+  const eenheid = typeof prijsStaat?.attributes['unit_of_measurement'] === 'string' ? (prijsStaat.attributes['unit_of_measurement'] as string) : null;
+  const prijzen = prijsStaat ? prijzenVooruit(prijsStaat.attributes, prijsStaat.state, eenheid, nuMs) : [];
+  const nu = prijsStaat ? Number(prijsStaat.state) : NaN;
+  const prijsNu = Number.isFinite(nu) ? nu / (/mwh/i.test(eenheid ?? '') ? 1000 : /ct|cent/i.test(eenheid ?? '') ? 100 : 1) : null;
+  return Object.fromEntries(autos.map((a) => [a.id, laadAdvies(a, { nuMs, netW, fasen, prijzen, prijsNu })]));
+};
+
 /** Het huis, met de stand in woorden in de taal van de app; zonder taal Nederlands. */
 const houseReport = (lang: Lang = 'nl') => {
   const h = huisNu(lang);
@@ -2105,6 +2130,7 @@ if (webPort != null) {
       client.query<HaCoreConfig>('get_config').then((c) => (typeof c.latitude === 'number' && typeof c.longitude === 'number' ? { latDeg: c.latitude, lonDeg: c.longitude } : null)),
     historie: historieVan,
     laadbeurten: (auto: string) => laadbeurten.van(auto),
+    laadadvies: laadadviezen,
     dakenOpbrengst,
     sluipverbruik,
     house: houseReport,

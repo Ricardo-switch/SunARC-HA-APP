@@ -1,8 +1,8 @@
 # Auto en laadpaal: het bouwplan
 
 Stand 6 november 2026. Het ontwerp is besloten ([besluit 259](../DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp));
-stap 1 is gebouwd in 0.131.0, stap 2 in 0.132.0 en stap 3 in 0.133.0 (zie
-"wat er gebouwd is"), de rest nog niet. Dit document is de overdracht: alles wat nodig is
+stap 1 is gebouwd in 0.131.0, stap 2 in 0.132.0, stap 3 in 0.133.0 en stap 4
+in 0.135.0 (zie "wat er gebouwd is"), de rest nog niet. Dit document is de overdracht: alles wat nodig is
 om het in een nieuwe sessie op te pakken, zonder het gesprek van 6 november.
 
 ## Waarom
@@ -239,6 +239,44 @@ lijst in `client.ts`). Laden wordt er een, naar het voorbeeld van `isHandCall`:
 - Het voorbeeldhuis laadt mee in zijn statistiek: vandaag op zon van elf tot
   half vijf, de dagen ervoor op zon, 's avonds en 's nachts (`laadWOp` in
   `nep-ha.ts`); het net neemt het laadvermogen mee af.
+
+## Stap 4: wat er gebouwd is (0.135.0)
+
+- `backend/src/web/laadadvies.ts`: per auto `zon` en `goedkoop`, elk null als
+  het niets zegt. `GET api/laadadvies` geeft `{ adviezen }` op auto-id; de
+  dienst rekent met het net en de stroom per fase uit het laatste besluit
+  (`explanation.budget`, `explanation.phases`) en de prijzen per uur uit de
+  attributen van de prijs-entiteit van Energie (`main.ts`, `laadadviezen`).
+- **Zon:** `meer` als hij laadt en er gaat stroom terug: de hoogste stroom per
+  fase die op zon past (wat hij neemt plus wat teruggaat, gedeeld door 230 ×
+  fasen). `minder` als er stroom van het net komt en een lagere stroom (vanaf
+  de laagste van de laadpaal) wel op zon past. `start` als de kabel erin zit,
+  hij niet laadt en niet vol is, en de zon genoeg is voor de laagste stroom
+  (zonder te laden telt de app de fasen die de laadpaal meet: de veilige
+  kant). Nooit boven de laadpaal (zonder opgave 6 tot 16 A) en nooit boven de
+  ruimte op de zekering: de zekering min de marge min wat er op de drukste
+  fase loopt, alleen als elke fase gemeten is. Wat er overblijft op de
+  zekering staat erbij (`overA`).
+- Een thuisbatterij die de zon opneemt, gaat voor (besluit 85): wat naar de
+  batterij gaat, is niet over. In het voorbeeldhuis is er daarom meestal geen
+  zonadvies.
+- **Goedkoop:** alleen met een prijs per uur. `prijzenVooruit` leest Nord
+  Pool, ENTSO-e, EnergyZero, Frank Energie, Zonneplan, Amber en wat er zo
+  uitziet (een lijst met tijd en prijs); kwartieren worden uren, en de schaal
+  volgt uit de prijs van nu. Het goedkoopste aaneengesloten blok in de komende
+  24 uur, zo lang als de auto nodig heeft tot zijn laadgrens met de hoogste
+  stroom van de laadpaal (zonder accu drie uur, hooguit acht), en alleen als
+  het minstens € 0,05 per kWh scheelt met nu en niet nu al begint. Tibber geeft
+  geen lijst in zijn attributen; daar staat het advies er (nog) niet.
+  `nietNodig` als hij nu op zon laadt en vóór dat blok vol is.
+- De pagina Auto: het advies onder de auto (op de wand in twee kolommen,
+  passend zonder scrollen). Thuis: een eigen kaart direct boven de kaart van
+  de auto, alleen als die op Thuis staat; eerst de zon, anders de goedkope
+  uren (niet als ze vandaag niet nodig zijn). Geen eigen keuze bij Kaart
+  toevoegen: het advies hoort bij de kaart van de auto. "Laad met 8 A" komt
+  in stap 5.
+- De bewaking per fase uit de testerronde (stap 7, de schets van een kaart
+  per fase) is nog niet gebouwd; het advies leest de fasen zelf.
 
 ## De stappen, elk een eigen versie
 
