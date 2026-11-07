@@ -110,8 +110,8 @@ er zo weinig mogelijk (beveiligingscijfer 8, het hoogste):
 - **Toegang tot Home Assistant:** om je huis te lezen. Home Assistant kent
   geen variant die alleen leest. SunArc schrijft alleen via smalle deuren:
   lampen, scènes, schermen, meldingen, je lijsten, de startknop van witgoed
-  dat op zon wacht, en het klimaat met de hand,
-  altijd met een eindtijd. De regeling zelf schrijft niets tot het echte
+  dat op zon wacht, het klimaat met de hand en laden met de hand (als je
+  het bij Energie toeliet), altijd met een eindtijd. De regeling zelf schrijft niets tot het echte
   regelen begint.
 - **De Supervisor (alleen lezen):** voor Klaarzetten, om te zien hoe Whisper
   staat en of Tailscale draait. Installeren of iets veranderen mag deze rol

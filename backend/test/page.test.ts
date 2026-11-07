@@ -141,6 +141,9 @@ let integratieNu: { kan: boolean; staat: 'nee' | 'add-on' | 'anders'; versie: st
 const proefmeldingen: (string | null)[] = [];
 /** Een thuisbatterij en een auto die een test erbij zet (besluit 182); null is: wat het huis zegt. */
 let extraOpslag: Opslag | null = null;
+/** Laden met de hand (besluit 262): wat de pagina stuurde, en wat er nu met de hand loopt. */
+const ladenGestuurd: unknown[] = [];
+let ladenActief: { stroomA: number | null; pauze: boolean; tot: 'uur' | 'tijd' | 'pct' | 'kabel'; totMs: number; pct: number | null } | null = null;
 /** De plek van het testhuis voor de kaart (5 november 2026), in Utrecht. */
 const KAART_PLEK = { lat: 52.0907, lon: 5.1214 } as const;
 /** Een nagemaakt kaartvak van 3D BAG rond die plek: het huis met een zadeldak (nok noord-zuid), en een buur 12 meter oostelijk. */
@@ -435,6 +438,20 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
               return { 'sensor.p1_meter_power': Array.from({ length: 45 * 24 }, (_, k) => ({ start: nu - k * 3_600_000, mean: (k < 5 * 24 ? 300 : 180) + (Math.floor(k / 24) % 4) * 3 })) };
             },
           }),
+          // Laden met de hand (besluit 262): de Easee mag, van 6 tot 16 A, en kan pauzeren.
+          laden: {
+            standen: async () => [{ auto: 'tesla', stroom: { min: 6, max: 16, stap: 1, nuA: ladenActief?.stroomA ?? 5 }, pauze: true, mag: true, evcc: false, zekeringA: 20, actief: ladenActief }],
+            zet: async (auto: string, v: { stroomA?: number; pauze?: boolean; tot: 'uur' | 'tijd' | 'pct' | 'kabel'; totMs?: number; pct?: number }) => {
+              ladenGestuurd.push({ auto, ...v });
+              ladenActief = { stroomA: v.stroomA ?? null, pauze: v.pauze === true, tot: v.tot, totMs: Date.now() + 3_600_000, pct: v.pct ?? null };
+              return { ok: true as const, terug: { auto, tot: v.tot, totMs: ladenActief.totMs, sindsMs: Date.now() } };
+            },
+            terug: async (auto: string) => {
+              ladenGestuurd.push({ auto, terug: true });
+              ladenActief = null;
+              return true;
+            },
+          },
           // Het advies bij de Tesla (besluit 259, stap 4): meer op zon, en de goedkoopste uren over twee dagen.
           laadadvies: () => {
             const van = Math.floor(Date.now() / 3_600_000) * 3_600_000 + 40 * 3_600_000;
@@ -3923,7 +3940,12 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       await expect.poll(() => advies.textContent()).toContain('Er kan meer op zon');
       expect(await advies.textContent()).toContain('1,8 kW zon over');
       expect(await advies.textContent()).toContain('Tesla Model 3 laadt met 5 A. Met 8 A gaat het sneller');
-      expect(await advies.locator('a').getAttribute('href')).toBe('auto.html#tesla');
+      expect(await advies.locator('.koplink').getAttribute('href')).toBe('auto.html#tesla');
+      // Met één tik (besluit 262): de Easee mag, dus Laad met 8 A, tot de kabel eruit gaat; en Meer keuzes opent het blad.
+      expect(await advies.locator('.kijk').getAttribute('href')).toBe('auto.html?laden#tesla');
+      await advies.locator('[data-laden-snel]').click();
+      await expect.poll(() => advies.locator('[data-laden-snel]').textContent()).toBe('Laadt met 8 A');
+      expect(ladenGestuurd).toEqual([{ auto: 'tesla', stroomA: 8, tot: 'kabel' }]);
       expect(await advies.evaluate((el) => el.nextElementSibling?.getAttribute('data-kaart'))).toBe('auto');
       expect(await kaart('batterij').textContent()).toContain('Levert 0,9 kW aan het huis');
       // Deze maand: met meters wat er opgewekt en zelf gebruikt is (na de test van Opbrengst), zonder wat er nodig is.
@@ -3978,6 +4000,30 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       expect(await beurtenKaart.locator('.beurt').count()).toBe(3);
       expect(await beurtenKaart.locator('.beurt').first().textContent()).toMatch(/Vandaag.*– nu.*4,2 kWh.*€ 0,31/s);
       expect(await beurtenKaart.locator('.kan').textContent()).toContain('Eigen zon telt als gratis');
+      // Laden met de hand (besluit 262): wat er nu loopt, en het blad met de stroom, hoe lang en terug.
+      const regel = p.locator('#tel [data-laden-open]');
+      expect(await regel.textContent()).toContain('Met de hand · 8 A tot de kabel eruit gaat');
+      await regel.click();
+      const laadBlad = p.locator('[data-ladenlaag]');
+      await laadBlad.waitFor();
+      expect(await laadBlad.locator('.getal b').textContent()).toBe('8A');
+      expect(await laadBlad.textContent()).toContain('Op je zekering past nu tot 20 A per fase voor de auto.');
+      expect(await laadBlad.locator('.hand-onder').textContent()).toContain('Terug naar de laadpaal');
+      await laadBlad.locator('[data-laden-stroom="1"]').click();
+      await laadBlad.locator('[data-laden-tot="pct"]').click();
+      expect(await laadBlad.locator('.tot-pct b').textContent()).toBe('75%');
+      await laadBlad.locator('[data-laden-pct="5"]').click();
+      expect(await laadBlad.locator('[data-laden-pct="5"]').isDisabled()).toBe(true);
+      await laadBlad.locator('[data-laden-zet]').click();
+      await expect.poll(() => ladenGestuurd.length).toBe(2);
+      expect(ladenGestuurd[1]).toEqual({ auto: 'tesla', stroomA: 9, tot: 'pct', pct: 80 });
+      await expect.poll(() => laadBlad.count()).toBe(0);
+      await expect.poll(() => regel.textContent()).toContain('Met de hand · 9 A tot 80%');
+      await regel.click();
+      await laadBlad.locator('[data-laden-terug]').click();
+      await expect.poll(() => ladenGestuurd.length).toBe(3);
+      expect(ladenGestuurd[2]).toEqual({ auto: 'tesla', terug: true });
+      await expect.poll(() => regel.textContent()).toContain('De laadpaal kiest zelf · 5 A');
       // Het advies onder de auto: zon met de ruimte op de zekering, en de goedkoopste uren met hoe ver hij komt.
       const adviesAuto = p.locator('#tel .advies');
       expect(await adviesAuto.locator('.zon').textContent()).toContain('Met 8 A in plaats van 5 A laadt de auto sneller, nog steeds op eigen zon. Er blijft 16 A over op je zekering van 3 × 25 A.');
@@ -3989,6 +4035,8 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
       await w.goto(`${baseUrl}/auto.html`);
       await expect.poll(() => w.locator('#wand .beurten .beurt').count(), { timeout: 10_000 }).toBeGreaterThan(0);
       expect(await w.evaluate('(() => { const r = document.querySelector("[data-rechts]"); return r.scrollHeight <= r.clientHeight + 1; })()')).toBe(true);
+      // Op de wand staat Laden als rij in de kaart van de laadpaal (besluit 262).
+      expect(await w.locator('#wand .ladenrij').textContent()).toContain('Laden');
       // Links de auto met het advies eronder, ook zonder te scrollen.
       await expect.poll(() => w.locator('#wand .advies > div').count()).toBe(2);
       expect(await w.evaluate('(() => { const h = document.querySelector("[data-held]"); return h.scrollHeight <= h.clientHeight + 1; })()')).toBe(true);

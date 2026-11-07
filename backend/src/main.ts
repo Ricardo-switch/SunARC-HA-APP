@@ -74,7 +74,8 @@ import type { TeDoenDienst } from './web/routes/tedoen.js';
 import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
-import { laadMeters, ladenView, vindOpslag } from './web/opslag.js';
+import { laadBedieningen, laadMeters, ladenView, vindOpslag } from './web/opslag.js';
+import { Laadhand, laadMag } from './web/laadhand.js';
 import { Laadbeurten } from './web/laadbeurten.js';
 import { laadAdvies, prijzenVooruit, type LaadAdvies } from './web/laadadvies.js';
 import { ConnectionStore, SensorPace, connectionView, findAppliances, findPhases, findPowers, withConnection, type Applied, type ConnectionAnswers } from './web/aansluiting.js';
@@ -479,6 +480,8 @@ const client = new HaClient({
   // Klimaat met de hand (besluit 235): de airco's op verwarmen en de stekkers, als de brug aan staat of er nog iets terug moet.
   // Witgoed starten (ronde 5, besluit 238): alleen de startknop van een droger of vaatwasser, alleen in de add-on.
   allowStart: (): readonly string[] => witgoed?.knoppen() ?? [],
+  // Laden met de hand (besluit 262): de laadpalen die de bewoner aanzette, en wat er nog terug moet. Alleen in de add-on.
+  allowLaden: () => (laadhand ? laadMag(laadBedieningenNu(), laadhand.terugzetten) : { stroom: [], schakelaars: [], knoppen: [] }),
   allowHand: (): { readonly klimaat: readonly string[]; readonly schakelaars: readonly string[] } =>
     klimaatAan() || (handbediening?.terugzetten.length ?? 0) > 0 ? { klimaat: [...new Set([...HAND_KLIMAAT, ...handKnoppen().map((k) => k.id), ...(handbediening?.terugzetten ?? []).filter((t) => t.thermostaat).map((t) => t.id)])], schakelaars: [...new Set([...handSchakelaars().map((s) => s.id), ...(handbediening?.terugzetten ?? []).filter((t) => t.modus === 'aan').map((t) => t.id)])] } : { klimaat: [], schakelaars: [] },
 });
@@ -645,6 +648,35 @@ const handbediening: Handbediening | null = inHuisMetDeuren
       map: logDir !== '' ? logDir : null,
     })
   : null;
+/** Wat er per auto met de hand te bedienen is (besluit 262). */
+function laadBedieningenNu() {
+  return houseRegisters ? laadBedieningen(houseRegisters, allStates, connectionStore?.current?.laden ?? null) : [];
+}
+/*
+ * Laden met de hand (besluit 262, stap 5 van besluit 259): de hoogste
+ * laadstroom of pauzeren, met een eind. Alleen in de add-on (en het
+ * voorbeeldhuis), zoals klimaat met de hand; de NAS kijkt mee.
+ */
+const laadhand: Laadhand | null = inHuisMetDeuren
+  ? new Laadhand({
+      state: (id) => allStates.get(id),
+      zetStroom: (id, a): Promise<void> => client.callService('number', 'set_value', { value: a }, { entity_id: id }),
+      schakel: (id, aan): Promise<void> => client.callService('switch', aan ? 'turn_on' : 'turn_off', {}, { entity_id: id }),
+      druk: (id): Promise<void> => client.callService('button', 'press', {}, { entity_id: id }),
+      auto: (id) => huisNu('nl')?.opslag?.autos.find((a) => a.id === id) ?? null,
+      bediening: (id) => laadBedieningenNu().find((b) => b.auto === id) ?? null,
+      zekeringA: (id) => zekeringVoor(id),
+      map: logDir !== '' ? logDir : null,
+    })
+  : null;
+if (laadhand) {
+  setInterval(() => {
+    laadhand.ronde().then(
+      (gedaan) => gedaan.forEach((g) => console.log(`[laden met de hand] ${g}`)),
+      (e: unknown) => console.warn(`[laden met de hand] terugzetten lukte niet: ${(e as Error).message}`),
+    );
+  }, 60_000).unref();
+}
 /** De radiatorknoppen buiten de regeling (besluit 126), met hun kamer: die zet de hand direct (besluit 235). */
 function handKnoppen(): { id: string; naam: string; kamer: string }[] {
   const regeling = new Set((siteConfig?.actuators ?? []).map((a) => a.ref.id));
@@ -1569,15 +1601,35 @@ const huisNu = (lang: Lang) => {
  * van het laatste besluit, en de prijzen per uur uit de prijs-entiteit van
  * Energie. Alleen lezen.
  */
+/** De fasen van de aansluiting uit het laatste besluit, alleen als ze alle gemeten zijn. */
+const fasenNu = () => {
+  const e = runner?.latest?.explanation ?? null;
+  const grid = siteConfig?.grid;
+  return e?.phases && grid && e.phases.length > 0 && e.phases.every((p) => p.bron === 'gemeten' && p.currentA != null)
+    ? e.phases.map((p) => ({ stroomA: p.currentA!, zekeringA: grid.phases.find((g) => g.id === p.id)?.maxA ?? p.limitA + grid.marginA, grensA: p.limitA }))
+    : null;
+};
+/**
+ * De hoogste stroom per fase die er met de hand voor een auto op de zekering
+ * past (besluit 262): wat hij nu neemt plus de ruimte op de drukste fase; zonder
+ * meting per fase de zekering min de marge; zonder aansluiting niets.
+ */
+function zekeringVoor(id: string): number | null {
+  const grid = siteConfig?.grid;
+  if (!grid || !grid.phases.length) return null;
+  const fasen = fasenNu();
+  if (!fasen) return Math.min(...grid.phases.map((p) => p.maxA - grid.marginA));
+  const a = huisNu('nl')?.opslag?.autos.find((x) => x.id === id);
+  const nuA = a?.laadt ? Math.max(0, ...(a.stroomA ?? [])) : 0;
+  // Nooit boven de zekering zelf: bij teruglevering loopt er op een fase soms minder dan de auto neemt.
+  return Math.floor(Math.min(nuA + Math.min(...fasen.map((f) => f.grensA - f.stroomA)), ...fasen.map((f) => f.grensA)));
+}
 const laadadviezen = (): Record<string, LaadAdvies> => {
   const autos = huisNu('nl')?.opslag?.autos ?? [];
   if (!autos.length || !siteConfig) return {};
   const e = runner?.latest?.explanation ?? null;
   const netW = e && siteConfig.power.gridPower ? e.budget.gridPowerW : null;
-  const grid = siteConfig.grid;
-  const fasen = e?.phases && grid && e.phases.length > 0 && e.phases.every((p) => p.bron === 'gemeten' && p.currentA != null)
-    ? e.phases.map((p) => ({ stroomA: p.currentA!, zekeringA: grid.phases.find((g) => g.id === p.id)?.maxA ?? p.limitA + grid.marginA, grensA: p.limitA }))
-    : null;
+  const fasen = fasenNu();
   const nuMs = Date.now();
   const prijsId = energyStore?.current?.prijzen.dynamisch?.prijsEntiteit ?? null;
   const prijsStaat = prijsId ? allStates.get(prijsId) : undefined;
@@ -2131,6 +2183,16 @@ if (webPort != null) {
     historie: historieVan,
     laadbeurten: (auto: string) => laadbeurten.van(auto),
     laadadvies: laadadviezen,
+    // Laden met de hand (besluit 262): alleen in de add-on; de NAS laat het blad zonder knoppen zien.
+    ...(laadhand
+      ? {
+          laden: {
+            standen: async () => (await Promise.all((huisNu('nl')?.opslag?.autos ?? []).map((a) => laadhand.stand(a.id)))).filter((x) => x != null),
+            zet: (id: string, v: Parameters<Laadhand['zet']>[1]) => laadhand.zet(id, v),
+            terug: (id: string) => laadhand.terugNu(id),
+          },
+        }
+      : {}),
     dakenOpbrengst,
     sluipverbruik,
     house: houseReport,

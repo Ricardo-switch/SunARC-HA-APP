@@ -9,6 +9,7 @@ import { VERSIE } from '../version.js';
 import type { Sluipverbruik } from './sluipverbruik.js';
 import type { LaadOverzicht } from './laadbeurten.js';
 import type { LaadAdvies } from './laadadvies.js';
+import type { LaadStand, LaadUitkomst, LaadVraag } from './laadhand.js';
 import type { CameraNu } from './cameras.js';
 import type { AanzetStand } from './assistent-aan.js';
 import type { InHuisStand } from './stem-in-huis.js';
@@ -206,6 +207,12 @@ export interface WebOptions {
   readonly laadbeurten?: (auto: string) => Promise<LaadOverzicht | null>;
   /** Het advies per auto (besluit 259, stap 4): zon over en de goedkoopste uren, alleen als het iets zegt. */
   readonly laadadvies?: () => Readonly<Record<string, LaadAdvies>>;
+  /** Laden met de hand (besluit 262): alleen in de add-on. */
+  readonly laden?: {
+    readonly standen: () => Promise<readonly LaadStand[]>;
+    readonly zet: (auto: string, v: LaadVraag) => Promise<LaadUitkomst>;
+    readonly terug: (auto: string) => Promise<boolean>;
+  };
   /**
    * Na het opslaan van de configuratie: opnieuw starten, zodat de regeling
    * hem leest (besluit 154). De add-on start dan vanzelf weer (besluit 151).

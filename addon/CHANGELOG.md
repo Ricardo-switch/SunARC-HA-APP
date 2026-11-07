@@ -1,22 +1,36 @@
 # Wat is er nieuw · What is new
 
-## 0.135.0
+## 0.136.0
 
-*7 november 2026*
+*7 november 2026 · 0.135.0 – 0.136.0*
 
 **Nieuw**
 
+- Laden met de hand op de pagina Auto: de hoogste stroom per fase of pauzeren, voor een uur, tot een tijd, tot een % of tot de kabel eruit gaat. Daarna kiest de laadpaal weer zelf
+- Laad met 8 A met één tik op de advieskaart, als er meer zon over is
+- Bij Energie › Auto en laadpaal zet je aan of SunArc de laadpaal mag bedienen; nooit boven de laadpaal of je zekering
 - Advies bij de auto: is er meer zon over dan de auto neemt, dan zie je met hoeveel ampère hij nog op eigen zon laadt, binnen je laadpaal en je zekering
 - Met een prijs per uur: de goedkoopste uren om te laden, hoe ver de auto dan komt en wat het ongeveer kost
 - Het advies staat onder de auto en als eigen kaart op Thuis, boven de kaart van de auto, en alleen als er iets te winnen is
+
+**Beter**
+
+- Bij Zelf tekenen opent Teken je huis meteen je huis om te schuiven, te draaien en op maat te zetten, en de tekening zegt dat je op de naam van een gebouw tikt
 
 *English*
 
 **New**
 
+- Charging by hand on the Car page: the highest current per phase or pausing, for an hour, until a time, until a % or until the cable comes out. After that the charger decides again
+- Charge at 8 A with one tap on the advice card, when there is more solar to spare
+- In Energy › Car and charger you allow SunArc to control the charger; never above the charger or your main fuse
 - Advice for the car: when there is more solar to spare than the car takes, you see how many amps it can charge with on your own solar, within your charger and your main fuse
 - With an hourly price: the cheapest hours to charge, how far the car gets and roughly what it costs
 - The advice shows under the car and as its own card on Home, above the car card, and only when there is something to gain
+
+**Improved**
+
+- Under Draw it yourself, Draw your house opens your house right away to move, turn and resize it, and the drawing says to tap a building's name
 
 ## 0.134.0
 

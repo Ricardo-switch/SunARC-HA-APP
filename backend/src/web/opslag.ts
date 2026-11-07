@@ -111,6 +111,8 @@ export interface LadenKeuze {
   readonly rol: Readonly<Record<string, LaadRol>>;
   /** Per auto of laadpaal de accu, de laadpaal en de plek. */
   readonly instelling: Readonly<Record<string, AutoInstelling>>;
+  /** Per apparaat of SunArc het met de hand mag bedienen (stap 5, besluit 262); weg is nee. */
+  readonly bedienen?: Readonly<Record<string, boolean>>;
 }
 
 /** Wat een auto of laadpaal in Home Assistant meet of kan (docs/auto-en-laadpaal.md). */
@@ -129,6 +131,30 @@ export interface LaadApparaat {
   readonly zelf: boolean;
   /** Bij een laadpaal: de laagste en hoogste stroom die hij kent, in A. */
   readonly stroomA: { readonly min: number; readonly max: number } | null;
+  /** Of SunArc hem met de hand kan bedienen: een stroom in A om te zetten, of pauzeren (stap 5). */
+  readonly kanBedienen: boolean;
+  /** Of de bewoner het toeliet (besluit 262); weg is nee. */
+  readonly bedienen: boolean;
+}
+
+/** Hoe SunArc een laadpaal (of een auto) pauzeert en weer laat laden (stap 5, besluit 262). */
+export type LaadPauze =
+  /** Een schakelaar: aan is laden, of bij een pauzeknop aan is pauze. */
+  | { readonly soort: 'schakelaar'; readonly id: string; readonly omgekeerd: boolean }
+  | { readonly soort: 'knoppen'; readonly pauze: string; readonly hervat: string };
+
+/** Wat er aan een auto te bedienen is, en waarmee (stap 5, besluit 262). */
+export interface LaadBediening {
+  readonly auto: string;
+  /** Het apparaat met de knoppen: de laadpaal, anders de auto zelf. */
+  readonly apparaat: string | null;
+  /** De hoogste laadstroom in A: het getal in Home Assistant, met zijn bereik en stap. */
+  readonly stroom: { readonly id: string; readonly min: number; readonly max: number; readonly stap: number; readonly nuA: number | null } | null;
+  readonly pauze: LaadPauze | null;
+  /** Of het mag: de bewoner zette het aan bij Energie, en evcc regelt het niet. */
+  readonly mag: boolean;
+  /** evcc regelt het laden; dan bedient SunArc de laadpaal niet zelf. */
+  readonly evcc: boolean;
 }
 
 /** Energie › Auto en laadpaal (besluit 259): wat gevonden is, en wat er nog te kiezen is. */
@@ -172,6 +198,12 @@ const KLAAR_TIJD = /charg|laad|ready|klaar|full|vol\b|end|eind|finish/;
 const KLAAR_DUUR = /remaining|resterend|time.?to|tijd.?tot|until|left|charg(e|ing).?(time|duration)|laadtijd/;
 /** Een duur die al voorbij is, zoals hoe lang de laadbeurt al duurt. */
 const GEEN_KLAAR = /elapsed|session|sessie|spent|verstreken|last|laatste/;
+/** Het getal voor de hoogste laadstroom, zoals de dynamische stroom of "charging amps". */
+const STROOM_ZET = /dynamic|charg|laad|current|stroom|amp/;
+const GEEN_STROOM_ZET = /circuit|fallback|offline|fase|phase|min/;
+/** Een schakelaar of knop om te laden of te pauzeren; niet het klimaat, de klep of een schema van de auto. */
+const LAAD_KNOP = /charg|laad|pause|pauze|resume|hervat/;
+const GEEN_LAAD_KNOP = /climat|klimaat|heat|verwarm|defrost|sentry|cabin|lock|slot|seat|stoel|steering|stuur|light|licht|port|klep|update|smart|schedul|gepland|precondition|boost|restart|reboot|herstart/;
 /** Klassen die bij laden horen: een apparaat zonder geen ervan is geen kandidaat. */
 const LAAD_KLASSEN = new Set(['battery', 'distance', 'power', 'current', 'energy', 'plug', 'battery_charging']);
 
@@ -307,6 +339,8 @@ function laadApparaten(l: ReturnType<typeof lezer>, states: ReadonlyMap<string, 
       aan: keuze?.aan[a.device.id] ?? true,
       zelf: gevonden == null,
       stroomA: rol === 'laadpaal' ? stroomA : null,
+      kanBedienen: wat.includes('stroomZetten') || wat.includes('pauzeren'),
+      bedienen: keuze?.bedienen?.[a.device.id] === true,
       bron: a,
     });
   }
@@ -332,8 +366,15 @@ export function laadMeters(registers: Registers, states: ReadonlyMap<string, HaE
   return opslagMet(registers, states, keuze, new Date()).meters;
 }
 
-function opslagMet(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null, nu: Date): { opslag: Opslag; meters: LaadMeter[] } {
+/** Wat er per auto met de hand te bedienen is (stap 5, besluit 262): de laadpaal eerst, anders de auto. */
+export function laadBedieningen(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null = null): LaadBediening[] {
+  return opslagMet(registers, states, keuze, new Date()).bedieningen;
+}
+
+function opslagMet(registers: Registers, states: ReadonlyMap<string, HaEntityState>, keuze: LadenKeuze | null, nu: Date): { opslag: Opslag; meters: LaadMeter[]; bedieningen: LaadBediening[] } {
   const meters: LaadMeter[] = [];
+  const bedieningen: LaadBediening[] = [];
+  const evccErIs = l0(registers, states);
   const l = lezer(registers, states);
   const { klasse, naamVan, pctVan } = l;
   const vermogens = (a: Apparaat) => a.entiteiten.filter((e) => e.entity_id.startsWith('sensor.') && klasse(e) === 'power');
@@ -449,6 +490,16 @@ function opslagMet(registers: Registers, states: ReadonlyMap<string, HaEntitySta
     const kabelStaat = kabel ? states.get(kabel.entity_id) : undefined;
     const volOm = laadt ? klaarOm(wagen, pct, laadgrens, ins.accuKWh, vermogenW) : null;
     meters.push({ auto: id, vermogen: eerst((a) => laadMeter(a)?.entity_id ?? null) });
+    // Bedienen (stap 5): het apparaat met een stroom om te zetten of een pauze, de laadpaal eerst.
+    const metKnop = bron.map((a) => ({ a, ...bedieningVan(a) })).find((x) => x.stroom || x.pauze) ?? null;
+    bedieningen.push({
+      auto: id,
+      apparaat: metKnop?.a.device.id ?? null,
+      stroom: metKnop?.stroom ?? null,
+      pauze: metKnop?.pauze ?? null,
+      mag: !evccErIs && metKnop != null && keuze?.bedienen?.[metKnop.a.device.id] === true,
+      evcc: evccErIs,
+    });
     return {
       id,
       naam,
@@ -502,10 +553,44 @@ function opslagMet(registers: Registers, states: ReadonlyMap<string, HaEntitySta
     return new Date(Math.ceil((nu.getTime() + uren * 3_600_000) / vijf) * vijf).toISOString();
   }
 
+  /** De stroom om te zetten en hoe hij pauzeert, van één apparaat. */
+  function bedieningVan(a: Apparaat): { stroom: LaadBediening['stroom']; pauze: LaadPauze | null } {
+    const getallen = a.entiteiten.filter((e) => e.entity_id.startsWith('number.') && String(states.get(e.entity_id)?.attributes['unit_of_measurement'] ?? '') === 'A');
+    const nummer = getallen.find((e) => STROOM_ZET.test(naamVan(e)) && !GEEN_STROOM_ZET.test(naamVan(e))) ?? (getallen.length === 1 ? getallen[0] : undefined);
+    let stroom: LaadBediening['stroom'] = null;
+    if (nummer) {
+      const s = states.get(nummer.entity_id);
+      const min = Number(s?.attributes['min']);
+      const max = Number(s?.attributes['max']);
+      const stap = Number(s?.attributes['step'] ?? 1) || 1;
+      // Onder 6 A laadt bijna geen auto; een getal dat bij 0 begint, begint hier bij 6.
+      if (Number.isFinite(min) && Number.isFinite(max) && max > min && max <= 80) stroom = { id: nummer.entity_id, min: max >= 6 ? Math.max(min, 6) : min, max, stap, nuA: getal(s) };
+    }
+    const knop = (e: HaRegistryEntity) => LAAD_KNOP.test(naamVan(e)) && !GEEN_LAAD_KNOP.test(naamVan(e));
+    const schakelaar = a.entiteiten.find((e) => e.entity_id.startsWith('switch.') && knop(e));
+    let pauze: LaadPauze | null = null;
+    if (schakelaar) {
+      const n = naamVan(schakelaar);
+      pauze = { soort: 'schakelaar', id: schakelaar.entity_id, omgekeerd: /pause|pauze/.test(n) && !/resume|hervat/.test(n) };
+    } else {
+      const knoppen = a.entiteiten.filter((e) => e.entity_id.startsWith('button.') && (knop(e) || /stop|start/.test(naamVan(e))) && !GEEN_LAAD_KNOP.test(naamVan(e)));
+      const p = knoppen.find((e) => /pause|pauze|stop/.test(naamVan(e)));
+      const h = knoppen.find((e) => /resume|hervat|start/.test(naamVan(e)) && e !== p);
+      if (p && h) pauze = { soort: 'knoppen', pauze: p.entity_id, hervat: h.entity_id };
+    }
+    return { stroom, pauze };
+  }
+
   const autos: Auto[] = wagens.length
     ? wagens.map((w) => maak(w, paalVan(w.id) ?? null, w.naam))
     : palen.map((p) => maak(null, p, palen.length === 1 ? 'De auto' : p.naam));
-  return { opslag: { batterij, auto: autos[0] ?? null, autos }, meters };
+  return { opslag: { batterij, auto: autos[0] ?? null, autos }, meters, bedieningen };
+}
+
+/** Is evcc er? Dan regelt evcc het laden. */
+function l0(registers: Registers, states: ReadonlyMap<string, HaEntityState>): boolean {
+  const l = lezer(registers, states);
+  return l.apparaten.some(l.isEvcc);
 }
 
 /** Energie › Auto en laadpaal (besluit 259): gevonden, zelf gekozen, evcc, en wat er nog te kiezen is. */
@@ -542,7 +627,14 @@ export function leesLaden(raw: unknown): { keuze: LadenKeuze | null } | { fout: 
   const aanRaw = obj(r['aan']);
   const rolRaw = obj(r['rol']);
   const insRaw = obj(r['instelling']);
-  if (!aanRaw || !rolRaw || !insRaw) return { fout: 'auto en laadpaal: aan, rol en instelling zijn per apparaat' };
+  const bedRaw = obj(r['bedienen']);
+  if (!aanRaw || !rolRaw || !insRaw || !bedRaw) return { fout: 'auto en laadpaal: aan, rol, instelling en bedienen zijn per apparaat' };
+  if (Object.keys(bedRaw).length > 20) return { fout: 'auto en laadpaal: te veel apparaten' };
+  const bedienen: Record<string, boolean> = {};
+  for (const [id, v] of Object.entries(bedRaw)) {
+    if (!ID.test(id) || typeof v !== 'boolean') return { fout: 'auto en laadpaal: bedienen is per apparaat ja of nee' };
+    if (v) bedienen[id] = true;
+  }
   if (Object.keys(aanRaw).length > 40 || Object.keys(rolRaw).length > 20 || Object.keys(insRaw).length > 20) return { fout: 'auto en laadpaal: te veel apparaten' };
   const aan: Record<string, boolean> = {};
   for (const [id, v] of Object.entries(aanRaw)) {
@@ -566,6 +658,6 @@ export function leesLaden(raw: unknown): { keuze: LadenKeuze | null } | { fout: 
     if (plek !== null && !AUTO_PLEKKEN.includes(plek as AutoPlek)) return { fout: 'de auto staat op de oprit, onder de carport of in de garage' };
     instelling[id] = { accuKWh: accu === null ? null : Math.round((accu as number) * 10) / 10, laadpaal: paal as string | null, plek: plek as AutoPlek | null };
   }
-  if (!Object.keys(aan).length && !Object.keys(rol).length && !Object.keys(instelling).length) return { keuze: null };
-  return { keuze: { aan, rol, instelling } };
+  if (!Object.keys(aan).length && !Object.keys(rol).length && !Object.keys(instelling).length && !Object.keys(bedienen).length) return { keuze: null };
+  return { keuze: { aan, rol, instelling, ...(Object.keys(bedienen).length ? { bedienen } : {}) } };
 }

@@ -1,8 +1,9 @@
 # Auto en laadpaal: het bouwplan
 
 Stand 6 november 2026. Het ontwerp is besloten ([besluit 259](../DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp));
-stap 1 is gebouwd in 0.131.0, stap 2 in 0.132.0, stap 3 in 0.133.0 en stap 4
-in 0.135.0 (zie "wat er gebouwd is"), de rest nog niet. Dit document is de overdracht: alles wat nodig is
+stap 1 is gebouwd in 0.131.0, stap 2 in 0.132.0, stap 3 in 0.133.0, stap 4
+in 0.135.0 en stap 5 in 0.136.0 (zie "wat er gebouwd is"); stap 6, de
+meldingen, nog niet. Dit document is de overdracht: alles wat nodig is
 om het in een nieuwe sessie op te pakken, zonder het gesprek van 6 november.
 
 ## Waarom
@@ -277,6 +278,45 @@ lijst in `client.ts`). Laden wordt er een, naar het voorbeeld van `isHandCall`:
   in stap 5.
 - De bewaking per fase uit de testerronde (stap 7, de schets van een kaart
   per fase) is nog niet gebouwd; het advies leest de fasen zelf.
+
+## Stap 5: wat er gebouwd is (0.136.0, besluit 262)
+
+- **Herkennen** (`opslag.ts`, `laadBedieningen`): per auto het apparaat met de
+  knoppen, de laadpaal eerst en anders de auto. De stroom: een `number` in A,
+  bij voorkeur met dynamic, charg, laad, current of amp in de naam en niet
+  circuit, fase of min; onder 6 A begint het bij 6. Pauzeren: een `switch`
+  met charg, laad, pause of resume (bij alleen "pause" is aan de pauze), of
+  anders een paar knoppen (pause/stop en resume/start). Klimaat, klep, schema
+  en herstart vallen af.
+- **Mag het:** `bedienen` per apparaat in `aansluiting.json` onder `laden`
+  (weg is nee); bij Energie de schakelaar "SunArc mag … bedienen" bij het
+  apparaat dat het kan. Met evcc in huis nooit.
+- **De dienst** (`laadhand.ts`, `Laadhand`): `zet` (stroom of pauze, met
+  `tot` uur, tijd, pct of kabel), `terugNu`, en elke minuut `ronde`. Terug
+  alleen wat nog staat zoals de app het zette; bij knoppen hervat hij als de
+  auto niet laadt en de kabel erin zit. Bewaard in `laadhand.json`. De grens
+  op de zekering komt uit `zekeringVoor` in `main.ts`.
+- **De deur:** `isLaadCall` in `client.ts`, met `laadMag()` als lijst: wat mag,
+  en wat er nog terug moet (ook onder 6 A, zoals het stond).
+- **`api/laden`:** GET per auto `stroom`, `pauze`, `mag`, `evcc`,
+  `zekeringA` en `actief`, met `aan: false` op de NAS; POST `{ auto, stroomA
+  | pauze, tot, totMs?, pct? }` of `{ auto, terug: true }`. Voor de rol
+  bewoner.
+- **De pagina:** het blad Laden (de lagen van het blad bij Apparaten): de
+  stroom met min en plus en een balk met wat op zon past en wat de zekering
+  toelaat, hoe lang, wat erna gebeurt, Pauzeer of Terug naar de laadpaal, en
+  Laad met n A. Op de telefoon een regel onder het advies; op de wand een rij
+  in de kaart van de laadpaal (daar zonder vermogen en "kan", die staan bij de
+  auto en in het blad; de wand scrolt nooit). `auto.html?laden#id` opent het
+  blad meteen.
+- **Laad met 8 A** bij het advies, op de pagina en op Thuis (met Meer keuzes),
+  tot de kabel eruit gaat; niet bij "start" (dan laadt de auto niet, en zet
+  een stroom hem niet aan).
+- **Het voorbeeldhuis:** de laadpaal heeft `number.laadpaal_laadstroom` (6 tot
+  16 A) en `switch.laadpaal_laden`, en laadt met die stroom; bedienen staat
+  daar aan.
+- **Nog niet:** de eigen dienst van Easee, de stand van evcc, de balk van de
+  dag in het blad (zon, goedkope uren, tot wanneer), en de assistent.
 
 ## De stappen, elk een eigen versie
 

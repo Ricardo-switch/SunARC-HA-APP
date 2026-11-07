@@ -45,6 +45,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [184. De integratie Smart Climate: Assist zonder YAML](#184-de-integratie-smart-climate-assist-zonder-yaml)
 - [210. De klimaatbrug: tot stap B via de knoppen van het oude systeem](#210-de-klimaatbrug-tot-stap-b-via-de-knoppen-van-het-oude-systeem)
 - [235. Klimaat met de hand: elk apparaat, via de knop of direct, met een eindtijd](#235-klimaat-met-de-hand-elk-apparaat-via-de-knop-of-direct-met-een-eindtijd)
+- [262. Laden met de hand: een smalle deur naar de laadpaal](#262-laden-met-de-hand-een-smalle-deur-naar-de-laadpaal)
 
 **Kern en regeling**
 
@@ -12290,6 +12291,48 @@ waarom.
   per vlak (besluit 256, nagekomen).
 - **De rondleiding** van Daken en panelen heeft er een stop bij: Wat kan bij
   jouw huis, de kaarten en zelf blokken schuiven.
+
+---
+
+## 262. Laden met de hand: een smalle deur naar de laadpaal
+
+*Onderwerp: visie en principes · Status: geldig*
+
+7 november 2026, stap 5 van [259]. Het ontwerp koos laden met de hand, zoals
+klimaat met de hand (235), en zei dat de schrijfgrens er een eigen besluit
+voor krijgt. Tot nu toe schreef de app niets naar een auto of laadpaal.
+
+*Besluit:*
+
+- **Wat er door de deur mag** (`isLaadCall` in `client.ts`): `number.set_value`
+  op het getal voor de hoogste laadstroom, binnen het bereik van dat getal;
+  `switch.turn_on` of `turn_off` op de laadschakelaar; `button.press` op een
+  pauze- of hervatknop. Precies die velden, op één entiteit. Verder niets: geen
+  klimaat, geen laadgrens, geen klep, geen schema van de auto.
+- **Alleen als de bewoner het toeliet:** bij Energie › Auto en laadpaal staat
+  bij het apparaat dat het kan "SunArc mag … bedienen". Weg is nee. Is evcc er,
+  dan regelt evcc het laden en bedient SunArc de laadpaal niet.
+- **Alleen in de add-on** (en het voorbeeldhuis), zoals de andere deuren; de
+  NAS kijkt mee en laat het blad zonder knoppen zien.
+- **Grenzen:** nooit buiten het bereik van de laadpaal, en nooit boven wat er
+  op de zekering past: de stroom die de auto nu neemt plus de ruimte op de
+  drukste fase, en nooit boven de zekering min de marge. Zonder meting per fase
+  de zekering min de marge.
+- **Altijd met een eind:** een uur, tot een tijd, tot een % (nooit boven de
+  laadgrens van de auto) of tot de kabel eruit gaat; hooguit twee dagen. Dan
+  terug naar de stroom van daarvoor en weer laden, maar alleen als het nog
+  staat zoals de app het zette: wie intussen zelf iets verzette, wint. Wat
+  terug moet staat in `laadhand.json`; wat terug moet, mag ook door de deur als
+  het bedienen intussen uit ging.
+- **De stroom gaat met de hand niet vanzelf omlaag** bij een wolk. Automatisch
+  op zon blijft voor B (85).
+- **Waar:** het blad Laden op de pagina Auto (op de wand een rij in de kaart
+  van de laadpaal, op de telefoon een regel onder het advies), en "Laad met
+  8 A" op de advieskaart, tot de kabel eruit gaat.
+- **Versie 0.136.0.**
+
+*Nog niet:* de eigen dienst van Easee (`easee.set_charger_dynamic_limit`), de
+stand van evcc, en de assistent die laden met de hand doet.
 
 ---
 

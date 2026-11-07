@@ -205,7 +205,7 @@ const TOESTELLEN: readonly Toestel[] = [
     platform: 'volkswagen_we_connect_id',
     entiteiten: [['sensor.auto_lading', meter('battery', 'Lading')], ['sensor.auto_bereik', meter('distance', 'Bereik')], ['binary_sensor.auto_laadt', meter('battery_charging', 'Laadt')], ['binary_sensor.auto_stekker', meter('plug', 'Stekker')], ['number.auto_laadgrens', meter('', 'Laadgrens')], ['device_tracker.auto', meter('', 'Plek')]],
   },
-  { id: 'd-laadpaal', naam: 'Laadpaal', ruimte: 'oprit', merk: 'Easee', platform: 'easee', entiteiten: [['sensor.laadpaal_vermogen', meter('power', 'Vermogen')], ['sensor.laadpaal_status', meter('', 'Status')], ['sensor.laadpaal_stroom_l1', meter('current', 'Stroom L1')]] },
+  { id: 'd-laadpaal', naam: 'Laadpaal', ruimte: 'oprit', merk: 'Easee', platform: 'easee', entiteiten: [['sensor.laadpaal_vermogen', meter('power', 'Vermogen')], ['sensor.laadpaal_status', meter('', 'Status')], ['sensor.laadpaal_stroom_l1', meter('current', 'Stroom L1')], ['number.laadpaal_laadstroom', meter('', 'Laadstroom')], ['switch.laadpaal_laden', meter('', 'Laden')]] },
   {
     id: 'd-p1',
     naam: 'P1-meter',
@@ -244,6 +244,7 @@ const ENGELS: Readonly<Record<string, string>> = {
   Sfeerlamp: 'Mood light', 'Thermostaat badkamer': 'Bathroom thermostat', Thuisbatterij: 'Home battery', Tuinverlichting: 'Garden lights', Warmtepomp: 'Heat pump',
   'Op afstand starten': 'Remote start', 'Start of pauze': 'Start or pause', Status: 'Status', Lading: 'Charge', Laadt: 'Charging', 'Stroom fase 1': 'Current phase 1', 'Stroom fase 2': 'Current phase 2', 'Stroom fase 3': 'Current phase 3',
   Bereik: 'Range', Programmaduur: 'Programme duration', 'Afname totaal': 'Import total', 'Opbrengst totaal': 'Production total', 'Teruglevering totaal': 'Export total', Luchtvochtigheid: 'Humidity',
+  Laadstroom: 'Charging current', Laden: 'Charging',
   Beweging: 'Motion', Bezoeker: 'Visitor', Stekker: 'Plug', 'Batterij vermogen': 'Battery power', Vermogen: 'Power', Temperatuur: 'Temperature', 'Spanning fase 1': 'Voltage phase 1', 'Spanning fase 2': 'Voltage phase 2', 'Spanning fase 3': 'Voltage phase 3',
   'Temperatuur buiten': 'Outdoor temperature', Thuis: 'Home', Boodschappen: 'Shopping', Melk: 'Milk', Brood: 'Bread', Appels: 'Apples', 'To-do': 'To-do', 'Woonkamer Avond': 'Living room Evening', 'Woonkamer Helder': 'Living room Bright',
 };
@@ -380,17 +381,23 @@ export function staten(klok: Klok, ingrepen: Ingrepen, nuMs: number): HaEntitySt
   zet('sensor.thuisbatterij_vermogen', m.batterijW, { unit_of_measurement: 'W', device_class: 'power' });
   zet('sensor.auto_lading', m.autoPct, { unit_of_measurement: '%', device_class: 'battery' });
   zet('sensor.auto_bereik', Math.round(m.autoPct * 3.9), { unit_of_measurement: 'km', device_class: 'distance' });
-  zet('binary_sensor.auto_laadt', m.autoLaadt ? 'on' : 'off', { device_class: 'battery_charging' });
   // 's Avonds is de auto even weg; om negen uur gaat de kabel er weer in.
   zet('binary_sensor.auto_stekker', m.autoWeg ? 'off' : 'on', { device_class: 'plug' }, m.autoWeg ? om(1110) : om(1260));
   zet('number.auto_laadgrens', AUTO_GRENS, { unit_of_measurement: '%', min: 50, max: 100, step: 5 });
   zet('device_tracker.auto', m.autoWeg ? 'not_home' : 'home', { source_type: 'gps' }, m.autoWeg ? om(1110) : om(1260));
-  zet('sensor.laadpaal_vermogen', m.autoLaadt ? 1400 : 0, { unit_of_measurement: 'W', device_class: 'power' });
-  zet('sensor.laadpaal_stroom_l1', m.autoLaadt ? 6.1 : 0, { unit_of_measurement: 'A', device_class: 'current' });
-  zet('sensor.laadpaal_status', m.autoLaadt ? 'charging' : m.autoWeg ? 'disconnected' : m.autoPct >= AUTO_GRENS ? 'completed' : 'connected', {});
+  // Met de hand (besluit 262): de laadstroom en de schakelaar van de laadpaal; zonder ingreep 6 A en aan.
+  const laadA = Math.round(Number(ingrepen.get('number.laadpaal_laadstroom')?.state ?? 6)) || 6;
+  const laadtNu = m.autoLaadt && ingrepen.get('switch.laadpaal_laden')?.state !== 'off';
+  const autoW = laadtNu ? laadA * 230 : 0;
+  zet('number.laadpaal_laadstroom', 6, { unit_of_measurement: 'A', min: 6, max: 16, step: 1, mode: 'slider' });
+  zet('switch.laadpaal_laden', 'on', {});
+  zet('binary_sensor.auto_laadt', laadtNu ? 'on' : 'off', { device_class: 'battery_charging' });
+  zet('sensor.laadpaal_vermogen', autoW, { unit_of_measurement: 'W', device_class: 'power' });
+  zet('sensor.laadpaal_stroom_l1', laadtNu ? laadA + 0.1 : 0, { unit_of_measurement: 'A', device_class: 'current' });
+  zet('sensor.laadpaal_status', laadtNu ? 'charging' : m.autoWeg ? 'disconnected' : m.autoPct >= AUTO_GRENS ? 'completed' : m.autoLaadt ? 'paused' : 'connected', {});
 
   // Het net: wat het huis vraagt, min de zon, min de batterij.
-  const netW = Math.round(m.huisW + (m.autoLaadt ? 1400 : 0) + m.batterijW - m.zonW);
+  const netW = Math.round(m.huisW + autoW + m.batterijW - m.zonW);
   zet('sensor.p1_vermogen', netW, { unit_of_measurement: 'W', device_class: 'power', state_class: 'measurement' });
   for (const f of [1, 2, 3]) {
     zet(`sensor.p1_stroom_fase_${f}`, Math.abs(netW / 3 / 230).toFixed(1), { unit_of_measurement: 'A', device_class: 'current' });

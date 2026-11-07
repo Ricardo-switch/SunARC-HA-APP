@@ -108,6 +108,8 @@ function zonAdvies(a: Auto, c: AdviesContext): ZonAdvies | null {
   const perA = VOLT * fasen;
   // Wat er op elke fase nog bij kan (de veilige kant: de auto kan op elke fase zitten).
   const ruimte = c.fasen?.length ? Math.min(...c.fasen.map((f) => f.grensA - f.stroomA)) : null;
+  // Nooit boven de zekering zelf, ook als er op een fase minder loopt dan de auto neemt.
+  const grens = c.fasen?.length ? Math.min(...c.fasen.map((f) => f.grensA)) : Infinity;
   const over = c.fasen?.length ? Math.min(...c.fasen.map((f) => f.zekeringA - f.stroomA)) : null;
   const zekering = c.fasen?.length ? { fasen: c.fasen.length, ampere: Math.max(...c.fasen.map((f) => f.zekeringA)) } : null;
   const vol = a.pct != null && a.pct >= (a.laadgrens ?? 100) - 1;
@@ -118,7 +120,7 @@ function zonAdvies(a: Auto, c: AdviesContext): ZonAdvies | null {
     const nuA = Math.round(Math.max(...gemeten));
     // Wat de auto op zon kan nemen: wat hij nu neemt, plus wat er teruggaat (of min wat er van het net komt).
     const zonA = Math.floor((a.vermogenW - c.netW) / perA + 0.1);
-    const kap = Math.min(max, ruimte != null ? Math.floor(nuA + ruimte) : Infinity);
+    const kap = Math.min(max, grens, ruimte != null ? Math.floor(nuA + ruimte) : Infinity);
     if (c.netW < 0 && zonA >= nuA + 1) {
       const metA = Math.min(zonA, kap);
       if (metA < nuA + 1) return null;
@@ -131,7 +133,7 @@ function zonAdvies(a: Auto, c: AdviesContext): ZonAdvies | null {
   }
   if (a.aangesloten !== true || vol || c.netW >= 0) return null;
   const zonA = Math.floor(-c.netW / perA + 0.1);
-  const metA = Math.min(zonA, max, ruimte != null ? Math.floor(ruimte) : Infinity);
+  const metA = Math.min(zonA, max, grens, ruimte != null ? Math.floor(ruimte) : Infinity);
   if (metA < min) return null;
   return { soort: 'start', kW: rond1(-c.netW / 1000), nuA: null, metA, fasen, overA: over != null ? Math.floor(over - metA) : null, zekering };
 }

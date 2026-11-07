@@ -1,6 +1,8 @@
 /*
  * Energie › Auto en laadpaal (besluit 259, schets Wand-Energie-Auto): hier
- * stel je in; kijken en bedienen komt op de pagina Auto (stap 2 en 5). Links
+ * stel je in; kijken en bedienen gebeurt op de pagina Auto. Of SunArc een
+ * laadpaal met de hand mag bedienen, zet je hier aan (`bedienen`, besluit
+ * 262), bij het apparaat dat het kan; weg is nee. Links
  * wat de app in Home Assistant vond, elk met een schakelaar, en een ander
  * apparaat kiezen. Rechts per auto de accu, aan welke laadpaal hij laadt en
  * waar hij in de tekening staat (ook de garage, idee 123).
@@ -18,6 +20,7 @@ const laden = (() => {
 
   /** De keuzes zoals ze nu zijn; leeg als er nog niets gekozen is. */
   const keuzeVan = (a) => (a.laden ??= { aan: {}, rol: {}, instelling: {} });
+  const bedienenVan = (a) => (keuzeVan(a).bedienen ??= {});
   const leeg = { accuKWh: null, laadpaal: null, plek: null };
   const instelling = (a, id) => ({ ...leeg, ...(keuzeVan(a).instelling[id] ?? {}) });
   const lijst = (info) => info?.laden?.apparaten ?? [];
@@ -50,6 +53,16 @@ const laden = (() => {
     return `<select class="invoer" data-laad-kies aria-label="${esc(label)}"><option value="">${esc(label)}</option>${k.map((x) => `<option value="${esc(x.id)}">${esc(x.naam)}</option>`).join('')}</select>`;
   }
 
+  /** Mag SunArc hem met de hand bedienen (besluit 262)? Alleen bij een apparaat dat het kan. */
+  function bedienBlok(info, x) {
+    if (!x.kanBedienen) return '';
+    const z = info.configuratie?.zekering;
+    const zin = info.laden.evcc.length
+      ? t('laden.bedienenEvcc')
+      : [t('laden.bedienenZin'), x.stroomA ? t('laden.bedienenGrens', { max: x.stroomA.max }) : '', z ? t('laden.bedienenZekering', { fasen: z.fasen, ampere: z.ampere }) : ''].filter(Boolean).join(' ');
+    return `<div class="ld-schakel"><div><b>${esc(t('laden.bedienen', { naam: x.naam }))}</b><span class="mini">${esc(zin)}</span></div><button type="button" class="schakelaar" role="switch" aria-checked="${x.bedienen === true}" aria-label="${esc(t('laden.bedienen', { naam: x.naam }))}" data-laad="bedienen" data-id="${esc(x.id)}" ${info.laden.evcc.length ? 'disabled' : ''}></button></div>`;
+  }
+
   /** Rechts: wat je bij het gekozen apparaat instelt. */
   function instellen(info, a, x, staat) {
     const autos = aan(info).filter((y) => y.rol === 'auto');
@@ -64,11 +77,11 @@ const laden = (() => {
         <label class="veldnaam">${esc(t('laden.accu'))}<span class="ld-met"><input class="invoer" type="number" inputmode="decimal" min="5" max="250" step="0.1" data-laad-accu="${esc(x.id)}" value="${i.accuKWh ?? ''}" placeholder="${esc(t('laden.accuVoorbeeld'))}"><span>kWh</span></span></label>
         <p class="mini">${esc(t('laden.accuUitleg'))}</p>
         ${palen.length ? `<label class="veldnaam">${esc(t('laden.laadtAan'))}<select class="invoer" data-laad-paal="${esc(x.id)}">${paalOpties.map(([w, tekst]) => `<option value="${esc(w)}" ${(i.laadpaal ?? '') === w ? 'selected' : ''}>${esc(tekst)}</option>`).join('')}</select></label>` : ''}
-        ${plek}`;
+        ${plek}${bedienBlok(info, x)}`;
     }
     // Een laadpaal: wat hij kan, en zonder auto in Home Assistant ook de plek.
     const kan = x.stroomA ? t('laden.paalKan', { min: x.stroomA.min, max: x.stroomA.max }) : t('laden.paalKanNiet');
-    return `${rol}<div class="ld-vraag"><b>${esc(t('laden.watHijKan'))}</b><p class="uitleg" style="margin: 0">${esc(kan)}</p><p class="mini">${esc(t('laden.bedienenLater'))}</p></div>${autos.length ? '' : plek}`;
+    return `${rol}<div class="ld-vraag"><b>${esc(t('laden.watHijKan'))}</b><p class="uitleg" style="margin: 0">${esc(kan)}</p></div>${bedienBlok(info, x)}${autos.length ? '' : plek}`;
   }
 
   function vorm(info, a, staat) {
@@ -105,6 +118,12 @@ const laden = (() => {
       // Wat de app vond, staat zonder keuze aan; uit is een keuze.
       if (!nu && !zelf) delete k.aan[id];
       else k.aan[id] = !nu;
+      return true;
+    }
+    if (laad === 'bedienen') {
+      const b = bedienenVan(a);
+      if (knop.getAttribute('aria-checked') === 'true') delete b[id];
+      else b[id] = true;
       return true;
     }
     if (laad === 'rol') {

@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.135.0';
+export const VERSIE = '0.136.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,28 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.136.0',
+    datum: '2026-11-07',
+    nieuw: [
+      'Laden met de hand op de pagina Auto: de hoogste stroom per fase of pauzeren, voor een uur, tot een tijd, tot een % of tot de kabel eruit gaat. Daarna kiest de laadpaal weer zelf',
+      'Laad met 8 A met één tik op de advieskaart, als er meer zon over is',
+      'Bij Energie › Auto en laadpaal zet je aan of SunArc de laadpaal mag bedienen; nooit boven de laadpaal of je zekering',
+    ],
+    beter: [
+      'Bij Zelf tekenen opent Teken je huis meteen je huis om te schuiven, te draaien en op maat te zetten, en de tekening zegt dat je op de naam van een gebouw tikt',
+    ],
+    en: {
+      nieuw: [
+        'Charging by hand on the Car page: the highest current per phase or pausing, for an hour, until a time, until a % or until the cable comes out. After that the charger decides again',
+        'Charge at 8 A with one tap on the advice card, when there is more solar to spare',
+        'In Energy › Car and charger you allow SunArc to control the charger; never above the charger or your main fuse',
+      ],
+      beter: [
+        "Under Draw it yourself, Draw your house opens your house right away to move, turn and resize it, and the drawing says to tap a building's name",
+      ],
+    },
+  },
   {
     versie: '0.135.0',
     datum: '2026-11-07',

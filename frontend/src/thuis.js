@@ -583,6 +583,8 @@ let sluip = null;
 let sluipOp = 0;
 /** Het advies per auto (besluit 259, stap 4): alleen met de kaart van de auto op Thuis. */
 let laadAdvies = null;
+/** Laden met de hand (besluit 262): of "Laad met 8 A" kan. */
+let ladenNu = null;
 let verbruikOp = 0;
 const staatErin = (id) => $$(`[data-kaart="${id}"]`).some((el) => !el.hasAttribute('data-uit'));
 const kw = (w) => `${getal(Math.abs(w) / 1000, 1)} kW`;
@@ -637,11 +639,9 @@ async function kaartGegevens() {
     cameras = null;
   }
   if (staatErin('auto')) {
-    try {
-      laadAdvies = (await haal('api/laadadvies')).adviezen ?? null;
-    } catch {
-      // Dan wat er al was.
-    }
+    const [ad, ld] = await Promise.allSettled([haal('api/laadadvies'), haal('api/laden')]);
+    if (ad.status === 'fulfilled') laadAdvies = ad.value?.adviezen ?? null;
+    if (ld.status === 'fulfilled') ladenNu = ld.value ?? null;
   }
   // Zonder panelen (besluit 196): wat het huis vandaag gebruikte, en de goedkope uren; hooguit elke tien minuten.
   if (app.huisSoort()?.zon === false && staatErin('vandaag') && nu - verbruikOp > 10 * 60_000) {
@@ -735,7 +735,13 @@ function adviesHtml() {
   if (metZon) {
     const z = laadAdvies[a.id].zon;
     const groot = z.soort === 'minder' ? t('auto.advies.thuis.vanNet', { kw: getal(z.kW, 1) }) : t('auto.advies.thuis.zonOver', { kw: getal(z.kW, 1) });
-    return `<a class="laadadvies" href="${href}">${kop('zon', t(`auto.advies.${z.soort}.kop`))}<div class="groot">${esc(groot)}</div><p>${esc(t(`auto.advies.thuis.${z.soort}`, { naam: a.naam, nu: z.nuA ?? '', met: z.metA }))}</p></a>`;
+    const inhoud = `<div class="groot">${esc(groot)}</div><p>${esc(t(`auto.advies.thuis.${z.soort}`, { naam: a.naam, nu: z.nuA ?? '', met: z.metA }))}</p>`;
+    // Met één tik (besluit 262): alleen als SunArc de laadpaal mag bedienen, en niet als het al met de hand gaat.
+    const s = ladenNu?.aan ? ladenNu.autos?.find((x) => x.auto === a.id) : null;
+    if (s?.mag && s.stroom && !s.actief && z.soort !== 'start') {
+      return `<div class="laadadvies">${kop('zon', t(`auto.advies.${z.soort}.kop`)).replace('<h2', `<a class="koplink" href="${href}"><h2`).replace('</span></div>', '</span></a></div>')}${inhoud}<div class="knoppen"><button type="button" class="doe" data-laden-snel="${z.metA}" data-auto="${esc(a.id)}">${esc(t('auto.laden.laadMet', { a: z.metA }))}</button><a class="kijk" href="auto.html?laden#${encodeURIComponent(a.id)}">${esc(t('auto.laden.meerKeuzes'))}</a></div></div>`;
+    }
+    return `<a class="laadadvies" href="${href}">${kop('zon', t(`auto.advies.${z.soort}.kop`))}${inhoud}</a>`;
   }
   const g = laadAdvies[a.id].goedkoop;
   const van = Date.parse(g.van);
@@ -747,6 +753,27 @@ function adviesHtml() {
   ].filter(Boolean).join(' ');
   return `<a class="laadadvies paars" href="${href}">${kop('klok', t('auto.advies.thuis.goedkoopKop', { wanneer: wanneerBlok(van) }))}<div class="groot">${esc(groot)}</div><p>${esc(zin)}</p></a>`;
 }
+
+/** Laad met 8 A op de advieskaart (besluit 262): tot de kabel eruit gaat, daarna kiest de laadpaal weer zelf. */
+document.addEventListener('click', async (e) => {
+  const k = e.target.closest?.('[data-laden-snel]');
+  if (!k) return;
+  k.disabled = true;
+  const res = await app.deur('api/laden', { auto: k.dataset.auto, stroomA: Number(k.dataset.ladenSnel), tot: 'kabel' }).catch(() => null);
+  if (res?.ok) {
+    k.textContent = t('auto.laden.gezet', { a: k.dataset.ladenSnel });
+    try {
+      ladenNu = await haal('api/laden');
+      laadAdvies = (await haal('api/laadadvies')).adviezen ?? null;
+    } catch {
+      // De volgende keer.
+    }
+    setTimeout(() => zetAdvies(), 2500);
+  } else {
+    k.disabled = false;
+    k.textContent = (await res?.json().catch(() => null))?.fout ?? t('hand.lukteNiet');
+  }
+});
 
 /** Het advies staat direct boven de kaart van de auto, en alleen als die er staat. */
 function zetAdvies() {

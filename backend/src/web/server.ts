@@ -322,6 +322,8 @@ export class WebServer {
       (this.#d.options.hand != null && path === '/api/hand') ||
       // Witgoed starten (besluit 238): alleen Nu starten, op de startknop van het apparaat.
       (this.#d.options.witgoed != null && path === '/api/witgoed') ||
+      // Laden met de hand (besluit 262): de laadstroom of pauzeren, alleen bij laadpalen die de bewoner aanzette.
+      (this.#d.options.laden != null && path === '/api/laden') ||
       // Te doen (besluit 216): een herinnering in het eigen bestand, of iets op een lijst van Home Assistant. Een gast niet.
       (this.#d.options.tedoen != null && path === '/api/te-doen') ||
       // Scènes (besluit 100): een eigen smalle deur naast het licht.

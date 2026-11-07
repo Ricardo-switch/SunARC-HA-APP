@@ -12,8 +12,11 @@
  * Het advies (stap 4) komt ook apart (`api/laadadvies`): zon over en de
  * goedkoopste uren, alleen als het iets zegt; onder de auto.
  *
- * Instellen gebeurt bij Energie › Auto en laadpaal; bedienen komt in de
- * volgende stap (docs/auto-en-laadpaal.md).
+ * Laden met de hand (stap 5, besluit 262) gaat via het blad Laden en
+ * `api/laden`: de hoogste stroom of pauzeren, altijd met een eind; alleen als
+ * de bewoner het bij Energie aanzette, en alleen in de add-on.
+ *
+ * Instellen gebeurt bij Energie › Auto en laadpaal (docs/auto-en-laadpaal.md).
  */
 'use strict';
 
@@ -29,7 +32,7 @@ let adviezen = null;
 let gekozen = decodeURIComponent(location.hash.slice(1)) || null;
 
 async function laad() {
-  const [h, s, ad] = await Promise.allSettled([haal('api/huis'), haal('api/state'), haal('api/laadadvies')]);
+  const [h, s, ad] = await Promise.allSettled([haal('api/huis'), haal('api/state'), haal('api/laadadvies'), laadLaden()]);
   if (ad.status === 'fulfilled') adviezen = ad.value?.adviezen ?? null;
   if (h.status === 'fulfilled') {
     huisData = h.value;
@@ -243,14 +246,16 @@ function held(a) {
     </section>`;
 }
 
-/** De laadpaal: zijn stand, het vermogen en de stroom per fase. */
-function paalKaart(a) {
+/** De laadpaal: zijn stand, het vermogen en de stroom per fase; op de wand met de rij Laden erin. */
+function paalKaart(a, metLaden = false) {
   if (a.paalNaam == null) {
     return `<section class="glas kaart"><h2>${esc(t('auto.paal.geen'))}</h2><p class="onder">${esc(t('auto.paal.geenZin'))}</p></section>`;
   }
   // Is de auto weg, dan is de laadpaal vrij; een laadpaal is niet onderweg.
   const s = a.thuis === false ? { tekst: t('auto.paal.vrij'), kleur: 'var(--zacht)' } : stand(a);
   const max = Math.max(a.paalStroomA?.max ?? 16, ...(a.stroomA ?? [0]));
+  // Op de wand met de rij Laden: het vermogen staat al groot bij de auto, en wat hij kan in het blad.
+  const rij = metLaden ? ladenRij(a) : '';
   const kleur = ['zon', 'deels'].includes(bron(a)) ? 'var(--zon)' : a.laadt ? 'var(--ijs)' : 'rgb(var(--wit) / 0.3)';
   const fasen = a.stroomA
     ? `<div class="fasen"><span>${esc(t(a.stroomA.length > 1 ? 'auto.paal.stroom' : 'auto.paal.stroomEen'))}</span>${a.stroomA
@@ -260,9 +265,10 @@ function paalKaart(a) {
   return `<section class="glas kaart">
       <h2>${esc(a.paalNaam)}</h2><p class="onder">${esc(huismodelZin([a.paalNaam === t('auto.paal.kop') ? '' : t('auto.paal.kop'), plekWoord(a)]))}</p>
       <div class="regel"><span>${esc(t('auto.paal.stand'))}</span><b style="color: ${s.kleur === 'var(--zacht)' ? 'var(--tekst)' : s.kleur}">${esc(s.tekst)}</b></div>
-      <div class="regel"><span>${esc(t('auto.paal.vermogen'))}</span><b>${a.vermogenW != null ? `${nl(a.vermogenW / 1000)} kW` : esc(t('auto.paal.nietGemeten'))}</b></div>
+      ${rij}
+      ${rij ? '' : `<div class="regel"><span>${esc(t('auto.paal.vermogen'))}</span><b>${a.vermogenW != null ? `${nl(a.vermogenW / 1000)} kW` : esc(t('auto.paal.nietGemeten'))}</b></div>`}
       ${fasen}
-      ${a.paalStroomA ? `<p class="kan">${esc(t('laden.paalKan', { min: nl(a.paalStroomA.min, 0), max: nl(a.paalStroomA.max, 0) }))}</p>` : ''}
+      ${a.paalStroomA && !rij ? `<p class="kan">${esc(t('laden.paalKan', { min: nl(a.paalStroomA.min, 0), max: nl(a.paalStroomA.max, 0) }))}</p>` : ''}
     </section>`;
 }
 
@@ -299,13 +305,216 @@ function goedkoopZin(g, a) {
 function adviesKaart(a) {
   const ad = adviezen?.[a.id];
   const delen = [];
-  if (ad?.zon) delen.push(`<div class="zon"><span class="ik">${SVG('zon')}</span><div><b>${esc(t(`auto.advies.${ad.zon.soort}.kop`))}</b><span>${esc(zonZin(ad.zon))}</span></div></div>`);
+  if (ad?.zon) delen.push(`<div class="zon"><span class="ik">${SVG('zon')}</span><div><b>${esc(t(`auto.advies.${ad.zon.soort}.kop`))}</b><span>${esc(zonZin(ad.zon))}</span>${snelKnop(a, ad.zon)}</div></div>`);
   if (ad?.goedkoop) {
     const g = ad.goedkoop;
     const kop = t('auto.advies.goedkoop.kop', { wanneer: wanneerBlok(Date.parse(g.van)), van: klokVan(Date.parse(g.van)), tot: klokVan(Date.parse(g.tot)) });
     delen.push(`<div class="goedkoop"><span class="ik">${SVG('klok')}</span><div><b>${esc(kop)}</b><span>${esc(goedkoopZin(g, a))}</span></div></div>`);
   }
   return delen.length ? `<section class="glas advies${delen.length === 1 ? ' een' : ''}" data-advies>${delen.join('')}</section>` : '';
+}
+
+/* ---- laden met de hand (stap 5, besluit 262; het blad Laden) ---- */
+
+/** Per auto wat er met de hand kan en wat er loopt (`api/laden`); `aan` is false op de NAS. */
+let laden = null;
+/** Het blad Laden: open voor een auto, met wat er gekozen is; null als het dicht is. */
+let blad = null;
+let ladenFout = '';
+
+async function laadLaden() {
+  try {
+    laden = await haal('api/laden');
+  } catch {
+    // Dan wat er al was.
+  }
+}
+
+const standVan = (id) => laden?.autos?.find((x) => x.auto === id) ?? null;
+/** Op hoeveel fasen hij laadt: wat nu stroom krijgt, anders wat de laadpaal meet. */
+const fasenVan = (a) => {
+  const aan = (a.stroomA ?? []).filter((x) => x >= 0.5).length;
+  return a.laadt && aan ? aan : Math.max(1, a.stroomA?.length ?? 1);
+};
+const kwBij = (a, stroomA) => nl((stroomA * 230 * fasenVan(a)) / 1000);
+/** De stroom van nu per fase: wat de laadpaal meet, anders waar het getal op staat. */
+const nuA = (a, s) => (a.laadt && (a.stroomA ?? []).some((x) => x >= 0.5) ? Math.round(Math.max(...a.stroomA)) : s?.stroom?.nuA ?? null);
+/** Tot hoeveel A het op zon past, uit het advies, of wat hij nu neemt als het al op zon gaat. */
+function opZonTot(a, s) {
+  const z = adviezen?.[a.id]?.zon;
+  if (z) return z.metA;
+  return a.laadt && bron(a) === 'zon' ? nuA(a, s) : null;
+}
+/** De hoogste stroom die nu kan: de laadpaal, en de zekering. */
+const hoogste = (s) => Math.min(s.stroom.max, s.zekeringA ?? Infinity);
+/** "Tot een tijd": drie uur vooruit, op het hele uur. */
+const tijdKeuze = () => Math.ceil((Date.now() + 3 * 3_600_000) / 3_600_000) * 3_600_000;
+
+/** Wat er nu met de hand loopt, of wat de laadpaal doet, in een paar woorden. */
+function ladenNuZin(a, s) {
+  const x = s?.actief;
+  if (x) {
+    const tot = x.tot === 'pct' ? t('auto.laden.totPctKort', { pct: x.pct }) : x.tot === 'kabel' ? t('auto.laden.totKabelKort') : t('auto.laden.totKlokKort', { tijd: klokVan(x.totMs) });
+    return x.pauze ? t('auto.laden.handPauze', { tot }) : t('auto.laden.handStroom', { a: x.stroomA, tot });
+  }
+  const a0 = nuA(a, s);
+  const delen = [t('auto.laden.paalZelf'), a0 != null ? `${a0} A` : '', a.kabelSinds ? t('auto.laden.kabelSinds', { tijd: geweest(a.kabelSinds) }) : ''];
+  return delen.filter(Boolean).join(' · ');
+}
+
+/** Op de wand: een rij in de kaart van de laadpaal die het blad opent (de wand scrolt nooit). */
+function ladenRij(a) {
+  const s = standVan(a.id);
+  if (!s || (!s.stroom && !s.pauze)) return '';
+  return `<button type="button" class="regel ladenrij" data-laden-open><span>${esc(t('auto.laden.kop'))}</span><b>${esc(ladenNuZin(a, s))} ›</b></button>`;
+}
+
+/** De regel die het blad opent, op de telefoon onder het advies. */
+function ladenRegel(a) {
+  const s = standVan(a.id);
+  if (!s || (!s.stroom && !s.pauze)) return '';
+  return `<button type="button" class="glas kaart ladenregel" data-laden-open><div><b>${esc(t('auto.laden.kop'))}</b><span>${esc(ladenNuZin(a, s))}</span></div><span class="pijl" aria-hidden="true">›</span></button>`;
+}
+
+function openBlad(a) {
+  const s = standVan(a.id);
+  if (!s) return;
+  const x = s.actief;
+  const voorstel = adviezen?.[a.id]?.zon?.metA ?? nuA(a, s) ?? s.stroom?.min ?? 6;
+  const pctStart = a.pct != null ? Math.min(a.laadgrens ?? 100, Math.ceil((a.pct + 10) / 5) * 5) : null;
+  blad = {
+    auto: a.id,
+    stroomA: s.stroom ? Math.max(s.stroom.min, Math.min(hoogste(s), x?.stroomA ?? voorstel)) : null,
+    tot: x?.tot ?? 'kabel',
+    totMs: x?.tot === 'tijd' ? x.totMs : tijdKeuze(),
+    pct: x?.pct ?? pctStart,
+  };
+  ladenFout = '';
+  tekenBlad();
+}
+
+/** Waarom er niets te bedienen is: de NAS, evcc, of nog niet aangezet bij Energie. */
+function nietZin(s, a) {
+  if (!laden?.aan) return t('auto.laden.alleenAddon');
+  if (s.evcc) return t('laden.bedienenEvcc');
+  if (!s.mag) return t('auto.laden.nietAan');
+  if (a.thuis === false || a.aangesloten === false) return t('auto.laden.geenKabel');
+  return '';
+}
+
+function bladHtml(a, s) {
+  const b = blad;
+  const niet = nietZin(s, a);
+  const kop = `<div class="hand-boven"><div><h2>${esc(t('auto.laden.kop'))}</h2><p class="nu">${esc(ladenNuZin(a, s))}</p></div><button type="button" class="sluit" data-laden-sluit aria-label="${esc(t('algemeen.sluiten'))}">×</button></div>`;
+  const kan = [s.stroom ? t('laden.paalKan', { min: s.stroom.min, max: s.stroom.max }) : '', s.pauze ? t('auto.laden.kanPauze') : ''].filter(Boolean).join(' ');
+  const kanRegel = `<p class="kan">${esc(`${a.paalNaam ?? a.naam}: ${kan}`)} <a href="energie.html#auto">${esc(t('auto.laden.instellen'))}</a></p>`;
+  if (niet) return `${kop}<div class="hand-hoe">${esc(niet)}</div>${kanRegel}`;
+  let stroom = '';
+  if (s.stroom && b.stroomA != null) {
+    const max = hoogste(s);
+    const zon = opZonTot(a, s);
+    const opZon = zon != null && b.stroomA <= zon;
+    const span = (x) => (((x - s.stroom.min) / Math.max(1, s.stroom.max - s.stroom.min)) * 100).toFixed(1);
+    const zonDeel = zon != null && zon > s.stroom.min ? `<i class="zon" style="left: 0; width: ${span(Math.min(zon, s.stroom.max))}%"></i>` : '';
+    const dicht = max < s.stroom.max ? `<i class="dicht" style="left: ${span(max)}%; right: 0"></i>` : '';
+    stroom = `<div class="vraag"><span>${esc(t('auto.laden.hoogste'))}</span>
+        <div class="stroom"><button type="button" data-laden-stroom="-1" aria-label="${esc(t('auto.laden.minder'))}" ${b.stroomA <= s.stroom.min ? 'disabled' : ''}>−</button><div class="getal"><b>${b.stroomA}<small>A</small></b><span>${esc(kwBij(a, b.stroomA))} kW${zon != null ? ` · ${esc(t(opZon ? 'auto.laden.opZon' : 'auto.laden.deelsNet'))}` : ''}</span></div><button type="button" data-laden-stroom="1" aria-label="${esc(t('auto.laden.meer'))}" ${b.stroomA >= max ? 'disabled' : ''}>+</button></div>
+        <div class="schaal">${zonDeel}${dicht}<b style="left: ${span(b.stroomA)}%"></b></div>
+        <div class="schaal-as"><span>${s.stroom.min} A</span>${zon != null ? `<span class="zon-t">${esc(t('auto.laden.zonTot', { a: zon }))}</span>` : ''}<span>${max < s.stroom.max ? esc(t('auto.laden.zekeringTot', { a: max })) : `${s.stroom.max} A`}</span></div>
+      </div>`;
+  }
+  const keus = (w, tekst) => `<button type="button" data-laden-tot="${w}" aria-pressed="${b.tot === w}" ${w === 'pct' && a.pct == null ? 'disabled' : ''}>${esc(tekst)}</button>`;
+  const totPct = b.tot === 'pct' && b.pct != null
+    ? `<div class="tot-pct"><button type="button" data-laden-pct="-5" aria-label="${esc(t('auto.laden.lager'))}">−</button><b>${b.pct}%</b><button type="button" data-laden-pct="5" aria-label="${esc(t('auto.laden.hoger'))}" ${b.pct >= (a.laadgrens ?? 100) ? 'disabled' : ''}>+</button><span>${esc(t('auto.laden.pctUitleg', { grens: a.laadgrens ?? 100 }))}</span></div>`
+    : '';
+  const lang = `<div class="vraag"><span>${esc(t('auto.laden.hoeLang'))}</span><div class="seg">${keus('uur', t('auto.laden.uur'))}${keus('tijd', t('auto.laden.totTijd', { tijd: klokVan(b.totMs) }))}${keus('pct', t('auto.laden.totPct'))}${keus('kabel', t('auto.laden.totKabel'))}</div>${totPct}</div>`;
+  const na = b.tot === 'kabel' ? t('auto.laden.naKabel') : b.tot === 'pct' ? t('auto.laden.naPct', { pct: b.pct }) : t('auto.laden.naTijd', { tijd: klokVan(b.tot === 'uur' ? Date.now() + 3_600_000 : b.totMs) });
+  const hoe = [s.zekeringA != null && b.stroomA != null ? t('auto.laden.zekeringZin', { a: Math.floor(s.zekeringA) }) : '', na, t('auto.laden.geenWolk')].filter(Boolean).join(' ');
+  const actief = s.actief;
+  const links = actief ? `<button type="button" class="hand-terug" data-laden-terug>${esc(t('auto.laden.terug'))}</button>` : s.pauze ? `<button type="button" class="hand-terug" data-laden-pauze ${b.tot === 'pct' ? 'disabled' : ''}>${esc(t('auto.laden.pauzeer'))}</button>` : '';
+  const zet = b.stroomA != null ? `<button type="button" class="hand-zet" data-laden-zet>${esc(actief && !actief.pauze && actief.stroomA === b.stroomA ? t('hand.bewaar') : t('auto.laden.laadMet', { a: b.stroomA }))}</button>` : '';
+  return `${kop}${stroom}${lang}<div class="hand-hoe">${esc(hoe)}</div>${ladenFout ? `<p class="hand-fout">${esc(ladenFout)}</p>` : ''}${kanRegel}<div class="hand-onder">${links}${zet}</div>`;
+}
+
+function tekenBlad() {
+  let laag = document.querySelector('[data-ladenlaag]');
+  const a = blad ? autos().find((x) => x.id === blad.auto) : null;
+  const s = a ? standVan(a.id) : null;
+  if (!blad || !a || !s) {
+    laag?.remove();
+    return;
+  }
+  if (!laag) {
+    laag = document.createElement('div');
+    laag.className = 'hand-laag laden-laag';
+    laag.setAttribute('data-ladenlaag', '');
+    laag.setAttribute('role', 'dialog');
+    laag.setAttribute('aria-modal', 'true');
+    laag.setAttribute('aria-label', t('auto.laden.kop'));
+    (app.telStand() ? document.body : (document.getElementById('wand') ?? document.body)).append(laag);
+  }
+  laag.classList.toggle('op-tel', app.telStand());
+  laag.innerHTML = `<div class="hand-achter" data-laden-sluit></div><div class="hand-vel"><section class="glas hand-blad laadblad">${bladHtml(a, s)}</section></div>`;
+}
+
+async function stuurLaden(body) {
+  const res = await app.deur('api/laden', body);
+  if (!res) return false;
+  if (!res.ok) {
+    ladenFout = (await res.json().catch(() => null))?.fout ?? t('hand.lukteNiet');
+    tekenBlad();
+    return false;
+  }
+  ladenFout = '';
+  await Promise.all([laadLaden(), laad()]);
+  return true;
+}
+
+document.addEventListener('click', async (e) => {
+  const el = (s) => e.target.closest?.(s);
+  let x;
+  if (el('[data-laden-open]')) {
+    const a = deAuto();
+    if (a) openBlad(a);
+    return;
+  }
+  if ((x = el('[data-laden-snel]'))) {
+    // Laad met 8 A, op het advies: tot de kabel eruit gaat.
+    x.disabled = true;
+    await stuurLaden({ auto: x.dataset.auto, stroomA: Number(x.dataset.ladenSnel), tot: 'kabel' });
+    teken();
+    return;
+  }
+  if (!blad) return;
+  const a = autos().find((y) => y.id === blad.auto);
+  const s = a ? standVan(a.id) : null;
+  if (el('[data-laden-sluit]')) blad = null;
+  else if ((x = el('[data-laden-stroom]')) && s?.stroom) blad.stroomA = Math.max(s.stroom.min, Math.min(hoogste(s), blad.stroomA + Number(x.dataset.ladenStroom) * s.stroom.stap));
+  else if ((x = el('[data-laden-tot]'))) blad.tot = x.dataset.ladenTot;
+  else if ((x = el('[data-laden-pct]')) && a?.pct != null) blad.pct = Math.max(Math.ceil((a.pct + 1) / 5) * 5, Math.min(a.laadgrens ?? 100, blad.pct + Number(x.dataset.ladenPct)));
+  else if (el('[data-laden-terug]')) {
+    if (await stuurLaden({ auto: blad.auto, terug: true })) blad = null;
+  } else if (el('[data-laden-pauze]')) {
+    if (await stuurLaden({ auto: blad.auto, pauze: true, tot: blad.tot, ...(blad.tot === 'tijd' ? { totMs: blad.totMs } : {}) })) blad = null;
+  } else if (el('[data-laden-zet]')) {
+    const ok = await stuurLaden({ auto: blad.auto, stroomA: blad.stroomA, tot: blad.tot, ...(blad.tot === 'tijd' ? { totMs: blad.totMs } : {}), ...(blad.tot === 'pct' ? { pct: blad.pct } : {}) });
+    if (ok) blad = null;
+  } else return;
+  tekenBlad();
+  teken();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && blad) {
+    blad = null;
+    tekenBlad();
+  }
+});
+
+/** "Laad met 8 A" bij het advies (stap 5): alleen als SunArc de laadpaal mag bedienen. */
+function snelKnop(a, z) {
+  const s = standVan(a.id);
+  if (!laden?.aan || !s?.mag || !s.stroom || s.actief || !z || z.soort === 'start') return '';
+  return `<button type="button" class="pil snel" data-laden-snel="${z.metA}" data-auto="${esc(a.id)}">${esc(t('auto.laden.laadMet', { a: z.metA }))}</button>`;
 }
 
 function instellenKaart() {
@@ -340,10 +549,16 @@ function tekenNu() {
   void laadBeurten(a.id);
   wandHeld.innerHTML = `${held(a)}${adviesKaart(a)}`;
   // De wand scrolt nooit: daar de laatste beurten die passen, en Instellen bovenin; de telefoon heeft de hele week.
-  wandRechts.innerHTML = `${paalKaart(a)}${beurtenKaart(a, 3)}`;
+  wandRechts.innerHTML = `${paalKaart(a, true)}${beurtenKaart(a, 3)}`;
   pasIn(wandRechts);
-  tel.innerHTML = `${held(a)}${adviesKaart(a)}${paalKaart(a)}${beurtenKaart(a, 20)}${instellenKaart()}`;
+  tel.innerHTML = `${held(a)}${adviesKaart(a)}${ladenRegel(a)}${paalKaart(a)}${beurtenKaart(a, 20)}${instellenKaart()}`;
+  // Vanaf Thuis met "Meer keuzes": meteen het blad Laden.
+  if (openOpStart && standVan(a.id)) {
+    openOpStart = false;
+    openBlad(a);
+  } else if (blad) tekenBlad();
 }
+let openOpStart = new URLSearchParams(location.search).has('laden');
 
 const teken = app.gebundeld(tekenNu);
 addEventListener('standwissel', teken);

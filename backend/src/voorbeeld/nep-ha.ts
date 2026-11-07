@@ -295,6 +295,9 @@ export class NepHa {
         // De droger start: hij draait, en op afstand starten gaat uit.
         this.#zet('sensor.droger_status', 'Run');
         this.#zet('binary_sensor.droger_op_afstand', 'off');
+      } else if (domein === 'number' && dienst === 'set_value') {
+        // De laadstroom van de laadpaal (besluit 262).
+        this.#zet(id, String(data['value']));
       } else if (domein === 'input_number' && dienst === 'set_value') {
         this.#zet(id, String(data['value']));
       } else if (domein === 'input_select' && dienst === 'select_option') {
