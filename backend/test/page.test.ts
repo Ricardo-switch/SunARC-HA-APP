@@ -725,7 +725,7 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await wand.locator('[data-pan-podium] svg.sc-huis').waitFor();
     await wand.locator('[data-dak-zicht="boven"]').click();
     // Het hoofdhuis: een andere dakvorm kiezen.
-    await wand.locator('[data-dak-gebouw="huis"]').click();
+    await wand.locator('svg.dk-boven [data-dak-gebouw="huis"]').click();
     await wand.locator('[data-dak-dakvorm="schild"]').click();
     await expect.poll(() => connStore.current?.daken?.gebouwen?.find((g) => g.id === 'huis')?.dakvorm, { timeout: 5_000 }).toBe('schild');
     await wand.locator('[data-dak-scherm="alle"]').click();
@@ -796,9 +796,12 @@ describe.skipIf(!ENABLED)('de pagina in een browser (besluit 69)', () => {
     await expect.poll(() => connStore.current?.daken?.gebouwen ?? [], { timeout: 5_000 }).toEqual([]);
     expect(connStore.current?.daken?.kaartDak).toBeUndefined();
     await wand.locator('.wk-regel.aan', { hasText: 'Zelf tekenen' }).waitFor({ timeout: 5_000 });
+    if (process.env.HEMS_PAGE_SHOT) await p.waitForTimeout(400).then(() => p.screenshot({ path: process.env.HEMS_PAGE_SHOT!.replace('.png', '-zelf.png') }));
     expect(connStore.current?.daken?.vlakken.some((v) => v.plek === 'uitbouw')).toBe(true);
     // Stap 2b (6 november 2026): het huis slepen, op maat maken, en een blok erbij en weer weg.
-    await wand.locator('[data-dak-gebouw="huis"]').click();
+    // De ingang (7 november 2026): Teken je huis bij Zelf tekenen, en de tip in de tekening.
+    expect(await wand.locator('.dk-noot').textContent()).toContain('Tik op de naam van een gebouw');
+    await wand.locator('.wk-regel.aan [data-dak-gebouw="huis"]', { hasText: 'Teken je huis' }).click();
     const romp = wand.locator('.dk-gebouw[data-dak-sleep="huis"] .dk-romp');
     await romp.waitFor();
     // De pagina kan net opnieuw tekenen (het antwoord op het vorige bewaren): wacht tot het blok stil staat.
