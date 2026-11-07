@@ -86,6 +86,8 @@ export interface Auto {
   /** Sinds wanneer de kabel erin zit (ISO), of sinds wanneer de auto weg is. */
   readonly kabelSinds: string | null;
   readonly wegSinds: string | null;
+  /** Wat de laadpaal zegt bij een fout, zoals "error" of "faulted"; null zonder fout (stap 6). */
+  readonly fout: string | null;
 }
 
 export interface Opslag {
@@ -101,7 +103,16 @@ export interface AutoInstelling {
   readonly accuKWh: number | null;
   readonly laadpaal: string | null;
   readonly plek: AutoPlek | null;
+  /**
+   * Kabel vergeten (stap 6, besluit 263): om hoe laat de app 's avonds kijkt,
+   * en onder welk % hij aan de kabel moet; `pct` null is uit. Weg is 21:00 en 50%.
+   */
+  readonly kabel?: { readonly om: string; readonly pct: number | null };
 }
+
+/** Kabel vergeten zonder keuze: om negen uur 's avonds, onder de helft. */
+export const KABEL_STANDAARD = { om: '21:00', pct: 50 } as const;
+export const KABEL_PCT = [30, 50, 70] as const;
 
 /** De keuzes bij Energie › Auto en laadpaal (besluit 259), in `aansluiting.json`. */
 export interface LadenKeuze {
@@ -442,6 +453,13 @@ function opslagMet(registers: Registers, states: ReadonlyMap<string, HaEntitySta
           .map((e) => String(states.get(e.entity_id)?.state ?? '').toLowerCase())
           .find((s) => /charg|laad|connect|disconnect|awaiting|ready|available|idle|paused|completed|vol/.test(s)) ?? null
       : null;
+    // Een fout van de laadpaal (stap 6): een stand met error, fault, fout of storing.
+    const fout = paal
+      ? paal.entiteiten
+          .filter((e) => e.entity_id.startsWith('sensor.') && klasse(e) !== 'power' && /status|state|stand|mode/.test(naamVan(e)))
+          .map((e) => String(states.get(e.entity_id)?.state ?? '').toLowerCase())
+          .find((s) => /error|fault|fout|storing/.test(s) && !/no.?error|geen/.test(s)) ?? null
+      : null;
     const laadtStatus = status == null ? null : /^(charging|laden|laadt)$|charging/.test(status) && !/not.?charging|discharg/.test(status);
     const losStatus = status == null ? null : /disconnect|available|idle|niet aangesloten|vrij/.test(status);
     const laadt = eerst((a) => aanUit(a, 'battery_charging')) ?? laadtStatus ?? (laadW == null ? null : laadW > 200);
@@ -519,6 +537,7 @@ function opslagMet(registers: Registers, states: ReadonlyMap<string, HaEntitySta
       thuis,
       kabelSinds: kabelStaat?.state === 'on' ? kabelStaat.last_changed || null : null,
       wegSinds: thuis === false ? plekStaat?.last_changed || null : null,
+      fout,
     };
   };
 
@@ -656,7 +675,18 @@ export function leesLaden(raw: unknown): { keuze: LadenKeuze | null } | { fout: 
     if (paal !== null && (typeof paal !== 'string' || !ID.test(paal))) return { fout: 'de laadpaal is een apparaat uit Home Assistant' };
     const plek = i['plek'] ?? null;
     if (plek !== null && !AUTO_PLEKKEN.includes(plek as AutoPlek)) return { fout: 'de auto staat op de oprit, onder de carport of in de garage' };
-    instelling[id] = { accuKWh: accu === null ? null : Math.round((accu as number) * 10) / 10, laadpaal: paal as string | null, plek: plek as AutoPlek | null };
+    // Kabel vergeten (besluit 263): een tijd en een %, of uit.
+    const k = i['kabel'];
+    let kabel: AutoInstelling['kabel'];
+    if (k !== undefined && k !== null) {
+      const ko = obj(k);
+      const om = ko?.['om'];
+      const pct = ko?.['pct'] ?? null;
+      if (!ko || typeof om !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(om)) return { fout: 'kabel vergeten: om is een tijd als 21:00' };
+      if (pct !== null && !KABEL_PCT.includes(pct as (typeof KABEL_PCT)[number])) return { fout: `kabel vergeten: onder ${KABEL_PCT.join(', ')}%, of uit` };
+      kabel = { om, pct: pct as number | null };
+    }
+    instelling[id] = { accuKWh: accu === null ? null : Math.round((accu as number) * 10) / 10, laadpaal: paal as string | null, plek: plek as AutoPlek | null, ...(kabel ? { kabel } : {}) };
   }
   if (!Object.keys(aan).length && !Object.keys(rol).length && !Object.keys(instelling).length && !Object.keys(bedienen).length) return { keuze: null };
   return { keuze: { aan, rol, instelling, ...(Object.keys(bedienen).length ? { bedienen } : {}) } };

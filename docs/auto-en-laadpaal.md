@@ -1,9 +1,9 @@
 # Auto en laadpaal: het bouwplan
 
 Stand 6 november 2026. Het ontwerp is besloten ([besluit 259](../DECISIONS.md#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp));
-stap 1 is gebouwd in 0.131.0, stap 2 in 0.132.0, stap 3 in 0.133.0, stap 4
-in 0.135.0 en stap 5 in 0.136.0 (zie "wat er gebouwd is"); stap 6, de
-meldingen, nog niet. Dit document is de overdracht: alles wat nodig is
+alle zes stappen zijn gebouwd: 1 in 0.131.0, 2 in 0.132.0, 3 in 0.133.0, 4 in
+0.135.0, 5 in 0.136.0 en 6 in 0.137.0 (zie "wat er gebouwd is"). Wat nog open
+staat, staat onder "Nog open". Dit document is de overdracht: alles wat nodig is
 om het in een nieuwe sessie op te pakken, zonder het gesprek van 6 november.
 
 ## Waarom
@@ -318,6 +318,28 @@ lijst in `client.ts`). Laden wordt er een, naar het voorbeeld van `isHandCall`:
 - **Nog niet:** de eigen dienst van Easee, de stand van evcc, de balk van de
   dag in het blad (zon, goedkope uren, tot wanneer), en de assistent.
 
+## Stap 6: wat er gebouwd is (0.137.0, besluit 263)
+
+- **De bel** (`meldingen.ts`, `autoMeldingen`): soort `auto`, met per auto
+  `AutoBel` uit `main.ts` (`autoBel`): lading, laadgrens, kabel, thuis, de
+  fout van de laadpaal (`Auto.fout` in `opslag.ts`: een stand met error,
+  fault, fout of storing), sinds wanneer de kabel erin zit, en kabel vergeten
+  als minuut van de dag en %. De klok van het huis gaat mee (`minuut`, `dag`,
+  `gisteren`).
+- **Vol:** `auto-vol:<auto>:<kabel erin sinds>`, zolang de kabel erin zit en
+  hij op de laadgrens (of 100%) staat. **Fout:** `auto-fout:<auto>:<…>`.
+  **Kabel vergeten:** `auto-kabel:<auto>:<avond>`, van de tijd tot zes uur,
+  thuis, zonder kabel en onder het %. **Met de hand klaar:**
+  `auto-hand:<auto>:<ms>`, een half uur, uit `Laadhand.klaar` (alleen op de
+  tijd of het %, niet als de kabel eruit ging).
+- **De keuze:** `kabel: { om, pct }` per auto onder `laden.instelling` in
+  `aansluiting.json`; weg is 21:00 en 50%, `pct` null is uit. Bij Energie bij
+  een auto die zijn lading meet: Uit, Onder 30/50/70% en de tijd.
+- **De telefoon** (`push.ts`): groep `auto`, standaard aan, niet dringend
+  (dus niet in de nachtrust); een bewaarde keuze zonder `auto` telt als aan.
+  Bij Jij › Meldingen op de telefoon de regel De auto.
+- In het voorbeeldhuis komt rond half vijf "Elektrische auto is vol".
+
 ## De stappen, elk een eigen versie
 
 1. **Kiezen en herkennen.** `opslag.ts` naar lijsten van auto's en laadpalen,
@@ -350,7 +372,8 @@ Daarna, in B: automatisch laden op zon, binnen de volgorde van besluit 85
 
 - Echte gegevens van testers per merk (zie hierboven).
 - René (#123): welke autokoppeling.
-- De vertrektijd voor de melding "kabel vergeten".
+- Een vertrektijd (uit de auto of de agenda) voor kabel vergeten: gekozen is
+  een vaste avondcheck (besluit 263); later eventueel erbij.
 - Een auto die aan meer laadpalen laadt, en een laadpaal met twee punten.
 - Laders op één fase, en wisselen tussen één en drie fasen.
 - De Engelse teksten (de app is tweetalig, besluit 185).

@@ -22,7 +22,7 @@ function huis(apparaten: HaDevice[], metingen: Meting[], keuze: LadenKeuze | nul
   const { reg, states } = registers(apparaten, metingen);
   return vindOpslag(reg, states, keuze, nu);
 }
-const geenKeuze = { plek: null, accuKWh: null, laadpaal: null, paalNaam: null, paalStroomA: null, laadgrens: null, stroomA: null, volOm: null, thuis: null, kabelSinds: null, wegSinds: null };
+const geenKeuze = { plek: null, accuKWh: null, laadpaal: null, paalNaam: null, paalStroomA: null, laadgrens: null, stroomA: null, volOm: null, thuis: null, kabelSinds: null, wegSinds: null, fout: null };
 
 const knop: HaDevice = { id: 'knop', area_id: null, name: 'Knop hal', manufacturer: 'IKEA', model: 'STYRBAR' };
 const knopBatterij: Meting = { id: 'sensor.knop_batterij', klasse: 'battery', staat: '80', eenheid: '%', platform: 'zha', apparaat: 'knop' };
@@ -86,6 +86,9 @@ describe('de thuisbatterij en de auto (besluit 182)', () => {
     expect(paal('charging', '7.4')).toEqual({ id: 'easee', naam: 'De auto', pct: null, aangesloten: true, laadt: true, vermogenW: 7400, bereikKm: null, ...geenKeuze, paalNaam: 'Easee Home' });
     expect(paal('disconnected', '0')).toMatchObject({ aangesloten: false, laadt: false });
     expect(paal('awaiting_start', '0')).toMatchObject({ aangesloten: true, laadt: false });
+    // Een fout van de laadpaal (besluit 263): voor de bel.
+    expect(paal('error', '0')).toMatchObject({ fout: 'error' });
+    expect(paal('charging', '7.4')).toMatchObject({ fout: null });
   });
 });
 

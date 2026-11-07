@@ -13,7 +13,10 @@
  *   (besluit 149);
  * - een meter die niets meer levert: zonder meter kloppen de cijfers niet;
  * - de panelen zijn gemeten: kijk of de ligging klopt (besluit 157);
- * - een nieuwe versie, en een mijlpaal zoals 10, 20 of 30 winterdagen.
+ * - een nieuwe versie, en een mijlpaal zoals 10, 20 of 30 winterdagen;
+ * - de auto (besluit 263): vol, laden gestopt met een fout, kabel vergeten
+ *   ('s avonds om de tijd die je koos, als hij te leeg is), en laden met de
+ *   hand dat klaar is.
  *
  * Wat vanzelf weer goed is, lost zichzelf op en schuift naar Eerder. Een
  * wachttijd houdt kort haperen buiten de lijst. Alles staat in één eigen
@@ -30,7 +33,7 @@ import { metLidwoord } from './kamerwoorden.js';
 
 export const MELDINGEN_FILE = 'meldingen.json';
 
-export type MeldingSoort = 'nieuw' | 'weg' | 'stil' | 'batterij' | 'filter' | 'meter' | 'versie' | 'mijlpaal' | 'comfort' | 'panelen' | 'rook' | 'update' | 'sluip' | 'dak';
+export type MeldingSoort = 'nieuw' | 'weg' | 'stil' | 'batterij' | 'filter' | 'meter' | 'versie' | 'mijlpaal' | 'comfort' | 'panelen' | 'rook' | 'update' | 'sluip' | 'dak' | 'auto';
 
 export interface Melding {
   /** Vast per onderwerp, zoals `stil:light.hal`: zo komt hetzelfde niet dubbel. */
@@ -105,7 +108,35 @@ export interface MeldingenBron {
    * bewoners. Wisselt het, dan staat het één keer bij de bel.
    */
   readonly comfort?: { readonly id: string; readonly naam: string; readonly waarom: 'thuis' | 'niemand' | 'gekozen'; readonly hoofdNaam: string; readonly hoofd: boolean } | null;
+  /**
+   * De auto's (besluit 263), met de klok van het huis: `minuut` van de dag,
+   * `dag` en `gisteren` als JJJJ-MM-DD. Weg zonder auto.
+   */
+  readonly autos?: { readonly lijst: readonly AutoBel[]; readonly minuut: number; readonly dag: string; readonly gisteren: string } | null;
+  /** Laden met de hand dat net klaar is (besluit 263): op de tijd of op het %. */
+  readonly handKlaar?: readonly { readonly auto: string; readonly naam: string; readonly tot: 'uur' | 'tijd' | 'pct'; readonly pct: number | null; readonly ms: number }[];
 }
+
+/** Wat de bel van een auto weet (besluit 263). */
+export interface AutoBel {
+  readonly id: string;
+  readonly naam: string;
+  readonly pct: number | null;
+  readonly grens: number | null;
+  readonly aangesloten: boolean | null;
+  readonly thuis: boolean | null;
+  /** De fout van de laadpaal, of null. */
+  readonly fout: string | null;
+  /** Sinds wanneer de kabel erin zit: zo is elke laadbeurt een eigen melding. */
+  readonly kabelSindsMs: number | null;
+  /** Kabel vergeten: vanaf welke minuut van de dag, en onder welk %; null is uit. */
+  readonly kabel: { readonly om: number; readonly pct: number } | null;
+}
+
+/** Tot wanneer 's ochtends kabel vergeten blijft staan: dan rijdt de auto weg of laadt hij al. */
+export const KABEL_TOT_MINUUT = 6 * 60;
+/** Zo lang staat laden met de hand dat klaar is bij de bel. */
+export const HAND_KLAAR_MS = 30 * 60_000;
 
 /** Zo lang onbereikbaar voor het een melding is: kort haperen hoort er niet in. */
 export const STIL_NA_MS = 60 * 60_000;
@@ -250,6 +281,23 @@ const WOORDEN = {
       nu: (naam: string) => `Het comfort van ${naam} geldt nu`,
       actie: 'Bewoners',
     },
+    auto: {
+      vol: (naam: string) => `${naam} is vol`,
+      volTekst: (pct: number, grens: boolean) => `Op ${pct}%${grens ? ', de laadgrens' : ''}. De kabel mag eruit.`,
+      volKlaar: (naam: string) => `${naam}: kabel eruit`,
+      volKlaarTekst: (pct: number) => `Vol geladen tot ${pct}%.`,
+      fout: (naam: string) => `Laden gestopt: ${naam}`,
+      foutTekst: (stand: string) => `De laadpaal meldt een fout (${stand}). Kijk in de app van de laadpaal.`,
+      foutKlaar: (naam: string) => `${naam}: laadpaal weer goed`,
+      foutKlaarTekst: 'De fout is weg.',
+      kabel: (naam: string) => `${naam} hangt niet aan de kabel`,
+      kabelTekst: (pct: number, onder: number) => `Hij staat op ${pct}%, onder de ${onder}% die je koos. Doe je de kabel erin?`,
+      kabelKlaar: (naam: string) => `Kabel vergeten: ${naam}`,
+      kabelKlaarTekst: 'Niet meer nodig.',
+      hand: (naam: string) => `${naam}: met de hand klaar`,
+      handPct: (pct: number) => `Op ${pct}%. De laadpaal kiest weer zelf.`,
+      handTijd: (tijd: string) => `Om ${tijd}. De laadpaal kiest weer zelf.`,
+    },
     om: (tijd: string) => `Om ${tijd}.`,
   },
   en: {
@@ -348,6 +396,23 @@ const WOORDEN = {
       weer: (naam: string) => `${naam}’s comfort applies again`,
       nu: (naam: string) => `${naam}’s comfort applies now`,
       actie: 'Residents',
+    },
+    auto: {
+      vol: (naam: string) => `${naam} is full`,
+      volTekst: (pct: number, grens: boolean) => `At ${pct}%${grens ? ', the charge limit' : ''}. The cable can come out.`,
+      volKlaar: (naam: string) => `${naam}: cable out`,
+      volKlaarTekst: (pct: number) => `Charged to ${pct}%.`,
+      fout: (naam: string) => `Charging stopped: ${naam}`,
+      foutTekst: (stand: string) => `The charger reports an error (${stand}). Check the app of the charger.`,
+      foutKlaar: (naam: string) => `${naam}: charger fine again`,
+      foutKlaarTekst: 'The error is gone.',
+      kabel: (naam: string) => `${naam} is not on the cable`,
+      kabelTekst: (pct: number, onder: number) => `It is at ${pct}%, below the ${onder}% you chose. Will you plug it in?`,
+      kabelKlaar: (naam: string) => `Cable forgotten: ${naam}`,
+      kabelKlaarTekst: 'No longer needed.',
+      hand: (naam: string) => `${naam}: charging by hand done`,
+      handPct: (pct: number) => `At ${pct}%. The charger decides again.`,
+      handTijd: (tijd: string) => `At ${tijd}. The charger decides again.`,
     },
     om: (tijd: string) => `At ${tijd}.`,
   },
@@ -493,12 +558,71 @@ export function wat(bron: MeldingenBron): (Nieuwe & { en: MeldingWoorden })[] {
       return { id: `dak:${dak.letter ?? 'samen'}:${dak.wanneer}`, soort: 'dak', aandacht: true, titel: w.dak.titel(dak.eigenMeter ? dak.letter : null), tekst: w.dak.tekst(dak.minderPct, w.dak.wanneer[dak.wanneer], dak.eigenMeter), actie: { label: w.bekijk, href: 'energie.html#panelen' }, klaar: { titel: w.dak.klaar, tekst: w.dak.klaarTekst } };
     }));
   }
+  uit.push(...autoMeldingen(bron));
   // Sluipverbruik (besluit 192): één melding per reeks hoge nachten, met de laatste nacht erin.
   const s = bron.sluip;
   if (s) {
     uit.push(tweetalig((lang) => {
       const w = WOORDEN[lang];
       return { id: 'sluip', soort: 'sluip', aandacht: true, titel: s.nachten > 1 ? w.sluip.reeks(s.nachten) : w.sluip.titel(s.bovenW), tekst: w.sluip.tekst(s.w, s.gewoonW), actie: { label: w.bekijk, href: 'sluipverbruik.html' }, klaar: { titel: w.sluip.klaar, tekst: w.sluip.klaarTekst } };
+    }));
+  }
+  return uit;
+}
+
+/**
+ * De auto (besluit 263). Elk een eigen id per laadbeurt of per avond: wat op
+ * de telefoon stond, gaat niet nog eens (push.ts), en de volgende keer is een
+ * nieuwe melding.
+ *
+ * - **vol:** de kabel erin en op de laadgrens (of 100%); weg als de kabel eruit gaat;
+ * - **fout:** de laadpaal meldt een fout; weg als die weg is;
+ * - **kabel vergeten:** vanaf de tijd die je koos tot zes uur 's ochtends, thuis,
+ *   zonder kabel en onder het %; weg met de kabel erin, of als hij wegrijdt;
+ * - **met de hand klaar:** een half uur, als het op de tijd of het % eindigde.
+ */
+function autoMeldingen(bron: MeldingenBron): (Nieuwe & { en: MeldingWoorden })[] {
+  const uit: (Nieuwe & { en: MeldingWoorden })[] = [];
+  const a = bron.autos;
+  const href = (id: string) => `auto.html#${encodeURIComponent(id)}`;
+  for (const x of a?.lijst ?? []) {
+    const sessie = x.kabelSindsMs != null ? String(x.kabelSindsMs) : a!.dag;
+    const grens = x.grens ?? 100;
+    if (x.aangesloten === true && x.thuis !== false && x.pct != null && x.pct >= grens - 1) {
+      const pct = Math.round(x.pct);
+      uit.push(tweetalig((lang) => {
+        const w = WOORDEN[lang];
+        return { id: `auto-vol:${x.id}:${sessie}`, soort: 'auto', aandacht: true, titel: w.auto.vol(x.naam), tekst: w.auto.volTekst(pct, x.grens != null), actie: { label: w.bekijk, href: href(x.id) }, klaar: { titel: w.auto.volKlaar(x.naam), tekst: w.auto.volKlaarTekst(pct) } };
+      }));
+    }
+    if (x.fout) {
+      const stand = x.fout;
+      uit.push(tweetalig((lang) => {
+        const w = WOORDEN[lang];
+        return { id: `auto-fout:${x.id}:${sessie}`, soort: 'auto', aandacht: true, titel: w.auto.fout(x.naam), tekst: w.auto.foutTekst(stand), actie: { label: w.bekijk, href: href(x.id) }, klaar: { titel: w.auto.foutKlaar(x.naam), tekst: w.auto.foutKlaarTekst } };
+      }));
+    }
+    const k = x.kabel;
+    if (k && a) {
+      // Vanaf de tijd tot zes uur 's ochtends; begint de tijd zelf al voor zessen, dan tot zessen.
+      const avond = k.om >= KABEL_TOT_MINUUT;
+      const inVenster = avond ? a.minuut >= k.om || a.minuut < KABEL_TOT_MINUUT : a.minuut >= k.om && a.minuut < KABEL_TOT_MINUUT;
+      if (inVenster && x.aangesloten === false && x.thuis !== false && x.pct != null && x.pct < k.pct) {
+        const dag = avond && a.minuut < KABEL_TOT_MINUUT ? a.gisteren : a.dag;
+        const pct = Math.round(x.pct);
+        uit.push(tweetalig((lang) => {
+          const w = WOORDEN[lang];
+          return { id: `auto-kabel:${x.id}:${dag}`, soort: 'auto', aandacht: true, titel: w.auto.kabel(x.naam), tekst: w.auto.kabelTekst(pct, k.pct), actie: { label: w.bekijk, href: href(x.id) }, klaar: { titel: w.auto.kabelKlaar(x.naam), tekst: w.auto.kabelKlaarTekst } };
+        }));
+      }
+    }
+  }
+  for (const h of bron.handKlaar ?? []) {
+    if (bron.nu - h.ms >= HAND_KLAAR_MS) continue;
+    uit.push(tweetalig((lang) => {
+      const w = WOORDEN[lang];
+      const tekst = h.tot === 'pct' && h.pct != null ? w.auto.handPct(h.pct) : w.auto.handTijd(klok(h.ms, lang));
+      return { id: `auto-hand:${h.auto}:${h.ms}`, soort: 'auto', aandacht: true, sindsMs: h.ms, titel: w.auto.hand(h.naam), tekst, actie: { label: w.bekijk, href: href(h.auto) }, klaar: { titel: w.auto.hand(h.naam), tekst } };
     }));
   }
   return uit;

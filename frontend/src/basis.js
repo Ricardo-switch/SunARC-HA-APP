@@ -1423,6 +1423,8 @@
     // De panelen zijn gemeten (besluit 157): een zon.
     // Een nieuwe versie die klaarstaat (21 oktober 2026): een pijl omlaag.
     update: ['blauw', iconen.binnen('update')],
+    // De auto (besluit 263): vol, een fout, kabel vergeten, met de hand klaar.
+    auto: ['blauw', iconen.binnen('auto')],
     panelen: ['geel', iconen.binnen('panelen')],
     // Een dakvlak dat achterblijft (besluit 254, stap 5).
     dak: ['geel', iconen.binnen('panelen')],

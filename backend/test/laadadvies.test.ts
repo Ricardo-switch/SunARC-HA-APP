@@ -24,6 +24,7 @@ const auto = (x: Partial<Auto> = {}): Auto => ({
   thuis: true,
   kabelSinds: null,
   wegSinds: null,
+  fout: null,
   ...x,
 });
 const ctx = (x: Partial<AdviesContext> = {}): AdviesContext => ({ nuMs: nu, netW: null, fasen: null, prijzen: [], prijsNu: null, ...x });

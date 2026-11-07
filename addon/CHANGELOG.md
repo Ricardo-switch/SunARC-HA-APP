@@ -1,11 +1,14 @@
 # Wat is er nieuw · What is new
 
-## 0.136.0
+## 0.137.0
 
-*7 november 2026 · 0.135.0 – 0.136.0*
+*7 november 2026 · 0.135.0 – 0.137.0*
 
 **Nieuw**
 
+- Meldingen van de auto: vol, laden gestopt met een fout van de laadpaal, en laden met de hand dat klaar is
+- Kabel vergeten: staat de auto 's avonds thuis zonder kabel en te leeg, dan krijg je een melding. De tijd en het % kies je bij Energie › Auto en laadpaal
+- Op de telefoon een eigen keuze De auto, standaard aan, niet in je nachtrust
 - Laden met de hand op de pagina Auto: de hoogste stroom per fase of pauzeren, voor een uur, tot een tijd, tot een % of tot de kabel eruit gaat. Daarna kiest de laadpaal weer zelf
 - Laad met 8 A met één tik op de advieskaart, als er meer zon over is
 - Bij Energie › Auto en laadpaal zet je aan of SunArc de laadpaal mag bedienen; nooit boven de laadpaal of je zekering
@@ -21,6 +24,9 @@
 
 **New**
 
+- Notifications for the car: full, charging stopped by a charger error, and charging by hand that is done
+- Cable forgotten: if the car is home in the evening without the cable and too low, you get a notification. Choose the time and the % in Energy › Car and charger
+- On the phone its own choice The car, on by default, not during your night rest
 - Charging by hand on the Car page: the highest current per phase or pausing, for an hour, until a time, until a % or until the cable comes out. After that the charger decides again
 - Charge at 8 A with one tap on the advice card, when there is more solar to spare
 - In Energy › Car and charger you allow SunArc to control the charger; never above the charger or your main fuse

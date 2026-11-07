@@ -256,6 +256,7 @@ Gemaakt met `npm run decisions:index`; een test bewaakt dat hij klopt.
 - [257. Drie fouten van testers: het gevoel, Meten met, en een plat dak](#257-drie-fouten-van-testers-het-gevoel-meten-met-en-een-plat-dak)
 - [259. Auto en laadpaal: een eigen pagina, en met de hand laden (ontwerp)](#259-auto-en-laadpaal-een-eigen-pagina-en-met-de-hand-laden-ontwerp)
 - [260. Je dag als eigen stap, en hoe warm per kamer](#260-je-dag-als-eigen-stap-en-hoe-warm-per-kamer)
+- [263. Meldingen van de auto, en kabel vergeten om een vaste tijd](#263-meldingen-van-de-auto-en-kabel-vergeten-om-een-vaste-tijd)
 
 **Veiligheid**
 
@@ -12333,6 +12334,34 @@ voor krijgt. Tot nu toe schreef de app niets naar een auto of laadpaal.
 
 *Nog niet:* de eigen dienst van Easee (`easee.set_charger_dynamic_limit`), de
 stand van evcc, en de assistent die laden met de hand doet.
+
+---
+
+## 263. Meldingen van de auto, en kabel vergeten om een vaste tijd
+
+*Onderwerp: weergave · Status: geldig*
+
+7 november 2026, stap 6 van [259], de laatste. Het ontwerp noemde drie
+meldingen: auto vol, laden gestopt met een fout, en kabel vergeten; voor de
+laatste was eerst de vraag waar de vertrektijd vandaan komt. De bewoner koos:
+
+*Besluit:*
+
+- **Kabel vergeten zonder vertrektijd:** een vaste avondcheck. Vanaf de tijd
+  die je kiest (weg is 21:00) tot zes uur 's ochtends: staat de auto thuis,
+  zonder kabel en onder het % dat je koos (weg is 50%; 30, 50 of 70%, of
+  uit), dan een melding. Per auto, bij Energie › Auto en laadpaal. Werkt bij
+  elk merk; geen vertrektijd uit de auto of de agenda.
+- **Vier meldingen bij de bel,** soort `auto`: vol (de kabel erin en op de
+  laadgrens, weg als de kabel eruit gaat), laden gestopt met een fout (de
+  laadpaal meldt error, fault, fout of storing), kabel vergeten, en laden met
+  de hand dat klaar is op de tijd of het % (een half uur; een kabel die eruit
+  gaat, hoeft geen melding). Elk met een eigen id per laadbeurt of per avond,
+  zodat de volgende keer weer een melding is.
+- **Op de telefoon:** een eigen keuze "De auto" bij Jij › Meldingen op de
+  telefoon, standaard aan, buiten de nachtrust. Wie al keuzes had, krijgt hem
+  ook aan.
+- **Versie 0.137.0.** Daarmee zijn de zes stappen van [259] gebouwd.
 
 ---
 

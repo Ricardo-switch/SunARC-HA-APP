@@ -74,7 +74,7 @@ import type { TeDoenDienst } from './web/routes/tedoen.js';
 import { spraakKeuzes, type SpraakKeuze } from './web/functies.js';
 import { cameraMelders, camerasNu, laatsteAanUitHistorie } from './web/cameras.js';
 import { FunctiesStore, aangebeld, functiesGevonden, functiesVoorstel, getoondeCameras, volledig, type Functies, type FunctiesGevonden } from './web/functies.js';
-import { laadBedieningen, laadMeters, ladenView, vindOpslag } from './web/opslag.js';
+import { KABEL_STANDAARD, laadBedieningen, laadMeters, ladenView, vindOpslag } from './web/opslag.js';
 import { Laadhand, laadMag } from './web/laadhand.js';
 import { Laadbeurten } from './web/laadbeurten.js';
 import { laadAdvies, prijzenVooruit, type LaadAdvies } from './web/laadadvies.js';
@@ -1243,6 +1243,40 @@ const meldingen = logDir !== '' ? new MeldingenStore({ logDir }) : null;
 const voorkeuren = logDir !== '' ? new VoorkeurenStore(logDir) : null;
 await voorkeuren?.load();
 await meldingen?.load();
+/** Wat de bel van de auto's weet (besluit 263): de auto's met hun keuze voor kabel vergeten, en de klok van het huis. */
+function autoBel(timeZone: string): Pick<Parameters<typeof meldingenBron>[0], 'autos' | 'handKlaar'> {
+  const autos = huisNu('nl')?.opslag?.autos ?? [];
+  if (!autos.length) return {};
+  const nu = Date.now();
+  const p = partsIn(nu, timeZone);
+  const q = partsIn(zonedMidnight(p.y, p.m, p.d, timeZone) - 12 * 3_600_000, timeZone);
+  const dag = (x: { y: number; m: number; d: number }) => `${x.y}-${String(x.m).padStart(2, '0')}-${String(x.d).padStart(2, '0')}`;
+  const minuut = (uu: string) => Number(uu.slice(0, 2)) * 60 + Number(uu.slice(3, 5));
+  const instelling = connectionStore?.current?.laden?.instelling ?? {};
+  return {
+    autos: {
+      minuut: p.h * 60 + p.mi,
+      dag: dag(p),
+      gisteren: dag(q),
+      lijst: autos.map((a) => {
+        // Weg is 21:00 en 50%; null is uit. Zonder lading in procenten kan het niet.
+        const k = instelling[a.id]?.kabel === undefined ? KABEL_STANDAARD : instelling[a.id]!.kabel!;
+        return {
+          id: a.id,
+          naam: a.naam,
+          pct: a.pct,
+          grens: a.laadgrens,
+          aangesloten: a.aangesloten,
+          thuis: a.thuis,
+          fout: a.fout,
+          kabelSindsMs: a.kabelSinds ? Date.parse(a.kabelSinds) : null,
+          kabel: k.pct != null && a.pct != null ? { om: minuut(k.om), pct: k.pct } : null,
+        };
+      }),
+    },
+    handKlaar: (laadhand?.klaar ?? []).map((k) => ({ ...k, naam: autos.find((a) => a.id === k.auto)?.naam ?? k.auto })),
+  };
+}
 function meldingenRonde(): void {
   const cfg = siteConfig;
   const h = cfg ? houseReport() : null;
@@ -1265,6 +1299,8 @@ function meldingenRonde(): void {
     profiel: runner?.latest?.explanation.profile ?? null,
     hoofd: bewonersStore ? hoofdVan(bewonersStore.current) : null,
     sluip: sluipVoorBel(sluipverbruik.laatste(), Date.now(), cfg.timezone),
+    // De auto (besluit 263): vol, een fout, kabel vergeten, en laden met de hand dat klaar is.
+    ...autoBel(cfg.timezone),
   });
   if (bron == null) return;
   meldingen.bij(bron);

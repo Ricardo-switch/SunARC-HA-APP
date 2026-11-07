@@ -10,7 +10,7 @@ const t0 = Date.parse('2026-11-07T11:00:00Z');
 
 const autoVan = (x: Partial<Auto> = {}): Auto => ({
   id: 'tesla', naam: 'Model 3', pct: 64, aangesloten: true, laadt: true, vermogenW: 4140, bereikKm: 312, plek: null, accuKWh: 75, laadpaal: 'easee',
-  paalNaam: 'Easee Home', paalStroomA: { min: 6, max: 16 }, laadgrens: 80, stroomA: [6, 6, 6], volOm: null, thuis: true, kabelSinds: null, wegSinds: null, ...x,
+  paalNaam: 'Easee Home', paalStroomA: { min: 6, max: 16 }, laadgrens: 80, stroomA: [6, 6, 6], volOm: null, thuis: true, kabelSinds: null, wegSinds: null, fout: null, ...x,
 });
 const bedieningVan = (x: Partial<LaadBediening> = {}): LaadBediening => ({
   auto: 'tesla', apparaat: 'easee', stroom: { id: 'number.easee_stroom', min: 6, max: 16, stap: 1, nuA: 6 }, pauze: { soort: 'schakelaar', id: 'switch.easee_laden', omgekeerd: false }, mag: true, evcc: false, ...x,
@@ -94,9 +94,13 @@ describe('laden met de hand (besluit 262)', () => {
     expect(await l.ronde()).toEqual([]);
     pct = 70;
     expect(await l.ronde()).toEqual(['number.easee_stroom terug naar 6 A']);
+    // Voor de bel (besluit 263): klaar op het %.
+    expect(l.klaar).toEqual([{ auto: 'tesla', tot: 'pct', pct: 70, ms: t0 }]);
     await l.zet('tesla', { stroomA: 9, tot: 'kabel' });
     kabel = false;
     expect(await l.ronde()).toEqual(['number.easee_stroom terug naar 6 A']);
+    // De kabel eruit hoeft geen melding.
+    expect(l.klaar).toHaveLength(1);
   });
 
   it('pauzeert tot een tijd, en laat hem daarna weer laden', async () => {

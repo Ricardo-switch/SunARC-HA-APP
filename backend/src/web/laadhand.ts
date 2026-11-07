@@ -100,6 +100,8 @@ export class Laadhand {
   readonly #d: LaadDeur;
   #terug: LaadTerug[] = [];
   #geladen = false;
+  /** Wat net klaar is op de tijd of het %, voor de bel (besluit 263); de kabel eruit hoeft geen melding. */
+  #klaar: { auto: string; tot: 'uur' | 'tijd' | 'pct'; pct: number | null; ms: number }[] = [];
 
   constructor(d: LaadDeur) {
     this.#d = d;
@@ -112,6 +114,12 @@ export class Laadhand {
   /** Wat er nog terug moet. */
   get terugzetten(): readonly LaadTerug[] {
     return [...this.#terug];
+  }
+
+  /** Wat het afgelopen uur vanzelf klaar was, op de tijd of het %. */
+  get klaar(): readonly { readonly auto: string; readonly tot: 'uur' | 'tijd' | 'pct'; readonly pct: number | null; readonly ms: number }[] {
+    const nu = this.#nu();
+    return this.#klaar.filter((k) => nu - k.ms < 3_600_000);
   }
 
   async stand(id: string): Promise<LaadStand | null> {
@@ -241,6 +249,10 @@ export class Laadhand {
         continue;
       }
       this.#terug = this.#terug.filter((x) => x !== t);
+      // Op de tijd of het %: een melding; kabel eruit of de auto weg niet.
+      const a = this.#d.auto(t.auto);
+      const weg = a != null && (a.thuis === false || a.aangesloten === false);
+      if (!weg && t.tot !== 'kabel') this.#klaar = [...this.#klaar.filter((k) => nu - k.ms < 3_600_000), { auto: t.auto, tot: t.tot, pct: t.tot === 'pct' ? (t.pct ?? null) : null, ms: nu }];
     }
     await this.#bewaar();
     return gedaan;

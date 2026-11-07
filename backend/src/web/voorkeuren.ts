@@ -415,7 +415,7 @@ export function leesMeldingen(x: unknown, nu: MeldingKeus): { ok: true; meldinge
   if (!isObject(x)) return { ok: false, reden: 'meldingen is een object' };
   const uit: Record<string, unknown> = { ...nu };
   for (const [k, w] of Object.entries(x)) {
-    if (k === 'rook' || k === 'regeling' || k === 'onderhoud' || k === 'versie' || k === 'sluip') {
+    if (k === 'rook' || k === 'regeling' || k === 'onderhoud' || k === 'versie' || k === 'sluip' || k === 'auto') {
       if (typeof w !== 'boolean') return { ok: false, reden: `${k} is aan of uit` };
     } else if (k === 'van' || k === 'tot') {
       if (typeof w !== 'string' || !TIJD.test(w)) return { ok: false, reden: `${k} is een tijd als 23:00` };

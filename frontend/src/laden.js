@@ -17,6 +17,9 @@ const laden = (() => {
   const { esc } = app;
   const t = (k, p) => window.taal.t(k, p);
   const PLEKKEN = ['oprit', 'carport', 'garage'];
+  /** Kabel vergeten (besluit 263): weg is 21:00 en 50%. */
+  const KABEL = { om: '21:00', pct: 50 };
+  const KABEL_PCT = [null, 30, 50, 70];
 
   /** De keuzes zoals ze nu zijn; leeg als er nog niets gekozen is. */
   const keuzeVan = (a) => (a.laden ??= { aan: {}, rol: {}, instelling: {} });
@@ -53,6 +56,16 @@ const laden = (() => {
     return `<select class="invoer" data-laad-kies aria-label="${esc(label)}"><option value="">${esc(label)}</option>${k.map((x) => `<option value="${esc(x.id)}">${esc(x.naam)}</option>`).join('')}</select>`;
   }
 
+  /** Kabel vergeten (besluit 263): om hoe laat, en onder welk %; alleen bij een auto die zegt hoe vol hij is. */
+  function kabelVraag(a, x) {
+    if (!x.wat.includes('lading')) return '';
+    const k = instelling(a, x.id).kabel ?? KABEL;
+    const knoppen = KABEL_PCT.map((p) => `<button type="button" data-laad="kabel" data-id="${esc(x.id)}" data-waarde="${p ?? ''}" aria-pressed="${k.pct === p}">${esc(p == null ? t('laden.kabelUit') : t('laden.kabelOnder', { pct: p }))}</button>`).join('');
+    return `<div class="ld-vraag"><b>${esc(t('laden.kabel'))}</b><div class="keuzes" role="group">${knoppen}</div>
+        ${k.pct != null ? `<label class="veldnaam ld-om">${esc(t('laden.kabelOm'))}<input class="invoer" type="time" value="${esc(k.om)}" data-laad-kabelom="${esc(x.id)}"></label>` : ''}
+        <p class="mini">${esc(t('laden.kabelUitleg'))}</p></div>`;
+  }
+
   /** Mag SunArc hem met de hand bedienen (besluit 262)? Alleen bij een apparaat dat het kan. */
   function bedienBlok(info, x) {
     if (!x.kanBedienen) return '';
@@ -77,6 +90,7 @@ const laden = (() => {
         <label class="veldnaam">${esc(t('laden.accu'))}<span class="ld-met"><input class="invoer" type="number" inputmode="decimal" min="5" max="250" step="0.1" data-laad-accu="${esc(x.id)}" value="${i.accuKWh ?? ''}" placeholder="${esc(t('laden.accuVoorbeeld'))}"><span>kWh</span></span></label>
         <p class="mini">${esc(t('laden.accuUitleg'))}</p>
         ${palen.length ? `<label class="veldnaam">${esc(t('laden.laadtAan'))}<select class="invoer" data-laad-paal="${esc(x.id)}">${paalOpties.map(([w, tekst]) => `<option value="${esc(w)}" ${(i.laadpaal ?? '') === w ? 'selected' : ''}>${esc(tekst)}</option>`).join('')}</select></label>` : ''}
+        ${kabelVraag(a, x)}
         ${plek}${bedienBlok(info, x)}`;
     }
     // Een laadpaal: wat hij kan, en zonder auto in Home Assistant ook de plek.
@@ -118,6 +132,12 @@ const laden = (() => {
       // Wat de app vond, staat zonder keuze aan; uit is een keuze.
       if (!nu && !zelf) delete k.aan[id];
       else k.aan[id] = !nu;
+      return true;
+    }
+    if (laad === 'kabel') {
+      const i = instelling(a, id);
+      const w = knop.dataset.waarde;
+      k.instelling[id] = { ...i, kabel: { om: (i.kabel ?? KABEL).om, pct: w === '' ? null : Number(w) } };
       return true;
     }
     if (laad === 'bedienen') {
@@ -162,6 +182,12 @@ const laden = (() => {
       const accu = el.value === '' || !Number.isFinite(n) ? null : Math.min(250, Math.max(5, Math.round(n * 10) / 10));
       if (accu != null) el.value = String(accu);
       k.instelling[el.dataset.laadAccu] = { ...instelling(a, el.dataset.laadAccu), accuKWh: accu };
+      return true;
+    }
+    if (el.dataset.laadKabelom) {
+      if (!/^\d{2}:\d{2}$/.test(el.value)) return false;
+      const i = instelling(a, el.dataset.laadKabelom);
+      k.instelling[el.dataset.laadKabelom] = { ...i, kabel: { om: el.value, pct: (i.kabel ?? KABEL).pct } };
       return true;
     }
     if (el.dataset.laadPaal) {

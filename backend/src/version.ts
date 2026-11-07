@@ -9,7 +9,7 @@
  * krijgt in git een markering `v<nummer>`.
  */
 
-export const VERSIE = '0.136.0';
+export const VERSIE = '0.137.0';
 
 export interface Nieuw {
   readonly versie: string;
@@ -80,6 +80,22 @@ export const OP_MAIN: readonly string[] = [
 
 /** De nieuwste versie eerst. Per versie kort en voor de bewoner, het belangrijkste eerst. */
 export const NIEUW: readonly Nieuw[] = [
+  {
+    versie: '0.137.0',
+    datum: '2026-11-07',
+    nieuw: [
+      'Meldingen van de auto: vol, laden gestopt met een fout van de laadpaal, en laden met de hand dat klaar is',
+      'Kabel vergeten: staat de auto \'s avonds thuis zonder kabel en te leeg, dan krijg je een melding. De tijd en het % kies je bij Energie › Auto en laadpaal',
+      'Op de telefoon een eigen keuze De auto, standaard aan, niet in je nachtrust',
+    ],
+    en: {
+      nieuw: [
+        'Notifications for the car: full, charging stopped by a charger error, and charging by hand that is done',
+        'Cable forgotten: if the car is home in the evening without the cable and too low, you get a notification. Choose the time and the % in Energy › Car and charger',
+        'On the phone its own choice The car, on by default, not during your night rest',
+      ],
+    },
+  },
   {
     versie: '0.136.0',
     datum: '2026-11-07',
